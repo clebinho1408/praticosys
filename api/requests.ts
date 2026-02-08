@@ -2,17 +2,16 @@ import { db } from '../db';
 import { examRequests } from '../db/schema';
 import { eq, like, or } from 'drizzle-orm';
 
+const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
       const { cpf } = req.query;
       
       if (cpf) {
-         // Busca específica por CPF (limpa caracteres não numéricos)
          const cleanCpf = cpf.replace(/\D/g, '');
-         // Nota: Aqui assumimos que o banco guarda com pontuação. 
-         // Se guardar limpo, precisa ajustar. O ideal é usar LIKE.
-         const data = await db.select().from(examRequests).where(like(examRequests.cpf, `%${cleanCpf}%`)); // Simplificação
+         const data = await db.select().from(examRequests).where(like(examRequests.cpf, `%${cleanCpf}%`));
          return res.status(200).json(data);
       }
       
@@ -21,7 +20,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'POST') {
-      const body = JSON.parse(req.body);
+      const body = parseBody(req);
       const newItem = await db.insert(examRequests).values({
         id: crypto.randomUUID(),
         createdAt: new Date(),
@@ -32,7 +31,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'PUT') {
-      const { id, ...updates } = JSON.parse(req.body);
+      const { id, ...updates } = parseBody(req);
       const updated = await db.update(examRequests)
         .set({ ...updates, updatedAt: new Date() })
         .where(eq(examRequests.id, id))

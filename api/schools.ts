@@ -2,6 +2,8 @@ import { db } from '../db';
 import { drivingSchools } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
+const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
@@ -10,7 +12,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'POST') {
-      const body = JSON.parse(req.body);
+      const body = parseBody(req);
       const newItem = await db.insert(drivingSchools).values({
         id: crypto.randomUUID(),
         ...body
@@ -19,7 +21,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'PUT') {
-      const { id, ...updates } = JSON.parse(req.body);
+      const { id, ...updates } = parseBody(req);
       const updated = await db.update(drivingSchools)
         .set(updates)
         .where(eq(drivingSchools.id, id))

@@ -7,9 +7,15 @@ export const MOCK_SCHOOLS: DrivingSchool[] = [];
 
 // Helper para chamadas
 const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
-  const res = await fetch(`/api/${endpoint}`, options);
+  // Garante que o Content-Type seja JSON se houver body
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  const res = await fetch(`/api/${endpoint}`, { ...options, headers });
+  
   if (!res.ok) {
-     // Tenta ler o erro detalhado do JSON
      const errorBody = await res.json().catch(() => null);
      const errorMessage = errorBody?.error || `Erro HTTP ${res.status}: ${res.statusText}`;
      console.error(`[API Error] ${endpoint}:`, errorMessage);

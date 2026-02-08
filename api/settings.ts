@@ -2,12 +2,13 @@ import { db } from '../db';
 import { systemSettings } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
+const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
       const data = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
       if (data.length === 0) {
-        // Retorna padrão se vazio
         return res.status(200).json({
           agencyName: 'DETRAN',
           maintenanceMode: false,
@@ -21,9 +22,8 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'PUT') {
-      const updates = JSON.parse(req.body);
+      const updates = parseBody(req);
       
-      // Upsert (Update or Insert)
       const existing = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
       
       let result;
