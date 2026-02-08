@@ -2,6 +2,7 @@
   "name": "praticosys",
   "version": "1.0.0",
   "description": "Sistema de Gestão de Provas do Detran",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
