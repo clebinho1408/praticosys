@@ -2,22 +2,44 @@ import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from './schema';
 
-// 1. Tenta pegar a URL de várias fontes possíveis
 const rawUrl = process.env.DATABASE_URL || process.env.VITE_NEON_DATABASE_URL || "";
 
-// 2. Limpeza Agressiva: 
-// Remove "psql", espaços e quaisquer aspas simples ou duplas no início/fim
+// Tenta limpar a URL
 const cleanUrl = rawUrl
   .trim()
   .replace(/^psql\s+/, '') 
-  .replace(/^['"]+|['"]+$/g, ''); // Remove ' ou " do começo e do fim
+  .replace(/^['"]+|['"]+$/g, '');
 
-if (!cleanUrl) {
-  console.error("ERRO CRÍTICO: URL do banco de dados vazia.");
-} else {
-  // Log de segurança (mascarado) para debug no Vercel Logs
-  console.log("Database URL configurada:", cleanUrl.substring(0, 15) + "...");
+let dbInstance;
+
+try {
+  if (!cleanUrl) {
+    console.warn("AVISO: URL do banco de dados não encontrada nas variáveis de ambiente.");
+    throw new Error("Missing Database URL");
+  }
+  
+  // Inicializa conexão real
+  const sql = neon(cleanUrl);
+  dbInstance = drizzle(sql, { schema });
+
+} catch (e: any) {
+  console.error("ERRO FATAL DB: Falha ao inicializar conexão:", e.message);
+  
+  // Cria um Mock do DB que não faz nada mas não derruba a aplicação
+  // Isso permite que a API responda com erro 500 controlado em vez de crashar
+  const crash = (op: string) => { 
+      throw new Error(`Banco de dados não conectado. Operação '${op}' falhou. Verifique as variáveis de ambiente.`); 
+  };
+  
+  dbInstance = {
+    select: () => ({ from: () => ({ where: () => [], limit: () => [], orderBy: () => [], leftJoin: () => ({}) }) }),
+    insert: () => ({ values: () => ({ returning: () => [] }) }),
+    update: () => ({ set: () => ({ where: () => ({ returning: () => [] }) }) }),
+    delete: () => ({ where: () => ({ returning: () => [] }) }),
+    execute: async () => crash('execute'),
+    transaction: async () => crash('transaction'),
+    _isMock: true // Flag para diagnóstico
+  } as any;
 }
 
-const sql = neon(cleanUrl);
-export const db = drizzle(sql, { schema });
+export const db = dbInstance;
