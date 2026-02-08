@@ -13,31 +13,45 @@ const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
     ...options.headers,
   };
 
-  const res = await fetch(`/api/${endpoint}`, { ...options, headers });
-  
-  if (!res.ok) {
-     const errorBody = await res.json().catch(() => null);
-     const errorMessage = errorBody?.error || `Erro HTTP ${res.status}: ${res.statusText}`;
-     console.error(`[API Error] ${endpoint}:`, errorMessage);
-     throw new Error(errorMessage);
+  try {
+    const res = await fetch(`/api/${endpoint}`, { ...options, headers });
+    
+    // Verificação Crítica: Se o servidor retornou HTML em vez de JSON,
+    // significa que a rota da API não existe ou o servidor web (Vite)
+    // devolveu o index.html (fallback).
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("text/html")) {
+        console.error(`[API Error] A rota /api/${endpoint} retornou HTML.`);
+        throw new Error(
+            "A API não está acessível. Se você está rodando localmente apenas com 'npm run dev', as rotas de backend (/api) não são processadas. Use 'vercel dev' para rodar o backend localmente."
+        );
+    }
+
+    if (!res.ok) {
+        const errorBody = await res.json().catch(() => null);
+        const errorMessage = errorBody?.error || errorBody?.message || `Erro HTTP ${res.status}: ${res.statusText}`;
+        console.error(`[API Error] ${endpoint}:`, errorMessage);
+        throw new Error(errorMessage);
+    }
+    
+    return await res.json();
+  } catch (error: any) {
+    // Se for erro de rede ou o erro lançado acima
+    console.error(`[Fetch Fail] ${endpoint}:`, error);
+    throw error;
   }
-  return res.json();
 };
 
 // API Real conectada ao Backend Vercel -> Neon DB
 export const api = {
   // Auth
   login: async (login: string, password?: string): Promise<User | null> => {
-    try {
-      const user = await fetchApi('auth', {
-        method: 'POST',
-        body: JSON.stringify({ login, password })
-      });
-      return user;
-    } catch (e) {
-      console.error("Falha no login:", e);
-      return null;
-    }
+    // try/catch específico para login para não quebrar a UI inteira
+    const user = await fetchApi('auth', {
+      method: 'POST',
+      body: JSON.stringify({ login, password })
+    });
+    return user;
   },
 
   // Users
