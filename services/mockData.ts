@@ -3,14 +3,17 @@ import {
   SystemSettings, ExamStatus, ExamType, RequestSource, ExamResultEntry 
 } from '../types';
 
-export const MOCK_SCHOOLS: DrivingSchool[] = []; // Mantido vazio para compatibilidade
+export const MOCK_SCHOOLS: DrivingSchool[] = []; 
 
 // Helper para chamadas
 const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
   const res = await fetch(`/api/${endpoint}`, options);
   if (!res.ok) {
-     const error = await res.json().catch(() => ({}));
-     throw new Error(error.error || 'Erro na requisição');
+     // Tenta ler o erro detalhado do JSON
+     const errorBody = await res.json().catch(() => null);
+     const errorMessage = errorBody?.error || `Erro HTTP ${res.status}: ${res.statusText}`;
+     console.error(`[API Error] ${endpoint}:`, errorMessage);
+     throw new Error(errorMessage);
   }
   return res.json();
 };
@@ -26,7 +29,7 @@ export const api = {
       });
       return user;
     } catch (e) {
-      console.error(e);
+      console.error("Falha no login:", e);
       return null;
     }
   },
@@ -44,7 +47,7 @@ export const api = {
   },
 
   // Schools
-  getSchools: (): DrivingSchool[] => [], // Legacy Sync
+  getSchools: (): DrivingSchool[] => [], 
   getSchoolsAsync: async (): Promise<DrivingSchool[]> => fetchApi('schools'),
   createSchool: async (data: Omit<DrivingSchool, 'id'>): Promise<DrivingSchool> => {
     return fetchApi('schools', { method: 'POST', body: JSON.stringify(data) });
@@ -57,7 +60,7 @@ export const api = {
   },
 
   // Examiners
-  getExaminers: (): Examiner[] => [], // Legacy Sync
+  getExaminers: (): Examiner[] => [], 
   getExaminersAsync: async (): Promise<Examiner[]> => fetchApi('examiners'),
   createExaminer: async (data: Omit<Examiner, 'id'>): Promise<Examiner> => {
     return fetchApi('examiners', { method: 'POST', body: JSON.stringify(data) });
@@ -98,7 +101,6 @@ export const api = {
 
   getRequestByCpf: async (cpf: string): Promise<ExamRequest[]> => {
     const all = await fetchApi(`requests?cpf=${cpf}`);
-    // Filtragem extra client-side para garantir match exato se o LIKE do banco for muito amplo
     return all.filter((r: ExamRequest) => r.cpf.replace(/\D/g, '') === cpf.replace(/\D/g, ''));
   },
   
@@ -110,9 +112,7 @@ export const api = {
     return fetchApi('requests', { method: 'PUT', body: JSON.stringify({ id, ...updates }) });
   },
 
-  // Scheduling Logic (Now handles updates via Request PUT)
   assignStudentToSchedule: async (requestId: string, scheduleId: string, category: string): Promise<void> => {
-     // Primeiro buscamos a banca para pegar data/hora
      const schedules = await fetchApi('schedules');
      const schedule = schedules.find((s: ExamSchedule) => s.id === scheduleId);
      if (!schedule) throw new Error("Schedule not found");
