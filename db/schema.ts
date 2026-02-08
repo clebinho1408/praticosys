@@ -2,9 +2,10 @@ import { pgTable, text, boolean, integer, timestamp, uuid, jsonb } from 'drizzle
 
 // Tabela de Usuários (Admin, Operadores, Escolas)
 export const users = pgTable('users', {
-  id: text('id').primaryKey(), // Usaremos CUID ou UUID no frontend/backend
+  id: text('id').primaryKey(),
   name: text('name').notNull(),
   login: text('login').notNull().unique(),
+  password: text('password'), // Nova coluna de senha
   role: text('role').notNull(), // ADMIN, SUPERVISOR, OPERATOR, SCHOOL
   schoolId: text('school_id'), // Opcional, link para autoescola
   createdAt: timestamp('created_at').defaultNow(),

@@ -10,18 +10,18 @@ interface LoginProps {
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [login, setLogin] = useState('');
-  const [password, setPassword] = useState(''); // Mocked, any pass works if login matches mock
+  const [password, setPassword] = useState(''); 
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = await api.login(login);
+    const user = await api.login(login, password);
     if (user) {
       onLogin(user);
       navigate('/admin');
     } else {
-      setError('Credenciais inválidas. Tente "admin", "admin_novo", "supervisor", "operador" ou "veloce".');
+      setError('Credenciais inválidas. Verifique seu usuário e senha.');
     }
   };
 

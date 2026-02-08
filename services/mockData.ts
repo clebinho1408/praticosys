@@ -18,11 +18,11 @@ const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
 // API Real conectada ao Backend Vercel -> Neon DB
 export const api = {
   // Auth
-  login: async (login: string): Promise<User | null> => {
+  login: async (login: string, password?: string): Promise<User | null> => {
     try {
       const user = await fetchApi('auth', {
         method: 'POST',
-        body: JSON.stringify({ login })
+        body: JSON.stringify({ login, password })
       });
       return user;
     } catch (e) {
