@@ -1,5 +1,5 @@
-import { db } from '../db';
-import { examRequests } from '../db/schema';
+import { db } from '../db/index.js';
+import { examRequests } from '../db/schema.js';
 import { eq, like, or } from 'drizzle-orm';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
