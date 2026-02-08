@@ -8,17 +8,16 @@ export default async function handler(req: any, res: any) {
   try {
     const { login } = JSON.parse(req.body);
     
-    // Busca usuário no banco
+    // 1. Tenta encontrar o usuário
     const result = await db.select().from(users).where(eq(users.login, login));
     
     if (result.length > 0) {
       return res.status(200).json(result[0]);
     }
     
-    // Fallback temporário para criar admin se não existir ninguém (para primeiro acesso)
+    // 2. Se não encontrou e o login for "admin", cria automaticamente (Self-Healing)
     if (login === 'admin') {
-      const allUsers = await db.select().from(users);
-      if (allUsers.length === 0) {
+      try {
         const newAdmin = await db.insert(users).values({
           id: crypto.randomUUID(),
           name: 'Administrador',
@@ -26,6 +25,11 @@ export default async function handler(req: any, res: any) {
           role: 'ADMIN'
         }).returning();
         return res.status(200).json(newAdmin[0]);
+      } catch (insertError) {
+        // Caso ocorra concorrência ou erro, tenta buscar novamente
+        console.error("Erro ao criar admin, tentando recuperar...", insertError);
+        const retry = await db.select().from(users).where(eq(users.login, 'admin'));
+        if (retry.length > 0) return res.status(200).json(retry[0]);
       }
     }
 
