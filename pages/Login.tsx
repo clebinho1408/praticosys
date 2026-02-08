@@ -3,6 +3,7 @@ import { api } from '../services/mockData';
 import { User } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { Logo } from '../components/Logo';
+import { AlertTriangle, Activity } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -12,17 +13,48 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState(''); 
   const [error, setError] = useState('');
+  const [detailedError, setDetailedError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [diagResult, setDiagResult] = useState<any>(null);
+  
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const user = await api.login(login, password);
-    if (user) {
-      onLogin(user);
-      navigate('/admin');
-    } else {
-      setError('Credenciais inválidas. Verifique seu usuário e senha.');
+    setLoading(true);
+    setError('');
+    setDetailedError(null);
+    setDiagResult(null);
+
+    try {
+      const user = await api.login(login, password);
+      if (user) {
+        onLogin(user);
+        navigate('/admin');
+      } else {
+        setError('Credenciais inválidas.');
+      }
+    } catch (err: any) {
+        // Captura a mensagem de erro que vem do backend
+        const msg = err.message || "Erro desconhecido";
+        setError('Erro ao conectar com o servidor.');
+        setDetailedError(msg);
+    } finally {
+        setLoading(false);
     }
+  };
+
+  const runDiagnostics = async () => {
+      setLoading(true);
+      try {
+          const res = await fetch('/api/test');
+          const data = await res.json();
+          setDiagResult(data);
+      } catch (e: any) {
+          setDiagResult({ status: 'ERROR', message: 'Falha ao rodar diagnóstico', details: e.message });
+      } finally {
+          setLoading(false);
+      }
   };
 
   return (
@@ -79,19 +111,51 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
 
             {error && (
-              <div className="text-red-600 text-sm text-center">
-                {error}
+              <div className="rounded-md bg-red-50 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-red-400" aria-hidden="true" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                    {detailedError && (
+                        <div className="mt-2 text-xs text-red-700 font-mono bg-red-100 p-2 rounded overflow-auto max-h-32">
+                            {detailedError}
+                        </div>
+                    )}
+                  </div>
+                </div>
               </div>
+            )}
+
+            {/* Resultado do Diagnóstico */}
+            {diagResult && (
+                 <div className={`rounded-md p-4 text-xs font-mono overflow-auto max-h-60 ${diagResult.status === 'OK' ? 'bg-green-50 text-green-900' : 'bg-yellow-50 text-yellow-900'}`}>
+                     <pre>{JSON.stringify(diagResult, null, 2)}</pre>
+                 </div>
             )}
 
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={loading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                Entrar
+                {loading ? 'Processando...' : 'Entrar'}
               </button>
             </div>
+            
+            {(error || diagResult) && (
+                <div className="text-center">
+                    <button 
+                        type="button" 
+                        onClick={runDiagnostics}
+                        className="text-xs text-blue-600 hover:underline flex items-center justify-center gap-1 w-full"
+                    >
+                        <Activity className="h-3 w-3" /> Rodar Diagnóstico do Sistema
+                    </button>
+                </div>
+            )}
           </form>
         </div>
       </div>
