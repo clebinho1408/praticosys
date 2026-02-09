@@ -63,6 +63,9 @@ const UsersManager: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   
+  // Search State
+  const [searchTerm, setSearchTerm] = useState('');
+  
   // Form State
   const [formData, setFormData] = useState({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '' });
 
@@ -71,7 +74,7 @@ const UsersManager: React.FC = () => {
     setUsers(u);
     setSchools(s);
     
-    // Simula pegar o usuário atual da sessão (na prática viria do Contexto ou LocalStorage)
+    // Simula pegar o usuário atual da sessão
     const stored = localStorage.getItem('praticosys_user');
     if (stored) setCurrentUser(JSON.parse(stored));
   };
@@ -95,12 +98,10 @@ const UsersManager: React.FC = () => {
       if (editingUser) {
         await api.updateUser(editingUser.id, formData);
       } else {
-        // Validação duplicidade visual (backend tem constraint unique, mas aqui previne chamada)
         if (users.some(u => u.login === formData.login)) {
             alert("Este login já está em uso.");
             return;
         }
-        // Senha padrão é setada no backend api/users.ts como '123456'
         await api.createUser(formData as any);
       }
       setIsModalOpen(false);
@@ -135,20 +136,35 @@ const UsersManager: React.FC = () => {
   }
 
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      // Permite apenas letras minúsculas (a-z), remove espaços, acentos e outros caracteres
       const val = e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
       setFormData({...formData, login: val});
   }
 
+  // Filter Logic
+  const filteredUsers = users.filter(u => 
+      u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      u.login.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-          <Plus className="h-4 w-4" /> Nova Usuário
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input 
+                type="text" 
+                placeholder="Buscar usuário por nome ou login..." 
+                className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
+          <Plus className="h-4 w-4" /> Novo Usuário
         </button>
       </div>
 
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto border rounded-lg">
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
@@ -160,7 +176,7 @@ const UsersManager: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {users.map(u => (
+            {filteredUsers.map(u => (
               <tr key={u.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium">{u.name}</td>
                 <td className="px-4 py-3 text-gray-500">{u.login}</td>
@@ -172,7 +188,6 @@ const UsersManager: React.FC = () => {
                   {u.role !== UserRole.SCHOOL && '-'}
                 </td>
                 <td className="px-4 py-3 text-right space-x-2 flex justify-end">
-                  {/* Botão Resetar Senha (Apenas Admin) */}
                   {currentUser?.role === UserRole.ADMIN && (
                       <button onClick={() => handleResetPassword(u.id)} className="text-yellow-600 hover:text-yellow-800" title="Resetar Senha para 123456">
                           <Lock className="h-4 w-4" />
@@ -183,6 +198,9 @@ const UsersManager: React.FC = () => {
                 </td>
               </tr>
             ))}
+            {filteredUsers.length === 0 && (
+                <tr><td colSpan={5} className="p-4 text-center text-gray-500">Nenhum usuário encontrado.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -205,7 +223,7 @@ const UsersManager: React.FC = () => {
                     value={formData.login} 
                     onChange={handleLoginChange}
                     placeholder="apenas letras minúsculas"
-                    readOnly={!!editingUser} // Não permitir mudar login na edição
+                    readOnly={!!editingUser}
                     title={editingUser ? "Não é possível alterar o login" : "Apenas letras minúsculas, sem espaço"}
                 />
                 <p className="text-xs text-gray-500 mt-1">Apenas letras minúsculas, sem espaço, sem acento.</p>
@@ -252,6 +270,9 @@ const SchoolsManager: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DrivingSchool | null>(null);
   const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
+  
+  // Search State
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetch = async () => setSchools(await api.getSchoolsAsync());
   useEffect(() => { fetch(); }, []);
@@ -273,15 +294,31 @@ const SchoolsManager: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (confirm('Remover Autoescola?')) { await api.deleteSchool(id); fetch(); }
   };
+  
+  // Filter Logic
+  const filteredSchools = schools.filter(s => 
+      s.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input 
+                type="text" 
+                placeholder="Buscar autoescola..." 
+                className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
           <Plus className="h-4 w-4" /> Nova Autoescola
         </button>
       </div>
-      <div className="overflow-x-auto">
+
+      <div className="overflow-x-auto border rounded-lg">
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
@@ -292,7 +329,7 @@ const SchoolsManager: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {schools.map(s => (
+            {filteredSchools.map(s => (
               <tr key={s.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium">{s.name}</td>
                 <td className="px-4 py-3 text-gray-500">{s.phone}</td>
@@ -303,6 +340,9 @@ const SchoolsManager: React.FC = () => {
                 </td>
               </tr>
             ))}
+             {filteredSchools.length === 0 && (
+                <tr><td colSpan={4} className="p-4 text-center text-gray-500">Nenhuma autoescola encontrada.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -333,6 +373,9 @@ const ExaminersManager: React.FC = () => {
   const [editing, setEditing] = useState<Examiner | null>(null);
   const [formData, setFormData] = useState({ name: '', registrationNumber: '', canExamCommon: true, canExamPCD: false });
 
+  // Search State
+  const [searchTerm, setSearchTerm] = useState('');
+
   const fetch = async () => setExaminers(await api.getExaminersAsync());
   useEffect(() => { fetch(); }, []);
 
@@ -355,19 +398,35 @@ const ExaminersManager: React.FC = () => {
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      // Uppercase, sem acentos, apenas letras e espaços
       const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z\s]/g, "");
       setFormData({...formData, name: val});
   }
+  
+  // Filter Logic
+  const filteredExaminers = examiners.filter(e => 
+      e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      e.registrationNumber.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input 
+                type="text" 
+                placeholder="Buscar examinador..." 
+                className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
           <Plus className="h-4 w-4" /> Nova Examinador
         </button>
       </div>
-      <div className="overflow-x-auto">
+
+      <div className="overflow-x-auto border rounded-lg">
         <table className="w-full text-sm text-left">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
@@ -378,7 +437,7 @@ const ExaminersManager: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {examiners.map(e => (
+            {filteredExaminers.map(e => (
               <tr key={e.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium">{e.name}</td>
                 <td className="px-4 py-3 text-gray-500">{e.registrationNumber}</td>
@@ -392,6 +451,9 @@ const ExaminersManager: React.FC = () => {
                 </td>
               </tr>
             ))}
+            {filteredExaminers.length === 0 && (
+                <tr><td colSpan={4} className="p-4 text-center text-gray-500">Nenhum examinador encontrado.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
