@@ -58,23 +58,27 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-            <div className="h-16 w-16 bg-white rounded-xl shadow flex items-center justify-center p-2">
+    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900 z-0"></div>
+      <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none z-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="flex justify-center mb-6">
+            <div className="h-20 w-20 bg-white rounded-2xl shadow-xl flex items-center justify-center p-3 transform rotate-3 hover:rotate-0 transition-transform duration-300">
                 <Logo className="h-full w-full" />
             </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+        <h2 className="mt-2 text-center text-3xl font-extrabold text-white">
           PráticoSys
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Gestão de Provas Práticas
+        <p className="mt-2 text-center text-sm text-blue-200">
+          Sistema de Gestão de Provas Práticas
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
+        <div className="bg-white py-8 px-4 shadow-2xl shadow-black/20 sm:rounded-xl sm:px-10 border border-white/10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="login" className="block text-sm font-medium text-gray-700">
@@ -88,7 +92,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   required
                   value={login}
                   onChange={(e) => setLogin(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-50 text-gray-900"
                 />
               </div>
             </div>
@@ -105,13 +109,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white text-gray-900"
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-50 text-gray-900"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
+              <div className="rounded-md bg-red-50 p-4 border border-red-100">
                 <div className="flex">
                   <div className="flex-shrink-0">
                     <AlertTriangle className="h-5 w-5 text-red-400" aria-hidden="true" />
@@ -119,7 +123,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   <div className="ml-3">
                     <h3 className="text-sm font-medium text-red-800">{error}</h3>
                     {detailedError && (
-                        <div className="mt-2 text-xs text-red-700 font-mono bg-red-100 p-2 rounded overflow-auto max-h-32">
+                        <div className="mt-2 text-xs text-red-700 font-mono bg-red-100 p-2 rounded overflow-auto max-h-32 border border-red-200">
                             {detailedError}
                         </div>
                     )}
@@ -130,7 +134,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
             {/* Resultado do Diagnóstico */}
             {diagResult && (
-                 <div className={`rounded-md p-4 text-xs font-mono overflow-auto max-h-60 ${diagResult.status === 'OK' ? 'bg-green-50 text-green-900' : 'bg-yellow-50 text-yellow-900'}`}>
+                 <div className={`rounded-md p-4 text-xs font-mono overflow-auto max-h-60 border ${diagResult.status === 'OK' ? 'bg-green-50 text-green-900 border-green-200' : 'bg-yellow-50 text-yellow-900 border-yellow-200'}`}>
                      <pre>{JSON.stringify(diagResult, null, 2)}</pre>
                  </div>
             )}
@@ -139,9 +143,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
               >
-                {loading ? 'Processando...' : 'Entrar'}
+                {loading ? 'Acessando...' : 'Entrar no Sistema'}
               </button>
             </div>
             
@@ -150,7 +154,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <button 
                         type="button" 
                         onClick={runDiagnostics}
-                        className="text-xs text-blue-600 hover:underline flex items-center justify-center gap-1 w-full"
+                        className="text-xs text-gray-500 hover:text-blue-600 hover:underline flex items-center justify-center gap-1 w-full mt-4"
                     >
                         <Activity className="h-3 w-3" /> Rodar Diagnóstico do Sistema
                     </button>
