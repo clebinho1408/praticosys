@@ -260,13 +260,14 @@ const SchedulingCenter: React.FC = () => {
     // Se tiver nome social, usa ele
     const displayName = req.socialName || req.studentName;
 
+    // Use global replacement for variables
     message = message
-        .replace('{CANDIDATO}', displayName)
-        .replace('{ALUNO}', displayName) // Backward compatibility just in case
-        .replace('{DATA}', new Date(req.scheduledDate!).toLocaleDateString())
-        .replace('{HORA}', req.scheduledTime!)
-        .replace('{CATEGORIA}', req.scheduledCategory || req.intendedCategory || 'B')
-        .replace('{ENDERECO}', fullAddress);
+        .replace(/{CANDIDATO}/g, displayName)
+        .replace(/{ALUNO}/g, displayName)
+        .replace(/{DATA}/g, new Date(req.scheduledDate!).toLocaleDateString())
+        .replace(/{HORA}/g, req.scheduledTime!)
+        .replace(/{CATEGORIA}/g, req.scheduledCategory || req.intendedCategory || 'B')
+        .replace(/{ENDERECO}/g, fullAddress);
     
     return message;
   }
@@ -278,7 +279,10 @@ const SchedulingCenter: React.FC = () => {
       const phone = "55" + req.phone.replace(/\D/g, '');
       const message = generateMessage(req);
 
-      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+      // Using api.whatsapp.com/send instead of wa.me to better handle emoji encoding
+      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+
+      window.open(whatsappUrl, '_blank');
   };
 
   const handleToggleConfirmation = async (e: React.MouseEvent, req: ExamRequest) => {
@@ -359,6 +363,9 @@ const SchedulingCenter: React.FC = () => {
   const canAddStudent = selectedSchedule?.status === 'OPEN';
   const canCancel = selectedSchedule?.status === 'OPEN' || selectedSchedule?.status === 'CLOSED';
   // Note: CLOSED allows cancel, CONCLUDED allows nothing.
+  
+  // Print validation: All students must be confirmed
+  const hasUnconfirmed = scheduledStudents.some(s => !s.attendanceConfirmed);
 
   return (
     <>
@@ -374,18 +381,17 @@ const SchedulingCenter: React.FC = () => {
             <div className="p-6 border-b border-gray-100 bg-gray-50 print:bg-white print:border-b-2 print:border-black">
               
               {/* PRINT HEADER */}
-              <div className="hidden print:flex justify-between items-center mb-6 border-b-2 border-black pb-4">
-                  <div className="flex items-center gap-4">
+              <div className="hidden print:flex items-center gap-6 mb-6 border-b-2 border-black pb-4">
+                  {/* Logo Esquerda */}
+                  <div className="flex items-center">
                       {settings?.logoUrl && (
-                          <img src={settings.logoUrl} alt="Logo Agência" className="h-20 w-auto object-contain max-w-[150px]" />
+                          <img src={settings.logoUrl} alt="Logo Agência" className="h-14 w-auto object-contain max-w-[120px]" />
                       )}
                   </div>
-                  <div className="text-right">
-                      <h1 className="text-3xl font-bold text-black uppercase">{settings?.agencyName || 'DETRAN'}</h1>
-                      {settings?.agencyAddress && (
-                          <p className="text-sm text-black">{settings.agencyAddress}</p>
-                      )}
-                      <p className="text-sm text-gray-600 uppercase font-semibold mt-1">Lista de Chamada - 1ª Habilitação</p>
+                  {/* Texto Esquerda/Centro */}
+                  <div className="text-left">
+                      <h1 className="text-lg font-bold text-black uppercase">{settings?.agencyName || 'DETRAN'}</h1>
+                      <p className="text-3xl font-black text-black uppercase mt-1">Lista de Chamada - 1ª Habilitação</p>
                   </div>
               </div>
 
@@ -472,7 +478,13 @@ const SchedulingCenter: React.FC = () => {
                     <button 
                       type="button"
                       onClick={handlePrint}
-                      className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 bg-white shadow-sm"
+                      disabled={hasUnconfirmed}
+                      className={`flex items-center gap-2 px-4 py-2 border rounded-md shadow-sm transition-colors ${
+                          hasUnconfirmed 
+                            ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed' 
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-50 bg-white'
+                      }`}
+                      title={hasUnconfirmed ? "Confirme a presença de todos os candidatos para imprimir" : "Imprimir Lista"}
                     >
                       <Printer className="h-4 w-4" /> Imprimir
                     </button>

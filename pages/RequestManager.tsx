@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
 import { ExamRequest, ExamStatus, ExamType, User, UserRole, RequestSource, ExamResult, ExamResultEntry } from '../types';
 import { Search, Calendar, Eye, Plus, UserPlus, Save, CheckSquare, X, FileText, Award, User as UserIcon, Settings as SettingsIcon, History, ChevronDown, ChevronUp, Clock, CheckCircle, AlertCircle, RefreshCw, XCircle, AlertTriangle, Filter, Edit, Gavel } from 'lucide-react';
+import { AlertModal } from '../components/CustomModals';
 
 interface RequestManagerProps {
   user: User;
@@ -73,6 +74,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<ModalTabType>('DATA');
   const [currentEditingStatus, setCurrentEditingStatus] = useState<ExamStatus | null>(null);
+
+  // Alert Modal State
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: 'error' | 'success' }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'error'
+  });
 
   // Schedule Form State
   const [scheduleData, setScheduleData] = useState({ date: '', time: '', examinerId: '' });
@@ -234,17 +243,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       setIsCreateModalOpen(true);
   };
 
+  const showAlert = (title: string, message: string, type: 'error' | 'success' = 'error') => {
+      setAlertState({ isOpen: true, title, message, type });
+  };
+
   const handleSaveRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       // VALIDATIONS
       if (!isValidCPF(newRequestData.cpf)) {
-          alert("CPF Inválido. Verifique os números digitados.");
+          showAlert("CPF Inválido", "Por favor, verifique os números digitados e tente novamente.");
           return;
       }
 
       if (!newRequestData.studentName.trim() || !newRequestData.phone.trim() || !newRequestData.cpf.trim() || !newRequestData.cnhRestriction.trim()) {
-          alert("Preencha todos os campos obrigatórios (*)");
+          showAlert("Campos Obrigatórios", "Preencha todos os campos marcados com (*)");
           return;
       }
 
@@ -318,7 +331,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       setIsCreateModalOpen(false);
       fetchData();
     } catch (error) {
-      alert('Erro ao salvar cadastro.');
+      showAlert('Erro', 'Ocorreu um erro ao salvar o cadastro. Tente novamente.');
     }
   };
 
@@ -397,6 +410,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
   return (
     <div className="space-y-6">
+      <AlertModal 
+         isOpen={alertState.isOpen}
+         title={alertState.title}
+         message={alertState.message}
+         type={alertState.type}
+         onClose={() => setAlertState(prev => ({ ...prev, isOpen: false }))}
+      />
       
       {/* Header & Filter */}
       <div className="bg-white rounded-lg shadow p-4 flex flex-col sm:flex-row justify-between gap-4 items-center">

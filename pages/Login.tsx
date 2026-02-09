@@ -65,7 +65,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
         <div className="flex justify-center mb-6">
-            <div className="h-20 w-20 bg-white rounded-2xl shadow-xl flex items-center justify-center p-3 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+            <div className="h-20 w-20 bg-white rounded-2xl shadow-xl flex items-center justify-center p-3">
                 <Logo className="h-full w-full" />
             </div>
         </div>

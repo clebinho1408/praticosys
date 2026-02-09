@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
 import { User, UserRole, DrivingSchool, Examiner } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, X, Save, Lock, RotateCcw } from 'lucide-react';
+import { ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS';
 
@@ -69,6 +70,21 @@ const UsersManager: React.FC = () => {
   // Form State
   const [formData, setFormData] = useState({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '' });
 
+  // Confirmation Modal State
+  const [confirmState, setConfirmState] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      isDestructive: boolean;
+      onConfirm: () => void;
+  }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      isDestructive: false,
+      onConfirm: () => {}
+  });
+
   const fetchData = async () => {
     const [u, s] = await Promise.all([api.getUsers(), api.getSchoolsAsync()]);
     setUsers(u);
@@ -111,18 +127,29 @@ const UsersManager: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja remover este usuário?')) {
-      await api.deleteUser(id);
-      fetchData();
-    }
+  const handleDelete = (id: string) => {
+      setConfirmState({
+          isOpen: true,
+          title: 'Excluir Usuário',
+          message: 'Tem certeza que deseja remover este usuário permanentemente?',
+          isDestructive: true,
+          onConfirm: async () => {
+              await api.deleteUser(id);
+              fetchData();
+          }
+      });
   };
 
-  const handleResetPassword = async (id: string) => {
-      if (confirm('Tem certeza que deseja resetar a senha deste usuário para "123456"?')) {
-          await api.updateUser(id, { password: '123456' } as any);
-          alert('Senha resetada com sucesso!');
-      }
+  const handleResetPassword = (id: string) => {
+      setConfirmState({
+          isOpen: true,
+          title: 'Resetar Senha',
+          message: 'A senha deste usuário será redefinida para "123456". Deseja continuar?',
+          isDestructive: false,
+          onConfirm: async () => {
+              await api.updateUser(id, { password: '123456' } as any);
+          }
+      });
   }
 
   const getRoleName = (role: string) => {
@@ -148,6 +175,15 @@ const UsersManager: React.FC = () => {
 
   return (
     <div>
+      <ConfirmModal 
+         isOpen={confirmState.isOpen}
+         title={confirmState.title}
+         message={confirmState.message}
+         isDestructive={confirmState.isDestructive}
+         onConfirm={confirmState.onConfirm}
+         onClose={() => setConfirmState(prev => ({...prev, isOpen: false}))}
+      />
+      
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -273,6 +309,21 @@ const SchoolsManager: React.FC = () => {
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      isDestructive: boolean;
+      onConfirm: () => void;
+  }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      isDestructive: false,
+      onConfirm: () => {}
+  });
 
   const fetch = async () => setSchools(await api.getSchoolsAsync());
   useEffect(() => { fetch(); }, []);
@@ -291,8 +342,17 @@ const SchoolsManager: React.FC = () => {
     fetch();
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Remover Autoescola?')) { await api.deleteSchool(id); fetch(); }
+  const handleDelete = (id: string) => {
+      setConfirmState({
+          isOpen: true,
+          title: 'Remover Autoescola',
+          message: 'Tem certeza que deseja remover esta autoescola?',
+          isDestructive: true,
+          onConfirm: async () => {
+              await api.deleteSchool(id);
+              fetch();
+          }
+      });
   };
   
   // Filter Logic
@@ -302,6 +362,15 @@ const SchoolsManager: React.FC = () => {
 
   return (
     <div>
+      <ConfirmModal 
+         isOpen={confirmState.isOpen}
+         title={confirmState.title}
+         message={confirmState.message}
+         isDestructive={confirmState.isDestructive}
+         onConfirm={confirmState.onConfirm}
+         onClose={() => setConfirmState(prev => ({...prev, isOpen: false}))}
+      />
+
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -376,6 +445,21 @@ const ExaminersManager: React.FC = () => {
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      isDestructive: boolean;
+      onConfirm: () => void;
+  }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      isDestructive: false,
+      onConfirm: () => {}
+  });
+
   const fetch = async () => setExaminers(await api.getExaminersAsync());
   useEffect(() => { fetch(); }, []);
 
@@ -393,8 +477,17 @@ const ExaminersManager: React.FC = () => {
     fetch();
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Remover Examinador?')) { await api.deleteExaminer(id); fetch(); }
+  const handleDelete = (id: string) => {
+      setConfirmState({
+          isOpen: true,
+          title: 'Remover Examinador',
+          message: 'Tem certeza que deseja remover este examinador?',
+          isDestructive: true,
+          onConfirm: async () => {
+              await api.deleteExaminer(id);
+              fetch();
+          }
+      });
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -410,6 +503,15 @@ const ExaminersManager: React.FC = () => {
 
   return (
     <div>
+      <ConfirmModal 
+         isOpen={confirmState.isOpen}
+         title={confirmState.title}
+         message={confirmState.message}
+         isDestructive={confirmState.isDestructive}
+         onConfirm={confirmState.onConfirm}
+         onClose={() => setConfirmState(prev => ({...prev, isOpen: false}))}
+      />
+
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
