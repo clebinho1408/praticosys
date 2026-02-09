@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
 import { User, UserRole, DrivingSchool, Examiner } from '../types';
-import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, X, Save } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, X, Save, Lock, RotateCcw } from 'lucide-react';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS';
 
@@ -61,6 +61,7 @@ const UsersManager: React.FC = () => {
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   // Form State
   const [formData, setFormData] = useState({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '' });
@@ -69,6 +70,10 @@ const UsersManager: React.FC = () => {
     const [u, s] = await Promise.all([api.getUsers(), api.getSchoolsAsync()]);
     setUsers(u);
     setSchools(s);
+    
+    // Simula pegar o usuário atual da sessão (na prática viria do Contexto ou LocalStorage)
+    const stored = localStorage.getItem('praticosys_user');
+    if (stored) setCurrentUser(JSON.parse(stored));
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -90,12 +95,18 @@ const UsersManager: React.FC = () => {
       if (editingUser) {
         await api.updateUser(editingUser.id, formData);
       } else {
+        // Validação duplicidade visual (backend tem constraint unique, mas aqui previne chamada)
+        if (users.some(u => u.login === formData.login)) {
+            alert("Este login já está em uso.");
+            return;
+        }
+        // Senha padrão é setada no backend api/users.ts como '123456'
         await api.createUser(formData as any);
       }
       setIsModalOpen(false);
       fetchData();
-    } catch (err) {
-      alert('Erro ao salvar');
+    } catch (err: any) {
+      alert('Erro ao salvar: ' + (err.message || "Verifique os dados"));
     }
   };
 
@@ -106,6 +117,13 @@ const UsersManager: React.FC = () => {
     }
   };
 
+  const handleResetPassword = async (id: string) => {
+      if (confirm('Tem certeza que deseja resetar a senha deste usuário para "123456"?')) {
+          await api.updateUser(id, { password: '123456' } as any);
+          alert('Senha resetada com sucesso!');
+      }
+  }
+
   const getRoleName = (role: string) => {
       switch(role) {
           case UserRole.ADMIN: return 'Admin';
@@ -114,6 +132,12 @@ const UsersManager: React.FC = () => {
           case UserRole.SCHOOL: return 'Autoescola';
           default: return role;
       }
+  }
+
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Permite apenas letras minúsculas (a-z), remove espaços, acentos e outros caracteres
+      const val = e.target.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^a-z]/g, "");
+      setFormData({...formData, login: val});
   }
 
   return (
@@ -147,9 +171,15 @@ const UsersManager: React.FC = () => {
                   {u.role === UserRole.SCHOOL && schools.find(s => s.id === u.schoolId)?.name}
                   {u.role !== UserRole.SCHOOL && '-'}
                 </td>
-                <td className="px-4 py-3 text-right space-x-2">
-                  <button onClick={() => openModal(u)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
-                  <button onClick={() => handleDelete(u.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                <td className="px-4 py-3 text-right space-x-2 flex justify-end">
+                  {/* Botão Resetar Senha (Apenas Admin) */}
+                  {currentUser?.role === UserRole.ADMIN && (
+                      <button onClick={() => handleResetPassword(u.id)} className="text-yellow-600 hover:text-yellow-800" title="Resetar Senha para 123456">
+                          <Lock className="h-4 w-4" />
+                      </button>
+                  )}
+                  <button onClick={() => openModal(u)} className="text-blue-600 hover:text-blue-800" title="Editar"><Edit2 className="h-4 w-4" /></button>
+                  <button onClick={() => handleDelete(u.id)} className="text-red-600 hover:text-red-800" title="Excluir"><Trash2 className="h-4 w-4" /></button>
                 </td>
               </tr>
             ))}
@@ -168,8 +198,23 @@ const UsersManager: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium">Login (Usuário)</label>
-                <input required type="text" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.login} onChange={e => setFormData({...formData, login: e.target.value})} />
+                <input 
+                    required 
+                    type="text" 
+                    className="w-full border rounded p-2 bg-white text-gray-900" 
+                    value={formData.login} 
+                    onChange={handleLoginChange}
+                    placeholder="apenas letras minúsculas"
+                    readOnly={!!editingUser} // Não permitir mudar login na edição
+                    title={editingUser ? "Não é possível alterar o login" : "Apenas letras minúsculas, sem espaço"}
+                />
+                <p className="text-xs text-gray-500 mt-1">Apenas letras minúsculas, sem espaço, sem acento.</p>
               </div>
+              {!editingUser && (
+                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                      Senha padrão será definida como: <strong>123456</strong>
+                  </div>
+              )}
               <div>
                 <label className="block text-sm font-medium">Função</label>
                 <select className="w-full border rounded p-2 bg-white text-gray-900" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})}>
@@ -309,6 +354,12 @@ const ExaminersManager: React.FC = () => {
     if (confirm('Remover Examinador?')) { await api.deleteExaminer(id); fetch(); }
   };
 
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Uppercase, sem acentos, apenas letras e espaços
+      const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z\s]/g, "");
+      setFormData({...formData, name: val});
+  }
+
   return (
     <div>
       <div className="flex justify-end mb-4">
@@ -350,7 +401,17 @@ const ExaminersManager: React.FC = () => {
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-bold mb-4">{editing ? 'Editar Examinador' : 'Novo Examinador'}</h3>
             <form onSubmit={handleSave} className="space-y-4">
-              <div><label className="block text-sm font-medium">Nome</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
+              <div>
+                  <label className="block text-sm font-medium">Nome <span className="text-red-500">*</span></label>
+                  <input 
+                    required 
+                    className="w-full border rounded p-2 bg-white text-gray-900" 
+                    value={formData.name} 
+                    onChange={handleNameChange}
+                    placeholder="APENAS LETRAS MAIÚSCULAS"
+                  />
+                  <p className="text-xs text-gray-500">Apenas letras, sem acentos, maiúsculo.</p>
+              </div>
               <div><label className="block text-sm font-medium">Matrícula</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.registrationNumber} onChange={e => setFormData({...formData, registrationNumber: e.target.value})} /></div>
               <div className="space-y-2">
                 <label className="block text-sm font-medium">Permissões</label>

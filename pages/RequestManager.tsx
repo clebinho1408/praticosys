@@ -10,6 +10,44 @@ interface RequestManagerProps {
 
 type ModalTabType = 'DATA' | 'PROCESS' | 'HISTORY';
 
+// Validação de CPF (Algoritmo padrão Receita Federal)
+function isValidCPF(cpf: string) {
+    cpf = cpf.replace(/[^\d]+/g, '');
+    if (cpf == '') return false;
+    // Elimina CPFs invalidos conhecidos
+    if (cpf.length != 11 ||
+        cpf == "00000000000" ||
+        cpf == "11111111111" ||
+        cpf == "22222222222" ||
+        cpf == "33333333333" ||
+        cpf == "44444444444" ||
+        cpf == "55555555555" ||
+        cpf == "66666666666" ||
+        cpf == "77777777777" ||
+        cpf == "88888888888" ||
+        cpf == "99999999999")
+        return false;
+    // Valida 1o digito
+    let add = 0;
+    for (let i = 0; i < 9; i++)
+        add += parseInt(cpf.charAt(i)) * (10 - i);
+    let rev = 11 - (add % 11);
+    if (rev == 10 || rev == 11)
+        rev = 0;
+    if (rev != parseInt(cpf.charAt(9)))
+        return false;
+    // Valida 2o digito
+    add = 0;
+    for (let i = 0; i < 10; i++)
+        add += parseInt(cpf.charAt(i)) * (11 - i);
+    rev = 11 - (add % 11);
+    if (rev == 10 || rev == 11)
+        rev = 0;
+    if (rev != parseInt(cpf.charAt(10)))
+        return false;
+    return true;
+}
+
 const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [filterText, setFilterText] = useState('');
@@ -199,6 +237,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const handleSaveRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      // VALIDATIONS
+      if (!isValidCPF(newRequestData.cpf)) {
+          alert("CPF Inválido. Verifique os números digitados.");
+          return;
+      }
+
+      if (!newRequestData.studentName.trim() || !newRequestData.phone.trim() || !newRequestData.cpf.trim() || !newRequestData.cnhRestriction.trim()) {
+          alert("Preencha todos os campos obrigatórios (*)");
+          return;
+      }
+
       // Default values for fields removed from UI
       const defaultEmail = 'sem_email@sistema.com'; 
       const defaultDesiredDate = new Date().toISOString().split('T')[0];
@@ -278,6 +327,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
           ...prev,
           examHistory: prev.examHistory.filter(h => h.id !== id)
       }));
+  };
+
+  // --- Handlers for Inputs ---
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'studentName' | 'socialName') => {
+      // Uppercase, No Accents, Only Letters and Spaces
+      const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z\s]/g, "");
+      setNewRequestData(prev => ({ ...prev, [field]: val }));
+  };
+
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Only Numbers
+      const val = e.target.value.replace(/\D/g, '');
+      setNewRequestData(prev => ({ ...prev, cpf: val }));
+  };
+
+  const handleRestrictionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Uppercase, Only Letters, Auto-Space
+      let raw = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z]/g, "");
+      // Add space between letters
+      const spaced = raw.split('').join(' ');
+      setNewRequestData(prev => ({ ...prev, cnhRestriction: spaced }));
   };
 
   // --- Configuration for Status Cards ---
@@ -417,8 +487,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                 </div>
                             </td>
                             <td className="px-6 py-4 cursor-pointer" onClick={() => openCreateModal(req)}>
-                              <div className="font-medium text-gray-900 hover:text-blue-600">{req.studentName}</div>
-                              {req.socialName && <div className="text-xs text-gray-500 italic">({req.socialName})</div>}
+                              {/* Display Logic: Social Name overrides Student Name */}
+                              <div className="font-medium text-gray-900 hover:text-blue-600">
+                                  {req.socialName ? req.socialName : req.studentName}
+                              </div>
+                              {req.socialName && <div className="text-xs text-gray-500 italic">(Reg: {req.studentName})</div>}
                               <div className="text-xs text-gray-500">{req.cpf}</div>
                               {req.disabilityType && <div className="text-xs text-blue-600 mt-1">PCD: {req.disabilityType}</div>}
                             </td>
@@ -493,46 +566,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
         })}
       </div>
 
-      {/* Schedule Modal (Legacy/Direct) */}
-      {selectedRequest && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fadeIn">
-            <h3 className="text-lg font-bold mb-4">Agendar Prova</h3>
-            <p className="mb-4 text-sm text-gray-600">Candidato: <strong>{selectedRequest.studentName}</strong></p>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium">Data</label>
-                <input type="date" className="w-full border rounded p-2 bg-white text-gray-900" value={scheduleData.date} onChange={e => setScheduleData({...scheduleData, date: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Horário</label>
-                <input type="time" className="w-full border rounded p-2 bg-white text-gray-900" value={scheduleData.time} onChange={e => setScheduleData({...scheduleData, time: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Examinador</label>
-                <select className="w-full border rounded p-2 bg-white text-gray-900" value={scheduleData.examinerId} onChange={e => setScheduleData({...scheduleData, examinerId: e.target.value})}>
-                  <option value="">Selecione...</option>
-                  {api.getExaminers().filter(ex => selectedRequest.examType === ExamType.PCD ? ex.canExamPCD : ex.canExamCommon).map(ex => (
-                    <option key={ex.id} value={ex.id}>{ex.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setSelectedRequest(null)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-              <button 
-                onClick={() => handleUpdateStatus(selectedRequest.id, ExamStatus.SCHEDULED, { scheduledDate: scheduleData.date, scheduledTime: scheduleData.time, examinerId: scheduleData.examinerId })}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Confirmar Agendamento
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Result Modal */}
       {isResultModalOpen && resultRequest && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -540,7 +573,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
             <div className="flex justify-between items-center mb-4 border-b pb-4">
                 <div>
                     <h3 className="text-lg font-bold text-gray-800">Lançar Resultado</h3>
-                    <p className="text-xl font-bold text-red-600 mt-2">{resultRequest.studentName}</p>
+                    <p className="text-xl font-bold text-red-600 mt-2">{resultRequest.socialName || resultRequest.studentName}</p>
                     <p className="text-lg font-bold text-red-600 font-mono">CPF: {resultRequest.cpf}</p>
                 </div>
                 <button onClick={() => setIsResultModalOpen(false)}><X className="h-5 w-5 text-gray-400" /></button>
@@ -639,19 +672,40 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                          <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="col-span-1">
-                                    <label className="block text-xs font-medium text-gray-600">CPF</label>
-                                    <input required type="text" placeholder="000.000.000-00" className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.cpf} onChange={e => setNewRequestData({...newRequestData, cpf: e.target.value})} />
+                                    <label className="block text-xs font-medium text-gray-600">CPF <span className="text-red-500">*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        placeholder="Apenas números" 
+                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
+                                        value={newRequestData.cpf} 
+                                        onChange={handleCpfChange} 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Apenas números. Validação obrigatória.</p>
                                 </div>
                                 <div className="col-span-1">
-                                    <label className="block text-xs font-medium text-gray-600">Nome Completo</label>
-                                    <input required type="text" className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.studentName} onChange={e => setNewRequestData({...newRequestData, studentName: e.target.value})} />
+                                    <label className="block text-xs font-medium text-gray-600">Nome Completo <span className="text-red-500">*</span></label>
+                                    <input 
+                                        required 
+                                        type="text" 
+                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
+                                        value={newRequestData.studentName} 
+                                        onChange={(e) => handleNameChange(e, 'studentName')} 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Apenas letras, sem acentos, maiúsculo.</p>
                                 </div>
                                 <div className="col-span-1">
                                     <label className="block text-xs font-medium text-gray-600">Nome Social (Opcional)</label>
-                                    <input type="text" className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.socialName} onChange={e => setNewRequestData({...newRequestData, socialName: e.target.value})} />
+                                    <input 
+                                        type="text" 
+                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
+                                        value={newRequestData.socialName} 
+                                        onChange={(e) => handleNameChange(e, 'socialName')} 
+                                        placeholder="Substitui o nome em todo sistema"
+                                    />
                                 </div>
                                 <div className="col-span-1">
-                                    <label className="block text-xs font-medium text-gray-600">Telefone</label>
+                                    <label className="block text-xs font-medium text-gray-600">Telefone <span className="text-red-500">*</span></label>
                                     <input required type="text" className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.phone} onChange={e => setNewRequestData({...newRequestData, phone: e.target.value})} />
                                 </div>
                                 {/* Email removed */}
@@ -679,8 +733,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600">Restrição CNH</label>
-                                    <input type="text" placeholder="Ex: A, G" className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.cnhRestriction} onChange={e => setNewRequestData({...newRequestData, cnhRestriction: e.target.value})} />
+                                    <label className="block text-xs font-medium text-gray-600">Restrição CNH <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        placeholder="Ex: A G" 
+                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
+                                        value={newRequestData.cnhRestriction} 
+                                        onChange={handleRestrictionChange} 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Letras maiúsculas, espaço auto.</p>
                                 </div>
                                 {/* Desired Date removed */}
                             </div>

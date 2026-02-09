@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
-import { ExamRequest, UserRole, User, ExamStatus } from '../types';
+import { ExamRequest, UserRole, User, ExamStatus, ExamSchedule } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Users, FileCheck, AlertTriangle, Calendar } from 'lucide-react';
 
@@ -20,8 +20,10 @@ const StatCard: React.FC<{ title: string; value: number | string; icon: React.El
 
 const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
+  const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
 
   useEffect(() => {
+    // Busca solicitações
     api.getRequests().then(data => {
       if (user.role === UserRole.SCHOOL) {
         setRequests(data.filter(r => r.schoolId === user.schoolId));
@@ -29,10 +31,15 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
         setRequests(data);
       }
     });
+
+    // Busca bancas (schedules) para o card de total
+    api.getSchedules().then(data => {
+        setSchedules(data);
+    });
   }, [user]);
 
   // Derived Stats
-  const total = requests.length;
+  const totalBancas = schedules.length;
   const pending = requests.filter(r => r.status === ExamStatus.WAITING_SCHEDULING).length;
   const scheduled = requests.filter(r => r.status === ExamStatus.SCHEDULED).length;
   const done = requests.filter(r => r.status === ExamStatus.DONE).length;
@@ -61,15 +68,15 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Solicitações" value={total} icon={Users} color="bg-blue-600" />
-        <StatCard title="Aguardando" value={pending} icon={AlertTriangle} color="bg-yellow-500" />
-        <StatCard title="Agendadas" value={scheduled} icon={Calendar} color="bg-indigo-500" />
-        <StatCard title="Realizadas" value={done} icon={FileCheck} color="bg-green-500" />
+        <StatCard title="Total de Bancas" value={totalBancas} icon={Calendar} color="bg-blue-600" />
+        <StatCard title="Aguardando Agendamento" value={pending} icon={AlertTriangle} color="bg-yellow-500" />
+        <StatCard title="Candidatos Agendados" value={scheduled} icon={Users} color="bg-indigo-500" />
+        <StatCard title="Provas Realizadas" value={done} icon={FileCheck} color="bg-green-500" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-6">Status dos Agendamentos</h3>
+          <h3 className="text-lg font-semibold mb-6">Status dos Candidatos</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dataByStatus}>

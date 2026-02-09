@@ -257,9 +257,12 @@ const SchedulingCenter: React.FC = () => {
     }
     if (!fullAddress) fullAddress = 'Local a definir';
 
+    // Se tiver nome social, usa ele
+    const displayName = req.socialName || req.studentName;
+
     message = message
-        .replace('{CANDIDATO}', req.studentName)
-        .replace('{ALUNO}', req.studentName) // Backward compatibility just in case
+        .replace('{CANDIDATO}', displayName)
+        .replace('{ALUNO}', displayName) // Backward compatibility just in case
         .replace('{DATA}', new Date(req.scheduledDate!).toLocaleDateString())
         .replace('{HORA}', req.scheduledTime!)
         .replace('{CATEGORIA}', req.scheduledCategory || req.intendedCategory || 'B')
@@ -528,7 +531,8 @@ const SchedulingCenter: React.FC = () => {
                           <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-2">{idx + 1}</td>
                           <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-2 print:text-black">{req.cpf}</td>
                           <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-2 print:text-black">
-                              {req.studentName}
+                              {/* Display Social Name if exists */}
+                              {req.socialName ? req.socialName : req.studentName}
                               {req.attendanceConfirmed && (
                                   <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200 print:hidden">
                                       CONFIRMADO
@@ -623,7 +627,8 @@ const SchedulingCenter: React.FC = () => {
                           <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-2">{idx + 1}</td>
                           <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-2 print:text-black">{req.cpf}</td>
                           <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-2 print:text-black">
-                              {req.studentName}
+                              {/* Display Social Name if exists */}
+                              {req.socialName ? req.socialName : req.studentName}
                               {req.attendanceConfirmed && (
                                   <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200 print:hidden">
                                       CONFIRMADO
@@ -749,7 +754,7 @@ const SchedulingCenter: React.FC = () => {
                     </thead>
                     <tbody className="divide-y">
                       {availableStudents
-                        .filter(s => s.studentName.toLowerCase().includes(studentFilter.toLowerCase()) || s.cpf.includes(studentFilter))
+                        .filter(s => (s.socialName || s.studentName).toLowerCase().includes(studentFilter.toLowerCase()) || s.cpf.includes(studentFilter))
                         .map(s => {
                           const isSelected = !!selectedStudentsMap[s.id];
                           const historyCount = s.examHistory ? s.examHistory.length : 0;
@@ -776,7 +781,7 @@ const SchedulingCenter: React.FC = () => {
                                       {new Date(s.createdAt).toLocaleDateString()}
                                   </td>
                                   <td className="px-4 py-3">
-                                  <div className="font-medium">{s.studentName}</div>
+                                  <div className="font-medium">{s.socialName || s.studentName}</div>
                                   <div className="text-xs text-gray-500">{s.cpf}</div>
                                   </td>
                                   <td className="px-4 py-3">

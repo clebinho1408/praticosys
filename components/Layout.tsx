@@ -39,8 +39,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        items.push({ icon: Users, label: 'Meus Candidatos', path: '/admin/students' }); // Placeholder
     } else {
        // Admin/Supervisor/Operator
+       items.push({ icon: CalendarCheck, label: 'Agendamentos', path: '/admin/scheduling/common' });
        items.push({ icon: FileText, label: 'Candidatos', path: '/admin/requests/common' });
-       items.push({ icon: CalendarCheck, label: 'Central de Agendamento', path: '/admin/scheduling/common' });
     }
 
     if (user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR) {

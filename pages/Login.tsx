@@ -66,10 +66,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Acesso ao PráticoSys
+          PráticoSys
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Área restrita para funcionários e autoescolas
+          Gestão de Provas Práticas
         </p>
       </div>
 
