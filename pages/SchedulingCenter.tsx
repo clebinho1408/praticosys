@@ -378,7 +378,7 @@ const SchedulingCenter: React.FC = () => {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden print:shadow-none print:border-none">
             {/* Header */}
-            <div className="p-6 border-b border-gray-100 bg-gray-50 print:bg-white print:border-b-2 print:border-black print:p-0 print:pb-2">
+            <div className="p-6 border-b border-gray-100 bg-gray-50 print:bg-white print:border-b-2 print:border-black print:p-0 print:pb-2 print:mb-4">
               
               {/* PRINT HEADER */}
               <div className="hidden print:flex items-center gap-4 mb-2 pb-2">
@@ -391,7 +391,7 @@ const SchedulingCenter: React.FC = () => {
                   {/* Texto Esquerda/Centro */}
                   <div className="text-left">
                       <h1 className="text-sm font-bold text-black uppercase">{settings?.agencyName || 'DETRAN'}</h1>
-                      <p className="text-xl font-black text-black uppercase">Lista de Chamada - 1ª Habilitação</p>
+                      <p className="text-lg font-black text-black uppercase">Lista de Chamada - 1ª Habilitação</p>
                   </div>
               </div>
 
@@ -515,16 +515,16 @@ const SchedulingCenter: React.FC = () => {
             {/* Student List Tables */}
             <div className="p-0 print:p-0">
                {/* Categoria A Table */}
-               <div className="mb-8 print:mb-2 break-inside-avoid">
-                  <h3 className="text-lg font-bold text-gray-800 mb-3 px-6 pt-4 border-l-4 border-blue-600 flex items-center gap-2 print:border-none print:px-0 print:pt-0 print:mb-1 print:text-sm">
+               <div className="mb-8 print:mb-6 break-inside-avoid">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3 px-6 pt-4 border-l-4 border-blue-600 flex items-center gap-2 print:border-none print:px-0 print:pt-4 print:mb-2 print:text-sm">
                       <Layers className="h-5 w-5 print:h-4 print:w-4" /> Categoria A (Moto)
                   </h3>
                   <table className="w-full text-sm text-left border-collapse print:text-xs">
                       <thead className="bg-gray-50 text-gray-600 border-b border-gray-200 print:bg-white print:border-black print:border-b">
                       <tr>
                           <th className="px-6 py-3 w-10 print:border print:border-black print:px-2 print:py-1">#</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">CPF</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">Nome do Candidato</th>
+                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-[90px]">CPF</th>
+                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-auto">Nome do Candidato</th>
                           <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24 print:py-1">Restrição</th>
                           <th className="px-6 py-3 print:hidden">Autoescola</th>
                           
@@ -534,7 +534,7 @@ const SchedulingCenter: React.FC = () => {
                           {/* Print Manual Fill Columns */}
                           <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Faltou</th>
                           <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Apto</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Inapto</th>
+                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black print:border-r-2 w-12 text-[10px] print:py-1">Inapto</th>
                       </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -595,7 +595,7 @@ const SchedulingCenter: React.FC = () => {
                           {/* Print Manual Columns */}
                           <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
                           <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                          <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
+                          <td className="hidden print:table-cell print:border print:border-black print:border-r-2 text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
                           </tr>
                       ))}
                       {scheduledStudents.filter(s => s.scheduledCategory === 'A').length === 0 && (
@@ -614,8 +614,8 @@ const SchedulingCenter: React.FC = () => {
                       <thead className="bg-gray-50 text-gray-600 border-b border-gray-200 print:bg-white print:border-black print:border-b">
                       <tr>
                           <th className="px-6 py-3 w-10 print:border print:border-black print:px-2 print:py-1">#</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">CPF</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">Nome do Candidato</th>
+                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-[90px]">CPF</th>
+                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-auto">Nome do Candidato</th>
                           <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24 print:py-1">Restrição</th>
                           <th className="px-6 py-3 print:hidden">Autoescola</th>
                           
@@ -625,7 +625,7 @@ const SchedulingCenter: React.FC = () => {
                           {/* Print Manual Fill Columns */}
                           <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Faltou</th>
                           <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Apto</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Inapto</th>
+                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black print:border-r-2 w-12 text-[10px] print:py-1">Inapto</th>
                       </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -686,7 +686,7 @@ const SchedulingCenter: React.FC = () => {
                           {/* Print Manual Columns */}
                           <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
                           <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                          <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
+                          <td className="hidden print:table-cell print:border print:border-black print:border-r-2 text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
                           </tr>
                       ))}
                       {scheduledStudents.filter(s => s.scheduledCategory === 'B' || !s.scheduledCategory).length === 0 && (
@@ -698,7 +698,7 @@ const SchedulingCenter: React.FC = () => {
             </div>
             
             {/* Signature Block (Moved up) */}
-            <div className="hidden print:block mt-8 text-center">
+            <div className="hidden print:block mt-12 text-center">
                  <div className="inline-block border-t border-black px-12 pt-1 text-sm">
                     Assinatura do Presidente da Banca
                  </div>
