@@ -378,20 +378,20 @@ const SchedulingCenter: React.FC = () => {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden print:shadow-none print:border-none">
             {/* Header */}
-            <div className="p-6 border-b border-gray-100 bg-gray-50 print:bg-white print:border-b-2 print:border-black">
+            <div className="p-6 border-b border-gray-100 bg-gray-50 print:bg-white print:border-b-2 print:border-black print:p-0 print:pb-2">
               
               {/* PRINT HEADER */}
-              <div className="hidden print:flex items-center gap-6 mb-6 border-b-2 border-black pb-4">
+              <div className="hidden print:flex items-center gap-4 mb-2 pb-2">
                   {/* Logo Esquerda */}
                   <div className="flex items-center">
                       {settings?.logoUrl && (
-                          <img src={settings.logoUrl} alt="Logo Agência" className="h-14 w-auto object-contain max-w-[120px]" />
+                          <img src={settings.logoUrl} alt="Logo Agência" className="h-14 w-auto object-contain max-w-[80px]" />
                       )}
                   </div>
                   {/* Texto Esquerda/Centro */}
                   <div className="text-left">
-                      <h1 className="text-lg font-bold text-black uppercase">{settings?.agencyName || 'DETRAN'}</h1>
-                      <p className="text-3xl font-black text-black uppercase mt-1">Lista de Chamada - 1ª Habilitação</p>
+                      <h1 className="text-sm font-bold text-black uppercase">{settings?.agencyName || 'DETRAN'}</h1>
+                      <p className="text-xl font-black text-black uppercase">Lista de Chamada - 1ª Habilitação</p>
                   </div>
               </div>
 
@@ -504,8 +504,8 @@ const SchedulingCenter: React.FC = () => {
               </div>
               
               {/* PRINT INFO SUB-HEADER */}
-              <div className="hidden print:block text-sm mt-4">
-                  <div className="grid grid-cols-2 gap-4">
+              <div className="hidden print:block text-xs mt-1 mb-2">
+                  <div className="flex justify-between">
                       <p><strong>Data:</strong> {new Date(selectedSchedule.date).toLocaleDateString()} - <strong>Hora:</strong> {selectedSchedule.time}</p>
                       <p><strong>Examinadores:</strong> {selectedSchedule.examinerIds.map(id => getExaminerName(id)).filter(Boolean).join(', ')}</p>
                   </div>
@@ -513,45 +513,40 @@ const SchedulingCenter: React.FC = () => {
             </div>
 
             {/* Student List Tables */}
-            <div className="p-0 print:p-4">
+            <div className="p-0 print:p-0">
                {/* Categoria A Table */}
-               <div className="mb-8 break-inside-avoid">
-                  <h3 className="text-lg font-bold text-gray-800 mb-3 px-6 pt-4 border-l-4 border-blue-600 flex items-center gap-2 print:border-none print:px-0">
-                      <Layers className="h-5 w-5" /> Categoria A (Moto)
+               <div className="mb-8 print:mb-2 break-inside-avoid">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3 px-6 pt-4 border-l-4 border-blue-600 flex items-center gap-2 print:border-none print:px-0 print:pt-0 print:mb-1 print:text-sm">
+                      <Layers className="h-5 w-5 print:h-4 print:w-4" /> Categoria A (Moto)
                   </h3>
-                  <table className="w-full text-sm text-left border-collapse">
+                  <table className="w-full text-sm text-left border-collapse print:text-xs">
                       <thead className="bg-gray-50 text-gray-600 border-b border-gray-200 print:bg-white print:border-black print:border-b">
                       <tr>
-                          <th className="px-6 py-3 w-10 print:border print:border-black print:px-2">#</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2">CPF</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2">Nome do Candidato</th>
-                          <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24">Restrição</th>
+                          <th className="px-6 py-3 w-10 print:border print:border-black print:px-2 print:py-1">#</th>
+                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">CPF</th>
+                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">Nome do Candidato</th>
+                          <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24 print:py-1">Restrição</th>
                           <th className="px-6 py-3 print:hidden">Autoescola</th>
                           
                           {/* Screen Actions */}
                           <th className="px-6 py-3 print:hidden text-right">Ações</th>
                           
                           {/* Print Manual Fill Columns */}
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-16 text-xs">Faltou</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-16 text-xs">Apto</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-16 text-xs">Inapto</th>
+                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Faltou</th>
+                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Apto</th>
+                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Inapto</th>
                       </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                       {scheduledStudents.filter(s => s.scheduledCategory === 'A').map((req, idx) => (
                           <tr key={req.id} className="hover:bg-gray-50 print:hover:bg-transparent">
-                          <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-2">{idx + 1}</td>
-                          <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-2 print:text-black">{req.cpf}</td>
-                          <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-2 print:text-black">
+                          <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-0.5">{idx + 1}</td>
+                          <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-0.5 print:text-black">{req.cpf}</td>
+                          <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-0.5 print:text-black">
                               {/* Display Social Name if exists */}
                               {req.socialName ? req.socialName : req.studentName}
-                              {req.attendanceConfirmed && (
-                                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200 print:hidden">
-                                      CONFIRMADO
-                                  </span>
-                              )}
                           </td>
-                          <td className="hidden print:table-cell print:border print:border-black print:px-2 print:py-2 text-center">{req.cnhRestriction || '-'}</td>
+                          <td className="hidden print:table-cell print:border print:border-black print:px-2 print:py-0.5 text-center">{req.cnhRestriction || '-'}</td>
                           <td className="px-6 py-4 text-gray-600 print:hidden">
                               {req.schoolId ? api.getSchools().find(s => s.id === req.schoolId)?.name : 'Particular'}
                           </td>
@@ -604,50 +599,45 @@ const SchedulingCenter: React.FC = () => {
                           </tr>
                       ))}
                       {scheduledStudents.filter(s => s.scheduledCategory === 'A').length === 0 && (
-                          <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic print:border print:border-black">Nenhum candidato de Moto agendado.</td></tr>
+                          <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic print:border print:border-black print:py-2">Nenhum candidato de Moto agendado.</td></tr>
                       )}
                       </tbody>
                   </table>
                </div>
 
                {/* Categoria B Table */}
-               <div className="mb-8 break-inside-avoid">
-                  <h3 className="text-lg font-bold text-gray-800 mb-3 px-6 pt-4 border-l-4 border-blue-600 flex items-center gap-2 print:border-none print:px-0">
-                      <Layers className="h-5 w-5" /> Categoria B (Carro)
+               <div className="mb-8 print:mb-2 break-inside-avoid">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3 px-6 pt-4 border-l-4 border-blue-600 flex items-center gap-2 print:border-none print:px-0 print:pt-0 print:mb-1 print:text-sm">
+                      <Layers className="h-5 w-5 print:h-4 print:w-4" /> Categoria B (Carro)
                   </h3>
-                  <table className="w-full text-sm text-left border-collapse">
+                  <table className="w-full text-sm text-left border-collapse print:text-xs">
                       <thead className="bg-gray-50 text-gray-600 border-b border-gray-200 print:bg-white print:border-black print:border-b">
                       <tr>
-                          <th className="px-6 py-3 w-10 print:border print:border-black print:px-2">#</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2">CPF</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2">Nome do Candidato</th>
-                          <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24">Restrição</th>
+                          <th className="px-6 py-3 w-10 print:border print:border-black print:px-2 print:py-1">#</th>
+                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">CPF</th>
+                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">Nome do Candidato</th>
+                          <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24 print:py-1">Restrição</th>
                           <th className="px-6 py-3 print:hidden">Autoescola</th>
                           
                           {/* Screen Actions */}
                           <th className="px-6 py-3 print:hidden text-right">Ações</th>
                           
                           {/* Print Manual Fill Columns */}
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-16 text-xs">Faltou</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-16 text-xs">Apto</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-16 text-xs">Inapto</th>
+                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Faltou</th>
+                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Apto</th>
+                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Inapto</th>
                       </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                       {scheduledStudents.filter(s => s.scheduledCategory === 'B' || !s.scheduledCategory).map((req, idx) => (
                           <tr key={req.id} className="hover:bg-gray-50 print:hover:bg-transparent">
-                          <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-2">{idx + 1}</td>
-                          <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-2 print:text-black">{req.cpf}</td>
-                          <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-2 print:text-black">
+                          <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-0.5">{idx + 1}</td>
+                          <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-0.5 print:text-black">{req.cpf}</td>
+                          <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-0.5 print:text-black">
                               {/* Display Social Name if exists */}
                               {req.socialName ? req.socialName : req.studentName}
-                              {req.attendanceConfirmed && (
-                                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-800 border border-green-200 print:hidden">
-                                      CONFIRMADO
-                                  </span>
-                              )}
                           </td>
-                          <td className="hidden print:table-cell print:border print:border-black print:px-2 print:py-2 text-center">{req.cnhRestriction || '-'}</td>
+                          <td className="hidden print:table-cell print:border print:border-black print:px-2 print:py-0.5 text-center">{req.cnhRestriction || '-'}</td>
                           <td className="px-6 py-4 text-gray-600 print:hidden">
                               {req.schoolId ? api.getSchools().find(s => s.id === req.schoolId)?.name : 'Particular'}
                           </td>
@@ -700,22 +690,27 @@ const SchedulingCenter: React.FC = () => {
                           </tr>
                       ))}
                       {scheduledStudents.filter(s => s.scheduledCategory === 'B' || !s.scheduledCategory).length === 0 && (
-                          <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic print:border print:border-black">Nenhum candidato de Carro agendado.</td></tr>
+                          <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic print:border print:border-black print:py-2">Nenhum candidato de Carro agendado.</td></tr>
                       )}
                       </tbody>
                   </table>
                </div>
             </div>
             
-            <div className="hidden print:block mt-8 px-0 w-full">
-               <div className="border-t border-black pt-2 flex justify-between text-xs items-start">
-                  <div className="flex flex-col">
-                      <span>Data de Impressão: {new Date().toLocaleDateString()}</span>
-                      {settings?.agencyAddress && (
-                          <span className="font-bold mt-1 uppercase">{settings.agencyAddress}</span>
-                      )}
-                  </div>
-                  <span>Assinatura do Presidente da Banca: __________________________________________________</span>
+            {/* Signature Block (Moved up) */}
+            <div className="hidden print:block mt-8 text-center">
+                 <div className="inline-block border-t border-black px-12 pt-1 text-sm">
+                    Assinatura do Presidente da Banca
+                 </div>
+            </div>
+
+            {/* Footer (Fixed Bottom) */}
+            <div className="hidden print:block fixed bottom-0 left-0 w-full bg-white">
+               <div className="border-t border-black pt-1 pb-2 flex flex-col items-center text-[10px] w-full text-center">
+                  {settings?.agencyAddress && (
+                      <span className="font-bold uppercase">{settings.agencyAddress}</span>
+                  )}
+                  <span>Data de Impressão: {new Date().toLocaleDateString()}</span>
                </div>
             </div>
           </div>
