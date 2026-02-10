@@ -1,0 +1,77 @@
+import React, { useState } from 'react';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthState, ExamType, User } from './types';
+import Layout from './components/Layout';
+
+// Pages
+import Login from './pages/Login';
+import AdminDashboard from './pages/AdminDashboard';
+import RequestManager from './pages/RequestManager';
+import RegistryManagement from './pages/RegistryManagement';
+import Settings from './pages/Settings';
+import SchedulingCenter from './pages/SchedulingCenter';
+
+const App: React.FC = () => {
+  const [auth, setAuth] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false
+  });
+
+  const handleLogin = (user: User) => {
+    setAuth({ user, isAuthenticated: true });
+  };
+
+  const handleLogout = () => {
+    setAuth({ user: null, isAuthenticated: false });
+  };
+
+  return (
+    <Router>
+      <Routes>
+        {/* Redirect Root to Login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* Auth Route */}
+        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/admin/*"
+          element={
+            auth.isAuthenticated && auth.user ? (
+              <Layout user={auth.user} onLogout={handleLogout}>
+                <Routes>
+                  <Route path="/" element={<AdminDashboard user={auth.user} />} />
+                  
+                  {/* Common Routes for specific filters */}
+                  <Route path="requests" element={<RequestManager user={auth.user} />} /> {/* For Schools mostly */}
+                  <Route path="requests/common" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
+                  <Route path="requests/pcd" element={<RequestManager user={auth.user} typeFilter={ExamType.PCD} />} />
+                  
+                  {/* Scheduling Center */}
+                  <Route path="scheduling/common" element={<SchedulingCenter />} />
+
+                  {/* Registries */}
+                  <Route path="users" element={<RegistryManagement />} />
+                  
+                  {/* Settings */}
+                  <Route path="settings" element={<Settings />} />
+                  
+                  {/* Placeholders */}
+                  <Route path="students" element={<div className="p-4 bg-white rounded shadow">Base de Candidatos (Em desenvolvimento)</div>} />
+                </Routes>
+              </Layout>
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+        
+        {/* Catch all redirect */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;

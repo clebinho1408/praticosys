@@ -1,0 +1,150 @@
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  SUPERVISOR = 'SUPERVISOR',
+  OPERATOR = 'OPERATOR',
+  SCHOOL = 'SCHOOL'
+}
+
+export enum ExamType {
+  COMMON = 'COMMON',
+  PCD = 'PCD'
+}
+
+export enum RequestSource {
+  STUDENT_DIRECT = 'STUDENT_DIRECT',
+  SCHOOL = 'SCHOOL'
+}
+
+export enum ExamStatus {
+  WAITING_SCHEDULING = 'WAITING_SCHEDULING', // Aguardando Agendamento
+  SCHEDULED = 'SCHEDULED',                   // Agendado
+  WAITING_RESULT = 'WAITING_RESULT',         // Aguardando Resultado
+  RETEST = 'RETEST',                         // Reteste
+  DONE = 'DONE',                             // Realizado
+  CANCELLED = 'CANCELLED'                    // Cancelado
+}
+
+export type ExamResult = 'APTO' | 'INAPTO' | 'FALTOU';
+
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole;
+  schoolId?: string; // If role is SCHOOL
+  login: string;
+}
+
+export interface DrivingSchool {
+  id: string;
+  name: string;
+  phone: string;
+  address: string;
+}
+
+export interface Examiner {
+  id: string;
+  name: string;
+  registrationNumber: string; // Matrícula
+  canExamCommon: boolean;
+  canExamPCD: boolean;
+}
+
+export interface Instructor {
+  id: string;
+  name: string;
+  cpf: string;
+  phone: string;
+  plate: string;
+}
+
+export interface ExamSchedule {
+  id: string;
+  date: string;
+  time: string;
+  examinerIds: string[]; // Changed to array to support up to 3 examiners
+  maxSlotsA: number; // Limit for Moto
+  maxSlotsB: number; // Limit for Car
+  type: ExamType;
+  status: 'OPEN' | 'CLOSED' | 'CONCLUDED' | 'CANCELLED';
+  cancellationReason?: string; // New: Reason if cancelled
+}
+
+export interface ExamResultEntry {
+  id: string;
+  date: string;
+  time: string;
+  result: ExamResult;
+  category?: string; // New: A, B, etc.
+  examinerId?: string;
+  observation?: string;
+}
+
+export interface ExamRequest {
+  id: string;
+  studentName: string;
+  socialName?: string; // New
+  cpf: string;
+  phone: string;
+  email: string;
+  address?: string; 
+  examType: ExamType;
+  intendedCategory?: string; // New (A, B, etc.)
+  source: RequestSource;
+  schoolId?: string; 
+  desiredDate: string;
+  
+  // Extra Common Fields
+  paidFee?: boolean; 
+  completedPracticalCourse?: boolean; 
+  practicalHours?: number; 
+  hasVehicle?: boolean; // Renamed concept in UI to "Pedal Duplo"
+  cnhRestriction?: string; // New
+  instructor?: string; // New: Mandatory
+  vehiclePlate?: string; // New: Mandatory
+  
+  // PCD Specifics
+  disabilityType?: string;
+  specialNeeds?: string;
+  
+  // Admin/Processing fields
+  status: ExamStatus;
+  result?: ExamResult; // Current/Latest result
+  
+  // History of exams (Multiple attempts)
+  examHistory: ExamResultEntry[];
+
+  scheduleId?: string; 
+  scheduledDate?: string;
+  scheduledTime?: string;
+  scheduledCategory?: string; // New: Specific category for this schedule instance (A or B)
+  examinerId?: string; // Kept for backward compatibility or primary examiner
+  observation?: string;
+  
+  attendanceConfirmed?: boolean; // New: Confirmed via WhatsApp/Phone
+  
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SystemSettings {
+  agencyName: string; // Renamed from systemName
+  agencyAddress?: string; // New: Address for reports
+  logoUrl: string;    // New: Logo URL for reports
+  
+  maintenanceMode: boolean;
+  minDaysForScheduling: number;
+  maxDailySlots: number; // Global cap (legacy)
+  defaultMaxSlotsA: number; // New: Default slots for Moto
+  defaultMaxSlotsB: number; // New: Default slots for Car
+  enableEmailNotifications: boolean;
+  enableSmsNotifications: boolean;
+  
+  whatsappMessageTemplate: string;
+  defaultExamAddress: string; // New: Default physical address
+  defaultExamAddressLink: string; // New: Google Maps Link
+}
+
+export interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+}
