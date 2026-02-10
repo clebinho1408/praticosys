@@ -268,7 +268,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
           !newRequestData.cpf.trim() || 
           !newRequestData.instructor.trim() ||
           !newRequestData.vehiclePlate.trim()) {
-          showAlert("Campos Obrigatórios", "Preencha todos os campos marcados com (*)");
+          showAlert("Campos Obrigatórios", "Preencha todos os campos marcados com (*). Verifique se o Instrutor e a Placa foram preenchidos.");
           return;
       }
 
