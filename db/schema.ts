@@ -65,6 +65,8 @@ export const examRequests = pgTable('exam_requests', {
   practicalHours: integer('practical_hours').default(0),
   hasVehicle: boolean('has_vehicle').default(false),
   cnhRestriction: text('cnh_restriction'),
+  instructor: text('instructor'), // New
+  vehiclePlate: text('vehicle_plate'), // New
   
   // PCD
   disabilityType: text('disability_type'),

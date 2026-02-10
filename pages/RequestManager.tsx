@@ -97,6 +97,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     examType: ExamType.COMMON,
     intendedCategory: 'B',
     cnhRestriction: '',
+    instructor: '', // New Mandatory
+    vehiclePlate: '', // New Mandatory
     // desiredDate removed from UI
     disabilityType: '',
     specialNeeds: '',
@@ -211,6 +213,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
               examType: req.examType,
               intendedCategory: req.intendedCategory || 'B',
               cnhRestriction: req.cnhRestriction || '',
+              instructor: req.instructor || '',
+              vehiclePlate: req.vehiclePlate || '',
               disabilityType: req.disabilityType || '',
               specialNeeds: req.specialNeeds || '',
               completedPracticalCourse: req.completedPracticalCourse || false,
@@ -230,6 +234,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
             examType: typeFilter || ExamType.COMMON,
             intendedCategory: 'B',
             cnhRestriction: '',
+            instructor: '',
+            vehiclePlate: '',
             disabilityType: '',
             specialNeeds: '',
             completedPracticalCourse: false,
@@ -256,7 +262,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
           return;
       }
 
-      if (!newRequestData.studentName.trim() || !newRequestData.phone.trim() || !newRequestData.cpf.trim() || !newRequestData.cnhRestriction.trim()) {
+      // Updated Validations: Instructor and Plate required, Restriction optional
+      if (!newRequestData.studentName.trim() || 
+          !newRequestData.phone.trim() || 
+          !newRequestData.cpf.trim() || 
+          !newRequestData.instructor.trim() ||
+          !newRequestData.vehiclePlate.trim()) {
           showAlert("Campos Obrigatórios", "Preencha todos os campos marcados com (*)");
           return;
       }
@@ -274,6 +285,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
         examType: newRequestData.examType,
         intendedCategory: newRequestData.intendedCategory,
         cnhRestriction: newRequestData.cnhRestriction,
+        instructor: newRequestData.instructor,
+        vehiclePlate: newRequestData.vehiclePlate,
         desiredDate: defaultDesiredDate,
         disabilityType: newRequestData.disabilityType,
         specialNeeds: newRequestData.specialNeeds,
@@ -347,6 +360,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       // Uppercase, No Accents, Only Letters and Spaces
       const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z\s]/g, "");
       setNewRequestData(prev => ({ ...prev, [field]: val }));
+  };
+  
+  const handleInstructorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Uppercase, No Accents, Only Letters and Spaces (allowing spaces for full name)
+      const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z\s]/g, "");
+      setNewRequestData(prev => ({ ...prev, instructor: val }));
+  };
+
+  const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Uppercase, No Accents, Letters and Numbers only
+      const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "");
+      setNewRequestData(prev => ({ ...prev, vehiclePlate: val }));
   };
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -674,7 +699,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                     onClick={() => setModalTab('PROCESS')} 
                     className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'PROCESS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
-                   <SettingsIcon className="h-4 w-4" /> Processo & Veículo
+                   <SettingsIcon className="h-4 w-4" /> Dados Complementares
                 </button>
                 <button 
                     onClick={() => setModalTab('HISTORY')} 
@@ -733,7 +758,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                          </div>
                     )}
 
-                    {/* TAB: PROCESS */}
+                    {/* TAB: PROCESS (Renamed to Dados Complementares in UI) */}
                     {modalTab === 'PROCESS' && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -753,10 +778,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600">Restrição CNH <span className="text-red-500">*</span></label>
+                                    <label className="block text-xs font-medium text-gray-600">Restrição CNH</label>
                                     <input 
                                         type="text" 
-                                        required
                                         placeholder="Ex: A G" 
                                         className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
                                         value={newRequestData.cnhRestriction} 
@@ -764,7 +788,33 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     />
                                     <p className="text-xs text-gray-500 mt-1">Letras maiúsculas, espaço auto.</p>
                                 </div>
-                                {/* Desired Date removed */}
+                                
+                                {/* New Fields */}
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600">Instrutor <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text"
+                                        required
+                                        placeholder="NOME DO INSTRUTOR" 
+                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
+                                        value={newRequestData.instructor} 
+                                        onChange={handleInstructorChange} 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Apenas letras, sem acentos.</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600">Placa do Veículo <span className="text-red-500">*</span></label>
+                                    <input 
+                                        type="text"
+                                        required
+                                        placeholder="ABC1D23" 
+                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
+                                        value={newRequestData.vehiclePlate} 
+                                        onChange={handlePlateChange} 
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Letras e números.</p>
+                                </div>
                             </div>
                         </div>
                     )}

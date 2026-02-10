@@ -91,6 +91,8 @@ export interface ExamRequest {
   practicalHours?: number; 
   hasVehicle?: boolean; // Renamed concept in UI to "Pedal Duplo"
   cnhRestriction?: string; // New
+  instructor?: string; // New: Mandatory
+  vehiclePlate?: string; // New: Mandatory
   
   // PCD Specifics
   disabilityType?: string;
