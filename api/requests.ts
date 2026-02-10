@@ -2,10 +2,18 @@ import { db } from '../db/index.js';
 import { examRequests } from '../db/schema.js';
 import { eq, like, or } from 'drizzle-orm';
 
-const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+const parseBody = (req: any) => {
+    try {
+        return typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    } catch (e) {
+        return req.body;
+    }
+};
 
 export default async function handler(req: any, res: any) {
   try {
+    console.log(`[API/Requests] Recebendo requisição: ${req.method}`);
+    
     if (req.method === 'GET') {
       const { cpf } = req.query;
       
@@ -21,25 +29,34 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const body = parseBody(req);
+      console.log("[API/Requests] Criando novo candidato:", body.studentName);
+      
       const newItem = await db.insert(examRequests).values({
-        id: crypto.randomUUID(),
+        id: body.id || crypto.randomUUID(),
         createdAt: new Date(),
         updatedAt: new Date(),
         ...body
       }).returning();
+      
+      console.log("[API/Requests] Candidato salvo com sucesso no banco!");
       return res.status(200).json(newItem[0]);
     }
 
     if (req.method === 'PUT') {
       const { id, ...updates } = parseBody(req);
+      console.log(`[API/Requests] Atualizando candidato ID: ${id}`);
+      
       const updated = await db.update(examRequests)
         .set({ ...updates, updatedAt: new Date() })
         .where(eq(examRequests.id, id))
         .returning();
+      
       return res.status(200).json(updated[0]);
     }
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Database error' });
+    
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  } catch (error: any) {
+    console.error("[API/Requests] CRITICAL ERROR:", error.message);
+    return res.status(500).json({ error: 'Database error', details: error.message });
   }
 }

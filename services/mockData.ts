@@ -28,9 +28,9 @@ const fetchOrMock = async <T>(
     options: RequestInit = {}, 
     mockFn: () => Promise<T> | T
 ): Promise<T> => {
-    // Reduzimos o timeout para 1.5 segundos para não travar o usuário
+    // Aumentado para 10 segundos. Bancos gratuitos (Neon) podem demorar para "acordar"
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
         const res = await fetch(`/api/${endpoint}`, {
@@ -43,11 +43,14 @@ const fetchOrMock = async <T>(
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) throw new Error("API Route Not Found (HTML)");
         
-        if (!res.ok) throw new Error(`API Error ${res.status}`);
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.error || `API Error ${res.status}`);
+        }
         return await res.json();
     } catch (error: any) {
         clearTimeout(timeoutId);
-        console.warn(`[API Fallback] Endpoint: ${endpoint} | Erro: ${error.message}`);
+        console.warn(`[API Fallback] Endpoint: ${endpoint} | Erro: ${error.message}. Usando dados locais.`);
         await delay(50); 
         return mockFn();
     }
