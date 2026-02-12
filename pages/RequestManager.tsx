@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
-import { ExamRequest, ExamStatus, ExamType, User, UserRole, RequestSource, ExamResult, ExamResultEntry } from '../types';
+import { ExamRequest, ExamStatus, ExamType, User, UserRole, RequestSource, ExamResult, ExamResultEntry, Instructor } from '../types';
 import { Search, Calendar, Plus, UserPlus, Save, CheckSquare, X, User as UserIcon, Settings as SettingsIcon, History, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, AlertTriangle, Filter, Edit, Gavel } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
@@ -48,15 +48,12 @@ function isValidCPF(cpf: string) {
 
 const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [filterText, setFilterText] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   
-  // State for Accordions (which status sections are open)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-      [ExamStatus.WAITING_SCHEDULING]: true,
-      [ExamStatus.SCHEDULED]: true,
-      [ExamStatus.WAITING_RESULT]: true
-  });
+  // State for Accordions - INICIA FECHADO (Vazio)
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
 
   // Result Modal State
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
@@ -83,41 +80,46 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
   // Create/Edit Request Form State
   const [newRequestData, setNewRequestData] = useState({
-    id: '', // Used if editing
+    id: '', 
     studentName: '',
     socialName: '',
     cpf: '',
     phone: '',
     examType: ExamType.COMMON,
-    intendedCategory: 'B',
+    intendedCategory: '', // Alterado para vazio por padrão
     cnhRestriction: '',
-    instructor: '', // Mandatory
-    vehiclePlate: '', // Mandatory
+    instructor: '', 
+    vehiclePlate: '', 
     disabilityType: '',
     specialNeeds: '',
     completedPracticalCourse: false,
     paidFee: false,
     hasVehicle: false,
     examHistory: [] as ExamResultEntry[],
-    email: '',
-    address: '',
     observation: ''
   });
 
   const fetchData = async () => {
-    let data = await api.getRequests();
-    
-    // Filter by School
-    if (user.role === UserRole.SCHOOL) {
-      data = data.filter(r => r.schoolId === user.schoolId);
-    }
-    
-    // Filter by Type (Common vs PCD)
-    if (typeFilter) {
-      data = data.filter(r => r.examType === typeFilter);
-    }
+    try {
+        const [requestsData, instructorsData] = await Promise.all([
+          api.getRequests(),
+          api.getInstructorsAsync()
+        ]);
+        
+        let filteredRequests = requestsData;
+        if (user.role === UserRole.SCHOOL) {
+          filteredRequests = filteredRequests.filter(r => r.schoolId === user.schoolId);
+        }
+        
+        if (typeFilter) {
+          filteredRequests = filteredRequests.filter(r => r.examType === typeFilter);
+        }
 
-    setRequests(data);
+        setRequests(filteredRequests);
+        setInstructors(instructorsData);
+    } catch (e) {
+        console.error("Erro ao carregar dados", e);
+    }
   };
 
   useEffect(() => {
@@ -179,21 +181,20 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
       setIsResultModalOpen(false);
       fetchData();
+      // Abre o card correspondente ao novo status
+      setOpenSections(prev => ({ ...prev, [nextStatus]: true }));
   };
 
   const openCreateModal = (req?: ExamRequest) => {
       if (req) {
-          // Edit Mode
           setNewRequestData({
               id: req.id,
               studentName: req.studentName,
               socialName: req.socialName || '',
               cpf: req.cpf,
               phone: req.phone,
-              email: req.email || '',
-              address: req.address || '',
               examType: req.examType,
-              intendedCategory: req.intendedCategory || 'B',
+              intendedCategory: req.intendedCategory || '',
               cnhRestriction: req.cnhRestriction || '',
               instructor: req.instructor || '',
               vehiclePlate: req.vehiclePlate || '',
@@ -207,17 +208,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
           });
           setCurrentEditingStatus(req.status);
       } else {
-          // Create Mode
           setNewRequestData({
             id: '',
             studentName: '',
             socialName: '',
             cpf: '',
             phone: '',
-            email: '',
-            address: '',
             examType: typeFilter || ExamType.COMMON,
-            intendedCategory: 'B',
+            intendedCategory: '', // Aberto sem valor padrão
             cnhRestriction: '',
             instructor: '',
             vehiclePlate: '',
@@ -250,9 +248,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       if (!newRequestData.studentName.trim() || 
           !newRequestData.phone.trim() || 
           !newRequestData.cpf.trim() || 
+          !newRequestData.intendedCategory || // Validação de categoria obrigatória
           !newRequestData.instructor.trim() ||
           !newRequestData.vehiclePlate.trim()) {
-          showAlert("Campos Obrigatórios", "Preencha todos os campos marcados com (*). Instrutor e Placa são obrigatórios.");
+          showAlert("Campos Obrigatórios", "Preencha todos os campos marcados com (*). Categoria, Instrutor e Placa são obrigatórios.");
           return;
       }
 
@@ -261,8 +260,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
         socialName: newRequestData.socialName,
         cpf: newRequestData.cpf,
         phone: newRequestData.phone,
-        email: newRequestData.email || 'sem_email@sistema.com',
-        address: newRequestData.address,
         examType: newRequestData.examType,
         intendedCategory: newRequestData.intendedCategory,
         cnhRestriction: newRequestData.cnhRestriction,
@@ -277,23 +274,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
         observation: newRequestData.observation
       };
 
+      const initialStatus = ExamStatus.WAITING_SCHEDULING;
+
       if (newRequestData.id) {
          await api.updateRequest(newRequestData.id, payload);
+         showAlert("Sucesso", "Cadastro atualizado com sucesso!", "success");
       } else {
-         const initialStatus = ExamStatus.WAITING_SCHEDULING;
-         
          if (newRequestData.intendedCategory === 'AB') {
              await api.createRequest({ ...payload, intendedCategory: 'A', source: RequestSource.SCHOOL, schoolId: user.schoolId, status: initialStatus });
              await api.createRequest({ ...payload, intendedCategory: 'B', source: RequestSource.SCHOOL, schoolId: user.schoolId, status: initialStatus });
+             showAlert("Sucesso", "Cadastro AB realizado! Foram criadas duas solicitações separadas (A e B).", "success");
          } else {
              await api.createRequest({ ...payload, source: RequestSource.SCHOOL, schoolId: user.schoolId, status: initialStatus });
+             showAlert("Sucesso", "Candidato cadastrado com sucesso!", "success");
          }
-
-         setOpenSections(prev => ({ ...prev, [initialStatus]: true }));
       }
 
       setIsCreateModalOpen(false);
-      fetchData();
+      await fetchData();
+      // Auto-abre o card de aguardando para mostrar o novo cadastro
+      setOpenSections({ [initialStatus]: true });
+      
     } catch (error) {
       showAlert('Erro', 'Ocorreu um erro ao salvar o cadastro. Tente novamente.');
     }
@@ -312,9 +313,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       setNewRequestData(prev => ({ ...prev, [field]: val }));
   };
   
-  const handleInstructorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z\s]/g, "");
-      setNewRequestData(prev => ({ ...prev, instructor: val }));
+  const handleInstructorSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const instructorName = e.target.value;
+      const selectedInstructor = instructors.find(i => i.name === instructorName);
+      
+      setNewRequestData(prev => ({ 
+          ...prev, 
+          instructor: instructorName,
+          vehiclePlate: selectedInstructor ? selectedInstructor.plate : prev.vehiclePlate
+      }));
   };
 
   const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -333,7 +340,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       setNewRequestData(prev => ({ ...prev, cnhRestriction: spaced }));
   };
 
-  // --- Configuration for Status Cards ---
   const statusGroups = [
     { 
       id: ExamStatus.WAITING_SCHEDULING, 
@@ -426,7 +432,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
             (r.studentName.toLowerCase().includes(filterText.toLowerCase()) || r.cpf.includes(filterText))
           );
           
-          const isOpen = openSections[group.id];
+          const isOpen = !!openSections[group.id];
           const Icon = group.icon;
 
           return (
@@ -471,13 +477,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                 </div>
                             </td>
                             <td className="px-6 py-4 cursor-pointer" onClick={() => openCreateModal(req)}>
-                              <div className="font-medium text-gray-900 hover:text-blue-600">
+                              <div className="font-medium text-gray-900 hover:text-blue-600 uppercase">
                                   {req.socialName ? req.socialName : req.studentName}
                               </div>
                               {req.socialName && <div className="text-xs text-gray-500 italic">(Reg: {req.studentName})</div>}
                               <div className="text-xs text-gray-500">{req.cpf}</div>
-                              {req.disabilityType && <div className="text-xs text-blue-600 mt-1">PCD: {req.disabilityType}</div>}
-                              <div className="text-xs text-gray-400 mt-1">{req.instructor ? `Instr: ${req.instructor}` : ''}</div>
+                              <div className="text-xs text-gray-400 mt-1">{req.instructor ? `Instr: ${req.instructor}` : ''} {req.vehiclePlate ? `| Placa: ${req.vehiclePlate}` : ''}</div>
                             </td>
                             <td className="px-6 py-4">
                                 <span className="font-mono font-bold bg-gray-100 px-2 py-1 rounded text-gray-700">
@@ -543,65 +548,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
         })}
       </div>
 
-      {/* Result Modal */}
-      {isResultModalOpen && resultRequest && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fadeIn">
-            <div className="flex justify-between items-center mb-4 border-b pb-4">
-                <div>
-                    <h3 className="text-lg font-bold text-gray-800">Lançar Resultado</h3>
-                    <p className="text-xl font-bold text-red-600 mt-2">{resultRequest.socialName || resultRequest.studentName}</p>
-                    <p className="text-lg font-bold text-red-600 font-mono">CPF: {resultRequest.cpf}</p>
-                </div>
-                <button onClick={() => setIsResultModalOpen(false)}><X className="h-5 w-5 text-gray-400" /></button>
-            </div>
-
-            <form onSubmit={handleSubmitResult} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Data Realizada</label>
-                        <input type="date" required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.date} onChange={e => setResultForm({...resultForm, date: e.target.value})} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Hora</label>
-                        <input type="time" required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.time} onChange={e => setResultForm({...resultForm, time: e.target.value})} />
-                    </div>
-                </div>
-                <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
-                    <select required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.category} onChange={e => setResultForm({...resultForm, category: e.target.value})}>
-                        <option value="A">A (Moto)</option>
-                        <option value="B">B (Carro)</option>
-                    </select>
-                </div>
-                
-                <div className="border-t pt-4 mt-2">
-                    <label className="block text-sm font-bold text-gray-800 mb-2">Resultado Final</label>
-                    <div className="grid grid-cols-3 gap-3">
-                        <button type="button" onClick={() => setResultForm({...resultForm, result: 'APTO'})} className={`py-2 px-1 rounded border text-sm font-bold transition-all ${resultForm.result === 'APTO' ? 'bg-green-600 text-white border-green-600 ring-2 ring-green-300' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                            APTO
-                        </button>
-                        <button type="button" onClick={() => setResultForm({...resultForm, result: 'INAPTO'})} className={`py-2 px-1 rounded border text-sm font-bold transition-all ${resultForm.result === 'INAPTO' ? 'bg-red-600 text-white border-red-600 ring-2 ring-red-300' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                            INAPTO
-                        </button>
-                        <button type="button" onClick={() => setResultForm({...resultForm, result: 'FALTOU'})} className={`py-2 px-1 rounded border text-sm font-bold transition-all ${resultForm.result === 'FALTOU' ? 'bg-gray-600 text-white border-gray-600 ring-2 ring-gray-300' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-                            FALTOU
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-                    <button type="button" onClick={() => setIsResultModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
-                        Confirmar Resultado
-                    </button>
-                </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Create/Edit Request Modal (Tabbed) */}
+      {/* Modal: Create/Edit Request */}
       {isCreateModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full flex flex-col max-h-[90vh] animate-fadeIn">
@@ -684,19 +631,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     <label className="block text-xs font-medium text-gray-600">Telefone <span className="text-red-500">*</span></label>
                                     <input required type="text" className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.phone} onChange={e => setNewRequestData({...newRequestData, phone: e.target.value})} />
                                 </div>
-                                <div className="col-span-2">
-                                     <label className="block text-xs font-medium text-gray-600">Email</label>
-                                     <input type="email" className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.email} onChange={e => setNewRequestData({...newRequestData, email: e.target.value})} />
-                                </div>
-                                <div className="col-span-2">
-                                     <label className="block text-xs font-medium text-gray-600">Endereço</label>
-                                     <input type="text" className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.address} onChange={e => setNewRequestData({...newRequestData, address: e.target.value})} />
-                                </div>
                             </div>
                          </div>
                     )}
 
-                    {/* TAB: PROCESS (Dados Complementares) */}
+                    {/* TAB: PROCESS */}
                     {modalTab === 'PROCESS' && (
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -708,8 +647,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600">Categoria Pretendida</label>
-                                    <select className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.intendedCategory} onChange={e => setNewRequestData({...newRequestData, intendedCategory: e.target.value})}>
+                                    <label className="block text-xs font-medium text-gray-600">Categoria Pretendida <span className="text-red-500">*</span></label>
+                                    <select required className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.intendedCategory} onChange={e => setNewRequestData({...newRequestData, intendedCategory: e.target.value})}>
+                                        <option value="">Selecione...</option>
                                         <option value="A">A (Moto)</option>
                                         <option value="B">B (Carro)</option>
                                         <option value="AB">AB (Carro e Moto)</option>
@@ -724,21 +664,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                         value={newRequestData.cnhRestriction} 
                                         onChange={handleRestrictionChange} 
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">Letras maiúsculas, espaço auto.</p>
                                 </div>
                                 
-                                {/* Campos Novos - Instrutor Maior */}
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-medium text-gray-600">Instrutor <span className="text-red-500">*</span></label>
-                                    <input 
-                                        type="text"
-                                        required
-                                        placeholder="NOME DO INSTRUTOR" 
+                                    <select 
+                                        required 
                                         className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
                                         value={newRequestData.instructor} 
-                                        onChange={handleInstructorChange} 
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Apenas letras, sem acentos.</p>
+                                        onChange={handleInstructorSelect}
+                                    >
+                                        <option value="">Selecione um Instrutor...</option>
+                                        {instructors.map(inst => (
+                                            <option key={inst.id} value={inst.name}>{inst.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div>
@@ -751,7 +691,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                         value={newRequestData.vehiclePlate} 
                                         onChange={handlePlateChange} 
                                     />
-                                    <p className="text-xs text-gray-500 mt-1">Letras e números.</p>
                                 </div>
 
                                 <div className="col-span-3 pt-4 border-t mt-2">
@@ -770,13 +709,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
                                 <div className="col-span-3">
                                    <label className="block text-xs font-medium text-gray-600">Observações</label>
-                                   <textarea rows={3} className="w-full border rounded p-2 mt-1" value={newRequestData.observation} onChange={e => setNewRequestData({...newRequestData, observation: e.target.value})}></textarea>
+                                   <textarea rows={3} className="w-full border rounded p-2 mt-1 bg-white text-gray-900" value={newRequestData.observation} onChange={e => setNewRequestData({...newRequestData, observation: e.target.value})}></textarea>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                     {/* TAB: HISTORY */}
+                    {/* TAB: HISTORY */}
                     {modalTab === 'HISTORY' && (
                         <div className="space-y-6">
                             <div className="border rounded-lg overflow-hidden">
@@ -829,6 +768,64 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                 </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Result Modal */}
+      {isResultModalOpen && resultRequest && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-md w-full p-6 animate-fadeIn">
+            <div className="flex justify-between items-center mb-4 border-b pb-4">
+                <div>
+                    <h3 className="text-lg font-bold text-gray-800">Lançar Resultado</h3>
+                    <p className="text-xl font-bold text-red-600 mt-2 uppercase">{resultRequest.socialName || resultRequest.studentName}</p>
+                    <p className="text-lg font-bold text-red-600 font-mono">CPF: {resultRequest.cpf}</p>
+                </div>
+                <button onClick={() => setIsResultModalOpen(false)}><X className="h-5 w-5 text-gray-400" /></button>
+            </div>
+
+            <form onSubmit={handleSubmitResult} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Data Realizada</label>
+                        <input type="date" required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.date} onChange={e => setResultForm({...resultForm, date: e.target.value})} />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Hora</label>
+                        <input type="time" required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.time} onChange={e => setResultForm({...resultForm, time: e.target.value})} />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
+                    <select required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.category} onChange={e => setResultForm({...resultForm, category: e.target.value})}>
+                        <option value="A">A (Moto)</option>
+                        <option value="B">B (Carro)</option>
+                    </select>
+                </div>
+                
+                <div className="border-t pt-4 mt-2">
+                    <label className="block text-sm font-bold text-gray-800 mb-2">Resultado Final</label>
+                    <div className="grid grid-cols-3 gap-3">
+                        <button type="button" onClick={() => setResultForm({...resultForm, result: 'APTO'})} className={`py-2 px-1 rounded border text-sm font-bold transition-all ${resultForm.result === 'APTO' ? 'bg-green-600 text-white border-green-600 ring-2 ring-green-300' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                            APTO
+                        </button>
+                        <button type="button" onClick={() => setResultForm({...resultForm, result: 'INAPTO'})} className={`py-2 px-1 rounded border text-sm font-bold transition-all ${resultForm.result === 'INAPTO' ? 'bg-red-600 text-white border-red-600 ring-2 ring-red-300' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                            INAPTO
+                        </button>
+                        <button type="button" onClick={() => setResultForm({...resultForm, result: 'FALTOU'})} className={`py-2 px-1 rounded border text-sm font-bold transition-all ${resultForm.result === 'FALTOU' ? 'bg-gray-600 text-white border-gray-600 ring-2 ring-gray-300' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
+                            FALTOU
+                        </button>
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                    <button type="button" onClick={() => setIsResultModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+                        Confirmar Resultado
+                    </button>
+                </div>
+            </form>
           </div>
         </div>
       )}

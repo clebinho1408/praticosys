@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
-import { User, UserRole, DrivingSchool, Examiner } from '../types';
-import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, X, Save, Lock, RotateCcw } from 'lucide-react';
+import { User, UserRole, DrivingSchool, Examiner, Instructor } from '../types';
+import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, X, Save, Lock, RotateCcw, Car } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
-type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS';
+type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
 
 const RegistryManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('USERS');
@@ -17,7 +17,7 @@ const RegistryManagement: React.FC = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Tabs Header */}
-        <div className="flex border-b border-gray-100">
+        <div className="flex border-b border-gray-100 flex-wrap">
           <button
             onClick={() => setActiveTab('USERS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
@@ -42,6 +42,14 @@ const RegistryManagement: React.FC = () => {
           >
             <GraduationCap className="h-4 w-4" /> Examinadores
           </button>
+          <button
+            onClick={() => setActiveTab('INSTRUCTORS')}
+            className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
+              activeTab === 'INSTRUCTORS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <Car className="h-4 w-4" /> Instrutores
+          </button>
         </div>
 
         {/* Content */}
@@ -49,6 +57,7 @@ const RegistryManagement: React.FC = () => {
           {activeTab === 'USERS' && <UsersManager />}
           {activeTab === 'SCHOOLS' && <SchoolsManager />}
           {activeTab === 'EXAMINERS' && <ExaminersManager />}
+          {activeTab === 'INSTRUCTORS' && <InstructorsManager />}
         </div>
       </div>
     </div>
@@ -587,6 +596,174 @@ const ExaminersManager: React.FC = () => {
                   <input type="checkbox" checked={formData.canExamPCD} onChange={e => setFormData({...formData, canExamPCD: e.target.checked})} />
                   <span className="text-sm">Prova Especial (PCD)</span>
                 </label>
+              </div>
+              <div className="flex justify-end gap-3 mt-6">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const InstructorsManager: React.FC = () => {
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Instructor | null>(null);
+  const [formData, setFormData] = useState({ name: '', cpf: '', phone: '', plate: '' });
+  
+  // Search State
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Confirm Modal State
+  const [confirmState, setConfirmState] = useState<{
+      isOpen: boolean;
+      title: string;
+      message: string;
+      isDestructive: boolean;
+      onConfirm: () => void;
+  }>({
+      isOpen: false,
+      title: '',
+      message: '',
+      isDestructive: false,
+      onConfirm: () => {}
+  });
+
+  const fetch = async () => setInstructors(await api.getInstructorsAsync());
+  useEffect(() => { fetch(); }, []);
+
+  const openModal = (inst?: Instructor) => {
+    setEditing(inst || null);
+    setFormData(inst ? { name: inst.name, cpf: inst.cpf, phone: inst.phone, plate: inst.plate } : { name: '', cpf: '', phone: '', plate: '' });
+    setIsModalOpen(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editing) await api.updateInstructor(editing.id, formData);
+    else await api.createInstructor(formData);
+    setIsModalOpen(false);
+    fetch();
+  };
+
+  const handleDelete = (id: string) => {
+      setConfirmState({
+          isOpen: true,
+          title: 'Remover Instrutor',
+          message: 'Tem certeza que deseja remover este instrutor?',
+          isDestructive: true,
+          onConfirm: async () => {
+              await api.deleteInstructor(id);
+              fetch();
+          }
+      });
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z\s]/g, "");
+      setFormData({...formData, name: val});
+  };
+
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value.replace(/\D/g, '');
+      setFormData({...formData, cpf: val});
+  };
+
+  const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      setFormData({...formData, plate: val});
+  };
+  
+  // Filter Logic
+  const filteredInstructors = instructors.filter(i => 
+      i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      i.cpf.includes(searchTerm)
+  );
+
+  return (
+    <div>
+      <ConfirmModal 
+         isOpen={confirmState.isOpen}
+         title={confirmState.title}
+         message={confirmState.message}
+         isDestructive={confirmState.isDestructive}
+         onConfirm={confirmState.onConfirm}
+         onClose={() => setConfirmState(prev => ({...prev, isOpen: false}))}
+      />
+
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div className="relative w-full md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input 
+                type="text" 
+                placeholder="Buscar instrutor..." 
+                className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
+          <Plus className="h-4 w-4" /> Novo Instrutor
+        </button>
+      </div>
+
+      <div className="overflow-x-auto border rounded-lg">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-gray-50 text-gray-600">
+            <tr>
+              <th className="px-4 py-3">Nome</th>
+              <th className="px-4 py-3">CPF</th>
+              <th className="px-4 py-3">Telefone</th>
+              <th className="px-4 py-3">Placa</th>
+              <th className="px-4 py-3 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filteredInstructors.map(inst => (
+              <tr key={inst.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3 font-medium uppercase">{inst.name}</td>
+                <td className="px-4 py-3 text-gray-500">{inst.cpf}</td>
+                <td className="px-4 py-3 text-gray-500">{inst.phone}</td>
+                <td className="px-4 py-3 text-gray-500">
+                   <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded border">{inst.plate || '-'}</span>
+                </td>
+                <td className="px-4 py-3 text-right space-x-2">
+                  <button onClick={() => openModal(inst)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
+                  <button onClick={() => handleDelete(inst.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                </td>
+              </tr>
+            ))}
+             {filteredInstructors.length === 0 && (
+                <tr><td colSpan={5} className="p-4 text-center text-gray-500">Nenhum instrutor encontrado.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold mb-4">{editing ? 'Editar Instrutor' : 'Novo Instrutor'}</h3>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium">Nome Completo <span className="text-red-500">*</span></label>
+                <input required className="w-full border rounded p-2 bg-white text-gray-900 uppercase" value={formData.name} onChange={handleNameChange} placeholder="NOME DO INSTRUTOR" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">CPF <span className="text-red-500">*</span></label>
+                <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.cpf} onChange={handleCpfChange} placeholder="Apenas números" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Telefone</label>
+                <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(00) 00000-0000" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Placa do Veículo</label>
+                <input className="w-full border rounded p-2 bg-white text-gray-900 font-mono" value={formData.plate} onChange={handlePlateChange} placeholder="ABC1D23" />
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>

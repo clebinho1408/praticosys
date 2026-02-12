@@ -49,6 +49,14 @@ export interface Examiner {
   canExamPCD: boolean;
 }
 
+export interface Instructor {
+  id: string;
+  name: string;
+  cpf: string;
+  phone: string;
+  plate: string;
+}
+
 export interface ExamSchedule {
   id: string;
   date: string;

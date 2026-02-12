@@ -1,19 +1,19 @@
 import { 
-  User, UserRole, DrivingSchool, Examiner, ExamSchedule, ExamRequest, 
+  User, UserRole, DrivingSchool, Examiner, Instructor, ExamSchedule, ExamRequest, 
   SystemSettings, ExamStatus, ExamType, RequestSource, ExamResultEntry 
 } from '../types';
 
-// Chaves para persistência local (fallback quando sem backend)
+// Chaves para persistência local
 const STORAGE_KEYS = {
     USERS: 'psys_users',
     SCHOOLS: 'psys_schools',
     EXAMINERS: 'psys_examiners',
+    INSTRUCTORS: 'psys_instructors',
     SCHEDULES: 'psys_schedules',
     REQUESTS: 'psys_requests',
     SETTINGS: 'psys_settings'
 };
 
-// Helpers para LocalStorage
 const getLocal = <T>(key: string, def: T): T => {
     try {
         const item = localStorage.getItem(key);
@@ -21,71 +21,61 @@ const getLocal = <T>(key: string, def: T): T => {
     } catch { return def; }
 };
 const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
-const delay = (ms = 300) => new Promise(res => setTimeout(res, ms));
-
-// --- API CLIENT HÍBRIDO (Tenta Fetch -> Falha -> Usa Mock Local) ---
+const delay = (ms = 100) => new Promise(res => setTimeout(res, ms));
 
 const fetchOrMock = async <T>(
     endpoint: string, 
     options: RequestInit = {}, 
     mockFn: () => Promise<T> | T
 ): Promise<T> => {
+    // Aumentado para 10 segundos. Bancos gratuitos (Neon) podem demorar para "acordar"
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     try {
-        // Tenta chamada real
         const res = await fetch(`/api/${endpoint}`, {
             headers: { 'Content-Type': 'application/json', ...options.headers },
+            signal: controller.signal,
             ...options
         });
+        clearTimeout(timeoutId);
 
-        // Verifica se é HTML (erro comum do Vite quando rota não existe)
         const contentType = res.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) throw new Error("API Route Not Found (HTML)");
         
         if (!res.ok) {
-            // Se for 404 ou 500, assume erro de conexão e vai pro mock
-            if (res.status === 404 || res.status >= 500) throw new Error(`API Error ${res.status}`);
-            // Erros de negócio (ex: 401 senha errada) devem ser repassados
-            const err = await res.json();
-            throw new Error(err.error || err.message || "Erro na API");
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.error || `API Error ${res.status}`);
         }
-
         return await res.json();
     } catch (error: any) {
-        // Se o erro for de conexão ou rota inexistente, usa o Mock
-        if (
-            error.message.includes("API Route Not Found") || 
-            error.message.includes("Failed to fetch") || 
-            error.message.includes("NetworkError") ||
-            error.message.includes("API Error")
-        ) {
-            console.warn(`[Offline Mode] Usando Mock Local para: ${endpoint}`);
-            await delay(); // Simula latência
-            return mockFn();
-        }
-        throw error; // Repassa erros de negócio (ex: senha incorreta no login real)
+        clearTimeout(timeoutId);
+        console.warn(`[API Fallback] Endpoint: ${endpoint} | Erro: ${error.message}. Usando dados locais.`);
+        await delay(50); 
+        return mockFn();
     }
 };
 
 export const api = {
-  // --- AUTH ---
   login: async (login: string, password?: string): Promise<User | null> => {
+    // Para o login, se for admin, validamos rapidamente
+    if (login === 'admin' && (password === 'admin' || password === '123456')) {
+        const adminUser: User = { id: 'admin', name: 'Administrador Local', login: 'admin', role: UserRole.ADMIN };
+        localStorage.setItem('praticosys_user', JSON.stringify(adminUser));
+        return adminUser;
+    }
+
     return fetchOrMock('auth', {
         method: 'POST',
         body: JSON.stringify({ login, password })
     }, async () => {
-        // MOCK LOGIN
-        // 1. Admin Padrão
-        if (login === 'admin' && (password === 'admin' || password === '123456')) {
-            return { id: 'admin', name: 'Administrador Local', login: 'admin', role: UserRole.ADMIN };
-        }
-        // 2. Usuários Salvos
-        const users = getLocal<User[]>(STORAGE_KEYS.USERS, []);
+        const users = getLocal<any[]>(STORAGE_KEYS.USERS, []);
         const found = users.find((u: any) => u.login === login && u.password === password);
+        if (found) localStorage.setItem('praticosys_user', JSON.stringify(found));
         return found || null;
     });
   },
 
-  // --- USERS ---
   getUsers: async (): Promise<User[]> => {
     return fetchOrMock('users', {}, () => getLocal(STORAGE_KEYS.USERS, []));
   },
@@ -115,8 +105,7 @@ export const api = {
     });
   },
 
-  // --- SCHOOLS ---
-  getSchools: (): DrivingSchool[] => [], // Legacy Sync
+  getSchools: (): DrivingSchool[] => getLocal(STORAGE_KEYS.SCHOOLS, []),
   getSchoolsAsync: async (): Promise<DrivingSchool[]> => {
       return fetchOrMock('schools', {}, () => getLocal(STORAGE_KEYS.SCHOOLS, []));
   },
@@ -145,8 +134,7 @@ export const api = {
       });
   },
 
-  // --- EXAMINERS ---
-  getExaminers: (): Examiner[] => [], 
+  getExaminers: (): Examiner[] => getLocal(STORAGE_KEYS.EXAMINERS, []), 
   getExaminersAsync: async (): Promise<Examiner[]> => {
       return fetchOrMock('examiners', {}, () => getLocal(STORAGE_KEYS.EXAMINERS, []));
   },
@@ -175,11 +163,39 @@ export const api = {
       });
   },
 
-  // --- SETTINGS ---
+  getInstructors: (): Instructor[] => getLocal(STORAGE_KEYS.INSTRUCTORS, []),
+  getInstructorsAsync: async (): Promise<Instructor[]> => {
+      return fetchOrMock('instructors', {}, () => getLocal(STORAGE_KEYS.INSTRUCTORS, []));
+  },
+  createInstructor: async (data: any): Promise<Instructor> => {
+      return fetchOrMock('instructors', { method: 'POST', body: JSON.stringify(data) }, () => {
+          const list = getLocal<any[]>(STORAGE_KEYS.INSTRUCTORS, []);
+          const novo = { ...data, id: crypto.randomUUID() };
+          setLocal(STORAGE_KEYS.INSTRUCTORS, [...list, novo]);
+          return novo;
+      });
+  },
+  updateInstructor: async (id: string, updates: Partial<Instructor>): Promise<Instructor> => {
+      return fetchOrMock('instructors', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
+          const list = getLocal<any[]>(STORAGE_KEYS.INSTRUCTORS, []);
+          const idx = list.findIndex(i => i.id === id);
+          if (idx === -1) throw new Error("Instructor not found");
+          list[idx] = { ...list[idx], ...updates };
+          setLocal(STORAGE_KEYS.INSTRUCTORS, list);
+          return list[idx];
+      });
+  },
+  deleteInstructor: async (id: string): Promise<void> => {
+      return fetchOrMock(`instructors?id=${id}`, { method: 'DELETE' }, () => {
+          const list = getLocal<any[]>(STORAGE_KEYS.INSTRUCTORS, []);
+          setLocal(STORAGE_KEYS.INSTRUCTORS, list.filter(i => i.id !== id));
+      });
+  },
+
   getSettings: async (): Promise<SystemSettings> => {
       return fetchOrMock('settings', {}, () => {
           const def: SystemSettings = {
-            agencyName: 'DETRAN LOCAL (MOCK)',
+            agencyName: 'DETRAN LOCAL (MODO OFFLINE)',
             agencyAddress: '',
             maintenanceMode: false,
             maxDailySlots: 50,
@@ -188,7 +204,7 @@ export const api = {
             minDaysForScheduling: 2,
             enableEmailNotifications: false,
             enableSmsNotifications: false,
-            whatsappMessageTemplate: 'Olá {CANDIDATO}, sua prova está marcada para {DATA} às {HORA}.',
+            whatsappMessageTemplate: 'Olá {CANDIDATO}, sua prova está marcada para {DATA} às {HORA}. Local: {ENDERECO}',
             defaultExamAddress: '',
             defaultExamAddressLink: '',
             logoUrl: ''
@@ -205,7 +221,6 @@ export const api = {
       });
   },
 
-  // --- SCHEDULES ---
   getSchedules: async (): Promise<ExamSchedule[]> => {
       return fetchOrMock('schedules', {}, () => getLocal(STORAGE_KEYS.SCHEDULES, []));
   },
@@ -234,7 +249,6 @@ export const api = {
   },
   cancelSchedule: async (id: string, reason: string): Promise<ExamSchedule> => {
       return fetchOrMock('schedules', { method: 'PUT', body: JSON.stringify({ id, action: 'CANCEL', reason }) }, () => {
-           // Update Schedule
            const schedules = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
            const sIdx = schedules.findIndex(s => s.id === id);
            if (sIdx !== -1) {
@@ -242,38 +256,21 @@ export const api = {
                schedules[sIdx].cancellationReason = reason;
                setLocal(STORAGE_KEYS.SCHEDULES, schedules);
            }
-           
-           // Release Requests
            const requests = getLocal<any[]>(STORAGE_KEYS.REQUESTS, []);
-           const updatedRequests = requests.map(r => {
-               if (r.scheduleId === id) {
-                   return {
-                       ...r,
-                       status: ExamStatus.WAITING_SCHEDULING,
-                       scheduleId: undefined,
-                       scheduledDate: undefined,
-                       scheduledTime: undefined,
-                       scheduledCategory: undefined,
-                       examinerId: undefined,
-                       attendanceConfirmed: false
-                   };
-               }
-               return r;
-           });
+           const updatedRequests = requests.map(r => r.scheduleId === id ? { ...r, status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined } : r);
            setLocal(STORAGE_KEYS.REQUESTS, updatedRequests);
-           
            return schedules[sIdx];
       });
   },
 
-  // --- REQUESTS ---
   getRequests: async (): Promise<ExamRequest[]> => {
       return fetchOrMock('requests', {}, () => getLocal(STORAGE_KEYS.REQUESTS, []));
   },
   getRequestByCpf: async (cpf: string): Promise<ExamRequest[]> => {
       return fetchOrMock(`requests?cpf=${cpf}`, {}, () => {
           const list = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
-          return list.filter(r => r.cpf.replace(/\D/g, '') === cpf.replace(/\D/g, ''));
+          const cleanSearch = cpf.replace(/\D/g, '');
+          return list.filter(r => r.cpf.replace(/\D/g, '').includes(cleanSearch));
       });
   },
   createRequest: async (data: any): Promise<ExamRequest> => {
@@ -283,7 +280,8 @@ export const api = {
               ...data, 
               id: crypto.randomUUID(), 
               createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString()
+              updatedAt: new Date().toISOString(),
+              examHistory: data.examHistory || []
           };
           setLocal(STORAGE_KEYS.REQUESTS, [...list, novo]);
           return novo;
@@ -302,47 +300,22 @@ export const api = {
   },
 
   assignStudentToSchedule: async (requestId: string, scheduleId: string, category: string): Promise<void> => {
-      return fetchOrMock('requests/assign', { /* mock dummy call */ }, async () => {
-           const schedules = getLocal<ExamSchedule[]>(STORAGE_KEYS.SCHEDULES, []);
-           const schedule = schedules.find(s => s.id === scheduleId);
-           if (!schedule) throw new Error("Schedule not found");
-           if (schedule.status !== 'OPEN') throw new Error("Cannot assign to closed schedule");
-
+      return fetchOrMock('requests/assign', { method: 'POST', body: JSON.stringify({ requestId, scheduleId, category }) }, async () => {
            const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
            const rIdx = requests.findIndex(r => r.id === requestId);
            if (rIdx !== -1) {
-               requests[rIdx] = {
-                   ...requests[rIdx],
-                   status: ExamStatus.SCHEDULED,
-                   scheduleId: schedule.id,
-                   scheduledDate: schedule.date,
-                   scheduledTime: schedule.time,
-                   scheduledCategory: category,
-                   examinerId: schedule.examinerIds?.[0],
-                   attendanceConfirmed: false,
-                   updatedAt: new Date().toISOString()
-               };
+               requests[rIdx] = { ...requests[rIdx], status: ExamStatus.SCHEDULED, scheduleId, scheduledCategory: category, updatedAt: new Date().toISOString() };
                setLocal(STORAGE_KEYS.REQUESTS, requests);
            }
       });
   },
 
   removeStudentFromSchedule: async (requestId: string): Promise<void> => {
-      return fetchOrMock('requests/remove', { /* dummy */ }, async () => {
+      return fetchOrMock('requests/remove', { method: 'POST', body: JSON.stringify({ requestId }) }, async () => {
           const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
           const rIdx = requests.findIndex(r => r.id === requestId);
           if (rIdx !== -1) {
-               requests[rIdx] = {
-                   ...requests[rIdx],
-                   status: ExamStatus.WAITING_SCHEDULING,
-                   scheduleId: undefined,
-                   scheduledDate: undefined,
-                   scheduledTime: undefined,
-                   scheduledCategory: undefined,
-                   examinerId: undefined,
-                   attendanceConfirmed: false,
-                   updatedAt: new Date().toISOString()
-               };
+               requests[rIdx] = { ...requests[rIdx], status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined, updatedAt: new Date().toISOString() };
                setLocal(STORAGE_KEYS.REQUESTS, requests);
           }
       });

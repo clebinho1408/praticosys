@@ -30,6 +30,16 @@ export const examiners = pgTable('examiners', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Tabela de Instrutores
+export const instructors = pgTable('instructors', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  cpf: text('cpf').notNull(),
+  phone: text('phone'),
+  plate: text('plate'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 // Tabela de Bancas (Agendas)
 export const examSchedules = pgTable('exam_schedules', {
   id: text('id').primaryKey(),
