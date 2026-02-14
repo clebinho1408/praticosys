@@ -15,16 +15,23 @@ export default async function handler(req: any, res: any) {
         if (s.status === 'CANCELLED') continue;
 
         const examDate = new Date(`${s.date}T${s.time}`);
+        // Fechar 24h antes
+        const closeThreshold = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
+        // Concluir 4h depois
         const concludedThreshold = new Date(examDate.getTime() + (4 * 60 * 60 * 1000)); 
 
         let newStatus = null;
 
         if (now > concludedThreshold && s.status !== 'CONCLUDED') {
            newStatus = 'CONCLUDED';
+           // Move candidatos agendados para Aguardando Resultado
            await db.update(examRequests)
              .set({ status: 'WAITING_RESULT', updatedAt: new Date() })
              .where(and(eq(examRequests.scheduleId, s.id), eq(examRequests.status, 'SCHEDULED')));
-        } 
+        } else if (now > closeThreshold && now < concludedThreshold && s.status === 'OPEN') {
+           // Apenas fecha a banca para edições, candidatos permanecem Agendados
+           newStatus = 'CLOSED';
+        }
         
         if (newStatus) {
             updatesPromises.push(
@@ -34,7 +41,9 @@ export default async function handler(req: any, res: any) {
         }
       }
 
-      await Promise.all(updatesPromises);
+      if (updatesPromises.length > 0) {
+          await Promise.all(updatesPromises);
+      }
       return res.status(200).json(schedules);
     }
 
@@ -57,6 +66,7 @@ export default async function handler(req: any, res: any) {
              .where(eq(examSchedules.id, id))
              .returning();
              
+          // Retorna candidatos para Aguardando Agendamento
           await db.update(examRequests)
              .set({ 
                  status: 'WAITING_SCHEDULING',

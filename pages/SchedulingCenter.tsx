@@ -359,10 +359,16 @@ const SchedulingCenter: React.FC = () => {
   });
 
   // Permission Logic
-  const canEdit = selectedSchedule?.status === 'OPEN';
-  const canAddStudent = selectedSchedule?.status === 'OPEN';
-  const canCancel = selectedSchedule?.status === 'OPEN' || selectedSchedule?.status === 'CLOSED';
-  // Note: CLOSED allows cancel, CONCLUDED allows nothing.
+  const isScheduleOpen = selectedSchedule?.status === 'OPEN';
+  const isScheduleClosed = selectedSchedule?.status === 'CLOSED';
+  
+  // Ações de gerenciamento (Adicionar/Remover/Editar) só são permitidas se ABERTA
+  const canEditSchedule = isScheduleOpen;
+  const canManageStudents = isScheduleOpen; 
+  
+  // Ações de execução (Cancelar, Confirmar Presença, WhatsApp) permitidas se ABERTA ou FECHADA
+  const canCancel = isScheduleOpen || isScheduleClosed;
+  const canInteractStudent = isScheduleOpen || isScheduleClosed;
   
   // Print validation: All students must be confirmed
   const hasUnconfirmed = scheduledStudents.some(s => !s.attendanceConfirmed);
@@ -449,7 +455,7 @@ const SchedulingCenter: React.FC = () => {
                   </div>
                   <div className="flex gap-2">
                     {/* EDIT Button - Only if OPEN */}
-                    {canEdit && (
+                    {canEditSchedule && (
                         <button 
                         type="button"
                         onClick={(e) => {
@@ -490,7 +496,7 @@ const SchedulingCenter: React.FC = () => {
                     </button>
 
                     {/* ADD STUDENTS - Only if OPEN */}
-                    {canAddStudent && (
+                    {canManageStudents && (
                         <button 
                         type="button"
                         onClick={() => setIsAddStudentOpen(true)}
@@ -553,7 +559,7 @@ const SchedulingCenter: React.FC = () => {
                           
                           {/* Screen Actions */}
                           <td className="px-6 py-4 text-right print:hidden flex justify-end gap-2">
-                              {canEdit ? (
+                              {canInteractStudent ? (
                                   <>
                                     <button 
                                         type="button"
@@ -573,19 +579,21 @@ const SchedulingCenter: React.FC = () => {
                                         {req.attendanceConfirmed ? <CheckCircle className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                                     </button>
 
-                                    <button 
-                                        type="button"
-                                        onClick={(e) => handleRemoveClick(e, req.id)} 
-                                        disabled={processingStudentId === req.id}
-                                        className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-md transition-colors border border-red-100 disabled:opacity-50 inline-flex items-center justify-center w-8 h-8"
-                                        title="Remover da Banca"
-                                    >
-                                        {processingStudentId === req.id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Trash2 className="h-4 w-4" />
-                                        )}
-                                    </button>
+                                    {canManageStudents && (
+                                        <button 
+                                            type="button"
+                                            onClick={(e) => handleRemoveClick(e, req.id)} 
+                                            disabled={processingStudentId === req.id}
+                                            className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-md transition-colors border border-red-100 disabled:opacity-50 inline-flex items-center justify-center w-8 h-8"
+                                            title="Remover da Banca"
+                                        >
+                                            {processingStudentId === req.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="h-4 w-4" />
+                                            )}
+                                        </button>
+                                    )}
                                   </>
                               ) : (
                                   <span className="text-gray-400 text-xs italic">Bloqueado</span>
@@ -644,7 +652,7 @@ const SchedulingCenter: React.FC = () => {
                           
                           {/* Screen Actions */}
                           <td className="px-6 py-4 text-right print:hidden flex justify-end gap-2">
-                              {canEdit ? (
+                              {canInteractStudent ? (
                                   <>
                                     <button 
                                         type="button"
@@ -664,19 +672,21 @@ const SchedulingCenter: React.FC = () => {
                                         {req.attendanceConfirmed ? <CheckCircle className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
                                     </button>
 
-                                    <button 
-                                        type="button"
-                                        onClick={(e) => handleRemoveClick(e, req.id)} 
-                                        disabled={processingStudentId === req.id}
-                                        className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-md transition-colors border border-red-100 disabled:opacity-50 inline-flex items-center justify-center w-8 h-8"
-                                        title="Remover da Banca"
-                                    >
-                                        {processingStudentId === req.id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Trash2 className="h-4 w-4" />
-                                        )}
-                                    </button>
+                                    {canManageStudents && (
+                                        <button 
+                                            type="button"
+                                            onClick={(e) => handleRemoveClick(e, req.id)} 
+                                            disabled={processingStudentId === req.id}
+                                            className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-md transition-colors border border-red-100 disabled:opacity-50 inline-flex items-center justify-center w-8 h-8"
+                                            title="Remover da Banca"
+                                        >
+                                            {processingStudentId === req.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Trash2 className="h-4 w-4" />
+                                            )}
+                                        </button>
+                                    )}
                                   </>
                               ) : (
                                 <span className="text-gray-400 text-xs italic">Bloqueado</span>
@@ -902,7 +912,6 @@ const SchedulingCenter: React.FC = () => {
                const mainExaminer = schedule.examinerIds[0] ? getExaminerName(schedule.examinerIds[0]) : 'Não atribuído';
                const count = schedule.examinerIds.length;
                const extra = count > 1 ? `+${count - 1}` : '';
-               const allReqs = scheduledStudents.length > 0 ? scheduledStudents : []; // Needs update logic for main view, doing quick fetch simulation below
                
                // Note: In main view we don't have all requests pre-fetched for every schedule to count accurately without api call
                // Simplified: We will just show the Capacity Max info since actual count requires filtering all requests

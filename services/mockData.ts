@@ -222,7 +222,45 @@ export const api = {
   },
 
   getSchedules: async (): Promise<ExamSchedule[]> => {
-      return fetchOrMock('schedules', {}, () => getLocal(STORAGE_KEYS.SCHEDULES, []));
+      return fetchOrMock('schedules', {}, () => {
+          let schedules = getLocal<ExamSchedule[]>(STORAGE_KEYS.SCHEDULES, []);
+          let requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
+          const now = new Date();
+          let changed = false;
+          let requestsChanged = false;
+
+          schedules = schedules.map(s => {
+              if (s.status === 'CANCELLED' || s.status === 'CONCLUDED') return s;
+
+              const examDate = new Date(`${s.date}T${s.time}`);
+              const closeThreshold = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
+              const concludedThreshold = new Date(examDate.getTime() + (4 * 60 * 60 * 1000));
+
+              if (now > concludedThreshold) {
+                  // Passou 4h do exame -> CONCLUÍDA
+                  changed = true;
+                  requestsChanged = true;
+                  // Atualiza candidatos para WAITING_RESULT
+                  requests = requests.map(r => {
+                      if (r.scheduleId === s.id && r.status === ExamStatus.SCHEDULED) {
+                          return { ...r, status: ExamStatus.WAITING_RESULT, updatedAt: new Date().toISOString() };
+                      }
+                      return r;
+                  });
+                  return { ...s, status: 'CONCLUDED' };
+              } else if (now > closeThreshold && s.status === 'OPEN') {
+                  // Faltam menos de 24h -> FECHADA
+                  changed = true;
+                  return { ...s, status: 'CLOSED' };
+              }
+              return s;
+          });
+
+          if (changed) setLocal(STORAGE_KEYS.SCHEDULES, schedules);
+          if (requestsChanged) setLocal(STORAGE_KEYS.REQUESTS, requests);
+
+          return schedules;
+      });
   },
   createSchedule: async (data: any): Promise<ExamSchedule> => {
       return fetchOrMock('schedules', { method: 'POST', body: JSON.stringify(data) }, () => {
@@ -257,7 +295,7 @@ export const api = {
                setLocal(STORAGE_KEYS.SCHEDULES, schedules);
            }
            const requests = getLocal<any[]>(STORAGE_KEYS.REQUESTS, []);
-           const updatedRequests = requests.map(r => r.scheduleId === id ? { ...r, status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined } : r);
+           const updatedRequests = requests.map(r => r.scheduleId === id ? { ...r, status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined, scheduledDate: undefined, scheduledTime: undefined, scheduledCategory: undefined, attendanceConfirmed: false } : r);
            setLocal(STORAGE_KEYS.REQUESTS, updatedRequests);
            return schedules[sIdx];
       });
@@ -315,9 +353,9 @@ export const api = {
           const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
           const rIdx = requests.findIndex(r => r.id === requestId);
           if (rIdx !== -1) {
-               requests[rIdx] = { ...requests[rIdx], status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined, updatedAt: new Date().toISOString() };
+               requests[rIdx] = { ...requests[rIdx], status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined, scheduledCategory: undefined, updatedAt: new Date().toISOString() };
                setLocal(STORAGE_KEYS.REQUESTS, requests);
-          }
+           }
       });
   }
 };
