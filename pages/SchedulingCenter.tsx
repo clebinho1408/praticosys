@@ -159,7 +159,12 @@ const SchedulingCenter: React.FC = () => {
   useEffect(() => {
     if (selectedSchedule) {
       const updatedSel = schedules.find(s => s.id === selectedSchedule.id);
-      if (updatedSel && updatedSel.status !== selectedSchedule.status) {
+      // CORREÇÃO: Atualiza se houver mudança de status, data ou hora
+      if (updatedSel && (
+          updatedSel.status !== selectedSchedule.status || 
+          updatedSel.date !== selectedSchedule.date || 
+          updatedSel.time !== selectedSchedule.time
+      )) {
           setSelectedSchedule(updatedSel);
       }
       if (updatedSel) updateStudentLists(updatedSel.id);
@@ -382,7 +387,8 @@ const SchedulingCenter: React.FC = () => {
                     <div className="flex items-center gap-3 mb-2">
                         <h2 className="text-2xl font-bold text-gray-900">Lista de Chamada</h2>
                         {getStatusBadge(selectedSchedule.status)}
-                        <CountdownTimer schedule={selectedSchedule} />
+                        {/* Mostra timer aqui apenas se aberta, para consistência com o card */}
+                        {selectedSchedule.status === 'OPEN' && <CountdownTimer schedule={selectedSchedule} />}
                     </div>
                     <div className="flex flex-wrap gap-6 text-sm">
                       <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-gray-500" /> {formatDateDisplay(selectedSchedule.date)}</div>
@@ -572,9 +578,12 @@ const SchedulingCenter: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {filteredSchedules.map(s => (
                  <div key={s.id} onClick={() => setSelectedSchedule(s)} className="bg-white rounded-xl border p-5 cursor-pointer hover:shadow-md transition-shadow group relative">
-                     <div className="absolute top-4 right-4 z-10">
-                         <CountdownTimer schedule={s} />
-                     </div>
+                     {/* CORREÇÃO: Mostra contador superior apenas se status for OPEN */}
+                     {s.status === 'OPEN' && (
+                         <div className="absolute top-4 right-4 z-10">
+                             <CountdownTimer schedule={s} />
+                         </div>
+                     )}
                      <div className="flex justify-between items-start mb-4">
                          <div className="bg-blue-50 text-blue-700 p-2 rounded-lg group-hover:bg-blue-100 transition-colors"><Calendar className="h-6 w-6" /></div>
                      </div>
