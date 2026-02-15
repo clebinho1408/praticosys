@@ -1,3 +1,4 @@
+
 import { 
   User, UserRole, DrivingSchool, Examiner, Instructor, ExamSchedule, ExamRequest, 
   SystemSettings, ExamStatus, ExamType, RequestSource
@@ -64,37 +65,14 @@ const seedDatabase = () => {
         };
         
         const mockRequests: ExamRequest[] = [
-            // Aguardando
             { ...baseRequest, id: 'req_1', studentName: 'GABRIEL MEDINA', cpf: '123.456.789-00', phone: '(11) 91111-1111', status: ExamStatus.WAITING_SCHEDULING, intendedCategory: 'B', instructor: 'JOÃO OLIVEIRA', vehiclePlate: 'ABC1D23', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
             { ...baseRequest, id: 'req_2', studentName: 'RAYSSA LEAL', cpf: '234.567.890-11', phone: '(11) 92222-2222', status: ExamStatus.WAITING_SCHEDULING, intendedCategory: 'A', instructor: 'MARIA SANTOS', vehiclePlate: 'XYZ9A88', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
             { ...baseRequest, id: 'req_3', studentName: 'ITALO FERREIRA', cpf: '345.678.901-22', phone: '(11) 93333-3333', status: ExamStatus.WAITING_SCHEDULING, intendedCategory: 'B', instructor: 'PEDRO LIMA', vehiclePlate: 'KPL2J55', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-            
-            // Agendados
             { ...baseRequest, id: 'req_4', studentName: 'BEATRIZ HADDAD', cpf: '456.789.012-33', phone: '(11) 94444-4444', status: ExamStatus.SCHEDULED, intendedCategory: 'B', scheduledCategory: 'B', scheduledDate: '2024-03-20', scheduledTime: '08:00', instructor: 'JULIA MARTINS', vehiclePlate: 'BMW3X99', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-            
-            // Realizados
             { ...baseRequest, id: 'req_5', studentName: 'AYRTON SENNA', cpf: '567.890.123-44', phone: '(11) 95555-5555', status: ExamStatus.DONE, result: 'APTO', intendedCategory: 'B', instructor: 'JOÃO OLIVEIRA', vehiclePlate: 'ABC1D23', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
             { ...baseRequest, id: 'req_6', studentName: 'RUBENS BARRICHELLO', cpf: '678.901.234-55', phone: '(11) 96666-6666', status: ExamStatus.DONE, result: 'INAPTO', intendedCategory: 'B', instructor: 'PEDRO LIMA', vehiclePlate: 'KPL2J55', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-            
-            // Reteste
             { ...baseRequest, id: 'req_7', studentName: 'FELIPE MASSA', cpf: '789.012.345-66', phone: '(11) 97777-7777', status: ExamStatus.RETEST, intendedCategory: 'B', instructor: 'LUCAS FERREIRA', vehiclePlate: 'HND4H44', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
         ];
-        // Adiciona mais alguns aguardando para volume
-        for(let i=8; i<=15; i++) {
-            mockRequests.push({
-                ...baseRequest,
-                id: `req_${i}`,
-                studentName: `CANDIDATO TESTE ${i}`,
-                cpf: `${i}${i}${i}.${i}${i}${i}.${i}${i}${i}-${i}${i}`,
-                phone: `(11) 98888-${i.toString().padStart(4, '0')}`,
-                status: ExamStatus.WAITING_SCHEDULING,
-                intendedCategory: i % 2 === 0 ? 'A' : 'B',
-                instructor: 'JOÃO OLIVEIRA',
-                vehiclePlate: 'ABC1D23',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            } as any);
-        }
 
         setLocal(STORAGE_KEYS.REQUESTS, mockRequests);
     }
@@ -123,7 +101,6 @@ const fetchOrMock = async <T>(
     options: RequestInit = {}, 
     mockFn: () => Promise<T> | T
 ): Promise<T> => {
-    // Timeout de 2s para detectar offline mais rápido
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
 
@@ -145,7 +122,6 @@ const fetchOrMock = async <T>(
         return await res.json();
     } catch (error: any) {
         clearTimeout(timeoutId);
-        // Silencia warnings comuns em desenvolvimento offline para manter console limpo
         if (!error.message.includes('Aborted')) {
              console.debug(`[Offline Mode] Usando dados locais para: ${endpoint}`);
         }
@@ -258,7 +234,7 @@ export const api = {
   // --- SETTINGS ---
   getSettings: async (): Promise<SystemSettings> => fetchOrMock('settings', {}, () => {
       const def: SystemSettings = {
-        agencyName: 'DETRAN LOCAL (MODO OFFLINE)',
+        agencyName: 'DETRAN LOCAL',
         agencyAddress: '',
         maintenanceMode: false,
         maxDailySlots: 50,
@@ -315,13 +291,8 @@ export const api = {
   }),
   createSchedule: async (data: any): Promise<ExamSchedule> => fetchOrMock('schedules', { method: 'POST', body: JSON.stringify(data) }, () => {
       const list = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
-      
-      // Sanitização de data
       const cleanDate = data.date ? data.date.split('T')[0] : new Date().toISOString().split('T')[0];
-
-      // Calculate initial status
       const initialStatus = calculateStatus(cleanDate, data.time, 'OPEN');
-
       const novo = { 
           ...data, 
           id: genId(), 
@@ -336,17 +307,10 @@ export const api = {
       const list = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
       const idx = list.findIndex(i => i.id === id);
       if (idx === -1) throw new Error("Schedule not found");
-      
       let updated = { ...list[idx], ...updates };
-
-      if (updated.date) {
-          updated.date = updated.date.split('T')[0];
-      }
-      
-      // Recalculate status in case date/time changed
+      if (updated.date) updated.date = updated.date.split('T')[0];
       const newStatus = calculateStatus(updated.date, updated.time, updated.status);
       updated.status = newStatus;
-
       list[idx] = updated;
       setLocal(STORAGE_KEYS.SCHEDULES, list);
       return list[idx];
@@ -359,7 +323,6 @@ export const api = {
            schedules[sIdx].cancellationReason = reason;
            setLocal(STORAGE_KEYS.SCHEDULES, schedules);
        }
-       // Retorna candidatos para Aguardando Agendamento
        const requests = getLocal<any[]>(STORAGE_KEYS.REQUESTS, []);
        const updatedRequests = requests.map(r => r.scheduleId === id ? { 
            ...r, 
@@ -403,34 +366,59 @@ export const api = {
       return updated;
   }),
 
-  // --- ACTIONS ---
-  assignStudentToSchedule: async (requestId: string, scheduleId: string, category: string): Promise<void> => fetchOrMock('requests/assign', { method: 'POST', body: JSON.stringify({ requestId, scheduleId, category }) }, async () => {
-       const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
-       const rIdx = requests.findIndex(r => r.id === requestId);
-       if (rIdx !== -1) {
-           requests[rIdx] = { 
-               ...requests[rIdx], 
-               status: ExamStatus.SCHEDULED, 
-               scheduleId, 
-               scheduledCategory: category, 
-               updatedAt: new Date().toISOString() 
-           };
-           setLocal(STORAGE_KEYS.REQUESTS, requests);
-       }
-  }),
-  removeStudentFromSchedule: async (requestId: string): Promise<void> => fetchOrMock('requests/remove', { method: 'POST', body: JSON.stringify({ requestId }) }, async () => {
-      const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
-      const rIdx = requests.findIndex(r => r.id === requestId);
-      if (rIdx !== -1) {
-           requests[rIdx] = { 
-               ...requests[rIdx], 
-               status: ExamStatus.WAITING_SCHEDULING, 
-               scheduleId: undefined, 
-               scheduledCategory: undefined, 
-               attendanceConfirmed: false,
-               updatedAt: new Date().toISOString() 
-           };
-           setLocal(STORAGE_KEYS.REQUESTS, requests);
-       }
-  })
+  // --- ACTIONS (ATRIBUIÇÃO E REMOÇÃO) ---
+  // CORREÇÃO: Agora usa o endpoint PUT padrão de 'requests' para garantir persistência real no banco de dados.
+  assignStudentToSchedule: async (requestId: string, scheduleId: string, category: string): Promise<void> => {
+       const payload = {
+           id: requestId,
+           status: ExamStatus.SCHEDULED,
+           scheduleId: scheduleId,
+           scheduledCategory: category
+       };
+
+       return fetchOrMock('requests', { method: 'PUT', body: JSON.stringify(payload) }, async () => {
+           const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
+           const rIdx = requests.findIndex(r => r.id === requestId);
+           if (rIdx !== -1) {
+               requests[rIdx] = { 
+                   ...requests[rIdx], 
+                   status: ExamStatus.SCHEDULED, 
+                   scheduleId, 
+                   scheduledCategory: category, 
+                   updatedAt: new Date().toISOString() 
+               };
+               setLocal(STORAGE_KEYS.REQUESTS, requests);
+           }
+       });
+  },
+  
+  removeStudentFromSchedule: async (requestId: string): Promise<void> => {
+      const payload = {
+          id: requestId,
+          status: ExamStatus.WAITING_SCHEDULING,
+          scheduleId: null,
+          scheduledDate: null,
+          scheduledTime: null,
+          scheduledCategory: null,
+          attendanceConfirmed: false
+      };
+
+      return fetchOrMock('requests', { method: 'PUT', body: JSON.stringify(payload) }, async () => {
+          const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
+          const rIdx = requests.findIndex(r => r.id === requestId);
+          if (rIdx !== -1) {
+               requests[rIdx] = { 
+                   ...requests[rIdx], 
+                   status: ExamStatus.WAITING_SCHEDULING, 
+                   scheduleId: undefined, 
+                   scheduledDate: undefined,
+                   scheduledTime: undefined,
+                   scheduledCategory: undefined, 
+                   attendanceConfirmed: false,
+                   updatedAt: new Date().toISOString() 
+               };
+               setLocal(STORAGE_KEYS.REQUESTS, requests);
+           }
+      });
+  }
 };
