@@ -465,7 +465,7 @@ const SchedulingCenter: React.FC = () => {
                               <thead className="bg-gray-50 text-gray-600 border-b border-gray-200 print:bg-white print:border-black print:border-b">
                                   <tr>
                                       <th className="px-6 py-3 w-10 print:border print:border-black print:px-2 print:py-1">#</th>
-                                      <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-[120px]">CPF</th>
+                                      <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-[110px]">CPF</th>
                                       <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-auto">Nome</th>
                                       <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24">Restrição</th>
                                       <th className="px-6 py-3 print:hidden">Autoescola</th>
@@ -498,9 +498,21 @@ const SchedulingCenter: React.FC = () => {
                                                   </>
                                               ) : <span className="text-gray-400 text-xs italic">Bloqueado</span>}
                                           </td>
-                                          <td className="hidden print:table-cell print:border print:border-black text-center align-middle"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                                          <td className="hidden print:table-cell print:border print:border-black text-center align-middle"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                                          <td className="hidden print:table-cell print:border print:border-black print:border-r-2 text-center align-middle"><span className="inline-block w-4 h-4 border border-black"></span></td>
+                                          <td className="hidden print:table-cell print:border print:border-black print:p-0">
+                                            <div className="flex items-center justify-center py-1">
+                                              <span className="w-4 h-4 border border-black block"></span>
+                                            </div>
+                                          </td>
+                                          <td className="hidden print:table-cell print:border print:border-black print:p-0">
+                                            <div className="flex items-center justify-center py-1">
+                                              <span className="w-4 h-4 border border-black block"></span>
+                                            </div>
+                                          </td>
+                                          <td className="hidden print:table-cell print:border print:border-black print:border-r-2 print:p-0">
+                                            <div className="flex items-center justify-center py-1">
+                                              <span className="w-4 h-4 border border-black block"></span>
+                                            </div>
+                                          </td>
                                       </tr>
                                   ))}
                                   {students.length === 0 && <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic print:border print:border-black print:py-2">Nenhum candidato nesta categoria.</td></tr>}
@@ -513,7 +525,7 @@ const SchedulingCenter: React.FC = () => {
 
             {/* Rodapé Impressão */}
             <div className="hidden print:block fixed bottom-0 left-0 w-full bg-white border-t border-black pt-1 pb-2 flex flex-col items-center text-[10px] w-full text-center">
-                 {settings?.agencyAddress && <span className="font-bold uppercase mb-1">{settings.agencyAddress}</span>}
+                 {settings?.agencyAddress && <span className="font-bold uppercase mb-0.5">{settings.agencyAddress}</span>}
                  <span>Impressão: {new Date().toLocaleDateString()}</span>
             </div>
           </div>
