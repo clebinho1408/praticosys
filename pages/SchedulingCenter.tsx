@@ -1,7 +1,94 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
 import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings } from '../types';
-import { Calendar, Clock, User, Plus, Search, ChevronRight, X, CheckSquare, Printer, Trash2, Layers, Edit2, Loader2, AlertTriangle, MessageCircle, CheckCircle, Circle, Filter, RotateCcw, Ban } from 'lucide-react';
+import { Calendar, Clock, User, Plus, Search, ChevronRight, X, CheckSquare, Printer, Trash2, Layers, Edit2, Loader2, AlertTriangle, MessageCircle, CheckCircle, Circle, Filter, RotateCcw, Ban, Timer, Hourglass } from 'lucide-react';
+
+// --- HELPER COMPONENTS & FUNCTIONS ---
+
+// Corrige o problema de data voltando um dia (Fuso Horário)
+// Em vez de usar new Date(), manipulamos a string diretamente
+const formatDateDisplay = (dateString: string) => {
+  if (!dateString) return '-';
+  const parts = dateString.split('-'); // 2024-02-17
+  if (parts.length !== 3) return dateString;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`; // 17/02/2024
+};
+
+const CountdownTimer: React.FC<{ schedule: ExamSchedule }> = ({ schedule }) => {
+  const [timeLeft, setTimeLeft] = useState<string>('');
+  const [colorClass, setColorClass] = useState<string>('text-gray-500');
+
+  useEffect(() => {
+    const calculateTime = () => {
+      if (schedule.status === 'CANCELLED' || schedule.status === 'CONCLUDED') {
+        setTimeLeft('');
+        return;
+      }
+
+      const now = new Date();
+      const examDate = new Date(`${schedule.date}T${schedule.time}`);
+      
+      // Definição dos marcos temporais
+      const closeTime = new Date(examDate.getTime() - (24 * 60 * 60 * 1000)); // Fecha 24h antes
+      
+      // Se já passou do horário de fechamento
+      if (now > closeTime) {
+         if (schedule.status === 'OPEN') {
+             setTimeLeft('Fechando...'); // Aguardando atualização de status
+             setColorClass('text-orange-600');
+         } else {
+             // Se já está CLOSED, mostra tempo para o início da prova
+             const timeToExam = examDate.getTime() - now.getTime();
+             if (timeToExam > 0) {
+                 const hours = Math.floor(timeToExam / (1000 * 60 * 60));
+                 const minutes = Math.floor((timeToExam % (1000 * 60 * 60)) / (1000 * 60));
+                 setTimeLeft(`Prova em: ${hours}h ${minutes}m`);
+                 setColorClass('text-blue-600 font-bold');
+             } else {
+                 setTimeLeft('Prova em andamento');
+                 setColorClass('text-green-600 font-bold animate-pulse');
+             }
+         }
+         return;
+      }
+
+      // Tempo restante para FECHAR a banca
+      const diff = closeTime.getTime() - now.getTime();
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      let label = 'Fecha em: ';
+      let timeStr = '';
+
+      if (days > 0) {
+          timeStr = `${days}d ${hours}h`;
+          setColorClass('text-green-600');
+      } else {
+          timeStr = `${hours}h ${minutes}m ${seconds}s`;
+          // Se faltar menos de 2 horas, fica vermelho
+          setColorClass(hours < 2 ? 'text-red-600 font-bold animate-pulse' : 'text-orange-600 font-medium');
+      }
+
+      setTimeLeft(label + timeStr);
+    };
+
+    calculateTime();
+    const timer = setInterval(calculateTime, 1000);
+    return () => clearInterval(timer);
+  }, [schedule]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className={`flex items-center gap-1 text-xs ${colorClass} bg-white/80 px-2 py-1 rounded border border-gray-100 shadow-sm`}>
+      <Hourglass className="h-3 w-3" />
+      {timeLeft}
+    </div>
+  );
+};
 
 const SchedulingCenter: React.FC = () => {
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
@@ -177,7 +264,7 @@ const SchedulingCenter: React.FC = () => {
       const msg = msgTemplate
         .replace(/{CANDIDATO}/g, req.socialName || req.studentName)
         .replace(/{ALUNO}/g, req.socialName || req.studentName)
-        .replace(/{DATA}/g, new Date(req.scheduledDate!).toLocaleDateString())
+        .replace(/{DATA}/g, formatDateDisplay(req.scheduledDate!))
         .replace(/{HORA}/g, req.scheduledTime!)
         .replace(/{CATEGORIA}/g, req.scheduledCategory || 'B')
         .replace(/{ENDERECO}/g, fullAddress);
@@ -208,6 +295,11 @@ const SchedulingCenter: React.FC = () => {
       setStatusFilter('ALL');
       setDateStartFilter('');
       setDateEndFilter('');
+  };
+
+  const getExaminerName = (id?: string) => {
+      if (!id) return null;
+      return examiners.find(e => e.id === id)?.name || 'Desconhecido';
   };
 
   // --- HELPERS ---
@@ -282,9 +374,10 @@ const SchedulingCenter: React.FC = () => {
                     <div className="flex items-center gap-3 mb-2">
                         <h2 className="text-2xl font-bold text-gray-900">Lista de Chamada</h2>
                         {getStatusBadge(selectedSchedule.status)}
+                        <CountdownTimer schedule={selectedSchedule} />
                     </div>
                     <div className="flex flex-wrap gap-6 text-sm">
-                      <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-gray-500" /> {new Date(selectedSchedule.date).toLocaleDateString()}</div>
+                      <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-gray-500" /> {formatDateDisplay(selectedSchedule.date)}</div>
                       <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-gray-500" /> {selectedSchedule.time}</div>
                       <div className="flex items-center gap-4">
                         <div className={`flex items-center gap-1 font-medium ${currentCounts!.A.current >= currentCounts!.A.max ? 'text-red-600' : 'text-gray-600'}`}>
@@ -470,15 +563,28 @@ const SchedulingCenter: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {filteredSchedules.map(s => (
-                 <div key={s.id} onClick={() => setSelectedSchedule(s)} className="bg-white rounded-xl border p-5 cursor-pointer hover:shadow-md transition-shadow">
-                     <div className="flex justify-between items-start mb-4">
-                         <div className="bg-blue-50 text-blue-700 p-2 rounded-lg"><Calendar className="h-6 w-6" /></div>
-                         {getStatusBadge(s.status)}
+                 <div key={s.id} onClick={() => setSelectedSchedule(s)} className="bg-white rounded-xl border p-5 cursor-pointer hover:shadow-md transition-shadow group relative">
+                     <div className="absolute top-4 right-4">
+                         <CountdownTimer schedule={s} />
                      </div>
-                     <h3 className="text-lg font-bold">{new Date(s.date).toLocaleDateString()}</h3>
+                     <div className="flex justify-between items-start mb-4">
+                         <div className="bg-blue-50 text-blue-700 p-2 rounded-lg group-hover:bg-blue-100 transition-colors"><Calendar className="h-6 w-6" /></div>
+                     </div>
+                     <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-lg font-bold">{formatDateDisplay(s.date)}</h3>
+                        {getStatusBadge(s.status)}
+                     </div>
                      <p className="text-gray-500 text-sm flex items-center gap-2 mt-1"><Clock className="h-3 w-3" /> {s.time}</p>
-                     <div className="border-t mt-3 pt-2 text-xs text-gray-400">
-                        Vagas: A ({s.maxSlotsA}) | B ({s.maxSlotsB})
+                     
+                     <div className="border-t mt-3 pt-3">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                            <User className="h-3 w-3" /> {s.examinerIds[0] ? getExaminerName(s.examinerIds[0]) : 'Não atribuído'}
+                            {s.examinerIds.length > 1 && <span className="text-xs bg-gray-100 px-1 rounded">+{s.examinerIds.length - 1}</span>}
+                        </div>
+                        <div className="text-xs text-gray-400 flex justify-between">
+                            <span>Vagas Moto: {s.maxSlotsA}</span>
+                            <span>Vagas Carro: {s.maxSlotsB}</span>
+                        </div>
                      </div>
                  </div>
              ))}
