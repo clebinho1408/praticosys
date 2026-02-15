@@ -101,6 +101,7 @@ const SchedulingCenter: React.FC = () => {
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const [allRequests, setAllRequests] = useState<ExamRequest[]>([]); // Estado para contagem nos cards
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -141,15 +142,17 @@ const SchedulingCenter: React.FC = () => {
   const [processingStudentId, setProcessingStudentId] = useState<string | null>(null);
 
   const refreshData = async () => {
-    const [scheds, exams, sysSettings] = await Promise.all([
+    const [scheds, exams, sysSettings, requests] = await Promise.all([
         api.getSchedules(), 
         api.getExaminersAsync(),
-        api.getSettings()
+        api.getSettings(),
+        api.getRequests()
     ]);
     scheds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setSchedules(scheds);
     setExaminers(exams);
     setSettings(sysSettings);
+    setAllRequests(requests);
     setLoading(false);
   };
 
@@ -174,13 +177,17 @@ const SchedulingCenter: React.FC = () => {
   }, [schedules, selectedSchedule]);
 
   const updateStudentLists = async (scheduleId: string) => {
-    const allRequests = await api.getRequests();
+    // Usa o allRequests do estado se disponível e recente, ou busca novo se necessário.
+    // Para simplificar e garantir dados frescos na view detalhada, mantemos o fetch,
+    // mas atualizamos o allRequests também para refletir nos cards se voltarmos.
+    const requests = await api.getRequests();
+    setAllRequests(requests);
     
     // Alunos já na banca
-    setScheduledStudents(allRequests.filter(r => r.scheduleId === scheduleId));
+    setScheduledStudents(requests.filter(r => r.scheduleId === scheduleId));
 
     // Alunos elegíveis para adicionar (Fila de Espera)
-    const eligible = allRequests.filter(r => 
+    const eligible = requests.filter(r => 
       r.examType === ExamType.COMMON && 
       !r.scheduleId && 
       r.status === ExamStatus.WAITING_SCHEDULING
@@ -363,11 +370,26 @@ const SchedulingCenter: React.FC = () => {
             {/* Header Detalhes */}
             <div className="p-6 border-b border-gray-100 bg-gray-50 print:bg-white print:border-b-2 print:border-black print:p-0 print:pb-2 print:mb-4">
               
-              <div className="hidden print:flex items-center gap-4 mb-2 pb-2">
-                  {settings?.logoUrl && <img src={settings.logoUrl} alt="Logo" className="h-14 w-auto object-contain max-w-[80px]" />}
-                  <div>
-                      <h1 className="text-sm font-bold text-black uppercase">{settings?.agencyName || 'DETRAN'}</h1>
-                      <p className="text-lg font-black text-black uppercase">Lista de Chamada - 1ª Habilitação</p>
+              <div className="hidden print:block mb-4">
+                  {/* Linha Logo e Título */}
+                  <div className="flex items-center gap-4 mb-2 border-b-2 border-black pb-2">
+                      {settings?.logoUrl && <img src={settings.logoUrl} alt="Logo" className="h-14 w-auto object-contain max-w-[80px]" />}
+                      <div>
+                          <h1 className="text-sm font-bold text-black uppercase">{settings?.agencyName || 'DETRAN'}</h1>
+                          <p className="text-lg font-black text-black uppercase">Lista de Chamada - 1ª Habilitação</p>
+                      </div>
+                  </div>
+                  
+                  {/* Linha Detalhes da Banca (Recolocada para impressão) */}
+                  <div className="flex justify-between items-center text-black text-sm">
+                       <div>
+                          <span className="font-bold mr-2">DATA:</span> {formatDateDisplay(selectedSchedule.date)}
+                          <span className="font-bold ml-6 mr-2">HORA:</span> {selectedSchedule.time}
+                       </div>
+                       <div>
+                          <span className="font-bold mr-2">EXAMINADORES:</span> 
+                          {selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}
+                       </div>
                   </div>
               </div>
 
@@ -443,8 +465,8 @@ const SchedulingCenter: React.FC = () => {
                               <thead className="bg-gray-50 text-gray-600 border-b border-gray-200 print:bg-white print:border-black print:border-b">
                                   <tr>
                                       <th className="px-6 py-3 w-10 print:border print:border-black print:px-2 print:py-1">#</th>
-                                      <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">CPF</th>
-                                      <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1">Nome</th>
+                                      <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-[120px]">CPF</th>
+                                      <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-auto">Nome</th>
                                       <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24">Restrição</th>
                                       <th className="px-6 py-3 print:hidden">Autoescola</th>
                                       <th className="px-6 py-3 print:hidden text-right">Ações</th>
@@ -456,10 +478,10 @@ const SchedulingCenter: React.FC = () => {
                               <tbody className="divide-y divide-gray-100">
                                   {students.map((req, idx) => (
                                       <tr key={req.id} className="hover:bg-gray-50 print:hover:bg-transparent">
-                                          <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-0.5">{idx + 1}</td>
-                                          <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-0.5 print:text-black">{req.cpf}</td>
-                                          <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-0.5 print:text-black">{req.socialName || req.studentName}</td>
-                                          <td className="hidden print:table-cell print:border print:border-black print:px-2 print:py-0.5 text-center">{req.cnhRestriction || '-'}</td>
+                                          <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-0.5 align-middle">{idx + 1}</td>
+                                          <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-0.5 print:text-black align-middle">{req.cpf}</td>
+                                          <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-0.5 print:text-black align-middle">{req.socialName || req.studentName}</td>
+                                          <td className="hidden print:table-cell print:border print:border-black print:px-2 print:py-0.5 text-center align-middle">{req.cnhRestriction || '-'}</td>
                                           <td className="px-6 py-4 text-gray-600 print:hidden">{req.schoolId ? api.getSchools().find(s => s.id === req.schoolId)?.name : 'Particular'}</td>
                                           <td className="px-6 py-4 text-right print:hidden flex justify-end gap-2">
                                               {canInteractStudent ? (
@@ -476,9 +498,9 @@ const SchedulingCenter: React.FC = () => {
                                                   </>
                                               ) : <span className="text-gray-400 text-xs italic">Bloqueado</span>}
                                           </td>
-                                          <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                                          <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                                          <td className="hidden print:table-cell print:border print:border-black print:border-r-2 text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
+                                          <td className="hidden print:table-cell print:border print:border-black text-center align-middle"><span className="inline-block w-4 h-4 border border-black"></span></td>
+                                          <td className="hidden print:table-cell print:border print:border-black text-center align-middle"><span className="inline-block w-4 h-4 border border-black"></span></td>
+                                          <td className="hidden print:table-cell print:border print:border-black print:border-r-2 text-center align-middle"><span className="inline-block w-4 h-4 border border-black"></span></td>
                                       </tr>
                                   ))}
                                   {students.length === 0 && <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic print:border print:border-black print:py-2">Nenhum candidato nesta categoria.</td></tr>}
@@ -491,7 +513,7 @@ const SchedulingCenter: React.FC = () => {
 
             {/* Rodapé Impressão */}
             <div className="hidden print:block fixed bottom-0 left-0 w-full bg-white border-t border-black pt-1 pb-2 flex flex-col items-center text-[10px] w-full text-center">
-                 {settings?.agencyAddress && <span className="font-bold uppercase">{settings.agencyAddress}</span>}
+                 {settings?.agencyAddress && <span className="font-bold uppercase mb-1">{settings.agencyAddress}</span>}
                  <span>Impressão: {new Date().toLocaleDateString()}</span>
             </div>
           </div>
@@ -578,7 +600,13 @@ const SchedulingCenter: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {filteredSchedules.map(s => (
+             {filteredSchedules.map(s => {
+                 // Contagem de alunos agendados por categoria
+                 const sReqs = allRequests.filter(r => r.scheduleId === s.id && r.status !== 'CANCELLED');
+                 const countA = sReqs.filter(r => r.scheduledCategory === 'A').length;
+                 const countB = sReqs.filter(r => r.scheduledCategory === 'B').length;
+
+                 return (
                  <div key={s.id} onClick={() => setSelectedSchedule(s)} className="bg-white rounded-xl border p-5 cursor-pointer hover:shadow-md transition-shadow group relative">
                      {/* CORREÇÃO: Mostra contador superior APENAS se status for OPEN */}
                      {s.status === 'OPEN' && (
@@ -600,13 +628,17 @@ const SchedulingCenter: React.FC = () => {
                             <User className="h-3 w-3" /> {s.examinerIds[0] ? getExaminerName(s.examinerIds[0]) : 'Não atribuído'}
                             {s.examinerIds.length > 1 && <span className="text-xs bg-gray-100 px-1 rounded">+{s.examinerIds.length - 1}</span>}
                         </div>
-                        <div className="text-xs text-gray-400 flex justify-between">
-                            <span>Vagas Moto: {s.maxSlotsA}</span>
-                            <span>Vagas Carro: {s.maxSlotsB}</span>
+                        <div className="text-xs text-gray-500 flex justify-between font-medium">
+                            <span className={countA >= s.maxSlotsA ? "text-red-600 font-bold" : ""}>
+                                Vagas Moto: {countA}/{s.maxSlotsA}
+                            </span>
+                            <span className={countB >= s.maxSlotsB ? "text-red-600 font-bold" : ""}>
+                                Vagas Carro: {countB}/{s.maxSlotsB}
+                            </span>
                         </div>
                      </div>
                  </div>
-             ))}
+             )})}
              {filteredSchedules.length === 0 && <div className="col-span-full text-center py-12 text-gray-400 border border-dashed rounded-xl">Nenhuma banca encontrada.</div>}
           </div>
         </div>
