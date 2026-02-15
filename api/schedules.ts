@@ -8,8 +8,10 @@ const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.bo
 const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string) => {
     if (currentStatus === 'CANCELLED') return 'CANCELLED';
     
+    // Garantia de formato limpo
+    const cleanDate = dateStr.split('T')[0];
     const now = new Date();
-    const examDate = new Date(`${dateStr}T${timeStr}`);
+    const examDate = new Date(`${cleanDate}T${timeStr}`);
     
     // Regras de Tempo
     const msPerHr = 60 * 60 * 1000;
@@ -59,14 +61,17 @@ export default async function handler(req: any, res: any) {
     if (req.method === 'POST') {
       const body = parseBody(req);
       
+      // Sanitização de Data
+      const cleanDate = body.date.split('T')[0];
+      
       // Calcula o status inicial baseado na data inserida
-      // Ex: Se criar uma banca retroativa, já nasce CONCLUDED. Se for amanhã, nasce CLOSED.
-      const initialStatus = calculateStatus(body.date, body.time, 'OPEN');
+      const initialStatus = calculateStatus(cleanDate, body.time, 'OPEN');
 
       const newItem = await db.insert(examSchedules).values({
         id: crypto.randomUUID(),
         status: initialStatus,
-        ...body
+        ...body,
+        date: cleanDate // Salva apenas a data limpa
       }).returning();
       
       return res.status(200).json(newItem[0]);
@@ -98,6 +103,11 @@ export default async function handler(req: any, res: any) {
              .where(eq(examRequests.scheduleId, id));
 
           return res.status(200).json(updated[0]);
+      }
+
+      // Sanitização se houver update de data
+      if (updates.date) {
+          updates.date = updates.date.split('T')[0];
       }
 
       // Edição Normal

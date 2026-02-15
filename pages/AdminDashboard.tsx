@@ -21,10 +21,11 @@ const StatCard: React.FC<{ title: string; value: number | string; icon: React.El
 const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Busca solicitações
-    api.getRequests().then(data => {
+    setLoading(true);
+    const p1 = api.getRequests().then(data => {
       if (user.role === UserRole.SCHOOL) {
         setRequests(data.filter(r => r.schoolId === user.schoolId));
       } else {
@@ -32,10 +33,11 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       }
     });
 
-    // Busca bancas (schedules) para o card de total
-    api.getSchedules().then(data => {
+    const p2 = api.getSchedules().then(data => {
         setSchedules(data);
     });
+
+    Promise.all([p1, p2]).finally(() => setLoading(false));
   }, [user]);
 
   // Derived Stats
@@ -58,6 +60,10 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     { name: 'PCD', value: requests.filter(r => r.examType === 'PCD').length },
   ];
 
+  if (loading) {
+      return <div className="p-10 text-center text-gray-500">Carregando dados...</div>;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -75,42 +81,41 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-6">Status dos Candidatos</h3>
-          <div className="h-64">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+          <h3 className="text-lg font-semibold mb-6 flex-shrink-0">Status dos Candidatos</h3>
+          <div className="flex-1 min-h-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dataByStatus}>
+              <BarChart data={dataByStatus} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12}} interval={0} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} interval={0} />
                 <YAxis axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: '#F3F4F6' }} />
-                <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-semibold mb-6">Distribuição por Tipo</h3>
-          <div className="h-64">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+          <h3 className="text-lg font-semibold mb-6 flex-shrink-0">Distribuição por Tipo</h3>
+          <div className="flex-1 min-h-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={dataByType}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  innerRadius={60}
                   outerRadius={80}
-                  fill="#8884d8"
+                  paddingAngle={5}
                   dataKey="value"
                 >
                   {dataByType.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? '#3B82F6' : '#10B981'} />
+                    <Cell key={`cell-${index}`} fill={index === 0 ? '#3B82F6' : '#10B981'} strokeWidth={0} />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend />
+                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
           </div>

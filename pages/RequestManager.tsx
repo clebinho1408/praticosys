@@ -789,16 +789,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Data Realizada</label>
-                        <input type="date" required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.date} onChange={e => setResultForm({...resultForm, date: e.target.value})} />
+                        <input type="date" required className="w-full border rounded p-2 bg-white text-gray-700" value={resultForm.date} onChange={e => setResultForm({...resultForm, date: e.target.value})} />
                     </div>
                     <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Hora</label>
-                        <input type="time" required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.time} onChange={e => setResultForm({...resultForm, time: e.target.value})} />
+                        <input type="time" required className="w-full border rounded p-2 bg-white text-gray-700" value={resultForm.time} onChange={e => setResultForm({...resultForm, time: e.target.value})} />
                     </div>
                 </div>
                 <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Categoria</label>
-                    <select required className="w-full border rounded p-2 bg-gray-50 text-gray-700" value={resultForm.category} onChange={e => setResultForm({...resultForm, category: e.target.value})}>
+                    <select required className="w-full border rounded p-2 bg-white text-gray-700" value={resultForm.category} onChange={e => setResultForm({...resultForm, category: e.target.value})}>
                         <option value="A">A (Moto)</option>
                         <option value="B">B (Carro)</option>
                     </select>

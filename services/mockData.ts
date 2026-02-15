@@ -1,6 +1,6 @@
 import { 
   User, UserRole, DrivingSchool, Examiner, Instructor, ExamSchedule, ExamRequest, 
-  SystemSettings, ExamStatus
+  SystemSettings, ExamStatus, ExamType, RequestSource
 } from '../types';
 
 // Chaves para persistência local
@@ -14,6 +14,11 @@ const STORAGE_KEYS = {
     SETTINGS: 'psys_settings'
 };
 
+// Gerador de ID Universal (Funciona em HTTP e ambientes antigos)
+const genId = () => {
+    return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
+};
+
 const getLocal = <T>(key: string, def: T): T => {
     try {
         const item = localStorage.getItem(key);
@@ -23,11 +28,88 @@ const getLocal = <T>(key: string, def: T): T => {
 const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
 const delay = (ms = 100) => new Promise(res => setTimeout(res, ms));
 
-const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string) => {
+// --- MOCK DATA SEEDER ---
+const seedDatabase = () => {
+    // 1. Seed Examinadores
+    if (!localStorage.getItem(STORAGE_KEYS.EXAMINERS)) {
+        const mockExaminers: Examiner[] = [
+            { id: 'ex_1', name: 'CARLOS SILVA', registrationNumber: '12345', canExamCommon: true, canExamPCD: true },
+            { id: 'ex_2', name: 'ANA SOUZA', registrationNumber: '67890', canExamCommon: true, canExamPCD: false },
+            { id: 'ex_3', name: 'ROBERTO ALMEIDA', registrationNumber: '11223', canExamCommon: true, canExamPCD: false },
+            { id: 'ex_4', name: 'FERNANDA COSTA', registrationNumber: '44556', canExamCommon: true, canExamPCD: true },
+            { id: 'ex_5', name: 'MARCOS PEREIRA', registrationNumber: '99887', canExamCommon: true, canExamPCD: false },
+        ];
+        setLocal(STORAGE_KEYS.EXAMINERS, mockExaminers);
+    }
+
+    // 2. Seed Instrutores
+    if (!localStorage.getItem(STORAGE_KEYS.INSTRUCTORS)) {
+        const mockInstructors: Instructor[] = [
+            { id: 'inst_1', name: 'JOÃO OLIVEIRA', cpf: '111.111.111-11', phone: '(11) 99999-1111', plate: 'ABC1D23' },
+            { id: 'inst_2', name: 'MARIA SANTOS', cpf: '222.222.222-22', phone: '(11) 99999-2222', plate: 'XYZ9A88' },
+            { id: 'inst_3', name: 'PEDRO LIMA', cpf: '333.333.333-33', phone: '(11) 99999-3333', plate: 'KPL2J55' },
+            { id: 'inst_4', name: 'JULIA MARTINS', cpf: '444.444.444-44', phone: '(11) 99999-4444', plate: 'BMW3X99' },
+            { id: 'inst_5', name: 'LUCAS FERREIRA', cpf: '555.555.555-55', phone: '(11) 99999-5555', plate: 'HND4H44' },
+        ];
+        setLocal(STORAGE_KEYS.INSTRUCTORS, mockInstructors);
+    }
+
+    // 3. Seed Candidatos (Requests)
+    if (!localStorage.getItem(STORAGE_KEYS.REQUESTS)) {
+        const baseRequest = {
+            email: 'aluno@teste.com', address: 'Rua Teste, 123', examType: ExamType.COMMON, 
+            source: RequestSource.SCHOOL, paidFee: true, completedPracticalCourse: true, 
+            practicalHours: 20, hasVehicle: true, examHistory: [],
+            desiredDate: new Date().toISOString().split('T')[0]
+        };
+        
+        const mockRequests: ExamRequest[] = [
+            // Aguardando
+            { ...baseRequest, id: 'req_1', studentName: 'GABRIEL MEDINA', cpf: '123.456.789-00', phone: '(11) 91111-1111', status: ExamStatus.WAITING_SCHEDULING, intendedCategory: 'B', instructor: 'JOÃO OLIVEIRA', vehiclePlate: 'ABC1D23', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { ...baseRequest, id: 'req_2', studentName: 'RAYSSA LEAL', cpf: '234.567.890-11', phone: '(11) 92222-2222', status: ExamStatus.WAITING_SCHEDULING, intendedCategory: 'A', instructor: 'MARIA SANTOS', vehiclePlate: 'XYZ9A88', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { ...baseRequest, id: 'req_3', studentName: 'ITALO FERREIRA', cpf: '345.678.901-22', phone: '(11) 93333-3333', status: ExamStatus.WAITING_SCHEDULING, intendedCategory: 'B', instructor: 'PEDRO LIMA', vehiclePlate: 'KPL2J55', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            
+            // Agendados
+            { ...baseRequest, id: 'req_4', studentName: 'BEATRIZ HADDAD', cpf: '456.789.012-33', phone: '(11) 94444-4444', status: ExamStatus.SCHEDULED, intendedCategory: 'B', scheduledCategory: 'B', scheduledDate: '2024-03-20', scheduledTime: '08:00', instructor: 'JULIA MARTINS', vehiclePlate: 'BMW3X99', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            
+            // Realizados
+            { ...baseRequest, id: 'req_5', studentName: 'AYRTON SENNA', cpf: '567.890.123-44', phone: '(11) 95555-5555', status: ExamStatus.DONE, result: 'APTO', intendedCategory: 'B', instructor: 'JOÃO OLIVEIRA', vehiclePlate: 'ABC1D23', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            { ...baseRequest, id: 'req_6', studentName: 'RUBENS BARRICHELLO', cpf: '678.901.234-55', phone: '(11) 96666-6666', status: ExamStatus.DONE, result: 'INAPTO', intendedCategory: 'B', instructor: 'PEDRO LIMA', vehiclePlate: 'KPL2J55', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+            
+            // Reteste
+            { ...baseRequest, id: 'req_7', studentName: 'FELIPE MASSA', cpf: '789.012.345-66', phone: '(11) 97777-7777', status: ExamStatus.RETEST, intendedCategory: 'B', instructor: 'LUCAS FERREIRA', vehiclePlate: 'HND4H44', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        ];
+        // Adiciona mais alguns aguardando para volume
+        for(let i=8; i<=15; i++) {
+            mockRequests.push({
+                ...baseRequest,
+                id: `req_${i}`,
+                studentName: `CANDIDATO TESTE ${i}`,
+                cpf: `${i}${i}${i}.${i}${i}${i}.${i}${i}${i}-${i}${i}`,
+                phone: `(11) 98888-${i.toString().padStart(4, '0')}`,
+                status: ExamStatus.WAITING_SCHEDULING,
+                intendedCategory: i % 2 === 0 ? 'A' : 'B',
+                instructor: 'JOÃO OLIVEIRA',
+                vehiclePlate: 'ABC1D23',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            } as any);
+        }
+
+        setLocal(STORAGE_KEYS.REQUESTS, mockRequests);
+    }
+};
+
+// Executa o seed ao carregar o arquivo
+seedDatabase();
+
+const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string): 'OPEN' | 'CLOSED' | 'CONCLUDED' | 'CANCELLED' => {
     if (currentStatus === 'CANCELLED') return 'CANCELLED';
+    if (!dateStr || !timeStr) return currentStatus as 'OPEN' | 'CLOSED' | 'CONCLUDED' | 'CANCELLED';
     
+    const cleanDate = dateStr.split('T')[0];
     const now = new Date();
-    const examDate = new Date(`${dateStr}T${timeStr}`);
+    const examDate = new Date(`${cleanDate}T${timeStr}`);
     const closeThreshold = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
     const concludedThreshold = new Date(examDate.getTime() + (4 * 60 * 60 * 1000));
 
@@ -41,9 +123,9 @@ const fetchOrMock = async <T>(
     options: RequestInit = {}, 
     mockFn: () => Promise<T> | T
 ): Promise<T> => {
-    // Timeout de 10s para lidar com cold start de DB serverless
+    // Timeout de 2s para detectar offline mais rápido
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
     try {
         const res = await fetch(`/api/${endpoint}`, {
@@ -63,7 +145,10 @@ const fetchOrMock = async <T>(
         return await res.json();
     } catch (error: any) {
         clearTimeout(timeoutId);
-        console.warn(`[API Fallback] Endpoint: ${endpoint} | Erro: ${error.message}. Usando dados locais.`);
+        // Silencia warnings comuns em desenvolvimento offline para manter console limpo
+        if (!error.message.includes('Aborted')) {
+             console.debug(`[Offline Mode] Usando dados locais para: ${endpoint}`);
+        }
         await delay(50); 
         return mockFn();
     }
@@ -90,7 +175,7 @@ export const api = {
   getUsers: async (): Promise<User[]> => fetchOrMock('users', {}, () => getLocal(STORAGE_KEYS.USERS, [])),
   createUser: async (data: any): Promise<User> => fetchOrMock('users', { method: 'POST', body: JSON.stringify(data) }, () => {
         const users = getLocal<any[]>(STORAGE_KEYS.USERS, []);
-        const newUser = { ...data, id: crypto.randomUUID(), password: data.password || '123456' };
+        const newUser = { ...data, id: genId(), password: data.password || '123456' };
         setLocal(STORAGE_KEYS.USERS, [...users, newUser]);
         return newUser;
   }),
@@ -112,7 +197,7 @@ export const api = {
   getSchoolsAsync: async (): Promise<DrivingSchool[]> => fetchOrMock('schools', {}, () => getLocal(STORAGE_KEYS.SCHOOLS, [])),
   createSchool: async (data: any): Promise<DrivingSchool> => fetchOrMock('schools', { method: 'POST', body: JSON.stringify(data) }, () => {
       const list = getLocal<any[]>(STORAGE_KEYS.SCHOOLS, []);
-      const novo = { ...data, id: crypto.randomUUID() };
+      const novo = { ...data, id: genId() };
       setLocal(STORAGE_KEYS.SCHOOLS, [...list, novo]);
       return novo;
   }),
@@ -133,7 +218,7 @@ export const api = {
   getExaminersAsync: async (): Promise<Examiner[]> => fetchOrMock('examiners', {}, () => getLocal(STORAGE_KEYS.EXAMINERS, [])),
   createExaminer: async (data: any): Promise<Examiner> => fetchOrMock('examiners', { method: 'POST', body: JSON.stringify(data) }, () => {
       const list = getLocal<any[]>(STORAGE_KEYS.EXAMINERS, []);
-      const novo = { ...data, id: crypto.randomUUID() };
+      const novo = { ...data, id: genId() };
       setLocal(STORAGE_KEYS.EXAMINERS, [...list, novo]);
       return novo;
   }),
@@ -154,7 +239,7 @@ export const api = {
   getInstructorsAsync: async (): Promise<Instructor[]> => fetchOrMock('instructors', {}, () => getLocal(STORAGE_KEYS.INSTRUCTORS, [])),
   createInstructor: async (data: any): Promise<Instructor> => fetchOrMock('instructors', { method: 'POST', body: JSON.stringify(data) }, () => {
       const list = getLocal<any[]>(STORAGE_KEYS.INSTRUCTORS, []);
-      const novo = { ...data, id: crypto.randomUUID() };
+      const novo = { ...data, id: genId() };
       setLocal(STORAGE_KEYS.INSTRUCTORS, [...list, novo]);
       return novo;
   }),
@@ -231,14 +316,18 @@ export const api = {
   createSchedule: async (data: any): Promise<ExamSchedule> => fetchOrMock('schedules', { method: 'POST', body: JSON.stringify(data) }, () => {
       const list = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
       
+      // Sanitização de data
+      const cleanDate = data.date ? data.date.split('T')[0] : new Date().toISOString().split('T')[0];
+
       // Calculate initial status
-      const initialStatus = calculateStatus(data.date, data.time, 'OPEN');
+      const initialStatus = calculateStatus(cleanDate, data.time, 'OPEN');
 
       const novo = { 
           ...data, 
-          id: crypto.randomUUID(), 
+          id: genId(), 
           status: initialStatus,
-          examinerIds: data.examinerIds || [] 
+          examinerIds: data.examinerIds || [],
+          date: cleanDate
       };
       setLocal(STORAGE_KEYS.SCHEDULES, [...list, novo]);
       return novo;
@@ -249,6 +338,10 @@ export const api = {
       if (idx === -1) throw new Error("Schedule not found");
       
       let updated = { ...list[idx], ...updates };
+
+      if (updated.date) {
+          updated.date = updated.date.split('T')[0];
+      }
       
       // Recalculate status in case date/time changed
       const newStatus = calculateStatus(updated.date, updated.time, updated.status);
@@ -292,7 +385,7 @@ export const api = {
       const list = getLocal<any[]>(STORAGE_KEYS.REQUESTS, []);
       const novo = { 
           ...data, 
-          id: crypto.randomUUID(), 
+          id: genId(), 
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           examHistory: data.examHistory || []
@@ -303,6 +396,7 @@ export const api = {
   updateRequest: async (id: string, updates: Partial<ExamRequest>): Promise<ExamRequest> => fetchOrMock('requests', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
       const list = getLocal<any[]>(STORAGE_KEYS.REQUESTS, []);
       const idx = list.findIndex(i => i.id === id);
+      if (idx === -1) throw new Error("Request not found");
       const updated = { ...list[idx], ...updates, updatedAt: new Date().toISOString() };
       list[idx] = updated;
       setLocal(STORAGE_KEYS.REQUESTS, list);

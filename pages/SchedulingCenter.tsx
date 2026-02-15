@@ -1,32 +1,47 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
 import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings } from '../types';
-import { Calendar, Clock, User, Plus, Search, ChevronRight, X, CheckSquare, Printer, Trash2, Layers, Edit2, Loader2, AlertTriangle, MessageCircle, CheckCircle, Circle, Filter, RotateCcw, Ban, Timer, Hourglass } from 'lucide-react';
+import { Calendar, Clock, User, Plus, Search, ChevronRight, X, CheckSquare, Printer, Trash2, Layers, Edit2, Loader2, AlertTriangle, MessageCircle, CheckCircle, Circle, Filter, RotateCcw, Ban, Hourglass } from 'lucide-react';
 
 // --- HELPER COMPONENTS & FUNCTIONS ---
 
 // Corrige o problema de data voltando um dia (Fuso Horário)
-// Em vez de usar new Date(), manipulamos a string diretamente
+// Manipula a string diretamente para evitar conversão UTC
 const formatDateDisplay = (dateString: string) => {
   if (!dateString) return '-';
-  const parts = dateString.split('-'); // 2024-02-17
-  if (parts.length !== 3) return dateString;
+  // Pega apenas a parte da data YYYY-MM-DD
+  const cleanDate = dateString.split('T')[0];
+  const parts = cleanDate.split('-'); // 2024-02-17
+  if (parts.length !== 3) return cleanDate;
   return `${parts[2]}/${parts[1]}/${parts[0]}`; // 17/02/2024
 };
 
 const CountdownTimer: React.FC<{ schedule: ExamSchedule }> = ({ schedule }) => {
-  const [timeLeft, setTimeLeft] = useState<string>('');
-  const [colorClass, setColorClass] = useState<string>('text-gray-500');
+  const [timeLeft, setTimeLeft] = useState<string>('Carregando...');
+  const [styleClass, setStyleClass] = useState<string>('bg-gray-100 text-gray-500');
 
   useEffect(() => {
     const calculateTime = () => {
-      if (schedule.status === 'CANCELLED' || schedule.status === 'CONCLUDED') {
-        setTimeLeft('');
-        return;
+      if (schedule.status === 'CANCELLED') {
+         setTimeLeft('Cancelada');
+         setStyleClass('bg-red-100 text-red-700 font-bold border-red-200');
+         return;
+      }
+      if (schedule.status === 'CONCLUDED') {
+         setTimeLeft('Concluída');
+         setStyleClass('bg-blue-100 text-blue-700 font-bold border-blue-200');
+         return;
       }
 
       const now = new Date();
-      const examDate = new Date(`${schedule.date}T${schedule.time}`);
+      // Garante formato ISO para compatibilidade entre browsers (Safari/Chrome)
+      const datePart = schedule.date.split('T')[0];
+      const examDate = new Date(`${datePart}T${schedule.time}`);
+      
+      if (isNaN(examDate.getTime())) {
+          setTimeLeft('Data Inválida');
+          return;
+      }
       
       // Definição dos marcos temporais
       const closeTime = new Date(examDate.getTime() - (24 * 60 * 60 * 1000)); // Fecha 24h antes
@@ -34,8 +49,8 @@ const CountdownTimer: React.FC<{ schedule: ExamSchedule }> = ({ schedule }) => {
       // Se já passou do horário de fechamento
       if (now > closeTime) {
          if (schedule.status === 'OPEN') {
-             setTimeLeft('Fechando...'); // Aguardando atualização de status
-             setColorClass('text-orange-600');
+             setTimeLeft('Fechando...'); 
+             setStyleClass('bg-orange-100 text-orange-700 animate-pulse border-orange-200');
          } else {
              // Se já está CLOSED, mostra tempo para o início da prova
              const timeToExam = examDate.getTime() - now.getTime();
@@ -43,10 +58,10 @@ const CountdownTimer: React.FC<{ schedule: ExamSchedule }> = ({ schedule }) => {
                  const hours = Math.floor(timeToExam / (1000 * 60 * 60));
                  const minutes = Math.floor((timeToExam % (1000 * 60 * 60)) / (1000 * 60));
                  setTimeLeft(`Prova em: ${hours}h ${minutes}m`);
-                 setColorClass('text-blue-600 font-bold');
+                 setStyleClass('bg-blue-100 text-blue-700 border-blue-200 font-bold');
              } else {
-                 setTimeLeft('Prova em andamento');
-                 setColorClass('text-green-600 font-bold animate-pulse');
+                 setTimeLeft('Em Andamento');
+                 setStyleClass('bg-green-100 text-green-700 border-green-200 font-bold animate-pulse');
              }
          }
          return;
@@ -58,21 +73,15 @@ const CountdownTimer: React.FC<{ schedule: ExamSchedule }> = ({ schedule }) => {
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-      let label = 'Fecha em: ';
-      let timeStr = '';
-
+      
       if (days > 0) {
-          timeStr = `${days}d ${hours}h`;
-          setColorClass('text-green-600');
+          setTimeLeft(`Fecha em: ${days}d ${hours}h`);
+          setStyleClass('bg-green-50 text-green-700 border-green-100');
       } else {
-          timeStr = `${hours}h ${minutes}m ${seconds}s`;
+          setTimeLeft(`Fecha em: ${hours}h ${minutes}m`);
           // Se faltar menos de 2 horas, fica vermelho
-          setColorClass(hours < 2 ? 'text-red-600 font-bold animate-pulse' : 'text-orange-600 font-medium');
+          setStyleClass(hours < 2 ? 'bg-red-50 text-red-600 font-bold border-red-100 animate-pulse' : 'bg-orange-50 text-orange-600 border-orange-100');
       }
-
-      setTimeLeft(label + timeStr);
     };
 
     calculateTime();
@@ -80,10 +89,8 @@ const CountdownTimer: React.FC<{ schedule: ExamSchedule }> = ({ schedule }) => {
     return () => clearInterval(timer);
   }, [schedule]);
 
-  if (!timeLeft) return null;
-
   return (
-    <div className={`flex items-center gap-1 text-xs ${colorClass} bg-white/80 px-2 py-1 rounded border border-gray-100 shadow-sm`}>
+    <div className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border shadow-sm transition-colors whitespace-nowrap ${styleClass}`}>
       <Hourglass className="h-3 w-3" />
       {timeLeft}
     </div>
@@ -195,7 +202,7 @@ const SchedulingCenter: React.FC = () => {
     if (ids.length === 0) return alert("Selecione pelo menos um examinador.");
 
     const payload = {
-        date: scheduleForm.date,
+        date: scheduleForm.date, // Input type=date garante YYYY-MM-DD
         time: scheduleForm.time,
         examinerIds: ids,
         maxSlotsA: scheduleForm.maxSlotsA,
@@ -275,8 +282,9 @@ const SchedulingCenter: React.FC = () => {
   const handleOpenEdit = (schedule: ExamSchedule) => {
     setModalMode('EDIT');
     setEditingScheduleId(schedule.id);
+    // IMPORTANTE: .split('T')[0] garante que pegamos apenas a data, removendo tempo se houver
     setScheduleForm({
-        date: schedule.date,
+        date: schedule.date.split('T')[0],
         time: schedule.time,
         examiner1: schedule.examinerIds[0] || '',
         examiner2: schedule.examinerIds[1] || '',
@@ -550,7 +558,7 @@ const SchedulingCenter: React.FC = () => {
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-end">
              <div className="flex-1 min-w-[200px]">
                  <label className="text-xs font-medium text-gray-500">Status</label>
-                 <select className="w-full border rounded p-2" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
+                 <select className="w-full border rounded p-2 bg-white" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
                      <option value="ALL">Todas</option>
                      <option value="OPEN">Abertas</option>
                      <option value="CLOSED">Fechadas</option>
@@ -564,7 +572,7 @@ const SchedulingCenter: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {filteredSchedules.map(s => (
                  <div key={s.id} onClick={() => setSelectedSchedule(s)} className="bg-white rounded-xl border p-5 cursor-pointer hover:shadow-md transition-shadow group relative">
-                     <div className="absolute top-4 right-4">
+                     <div className="absolute top-4 right-4 z-10">
                          <CountdownTimer schedule={s} />
                      </div>
                      <div className="flex justify-between items-start mb-4">
@@ -600,24 +608,24 @@ const SchedulingCenter: React.FC = () => {
                   <h3 className="text-lg font-bold mb-4">{modalMode === 'CREATE' ? 'Nova Banca' : 'Editar Banca'}</h3>
                   <form onSubmit={handleSubmitSchedule} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
-                          <div><label className="text-sm">Data</label><input required type="date" className="w-full border rounded p-2" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} /></div>
-                          <div><label className="text-sm">Hora</label><input required type="time" className="w-full border rounded p-2" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} /></div>
+                          <div><label className="text-sm">Data</label><input required type="date" className="w-full border rounded p-2 bg-white" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} /></div>
+                          <div><label className="text-sm">Hora</label><input required type="time" className="w-full border rounded p-2 bg-white" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} /></div>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
-                          <div><label className="text-sm">Vagas Moto (A)</label><input type="number" className="w-full border rounded p-2" value={scheduleForm.maxSlotsA} onChange={e => setScheduleForm({...scheduleForm, maxSlotsA: Number(e.target.value)})} /></div>
-                          <div><label className="text-sm">Vagas Carro (B)</label><input type="number" className="w-full border rounded p-2" value={scheduleForm.maxSlotsB} onChange={e => setScheduleForm({...scheduleForm, maxSlotsB: Number(e.target.value)})} /></div>
+                          <div><label className="text-sm">Vagas Moto (A)</label><input type="number" className="w-full border rounded p-2 bg-white" value={scheduleForm.maxSlotsA} onChange={e => setScheduleForm({...scheduleForm, maxSlotsA: Number(e.target.value)})} /></div>
+                          <div><label className="text-sm">Vagas Carro (B)</label><input type="number" className="w-full border rounded p-2 bg-white" value={scheduleForm.maxSlotsB} onChange={e => setScheduleForm({...scheduleForm, maxSlotsB: Number(e.target.value)})} /></div>
                       </div>
                       <div>
                           <label className="text-sm">Examinadores (Principal + 2 Opcionais)</label>
-                          <select required className="w-full border rounded p-2 mb-2" value={scheduleForm.examiner1} onChange={e => setScheduleForm({...scheduleForm, examiner1: e.target.value})}>
+                          <select required className="w-full border rounded p-2 mb-2 bg-white" value={scheduleForm.examiner1} onChange={e => setScheduleForm({...scheduleForm, examiner1: e.target.value})}>
                               <option value="">Selecione...</option>
                               {examiners.filter(e => e.canExamCommon).map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
                           </select>
-                          <select className="w-full border rounded p-2 mb-2" value={scheduleForm.examiner2} onChange={e => setScheduleForm({...scheduleForm, examiner2: e.target.value})}>
+                          <select className="w-full border rounded p-2 mb-2 bg-white" value={scheduleForm.examiner2} onChange={e => setScheduleForm({...scheduleForm, examiner2: e.target.value})}>
                               <option value="">Opcional...</option>
                               {examiners.filter(e => e.canExamCommon && e.id !== scheduleForm.examiner1).map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
                           </select>
-                          <select className="w-full border rounded p-2" value={scheduleForm.examiner3} onChange={e => setScheduleForm({...scheduleForm, examiner3: e.target.value})}>
+                          <select className="w-full border rounded p-2 bg-white" value={scheduleForm.examiner3} onChange={e => setScheduleForm({...scheduleForm, examiner3: e.target.value})}>
                               <option value="">Opcional...</option>
                               {examiners.filter(e => e.canExamCommon && e.id !== scheduleForm.examiner1 && e.id !== scheduleForm.examiner2).map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
                           </select>
@@ -640,7 +648,7 @@ const SchedulingCenter: React.FC = () => {
                       Todos os candidatos voltarão para a fila de espera.
                   </p>
                   <label className="block text-sm font-medium mb-1">Motivo (Obrigatório)</label>
-                  <textarea className="w-full border rounded p-2" rows={3} value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="Ex: Chuva forte..." />
+                  <textarea className="w-full border rounded p-2 bg-white" rows={3} value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="Ex: Chuva forte..." />
                   <div className="flex justify-end gap-2 mt-4">
                       <button onClick={() => setIsCancelModalOpen(false)} className="px-4 py-2 border rounded">Voltar</button>
                       <button onClick={handleConfirmCancel} disabled={!cancelReason.trim()} className="px-4 py-2 bg-red-600 text-white rounded disabled:opacity-50">Confirmar</button>
