@@ -4,46 +4,48 @@ import { eq, and } from 'drizzle-orm';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
+// Função auxiliar para calcular status baseado no tempo
+const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string) => {
+    if (currentStatus === 'CANCELLED') return 'CANCELLED';
+    
+    const now = new Date();
+    const examDate = new Date(`${dateStr}T${timeStr}`);
+    
+    // Regras de Tempo
+    const msPerHr = 60 * 60 * 1000;
+    const closeThreshold = new Date(examDate.getTime() - (24 * msPerHr)); // 24h antes
+    const concludedThreshold = new Date(examDate.getTime() + (4 * msPerHr)); // 4h depois
+
+    if (now > concludedThreshold) return 'CONCLUDED';
+    if (now > closeThreshold) return 'CLOSED';
+    
+    // Se não caiu nas regras acima e não está cancelada, deve estar Aberta (ou manter o status atual se for OPEN)
+    return 'OPEN';
+};
+
 export default async function handler(req: any, res: any) {
   try {
     // --- GET: Lista Agendamentos e Aplica Regras de Tempo ---
     if (req.method === 'GET') {
       const schedules = await db.select().from(examSchedules);
-      const now = new Date();
       const updatesPromises = [];
 
       for (const s of schedules) {
-        if (s.status === 'CANCELLED' || s.status === 'CONCLUDED') continue;
+        const calculatedStatus = calculateStatus(s.date, s.time, s.status);
 
-        // Combina data e hora para objeto Date
-        const examDate = new Date(`${s.date}T${s.time}`);
-        
-        // Regras de Tempo
-        const msPerHr = 60 * 60 * 1000;
-        const closeThreshold = new Date(examDate.getTime() - (24 * msPerHr)); // 24h antes
-        const concludedThreshold = new Date(examDate.getTime() + (4 * msPerHr)); // 4h depois
+        // Se o status calculado for diferente do atual, atualiza
+        if (calculatedStatus !== s.status) {
+           // Se mudou para CONCLUDED, atualiza os candidatos
+           if (calculatedStatus === 'CONCLUDED' && s.status !== 'CONCLUDED') {
+               await db.update(examRequests)
+                 .set({ status: 'WAITING_RESULT', updatedAt: new Date() })
+                 .where(and(eq(examRequests.scheduleId, s.id), eq(examRequests.status, 'SCHEDULED')));
+           }
 
-        let newStatus = null;
-
-        // 1. Conclusão Automática (4h após o horário)
-        if (now > concludedThreshold) {
-           newStatus = 'CONCLUDED';
-           // Move candidatos de 'SCHEDULED' para 'WAITING_RESULT'
-           await db.update(examRequests)
-             .set({ status: 'WAITING_RESULT', updatedAt: new Date() })
-             .where(and(eq(examRequests.scheduleId, s.id), eq(examRequests.status, 'SCHEDULED')));
-        } 
-        // 2. Fechamento Automático (24h antes do horário)
-        else if (now > closeThreshold && s.status === 'OPEN') {
-           newStatus = 'CLOSED';
-        }
-        
-        // Aplica atualização se houve mudança
-        if (newStatus) {
-            updatesPromises.push(
-                db.update(examSchedules).set({ status: newStatus }).where(eq(examSchedules.id, s.id))
-            );
-            s.status = newStatus; 
+           updatesPromises.push(
+               db.update(examSchedules).set({ status: calculatedStatus }).where(eq(examSchedules.id, s.id))
+           );
+           s.status = calculatedStatus; 
         }
       }
 
@@ -56,11 +58,17 @@ export default async function handler(req: any, res: any) {
     // --- POST: Criar Nova Banca ---
     if (req.method === 'POST') {
       const body = parseBody(req);
+      
+      // Calcula o status inicial baseado na data inserida
+      // Ex: Se criar uma banca retroativa, já nasce CONCLUDED. Se for amanhã, nasce CLOSED.
+      const initialStatus = calculateStatus(body.date, body.time, 'OPEN');
+
       const newItem = await db.insert(examSchedules).values({
         id: crypto.randomUUID(),
-        status: 'OPEN',
+        status: initialStatus,
         ...body
       }).returning();
+      
       return res.status(200).json(newItem[0]);
     }
 
@@ -97,7 +105,16 @@ export default async function handler(req: any, res: any) {
         .set(updates)
         .where(eq(examSchedules.id, id))
         .returning();
-        
+      
+      // Recalcula status caso a data tenha mudado na edição
+      const current = updated[0];
+      const newStatus = calculateStatus(current.date, current.time, current.status);
+      
+      if (newStatus !== current.status) {
+         await db.update(examSchedules).set({ status: newStatus }).where(eq(examSchedules.id, id));
+         current.status = newStatus;
+      }
+
       // Se alterou data/hora, reflete nos candidatos agendados
       if (updates.date || updates.time) {
          await db.update(examRequests)
@@ -105,7 +122,7 @@ export default async function handler(req: any, res: any) {
             .where(eq(examRequests.scheduleId, id));
       }
 
-      return res.status(200).json(updated[0]);
+      return res.status(200).json(current);
     }
   } catch (error) {
     console.error(error);

@@ -23,6 +23,19 @@ const getLocal = <T>(key: string, def: T): T => {
 const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
 const delay = (ms = 100) => new Promise(res => setTimeout(res, ms));
 
+const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string) => {
+    if (currentStatus === 'CANCELLED') return 'CANCELLED';
+    
+    const now = new Date();
+    const examDate = new Date(`${dateStr}T${timeStr}`);
+    const closeThreshold = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
+    const concludedThreshold = new Date(examDate.getTime() + (4 * 60 * 60 * 1000));
+
+    if (now > concludedThreshold) return 'CONCLUDED';
+    if (now > closeThreshold) return 'CLOSED';
+    return 'OPEN';
+};
+
 const fetchOrMock = async <T>(
     endpoint: string, 
     options: RequestInit = {}, 
@@ -187,32 +200,25 @@ export const api = {
   getSchedules: async (): Promise<ExamSchedule[]> => fetchOrMock('schedules', {}, () => {
       let schedules = getLocal<ExamSchedule[]>(STORAGE_KEYS.SCHEDULES, []);
       let requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
-      const now = new Date();
+      
       let changed = false;
       let requestsChanged = false;
 
       schedules = schedules.map(s => {
-          if (s.status === 'CANCELLED' || s.status === 'CONCLUDED') return s;
-
-          const examDate = new Date(`${s.date}T${s.time}`);
-          const closeThreshold = new Date(examDate.getTime() - (24 * 60 * 60 * 1000)); // 24h antes
-          const concludedThreshold = new Date(examDate.getTime() + (4 * 60 * 60 * 1000)); // 4h depois
-
-          if (now > concludedThreshold) {
-              // CONCLUÍDA (4h depois)
+          const newStatus = calculateStatus(s.date, s.time, s.status);
+          
+          if (newStatus !== s.status) {
               changed = true;
-              requestsChanged = true;
-              requests = requests.map(r => {
-                  if (r.scheduleId === s.id && r.status === ExamStatus.SCHEDULED) {
-                      return { ...r, status: ExamStatus.WAITING_RESULT, updatedAt: new Date().toISOString() };
-                  }
-                  return r;
-              });
-              return { ...s, status: 'CONCLUDED' };
-          } else if (now > closeThreshold && s.status === 'OPEN') {
-              // FECHADA (24h antes)
-              changed = true;
-              return { ...s, status: 'CLOSED' };
+              if (newStatus === 'CONCLUDED' && s.status !== 'CONCLUDED') {
+                  requestsChanged = true;
+                  requests = requests.map(r => {
+                      if (r.scheduleId === s.id && r.status === ExamStatus.SCHEDULED) {
+                          return { ...r, status: ExamStatus.WAITING_RESULT, updatedAt: new Date().toISOString() };
+                      }
+                      return r;
+                  });
+              }
+              return { ...s, status: newStatus };
           }
           return s;
       });
@@ -224,10 +230,14 @@ export const api = {
   }),
   createSchedule: async (data: any): Promise<ExamSchedule> => fetchOrMock('schedules', { method: 'POST', body: JSON.stringify(data) }, () => {
       const list = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
+      
+      // Calculate initial status
+      const initialStatus = calculateStatus(data.date, data.time, 'OPEN');
+
       const novo = { 
           ...data, 
           id: crypto.randomUUID(), 
-          status: 'OPEN',
+          status: initialStatus,
           examinerIds: data.examinerIds || [] 
       };
       setLocal(STORAGE_KEYS.SCHEDULES, [...list, novo]);
@@ -236,7 +246,15 @@ export const api = {
   updateSchedule: async (id: string, updates: Partial<ExamSchedule>): Promise<ExamSchedule> => fetchOrMock('schedules', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
       const list = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
       const idx = list.findIndex(i => i.id === id);
-      list[idx] = { ...list[idx], ...updates };
+      if (idx === -1) throw new Error("Schedule not found");
+      
+      let updated = { ...list[idx], ...updates };
+      
+      // Recalculate status in case date/time changed
+      const newStatus = calculateStatus(updated.date, updated.time, updated.status);
+      updated.status = newStatus;
+
+      list[idx] = updated;
       setLocal(STORAGE_KEYS.SCHEDULES, list);
       return list[idx];
   }),
