@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
 import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings } from '../types';
@@ -474,23 +475,23 @@ const SchedulingCenter: React.FC = () => {
             </div>
 
             {/* Rodapé Impressão - Assinatura ACIMA da linha divisória */}
-            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white pt-4 pb-6 flex-col items-center justify-center text-[10px] leading-tight">
+            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white pt-4 pb-8 flex-col items-center justify-center text-[10px] leading-tight">
                  
-                 {/* BLOCO DE ASSINATURA - ACIMA DA LINHA */}
-                 <div className="mb-4 flex flex-col items-center">
-                    <div className="w-64 border-b border-black mb-1"></div>
-                    <span className="font-bold text-[9px] uppercase">Assinatura do Examinador</span>
+                 {/* BLOCO DE ASSINATURA - ACIMA DA LINHA COM MAIOR ESPAÇAMENTO */}
+                 <div className="mb-6 flex flex-col items-center">
+                    <div className="w-72 border-b border-black mb-1"></div>
+                    <span className="font-bold text-[9px] uppercase tracking-wider">Assinatura do Examinador</span>
                  </div>
 
-                 {/* LINHA DIVISÓRIA MAIS GROSSA */}
-                 <div className="w-full border-t-2 border-black pt-2 flex flex-col items-center">
+                 {/* LINHA DIVISÓRIA MAIS GROSSA (3px) */}
+                 <div className="w-full border-t-[3px] border-black pt-3 flex flex-col items-center">
                     {settings?.agencyAddress && (
-                    <div className="font-bold uppercase w-full text-center mb-0.5">
+                    <div className="font-bold uppercase w-full text-center mb-1">
                         {settings.agencyAddress}
                     </div>
                     )}
-                    <div className="w-full text-center">
-                    Impressão: {new Date().toLocaleDateString()}
+                    <div className="w-full text-center opacity-70">
+                    Documento impresso em: {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}
                     </div>
                  </div>
             </div>
@@ -535,7 +536,7 @@ const SchedulingCenter: React.FC = () => {
                 </div>
                 <div className="p-4 border-t flex justify-end gap-2">
                      <button onClick={() => setIsAddStudentOpen(false)} className="px-4 py-2 border rounded">Cancelar</button>
-                     <button onClick={handleAddStudents} disabled={Object.keys(selectedStudentsMap).length === 0} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">Confirmar</button>
+                     <button onClick={handleAddStudents} className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50">Confirmar</button>
                 </div>
               </div>
             </div>

@@ -1,6 +1,8 @@
+
 import { db } from '../db/index.js';
 import { instructors } from '../db/schema.js';
 import { eq } from 'drizzle-orm';
+import crypto from 'node:crypto';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
@@ -34,7 +36,7 @@ export default async function handler(req: any, res: any) {
       await db.delete(instructors).where(eq(instructors.id, id));
       return res.status(200).json({ success: true });
     }
-  } catch (error) {
-    return res.status(500).json({ error: 'Database error' });
+  } catch (error: any) {
+    return res.status(500).json({ error: 'Database error', details: error.message });
   }
 }
