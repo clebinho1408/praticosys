@@ -325,7 +325,6 @@ const SchedulingCenter: React.FC = () => {
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden print:shadow-none print:border-none">
             {/* Header Detalhes */}
-            {/* AJUSTE: print:pb-0.5 reduz o espaço da linha preta com o texto */}
             <div className="p-6 border-b border-gray-100 bg-gray-50 print:bg-white print:border-b-2 print:border-black print:p-0 print:pb-0.5 print:mb-3">
               
               <div className="hidden print:block mb-4">
@@ -338,7 +337,7 @@ const SchedulingCenter: React.FC = () => {
                       </div>
                   </div>
                   
-                  {/* Linha Detalhes da Banca (Recolocada para impressão) */}
+                  {/* Linha Detalhes da Banca */}
                   <div className="flex justify-between items-center text-black text-[11px]">
                        <div>
                           <span className="font-bold mr-2">DATA:</span> {formatDateDisplay(selectedSchedule.date)}
@@ -474,22 +473,25 @@ const SchedulingCenter: React.FC = () => {
                })}
             </div>
 
-            {/* Rodapé Impressão - Corrigido para empilhamento vertical e campo de assinatura */}
-            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t border-black pt-4 pb-4 flex-col items-center justify-center text-[10px] leading-tight">
+            {/* Rodapé Impressão - Assinatura ACIMA da linha divisória */}
+            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white pt-4 pb-6 flex-col items-center justify-center text-[10px] leading-tight">
                  
-                 {/* BLOCO DE ASSINATURA */}
-                 <div className="mb-6 flex flex-col items-center">
+                 {/* BLOCO DE ASSINATURA - ACIMA DA LINHA */}
+                 <div className="mb-4 flex flex-col items-center">
                     <div className="w-64 border-b border-black mb-1"></div>
                     <span className="font-bold text-[9px] uppercase">Assinatura do Examinador</span>
                  </div>
 
-                 {settings?.agencyAddress && (
-                   <div className="font-bold uppercase w-full text-center mb-0.5">
-                     {settings.agencyAddress}
-                   </div>
-                 )}
-                 <div className="w-full text-center">
-                   Impressão: {new Date().toLocaleDateString()}
+                 {/* LINHA DIVISÓRIA MAIS GROSSA */}
+                 <div className="w-full border-t-2 border-black pt-2 flex flex-col items-center">
+                    {settings?.agencyAddress && (
+                    <div className="font-bold uppercase w-full text-center mb-0.5">
+                        {settings.agencyAddress}
+                    </div>
+                    )}
+                    <div className="w-full text-center">
+                    Impressão: {new Date().toLocaleDateString()}
+                    </div>
                  </div>
             </div>
           </div>
