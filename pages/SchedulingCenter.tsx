@@ -155,21 +155,23 @@ const SchedulingCenter: React.FC = () => {
 
   useEffect(() => { refreshData(); }, []);
 
-  // Atualiza a view detalhada quando os dados mudam
+  // Sincronização em tempo real da view detalhada
   useEffect(() => {
     if (selectedSchedule) {
       const updatedSel = schedules.find(s => s.id === selectedSchedule.id);
-      // CORREÇÃO: Atualiza se houver mudança de status, data ou hora
-      if (updatedSel && (
-          updatedSel.status !== selectedSchedule.status || 
-          updatedSel.date !== selectedSchedule.date || 
-          updatedSel.time !== selectedSchedule.time
-      )) {
-          setSelectedSchedule(updatedSel);
+      
+      if (updatedSel) {
+          // Compara os objetos para detectar qualquer mudança (Data, Hora, Status, etc)
+          // Isso garante atualização imediata ao editar
+          if (JSON.stringify(updatedSel) !== JSON.stringify(selectedSchedule)) {
+              setSelectedSchedule(updatedSel);
+          }
+          
+          // Atualiza lista de alunos para garantir consistência
+          updateStudentLists(updatedSel.id);
       }
-      if (updatedSel) updateStudentLists(updatedSel.id);
     }
-  }, [selectedSchedule, schedules]);
+  }, [schedules, selectedSchedule]);
 
   const updateStudentLists = async (scheduleId: string) => {
     const allRequests = await api.getRequests();
@@ -578,7 +580,7 @@ const SchedulingCenter: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {filteredSchedules.map(s => (
                  <div key={s.id} onClick={() => setSelectedSchedule(s)} className="bg-white rounded-xl border p-5 cursor-pointer hover:shadow-md transition-shadow group relative">
-                     {/* CORREÇÃO: Mostra contador superior apenas se status for OPEN */}
+                     {/* CORREÇÃO: Mostra contador superior APENAS se status for OPEN */}
                      {s.status === 'OPEN' && (
                          <div className="absolute top-4 right-4 z-10">
                              <CountdownTimer schedule={s} />
