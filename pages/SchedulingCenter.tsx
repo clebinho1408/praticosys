@@ -99,14 +99,19 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // Puxa exatamente o modelo salvo nas configurações
-    let message = settings.whatsappMessageTemplate || 'Olá {CANDIDATO}, sua prova categoria {CATEGORIA} está marcada para {DATA} às {HORA}.';
+    // Obtém o modelo das configurações
+    let message = settings.whatsappMessageTemplate;
     
-    // Mapeamento de todas as tags dinâmicas suportadas (incluindo variações)
+    // Caso o modelo esteja vazio, usa um padrão de segurança
+    if (!message) {
+      message = 'Olá, *{CANDIDATO}*! 👋😊\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*';
+    }
+    
+    // Mapeamento de tags para substituição
     const replacements: Record<string, string> = {
-      '{CANDIDATO}': req.socialName || req.studentName,
-      '{NOME}': req.socialName || req.studentName,
-      '{TELEFONE}': req.phone,
+      '{CANDIDATO}': req.socialName || req.studentName || '',
+      '{NOME}': req.socialName || req.studentName || '',
+      '{TELEFONE}': req.phone || '',
       '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
       '{DATA}': formatDateDisplay(selectedSchedule.date),
       '{HORA}': selectedSchedule.time,
@@ -115,18 +120,21 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '{AGENCIA}': settings.agencyName || 'DETRAN'
     };
 
-    // Substituição global robusta
+    // Substituição robusta preservando emojis e quebras de linha
     Object.entries(replacements).forEach(([tag, value]) => {
-      // Usando split/join para substituir todas as ocorrências sem Regex para evitar problemas com caracteres especiais
-      message = message.split(tag).join(value || '');
+      // split/join é a forma mais segura para evitar problemas com caracteres especiais de regex
+      message = message.split(tag).join(value);
     });
     
-    // Formata o número (apenas dígitos)
+    // Limpeza do número de telefone (apenas dígitos)
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // Abre o WhatsApp com a mensagem codificada
-    window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    // Codifica a mensagem para URL, o encodeURIComponent lida nativamente com emojis
+    const encodedMessage = encodeURIComponent(message);
+    
+    // Abre o WhatsApp
+    window.open(`https://wa.me/${finalPhone}?text=${encodedMessage}`, '_blank');
   };
 
   const toggleAttendance = async (req: ExamRequest) => {

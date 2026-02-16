@@ -173,7 +173,7 @@ export const api = {
   // --- SETTINGS ---
   getSettings: async (): Promise<SystemSettings> => fetchOrMock('settings', {}, () => {
       const def: SystemSettings = {
-        agencyName: 'DETRAN BALNEÁRIO CAMBORIÚ', 
+        agencyName: 'Detran de Balneário Camboriú', 
         agencyAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
         logoUrl: '',
         maintenanceMode: false, 
@@ -183,7 +183,7 @@ export const api = {
         minDaysForScheduling: 2, 
         enableEmailNotifications: false, 
         enableSmsNotifications: false,
-        whatsappMessageTemplate: 'Olá, *{CANDIDATO}*! 👋 Aqui é do {AGENCIA} – Setor CNH. Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n\n📅 *{DATA}*\n🕒 *{HORA}*\n📍 *{ENDERECO}*\n\n🗺️ Veja no mapa: {MAPS_LINK}\n\nNão esqueça:\n✅ _Documento com foto (válido)_\n✅ _Veículo ou moto em condições para a prova_\n\n*Posso confirmar sua presença?*\n👉 _Confirmação até amanhã às 18:00_',
+        whatsappMessageTemplate: 'Olá, *{CANDIDATO}*! 👋😊\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*\n\n⚠️ Não esqueça:\n🪪 _*Documento com foto (válido)*_\n🚘 _*Veículo ou moto em condições para a prova*_\n\n✅ *Posso confirmar sua presença?*\n\n⏳ _*Confirmação até amanhã às 18:00*_.',
         defaultExamAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
         defaultExamAddressLink: 'https://maps.google.com'
       };
