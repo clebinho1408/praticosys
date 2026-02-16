@@ -286,20 +286,20 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white">
                 {/* Cabeçalho de Impressão */}
                 <div className="p-6 bg-slate-900 text-white print:bg-white print:text-black print:p-0">
-                    <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-4 mb-4">
+                    <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-4 mb-3">
                         {settings?.logoUrl ? (
                             <img src={settings.logoUrl} className="h-16 w-auto" />
                         ) : (
                             <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-black text-xs">DETRAN</div>
                         )}
                         <div>
-                            <h1 className="text-sm font-bold uppercase">{settings?.agencyName || 'AGÊNCIA REGIONAL DE BALNEÁRIO CAMBORIÚ - SETOR CNH'}</h1>
+                            <h1 className="text-lg font-black uppercase tracking-tight">{settings?.agencyName || 'AGÊNCIA REGIONAL DE BALNEÁRIO CAMBORIÚ - SETOR CNH'}</h1>
                             <h2 className="text-2xl font-black uppercase">LISTA DE CHAMADA - {selectedSchedule.type === ExamType.PCD ? 'PCD' : '1ª HABILITAÇÃO'}</h2>
                         </div>
                     </div>
 
                     {/* Meta Data Line */}
-                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-4">
+                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-2">
                         <div className="flex gap-8">
                             <span className="text-sm uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
                             <span className="text-sm uppercase font-bold">HORA: <span className="font-normal">{selectedSchedule.time}</span></span>
@@ -320,47 +320,47 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     </div>
                 </div>
 
-                <div className="p-6 space-y-4 print:p-0">
+                <div className="p-6 space-y-2 print:p-0">
                     {['A', 'B'].map(cat => {
                         const students = scheduledStudents.filter(s => s.scheduledCategory === cat);
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
                         return (
-                            <div key={cat} className="break-inside-avoid mb-4">
-                                <div className="flex items-center gap-2 border-b-2 border-gray-100 pb-1 mb-2 print:border-black">
+                            <div key={cat} className="break-inside-avoid mb-2">
+                                <div className="flex items-center gap-2 border-b-2 border-gray-100 pb-0.5 mb-1 print:border-black">
                                     <Layers className="h-4 w-4 text-gray-400 print:text-black" />
-                                    <h3 className="text-lg font-bold text-gray-800 uppercase print:text-base">Categoria {cat}</h3>
+                                    <h3 className="text-lg font-bold text-gray-800 uppercase print:text-sm">Categoria {cat}</h3>
                                 </div>
 
                                 <table className="w-full text-sm text-left border-collapse print:border print:border-black">
                                     <thead>
                                         <tr className="bg-gray-50 text-gray-600 print:bg-white print:border-b-2 print:border-black">
-                                            <th className="px-2 py-2 print:py-1 w-8 text-center font-bold border-r border-black">#</th>
-                                            <th className="px-3 py-2 print:py-1 font-bold border-r border-black w-32">CPF</th>
-                                            <th className="px-3 py-2 print:py-1 font-bold border-r border-black">Nome</th>
-                                            <th className="px-3 py-2 print:py-1 font-bold border-r border-black w-24">Restrição</th>
-                                            <th className="px-1 py-2 print:py-1 text-center font-bold border-r border-black w-14">Faltou</th>
-                                            <th className="px-1 py-2 print:py-1 text-center font-bold border-r border-black w-14">Apto</th>
-                                            <th className="px-1 py-2 print:py-1 text-center font-bold w-14">Inapto</th>
+                                            <th className="px-2 py-2 print:py-0.5 w-8 text-center font-bold border-r border-black">#</th>
+                                            <th className="px-3 py-2 print:py-0.5 font-bold border-r border-black w-28">CPF</th>
+                                            <th className="px-3 py-2 print:py-0.5 font-bold border-r border-black">Nome</th>
+                                            <th className="px-3 py-2 print:py-0.5 font-bold border-r border-black w-20">Restrição</th>
+                                            <th className="px-1 py-2 print:py-0.5 text-center font-bold border-r border-black w-12">Faltou</th>
+                                            <th className="px-1 py-2 print:py-0.5 text-center font-bold border-r border-black w-12">Apto</th>
+                                            <th className="px-1 py-2 print:py-0.5 text-center font-bold w-12">Inapto</th>
                                             <th className="px-3 py-2 text-right print:hidden font-bold">Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-200 print:divide-black">
                                         {students.map((req, idx) => (
-                                            <tr key={req.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100 print:border-black">
-                                                <td className="px-2 py-3 print:py-1 text-center font-bold text-gray-400 print:text-black border-r print:border-black">{idx + 1}</td>
-                                                <td className="px-3 py-3 print:py-1 font-mono text-gray-600 print:text-black border-r print:border-black">{req.cpf}</td>
-                                                <td className="px-3 py-3 print:py-1 border-r print:border-black">
-                                                    <div className="font-bold text-gray-900 uppercase truncate text-xs">{req.socialName || req.studentName}</div>
+                                            <tr key={req.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100 print:border-b-2 print:border-black">
+                                                <td className="px-2 py-3 print:py-0.5 text-center font-bold text-gray-400 print:text-black border-r print:border-black">{idx + 1}</td>
+                                                <td className="px-3 py-3 print:py-0.5 font-mono text-gray-600 print:text-black border-r print:border-black text-xs">{req.cpf}</td>
+                                                <td className="px-3 py-3 print:py-0.5 border-r print:border-black">
+                                                    <div className="font-bold text-gray-900 uppercase truncate text-[11px] print:text-[10px] leading-tight">{req.socialName || req.studentName}</div>
                                                 </td>
-                                                <td className="px-3 py-3 print:py-1 text-center border-r print:border-black text-xs">{req.cnhRestriction || '-'}</td>
-                                                <td className="px-1 py-3 print:py-1 border-r print:border-black">
-                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm"></div></div>
+                                                <td className="px-3 py-3 print:py-0.5 text-center border-r print:border-black text-[10px]">{req.cnhRestriction || '-'}</td>
+                                                <td className="px-1 py-3 print:py-0.5 border-r print:border-black">
+                                                    <div className="flex justify-center"><div className="w-3.5 h-3.5 border-2 border-black rounded-sm"></div></div>
                                                 </td>
-                                                <td className="px-1 py-3 print:py-1 border-r print:border-black">
-                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm"></div></div>
+                                                <td className="px-1 py-3 print:py-0.5 border-r print:border-black">
+                                                    <div className="flex justify-center"><div className="w-3.5 h-3.5 border-2 border-black rounded-sm"></div></div>
                                                 </td>
-                                                <td className="px-1 py-3 print:py-1">
-                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm"></div></div>
+                                                <td className="px-1 py-3 print:py-0.5">
+                                                    <div className="flex justify-center"><div className="w-3.5 h-3.5 border-2 border-black rounded-sm"></div></div>
                                                 </td>
                                                 <td className="px-3 py-3 text-right print:hidden">
                                                     <button onClick={() => handleRemoveStudent(req.id)} className="p-2 text-red-400 hover:text-red-600 rounded-full">
@@ -370,7 +370,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                                             </tr>
                                         ))}
                                         {students.length === 0 && (
-                                            <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400 italic">Nenhum candidato agendado.</td></tr>
+                                            <tr><td colSpan={8} className="px-4 py-4 text-center text-gray-400 italic">Nenhum candidato agendado.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -379,7 +379,13 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     })}
                 </div>
 
-                {/* Rodapé de Impressão */}
+                {/* Campo de Assinatura do Examinador (Print Only) */}
+                <div className="hidden print:flex flex-col items-center mt-12 mb-8">
+                    <div className="w-72 border-b-2 border-black mb-1"></div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-black">Assinatura do Examinador</span>
+                </div>
+
+                {/* Rodapé de Impressão Institucional */}
                 <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-1 pb-2 px-10 justify-between items-center text-[9px] font-bold">
                     <div className="uppercase">{settings?.agencyAddress || 'AV. DO ESTADO DALMO VIEIRA, 4281 - CENTRO, BALNEÁRIO CAMBORIÚ - SC'}</div>
                     <div>Impressão: {new Date().toLocaleDateString()}</div>
