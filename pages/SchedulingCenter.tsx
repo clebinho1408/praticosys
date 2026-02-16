@@ -21,7 +21,6 @@ import {
   Hourglass,
   MoreVertical,
   Users,
-  // Added Loader2 to fix compilation error
   Loader2
 } from 'lucide-react';
 
@@ -32,45 +31,22 @@ const formatDateDisplay = (dateString: string) => {
   return parts.length !== 3 ? cleanDate : `${parts[2]}/${parts[1]}/${parts[0]}`;
 };
 
-const CountdownTimer: React.FC<{ schedule: ExamSchedule }> = ({ schedule }) => {
-  const [timeLeft, setTimeLeft] = useState<string>('Carregando...');
-  const [styleClass, setStyleClass] = useState<string>('bg-gray-100 text-gray-500');
+// Componente para exibir o Status Formatado
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const configs: Record<string, { label: string, classes: string }> = {
+    'OPEN': { label: 'Aberta', classes: 'bg-green-100 text-green-700 border-green-200' },
+    'CLOSED': { label: 'Fechada', classes: 'bg-orange-100 text-orange-700 border-orange-200' },
+    'CONCLUDED': { label: 'Concluída', classes: 'bg-blue-100 text-blue-700 border-blue-200' },
+    'CANCELLED': { label: 'Cancelada', classes: 'bg-red-100 text-red-700 border-red-200' },
+  };
 
-  useEffect(() => {
-    const calculateTime = () => {
-      if (schedule.status === 'CANCELLED') { setTimeLeft('Cancelada'); setStyleClass('bg-red-100 text-red-700 font-bold'); return; }
-      if (schedule.status === 'CONCLUDED') { setTimeLeft('Concluída'); setStyleClass('bg-blue-100 text-blue-700 font-bold'); return; }
+  const config = configs[status] || { label: status, classes: 'bg-gray-100 text-gray-700 border-gray-200' };
 
-      const now = new Date();
-      const examDate = new Date(`${schedule.date.split('T')[0]}T${schedule.time}`);
-      if (isNaN(examDate.getTime())) { setTimeLeft('Data Inválida'); return; }
-      
-      const closeTime = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
-      if (now > closeTime) {
-         if (schedule.status === 'OPEN') { setTimeLeft('Fechando...'); setStyleClass('bg-orange-100 text-orange-700 animate-pulse'); }
-         else {
-             const diff = examDate.getTime() - now.getTime();
-             if (diff > 0) {
-                 const h = Math.floor(diff / 3600000);
-                 const m = Math.floor((diff % 3600000) / 60000);
-                 setTimeLeft(`Prova em: ${h}h ${m}m`);
-                 setStyleClass('bg-blue-100 text-blue-700 font-bold');
-             } else { setTimeLeft('Em Andamento'); setStyleClass('bg-green-100 text-green-700 animate-pulse'); }
-         }
-         return;
-      }
-      const diff = closeTime.getTime() - now.getTime();
-      const d = Math.floor(diff / 86400000);
-      const h = Math.floor((diff % 86400000) / 3600000);
-      setTimeLeft(d > 0 ? `Fecha em: ${d}d ${h}h` : `Fecha em: ${h}h`);
-      setStyleClass('bg-green-50 text-green-700');
-    };
-    calculateTime();
-    const timer = setInterval(calculateTime, 10000);
-    return () => clearInterval(timer);
-  }, [schedule]);
-
-  return <div className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-md border shadow-sm ${styleClass}`}><Hourglass className="h-3 w-3" />{timeLeft}</div>;
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${config.classes} uppercase tracking-wider`}>
+      {config.label}
+    </span>
+  );
 };
 
 interface SchedulingCenterProps {
@@ -250,7 +226,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredSchedules.map(s => {
               const studentsCount = allRequests.filter(r => r.scheduleId === s.id).length;
-              const isFull = studentsCount >= (s.maxSlotsA + s.maxSlotsB);
 
               return (
                 <div 
@@ -263,14 +238,14 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                         <div className={`p-2 rounded-lg ${s.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
                             <Calendar className="h-6 w-6" />
                         </div>
-                        <CountdownTimer schedule={s} />
+                        <StatusBadge status={s.status} />
                     </div>
                     
                     <h3 className="text-xl font-bold text-gray-900 mb-1">{formatDateDisplay(s.date)}</h3>
                     <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
                         <Clock className="h-4 w-4" /> {s.time}
-                        <span className="mx-1">•</span>
-                        <span className={`font-bold ${s.type === ExamType.PCD ? 'text-purple-600' : 'text-blue-600'}`}>{s.type}</span>
+                        <span className="mx-1 text-gray-300">•</span>
+                        <span className="text-[10px] font-medium text-gray-400 uppercase">{s.type === ExamType.PCD ? 'PCD' : 'Geral'}</span>
                     </div>
 
                     <div className="space-y-2 border-t pt-4">
@@ -361,7 +336,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                         <div>
                             <div className="flex items-center gap-3 mb-2">
                                 <h2 className="text-2xl font-bold">{formatDateDisplay(selectedSchedule.date)}</h2>
-                                <CountdownTimer schedule={selectedSchedule} />
+                                <StatusBadge status={selectedSchedule.status} />
                             </div>
                             <div className="flex flex-wrap gap-4 text-sm opacity-80 print:text-black print:font-bold">
                                 <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {selectedSchedule.time}</span>
