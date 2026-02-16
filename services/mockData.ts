@@ -173,8 +173,8 @@ export const api = {
   // --- SETTINGS ---
   getSettings: async (): Promise<SystemSettings> => fetchOrMock('settings', {}, () => {
       const def: SystemSettings = {
-        agencyName: 'DETRAN LOCAL', 
-        agencyAddress: '', 
+        agencyName: 'DETRAN BALNEÁRIO CAMBORIÚ', 
+        agencyAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
         logoUrl: '',
         maintenanceMode: false, 
         maxDailySlots: 50, 
@@ -183,9 +183,9 @@ export const api = {
         minDaysForScheduling: 2, 
         enableEmailNotifications: false, 
         enableSmsNotifications: false,
-        whatsappMessageTemplate: '🚀 *INFORMATIVO DETRAN*\n\nOlá *{CANDIDATO}*,\n\nSua prova categoria *{CATEGORIA}* está agendada! ✅\n\n📅 Data: *{DATA}*\n🕗 Hora: *{HORA}*\n📍 Local: *{ENDERECO}*\n\n🗺️ Veja no mapa: {MAPS_LINK}\n\nFavor chegar com 20 min de antecedência. Boa sorte! 🍀',
-        defaultExamAddress: '', 
-        defaultExamAddressLink: ''
+        whatsappMessageTemplate: 'Olá, *{CANDIDATO}*! 👋 Aqui é do {AGENCIA} – Setor CNH. Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n\n📅 *{DATA}*\n🕒 *{HORA}*\n📍 *{ENDERECO}*\n\n🗺️ Veja no mapa: {MAPS_LINK}\n\nNão esqueça:\n✅ _Documento com foto (válido)_\n✅ _Veículo ou moto em condições para a prova_\n\n*Posso confirmar sua presença?*\n👉 _Confirmação até amanhã às 18:00_',
+        defaultExamAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
+        defaultExamAddressLink: 'https://maps.google.com'
       };
       return getLocal(STORAGE_KEYS.SETTINGS, def);
   }),

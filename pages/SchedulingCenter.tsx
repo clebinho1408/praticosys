@@ -99,30 +99,34 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // Puxa exatamente o modelo salvo nas configurações ou usa um fallback seguro
+    // Puxa exatamente o modelo salvo nas configurações
     let message = settings.whatsappMessageTemplate || 'Olá {CANDIDATO}, sua prova categoria {CATEGORIA} está marcada para {DATA} às {HORA}.';
     
-    // Mapeamento de todas as tags dinâmicas suportadas
+    // Mapeamento de todas as tags dinâmicas suportadas (incluindo variações)
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName,
+      '{NOME}': req.socialName || req.studentName,
       '{TELEFONE}': req.phone,
       '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
       '{DATA}': formatDateDisplay(selectedSchedule.date),
       '{HORA}': selectedSchedule.time,
       '{ENDERECO}': settings.defaultExamAddress || '',
-      '{MAPS_LINK}': settings.defaultExamAddressLink || ''
+      '{MAPS_LINK}': settings.defaultExamAddressLink || '',
+      '{AGENCIA}': settings.agencyName || 'DETRAN'
     };
 
-    // Substituição global de todas as ocorrências de cada tag no modelo
+    // Substituição global robusta
     Object.entries(replacements).forEach(([tag, value]) => {
-      // split/join é a forma mais robusta de substituir todas as ocorrências de uma string literal
+      // Usando split/join para substituir todas as ocorrências sem Regex para evitar problemas com caracteres especiais
       message = message.split(tag).join(value || '');
     });
     
-    // Formata o número para o link (apenas dígitos)
-    const phone = req.phone.replace(/\D/g, '');
-    // Abre o WhatsApp Web ou Desktop com a mensagem codificada
-    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    // Formata o número (apenas dígitos)
+    const phoneDigits = req.phone.replace(/\D/g, '');
+    const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
+    
+    // Abre o WhatsApp com a mensagem codificada
+    window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const toggleAttendance = async (req: ExamRequest) => {
