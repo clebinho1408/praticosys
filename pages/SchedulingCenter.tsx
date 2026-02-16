@@ -99,19 +99,29 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // Puxa o modelo salvo nas configurações ou usa um padrão caso esteja vazio
-    const template = settings.whatsappMessageTemplate || 'Olá {CANDIDATO}, sua prova categoria {CATEGORIA} está marcada para {DATA} às {HORA}.';
+    // Puxa exatamente o modelo salvo nas configurações ou usa um fallback seguro
+    let message = settings.whatsappMessageTemplate || 'Olá {CANDIDATO}, sua prova categoria {CATEGORIA} está marcada para {DATA} às {HORA}.';
     
-    const message = template
-      .replace('{CANDIDATO}', req.socialName || req.studentName)
-      .replace('{TELEFONE}', req.phone)
-      .replace('{CATEGORIA}', req.scheduledCategory || req.intendedCategory || '-')
-      .replace('{DATA}', formatDateDisplay(selectedSchedule.date))
-      .replace('{HORA}', selectedSchedule.time)
-      .replace('{ENDERECO}', settings.defaultExamAddress || '')
-      .replace('{MAPS_LINK}', settings.defaultExamAddressLink || '');
+    // Mapeamento de todas as tags dinâmicas suportadas
+    const replacements: Record<string, string> = {
+      '{CANDIDATO}': req.socialName || req.studentName,
+      '{TELEFONE}': req.phone,
+      '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
+      '{DATA}': formatDateDisplay(selectedSchedule.date),
+      '{HORA}': selectedSchedule.time,
+      '{ENDERECO}': settings.defaultExamAddress || '',
+      '{MAPS_LINK}': settings.defaultExamAddressLink || ''
+    };
+
+    // Substituição global de todas as ocorrências de cada tag no modelo
+    Object.entries(replacements).forEach(([tag, value]) => {
+      // split/join é a forma mais robusta de substituir todas as ocorrências de uma string literal
+      message = message.split(tag).join(value || '');
+    });
     
+    // Formata o número para o link (apenas dígitos)
     const phone = req.phone.replace(/\D/g, '');
+    // Abre o WhatsApp Web ou Desktop com a mensagem codificada
     window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
