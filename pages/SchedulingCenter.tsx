@@ -283,9 +283,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:min-h-[290mm] print:flex print:flex-col">
+            <div className="bg-white rounded-xl shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
                 {/* Cabeçalho de Impressão */}
-                <div className="p-6 bg-slate-900 text-white print:bg-white print:!text-black print:p-0">
+                <div className="p-6 bg-slate-900 text-white print:bg-white print:p-0 print:!text-black">
                     <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-4 mb-3">
                         {settings?.logoUrl ? (
                             <img src={settings.logoUrl} className="h-16 w-auto" />
@@ -299,12 +299,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     </div>
 
                     {/* Meta Data Line */}
-                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-2">
-                        <div className="flex gap-8 print:!text-black">
+                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-2 print:!text-black">
+                        <div className="flex gap-8">
                             <span className="text-sm uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
                             <span className="text-sm uppercase font-bold">HORA: <span className="font-normal">{selectedSchedule.time}</span></span>
                         </div>
-                        <span className="text-sm uppercase font-bold print:!text-black">EXAMINADORES: <span className="font-normal">{selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span></span>
+                        <span className="text-sm uppercase font-bold">EXAMINADORES: <span className="font-normal">{selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span></span>
                     </div>
 
                     {/* UI Only View Header */}
@@ -320,12 +320,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     </div>
                 </div>
 
-                <div className="p-6 space-y-2 print:p-0 print:flex-1">
+                <div className="p-6 space-y-4 print:p-0">
                     {['A', 'B'].map(cat => {
                         const students = scheduledStudents.filter(s => s.scheduledCategory === cat);
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
                         return (
-                            <div key={cat} className="break-inside-avoid print:mb-12 mb-4">
+                            <div key={cat} className="break-inside-avoid print:mb-10 mb-4">
                                 <div className="flex items-center gap-2 border-b-2 border-gray-100 pb-0.5 mb-2 print:border-black print:!text-black">
                                     <Layers className="h-4 w-4 text-gray-400 print:!text-black" />
                                     <h3 className="text-lg font-bold uppercase print:text-sm print:font-black">Categoria {cat}</h3>
@@ -379,14 +379,14 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     })}
                 </div>
 
-                {/* Campo de Assinatura do Examinador (Print Only - Sempre no rodapé) */}
-                <div className="hidden print:flex flex-col items-center mt-auto mb-16 pt-10">
+                {/* Campo de Assinatura do Examinador (Print Only) */}
+                <div className="hidden print:flex flex-col items-center mt-12 mb-20 break-inside-avoid print:!text-black">
                     <div className="w-80 border-b-2 border-black mb-1"></div>
                     <span className="text-[10px] font-black uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
 
                 {/* Rodapé de Impressão Institucional */}
-                <div className="hidden print:flex absolute bottom-0 left-0 w-full bg-white border-t-2 border-black pt-1 pb-2 px-10 justify-between items-center text-[9px] font-bold text-black print:!text-black">
+                <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-1 pb-2 px-10 justify-between items-center text-[9px] font-bold text-black print:!text-black">
                     <div className="uppercase">{settings?.agencyAddress || 'AV. DO ESTADO DALMO VIEIRA, 4281 - CENTRO, BALNEÁRIO CAMBORIÚ - SC'}</div>
                     <div>Impressão: {new Date().toLocaleDateString()}</div>
                 </div>
