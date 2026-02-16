@@ -14,10 +14,13 @@ import {
   Trash2, 
   Edit2, 
   Ban, 
-  Hourglass,
   Users,
   Loader2,
-  Layers
+  Layers,
+  MessageCircle,
+  CheckCircle2,
+  CheckCircle,
+  Phone
 } from 'lucide-react';
 
 const formatDateDisplay = (dateString: string) => {
@@ -93,6 +96,24 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   };
 
   useEffect(() => { refreshData(); }, [type]);
+
+  const handleWhatsApp = (req: ExamRequest) => {
+    if (!settings || !selectedSchedule) return;
+    const template = settings.whatsappMessageTemplate || 'Olá {CANDIDATO}, sua prova está marcada para {DATA} às {HORA}.';
+    const message = template
+      .replace('{CANDIDATO}', req.socialName || req.studentName)
+      .replace('{DATA}', formatDateDisplay(selectedSchedule.date))
+      .replace('{HORA}', selectedSchedule.time)
+      .replace('{ENDERECO}', settings.defaultExamAddress || '');
+    
+    const phone = req.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const toggleAttendance = async (req: ExamRequest) => {
+    await api.updateRequest(req.id, { attendanceConfirmed: !req.attendanceConfirmed });
+    refreshData();
+  };
 
   const handleOpenModal = (sched?: ExamSchedule) => {
     if (sched) {
@@ -177,6 +198,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     <div className="space-y-6">
       {!selectedSchedule ? (
         <>
+          {/* Grid de Bancas (UI Principal) */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <h2 className="text-2xl font-bold text-gray-800">Agendamentos - {type === ExamType.PCD ? 'PCD' : 'Comum'}</h2>
             <div className="flex gap-2 w-full md:w-auto">
@@ -266,7 +288,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
           </div>
         </>
       ) : (
+        /* VISUALIZAÇÃO DA BANCA SELECIONADA */
         <div className="space-y-6 animate-fadeIn">
+            {/* Toolbar */}
             <div className="flex items-center justify-between print:hidden">
                 <button onClick={() => setSelectedSchedule(null)} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors">
                     <ChevronRight className="h-4 w-4 rotate-180" /> Voltar para a lista
@@ -283,9 +307,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                 </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
-                {/* Cabeçalho de Impressão */}
-                <div className="p-6 bg-slate-900 text-white print:bg-white print:p-0 print:!text-black">
+            <div className="bg-white rounded-2xl shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
+                {/* Cabeçalho de Impressão e UI */}
+                <div className="p-8 bg-slate-900 text-white print:bg-white print:p-0 print:!text-black">
                     <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-4 mb-3">
                         {settings?.logoUrl ? (
                             <img src={settings.logoUrl} className="h-16 w-auto" />
@@ -293,12 +317,11 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                             <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-black text-xs print:!text-black">DETRAN</div>
                         )}
                         <div>
-                            <h1 className="text-xl font-black uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL DE BALNEÁRIO CAMBORIÚ - SETOR CNH'}</h1>
+                            <h1 className="text-xl font-black uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
                             <h2 className="text-2xl font-black uppercase print:!text-black">LISTA DE CHAMADA - {selectedSchedule.type === ExamType.PCD ? 'PCD' : '1ª HABILITAÇÃO'}</h2>
                         </div>
                     </div>
 
-                    {/* Meta Data Line */}
                     <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-2 print:!text-black">
                         <div className="flex gap-8">
                             <span className="text-sm uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
@@ -307,71 +330,117 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                         <span className="text-sm uppercase font-bold">EXAMINADORES: <span className="font-normal">{selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span></span>
                     </div>
 
-                    {/* UI Only View Header */}
                     <div className="print:hidden">
                         <div className="flex items-center gap-3 mb-2">
-                            <h2 className="text-2xl font-bold">{formatDateDisplay(selectedSchedule.date)}</h2>
+                            <h2 className="text-3xl font-black">{formatDateDisplay(selectedSchedule.date)}</h2>
                             <StatusBadge status={selectedSchedule.status} />
                         </div>
-                        <div className="flex flex-wrap gap-4 text-sm opacity-80">
-                            <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {selectedSchedule.time}</span>
-                            <span className="flex items-center gap-1"><User className="h-4 w-4" /> {selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span>
+                        <div className="flex flex-wrap gap-6 text-sm opacity-80 font-medium uppercase tracking-wider">
+                            <span className="flex items-center gap-2"><Clock className="h-5 w-5" /> {selectedSchedule.time}</span>
+                            <span className="flex items-center gap-2"><User className="h-5 w-5" /> {selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-6 space-y-4 print:p-0">
+                <div className="p-8 space-y-12 print:p-0">
                     {['A', 'B'].map(cat => {
                         const students = scheduledStudents.filter(s => s.scheduledCategory === cat);
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
+                        
                         return (
-                            <div key={cat} className="break-inside-avoid print:mb-10 mb-4">
-                                <div className="flex items-center gap-2 border-b-2 border-gray-100 pb-0.5 mb-2 print:border-black print:!text-black">
-                                    <Layers className="h-4 w-4 text-gray-400 print:!text-black" />
-                                    <h3 className="text-lg font-bold uppercase print:text-sm print:font-black">Categoria {cat}</h3>
+                            <div key={cat} className="break-inside-avoid">
+                                <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-2 mb-6 print:border-black print:!text-black">
+                                    <div className="bg-blue-600 text-white p-2 rounded-lg print:hidden">
+                                        <Layers className="h-5 w-5" />
+                                    </div>
+                                    <h3 className="text-2xl font-black uppercase print:text-lg">Categoria {cat}</h3>
+                                    <span className="text-sm font-bold text-gray-400 ml-auto print:hidden">
+                                        {students.length} candidatos agendados
+                                    </span>
                                 </div>
 
-                                <table className="w-full text-sm text-left border-collapse print:border-2 print:border-black">
+                                {/* LISTA CLEAN (Apenas Web) */}
+                                <div className="space-y-3 print:hidden">
+                                    {students.map((req, idx) => (
+                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border-2 transition-all hover:border-blue-200 bg-white ${req.attendanceConfirmed ? 'border-green-100 bg-green-50/20' : 'border-gray-100'}`}>
+                                            <div className="flex items-center gap-4 flex-1 w-full">
+                                                <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400 shrink-0">
+                                                    {idx + 1}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="text-lg font-black text-slate-900 uppercase truncate">
+                                                        {req.socialName || req.studentName}
+                                                    </div>
+                                                    <div className="flex gap-3 text-xs font-bold text-slate-500 uppercase tracking-tighter">
+                                                        <span>{req.cpf}</span>
+                                                        <span className="text-slate-300">|</span>
+                                                        <span>Instrutor: {req.instructor || '-'}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {/* Botão Confirmação */}
+                                                <button 
+                                                    onClick={() => toggleAttendance(req)}
+                                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-black text-xs uppercase transition-all ${req.attendanceConfirmed ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                                    title="Confirmar Presença/Agendamento"
+                                                >
+                                                    {req.attendanceConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                                                    {req.attendanceConfirmed ? 'Confirmado' : 'Confirmar'}
+                                                </button>
+
+                                                {/* Botão WhatsApp */}
+                                                <button 
+                                                    onClick={() => handleWhatsApp(req)}
+                                                    className="p-2.5 bg-green-100 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-all"
+                                                    title="Enviar mensagem WhatsApp"
+                                                >
+                                                    <MessageCircle className="h-5 w-5" />
+                                                </button>
+
+                                                <div className="w-px h-6 bg-slate-200 mx-1"></div>
+
+                                                <button 
+                                                    onClick={() => handleRemoveStudent(req.id)}
+                                                    className="p-2.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    title="Remover da Banca"
+                                                >
+                                                    <Trash2 className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {students.length === 0 && (
+                                        <div className="text-center py-10 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 font-bold uppercase text-xs">
+                                            Nenhum candidato nesta categoria.
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* TABELA SIMPLIFICADA (Apenas Impressão) */}
+                                <table className="hidden print:table w-full text-left border-collapse border-2 border-black">
                                     <thead>
-                                        <tr className="bg-gray-50 text-gray-600 print:bg-white print:border-b-2 print:border-black print:!text-black">
-                                            <th className="px-2 py-2 print:py-0.5 w-8 text-center font-bold border-r border-black">#</th>
-                                            <th className="px-3 py-2 print:py-0.5 font-bold border-r border-black w-28">CPF</th>
-                                            <th className="px-3 py-2 print:py-0.5 font-bold border-r border-black">Nome</th>
-                                            <th className="px-3 py-2 print:py-0.5 font-bold border-r border-black w-20">Restrição</th>
-                                            <th className="px-1 py-2 print:py-0.5 text-center font-bold border-r border-black w-12">Faltou</th>
-                                            <th className="px-1 py-2 print:py-0.5 text-center font-bold border-r border-black w-12">Apto</th>
-                                            <th className="px-1 py-2 print:py-0.5 text-center font-bold w-12">Inapto</th>
-                                            <th className="px-3 py-2 text-right print:hidden font-bold">Ações</th>
+                                        <tr className="bg-black text-white font-black border-b-2 border-black">
+                                            <th className="px-2 py-1 w-10 text-center border-r border-black">#</th>
+                                            <th className="px-3 py-1 border-r border-black">Candidato</th>
+                                            <th className="px-3 py-1 w-32 border-r border-black">CPF</th>
+                                            <th className="px-3 py-1 w-24 border-r border-black">Presença</th>
+                                            <th className="px-3 py-1 w-24 border-r border-black">Apto</th>
+                                            <th className="px-3 py-1 w-24">Inapto</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200 print:divide-black">
+                                    <tbody className="divide-y-2 divide-black">
                                         {students.map((req, idx) => (
-                                            <tr key={req.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100 print:border-b-2 print:border-black print:!text-black">
-                                                <td className="px-2 py-3 print:py-0.5 text-center font-bold text-gray-400 print:!text-black border-r print:border-black">{idx + 1}</td>
-                                                <td className="px-3 py-3 print:py-0.5 font-mono text-gray-600 print:!text-black border-r print:border-black text-xs">{req.cpf}</td>
-                                                <td className="px-3 py-3 print:py-0.5 border-r print:border-black">
-                                                    <div className="font-bold text-gray-900 uppercase truncate text-[11px] print:text-[10px] print:!text-black leading-tight">{req.socialName || req.studentName}</div>
-                                                </td>
-                                                <td className="px-3 py-3 print:py-0.5 text-center border-r print:border-black text-[10px] print:!text-black">{req.cnhRestriction || '-'}</td>
-                                                <td className="px-1 py-3 print:py-0.5 border-r print:border-black">
-                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm print:border-2"></div></div>
-                                                </td>
-                                                <td className="px-1 py-3 print:py-0.5 border-r print:border-black">
-                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm print:border-2"></div></div>
-                                                </td>
-                                                <td className="px-1 py-3 print:py-0.5">
-                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm print:border-2"></div></div>
-                                                </td>
-                                                <td className="px-3 py-3 text-right print:hidden">
-                                                    <button onClick={() => handleRemoveStudent(req.id)} className="p-2 text-red-400 hover:text-red-600 rounded-full">
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                </td>
+                                            <tr key={req.id} className="border-b-2 border-black">
+                                                <td className="px-2 py-1 text-center font-black border-r border-black">{idx + 1}</td>
+                                                <td className="px-3 py-1 font-black uppercase text-[11px] border-r border-black truncate">{req.socialName || req.studentName}</td>
+                                                <td className="px-3 py-1 font-mono text-[10px] border-r border-black">{req.cpf}</td>
+                                                <td className="px-3 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto"></div></td>
+                                                <td className="px-3 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto"></div></td>
+                                                <td className="px-3 py-1"><div className="w-5 h-5 border-2 border-black mx-auto"></div></td>
                                             </tr>
                                         ))}
-                                        {students.length === 0 && (
-                                            <tr><td colSpan={8} className="px-4 py-4 text-center text-gray-400 italic print:!text-black">Nenhum candidato agendado.</td></tr>
-                                        )}
                                     </tbody>
                                 </table>
                             </div>
@@ -379,77 +448,93 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     })}
                 </div>
 
-                {/* Campo de Assinatura do Examinador (Print Only) */}
-                <div className="hidden print:flex flex-col items-center mt-12 mb-20 break-inside-avoid print:!text-black">
-                    <div className="w-80 border-b-2 border-black mb-1"></div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-black">Assinatura do Examinador</span>
+                {/* Assinatura do Examinador (Print Only) */}
+                <div className="hidden print:flex flex-col items-center mt-auto mb-20 pt-10">
+                    <div className="w-96 border-b-4 border-black mb-2"></div>
+                    <span className="text-sm font-black uppercase tracking-widest text-black">Assinatura do Examinador Responsável</span>
                 </div>
 
-                {/* Rodapé de Impressão Institucional */}
-                <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-1 pb-2 px-10 justify-between items-center text-[9px] font-bold text-black print:!text-black">
-                    <div className="uppercase">{settings?.agencyAddress || 'AV. DO ESTADO DALMO VIEIRA, 4281 - CENTRO, BALNEÁRIO CAMBORIÚ - SC'}</div>
-                    <div>Impressão: {new Date().toLocaleDateString()}</div>
+                {/* Rodapé Institucional (Print Only) */}
+                <div className="hidden print:flex absolute bottom-0 left-0 w-full bg-white border-t-4 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                    <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                    <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
                 </div>
             </div>
         </div>
       )}
 
-      {/* MODAIS (Inalterados) */}
+      {/* MODAL: NOVA BANCA */}
       {isModalOpen && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+          <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+              <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-white/20">
                   <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-                      <h3 className="text-xl font-bold">{editingSchedule ? 'Editar Banca' : 'Nova Banca'}</h3>
-                      <button onClick={() => setIsModalOpen(false)}><X className="h-6 w-6" /></button>
+                      <h3 className="text-xl font-black uppercase tracking-tight">{editingSchedule ? 'Editar Banca' : 'Nova Banca'}</h3>
+                      <button onClick={() => setIsModalOpen(false)} className="hover:rotate-90 transition-transform"><X className="h-7 w-7" /></button>
                   </div>
                   <form onSubmit={handleSaveSchedule} className="p-8 space-y-6">
-                      <div className="grid grid-cols-2 gap-4">
-                          <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label><input required type="date" className="w-full border rounded-lg p-3 bg-gray-50 text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} /></div>
-                          <div><label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hora</label><input required type="time" className="w-full border rounded-lg p-3 bg-gray-50 text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} /></div>
+                      <div className="grid grid-cols-2 gap-6">
+                          <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Data da Prova</label>
+                            <input required type="date" className="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 transition-colors bg-slate-50 font-bold" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Horário Início</label>
+                            <input required type="time" className="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 transition-colors bg-slate-50 font-bold" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
+                          </div>
                       </div>
                       <div>
-                          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Examinadores</label>
-                          <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                          <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Escalar Examinadores (Máx 3)</label>
+                          <div className="space-y-2 max-h-48 overflow-y-auto border-2 border-slate-50 rounded-2xl p-4 bg-slate-50/50">
                               {examiners.map(ex => (
-                                  <label key={ex.id} className="flex items-center gap-3 cursor-pointer p-1">
-                                      <input type="checkbox" checked={scheduleForm.examinerIds.includes(ex.id)} onChange={(e) => {
+                                  <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-700'}`}>
+                                      <input type="checkbox" className="hidden" checked={scheduleForm.examinerIds.includes(ex.id)} onChange={(e) => {
                                             const ids = e.target.checked ? [...scheduleForm.examinerIds, ex.id].slice(0, 3) : scheduleForm.examinerIds.filter(id => id !== ex.id);
                                             setScheduleForm({...scheduleForm, examinerIds: ids});
-                                      }} className="h-4 w-4 text-blue-600" />
-                                      <span className="text-sm text-gray-700">{ex.name}</span>
+                                      }} />
+                                      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${scheduleForm.examinerIds.includes(ex.id) ? 'border-white bg-white' : 'border-slate-300'}`}>
+                                          {scheduleForm.examinerIds.includes(ex.id) && <div className="h-2 w-2 rounded-full bg-blue-600"></div>}
+                                      </div>
+                                      <span className="text-sm font-black uppercase">{ex.name}</span>
                                   </label>
                               ))}
                           </div>
                       </div>
                       <div className="flex justify-end gap-3 pt-4">
-                          <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-2 text-gray-500">Cancelar</button>
-                          <button type="submit" className="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold shadow-lg">Salvar</button>
+                          <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 text-slate-400 font-black uppercase text-xs">Cancelar</button>
+                          <button type="submit" className="px-10 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 transition-all">Salvar Banca</button>
                       </div>
                   </form>
               </div>
           </div>
       )}
 
+      {/* MODAL: ADICIONAR ESTUDANTE */}
       {isAddStudentOpen && selectedSchedule && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-              <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden">
+          <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+              <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden border border-white/20">
                   <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
-                      <h3 className="text-xl font-bold">Agendar Candidatos</h3>
-                      <button onClick={() => setIsAddStudentOpen(false)}><X className="h-6 w-6" /></button>
+                      <h3 className="text-xl font-black uppercase tracking-tight">Agendar Candidatos</h3>
+                      <button onClick={() => setIsAddStudentOpen(false)} className="hover:rotate-90 transition-transform"><X className="h-7 w-7" /></button>
                   </div>
-                  <div className="p-6 bg-gray-50 border-b">
-                      <input type="text" placeholder="Buscar por nome ou CPF..." className="w-full px-4 py-3 border rounded-xl" value={studentSearch} onChange={e => setSearchTermInput(e.target.value)} />
+                  <div className="p-6 bg-slate-50 border-b">
+                      <div className="relative">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                          <input type="text" placeholder="Buscar por nome ou CPF..." className="w-full pl-12 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:border-blue-500 font-bold" value={studentSearch} onChange={e => setSearchTermInput(e.target.value)} />
+                      </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-2">
+                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
                       {availableStudents.map(s => (
-                          <div key={s.id} className="flex items-center justify-between p-4 hover:bg-blue-50 rounded-xl">
+                          <div key={s.id} className="flex items-center justify-between p-4 hover:bg-blue-50 rounded-2xl border-2 border-transparent transition-all hover:border-blue-100">
                               <div>
-                                  <div className="font-bold text-gray-900 uppercase">{s.studentName}</div>
-                                  <div className="text-xs text-gray-500">{s.cpf}</div>
+                                  <div className="font-black text-slate-900 uppercase">{s.studentName}</div>
+                                  <div className="text-xs font-bold text-slate-400">{s.cpf} • {s.intendedCategory || 'B'}</div>
                               </div>
-                              <button onClick={() => handleAddStudent(s.id, s.intendedCategory || 'B')} className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-sm">Selecionar</button>
+                              <button onClick={() => handleAddStudent(s.id, s.intendedCategory || 'B')} className="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-100">Selecionar</button>
                           </div>
                       ))}
+                      {availableStudents.length === 0 && (
+                          <div className="text-center py-20 text-slate-300 font-black uppercase text-sm">Nenhum candidato aguardando agendamento.</div>
+                      )}
                   </div>
               </div>
           </div>
