@@ -27,20 +27,6 @@ const getLocal = <T>(key: string, def: T): T => {
     } catch { return def; }
 };
 const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
-const delay = (ms = 100) => new Promise(res => setTimeout(res, ms));
-
-// --- MOCK DATA SEEDER ---
-const seedDatabase = () => {
-    if (!localStorage.getItem(STORAGE_KEYS.EXAMINERS)) {
-        const mockExaminers: Examiner[] = [
-            { id: 'ex_1', name: 'CARLOS SILVA', registrationNumber: '12345', canExamCommon: true, canExamPCD: true },
-            { id: 'ex_2', name: 'ANA SOUZA', registrationNumber: '67890', canExamCommon: true, canExamPCD: false },
-        ];
-        setLocal(STORAGE_KEYS.EXAMINERS, mockExaminers);
-    }
-};
-
-seedDatabase();
 
 const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string): 'OPEN' | 'CLOSED' | 'CONCLUDED' | 'CANCELLED' => {
     if (currentStatus === 'CANCELLED') return 'CANCELLED';
@@ -63,7 +49,6 @@ const fetchOrMock = async <T>(
     mockFn: () => Promise<T> | T
 ): Promise<T> => {
     const controller = new AbortController();
-    // AUMENTADO: 15 segundos para evitar que conexões lentas ou cold starts caiam no modo offline
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
@@ -81,7 +66,6 @@ const fetchOrMock = async <T>(
         return await res.json();
     } catch (error: any) {
         clearTimeout(timeoutId);
-        console.warn(`[API] Erro ao acessar ${endpoint}: ${error.message}. Usando LocalStorage.`);
         return mockFn();
     }
 };
@@ -189,11 +173,19 @@ export const api = {
   // --- SETTINGS ---
   getSettings: async (): Promise<SystemSettings> => fetchOrMock('settings', {}, () => {
       const def: SystemSettings = {
-        agencyName: 'DETRAN LOCAL', agencyAddress: '', logoUrl: '',
-        maintenanceMode: false, maxDailySlots: 50, defaultMaxSlotsA: 10, defaultMaxSlotsB: 10,
-        minDaysForScheduling: 2, enableEmailNotifications: false, enableSmsNotifications: false,
-        whatsappMessageTemplate: 'Olá {CANDIDATO}, sua prova está marcada para {DATA} às {HORA}. Local: {ENDERECO}',
-        defaultExamAddress: '', defaultExamAddressLink: ''
+        agencyName: 'DETRAN LOCAL', 
+        agencyAddress: '', 
+        logoUrl: '',
+        maintenanceMode: false, 
+        maxDailySlots: 50, 
+        defaultMaxSlotsA: 10, 
+        defaultMaxSlotsB: 10,
+        minDaysForScheduling: 2, 
+        enableEmailNotifications: false, 
+        enableSmsNotifications: false,
+        whatsappMessageTemplate: '🚀 *INFORMATIVO DETRAN*\n\nOlá *{CANDIDATO}*,\n\nSua prova categoria *{CATEGORIA}* está agendada! ✅\n\n📅 Data: *{DATA}*\n🕗 Hora: *{HORA}*\n📍 Local: *{ENDERECO}*\n\n🗺️ Veja no mapa: {MAPS_LINK}\n\nFavor chegar com 20 min de antecedência. Boa sorte! 🍀',
+        defaultExamAddress: '', 
+        defaultExamAddressLink: ''
       };
       return getLocal(STORAGE_KEYS.SETTINGS, def);
   }),
@@ -207,7 +199,6 @@ export const api = {
   // --- SCHEDULES ---
   getSchedules: async (): Promise<ExamSchedule[]> => fetchOrMock('schedules', {}, () => {
       let schedules = getLocal<ExamSchedule[]>(STORAGE_KEYS.SCHEDULES, []);
-      let requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
       let changed = false;
       schedules = schedules.map(s => {
           const newStatus = calculateStatus(s.date, s.time, s.status);

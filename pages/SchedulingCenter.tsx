@@ -98,13 +98,16 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
-    const template = settings.whatsappMessageTemplate || 'Olá {CANDIDATO}, sua prova está marcada para {DATA} às {HORA}.';
+    
+    // Puxa o modelo salvo nas configurações ou usa um padrão caso esteja vazio
+    const template = settings.whatsappMessageTemplate || 'Olá {CANDIDATO}, sua prova categoria {CATEGORIA} está marcada para {DATA} às {HORA}.';
+    
     const message = template
       .replace('{CANDIDATO}', req.socialName || req.studentName)
+      .replace('{TELEFONE}', req.phone)
+      .replace('{CATEGORIA}', req.scheduledCategory || req.intendedCategory || '-')
       .replace('{DATA}', formatDateDisplay(selectedSchedule.date))
       .replace('{HORA}', selectedSchedule.time)
-      .replace('{CATEGORIA}', req.scheduledCategory || req.intendedCategory || '-')
-      .replace('{TELEFONE}', req.phone)
       .replace('{ENDERECO}', settings.defaultExamAddress || '')
       .replace('{MAPS_LINK}', settings.defaultExamAddressLink || '');
     
@@ -258,7 +261,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     <div className="space-y-2 border-t pt-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <User className="h-4 w-4 opacity-50" />
-                            {/* FIX: Use s.examinerIds[0] instead of undefined 'id' */}
                             <span className="truncate">{s.examinerIds.length > 0 ? getExaminerName(s.examinerIds[0]) : 'Sem examinador'}</span>
                             {s.examinerIds.length > 1 && <span className="text-[10px] bg-gray-100 px-1 rounded">+{s.examinerIds.length - 1}</span>}
                         </div>
@@ -437,7 +439,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                                         {students.map((req, idx) => (
                                             <tr key={req.id} className="border-b-2 border-black print:!text-black">
                                                 <td className="px-2 py-1 text-center font-black border-r border-black">{idx + 1}</td>
-                                                {/* CPF FONT EQUAL TO NAME FONT */}
                                                 <td className="px-3 py-1 font-black text-[10px] border-r border-black">{req.cpf}</td>
                                                 <td className="px-3 py-1 font-black uppercase text-[10px] border-r border-black truncate">{req.socialName || req.studentName}</td>
                                                 <td className="px-3 py-1 text-center font-bold text-[10px] border-r border-black">{req.cnhRestriction || '-'}</td>
