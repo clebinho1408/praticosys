@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthState, ExamType, User } from './types';
@@ -47,9 +48,12 @@ const App: React.FC = () => {
                   <Route path="requests" element={<RequestManager user={auth.user} />} /> {/* For Schools mostly */}
                   <Route path="requests/common" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
                   <Route path="requests/pcd" element={<RequestManager user={auth.user} typeFilter={ExamType.PCD} />} />
+                  <Route path="requests/cfc" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
                   
                   {/* Scheduling Center */}
-                  <Route path="scheduling/common" element={<SchedulingCenter />} />
+                  <Route path="scheduling/common" element={<SchedulingCenter type={ExamType.COMMON} />} />
+                  <Route path="scheduling/cfc" element={<SchedulingCenter type={ExamType.COMMON} />} />
+                  <Route path="scheduling/pcd" element={<SchedulingCenter type={ExamType.PCD} />} />
 
                   {/* Registries */}
                   <Route path="users" element={<RegistryManagement />} />
