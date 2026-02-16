@@ -19,8 +19,7 @@ import {
   Layers,
   MessageCircle,
   CheckCircle2,
-  CheckCircle,
-  Phone
+  CheckCircle
 } from 'lucide-react';
 
 const formatDateDisplay = (dateString: string) => {
@@ -198,7 +197,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     <div className="space-y-6">
       {!selectedSchedule ? (
         <>
-          {/* Grid de Bancas (UI Principal) */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <h2 className="text-2xl font-bold text-gray-800">Agendamentos - {type === ExamType.PCD ? 'PCD' : 'Comum'}</h2>
             <div className="flex gap-2 w-full md:w-auto">
@@ -257,6 +255,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     <div className="space-y-2 border-t pt-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <User className="h-4 w-4 opacity-50" />
+                            {/* FIX: Use s.examinerIds[0] instead of undefined 'id' */}
                             <span className="truncate">{s.examinerIds.length > 0 ? getExaminerName(s.examinerIds[0]) : 'Sem examinador'}</span>
                             {s.examinerIds.length > 1 && <span className="text-[10px] bg-gray-100 px-1 rounded">+{s.examinerIds.length - 1}</span>}
                         </div>
@@ -348,7 +347,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
                         
                         return (
-                            <div key={cat} className="break-inside-avoid">
+                            <div key={cat} className="break-inside-avoid print:mb-16 mb-4">
                                 <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-2 mb-6 print:border-black print:!text-black">
                                     <div className="bg-blue-600 text-white p-2 rounded-lg print:hidden">
                                         <Layers className="h-5 w-5" />
@@ -359,7 +358,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                                     </span>
                                 </div>
 
-                                {/* LISTA CLEAN (Apenas Web) */}
+                                {/* LISTA CLEAN (Apenas Web - SEM as colunas de marcação) */}
                                 <div className="space-y-3 print:hidden">
                                     {students.map((req, idx) => (
                                         <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border-2 transition-all hover:border-blue-200 bg-white ${req.attendanceConfirmed ? 'border-green-100 bg-green-50/20' : 'border-gray-100'}`}>
@@ -418,27 +417,29 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                                     )}
                                 </div>
 
-                                {/* TABELA SIMPLIFICADA (Apenas Impressão) */}
+                                {/* TABELA ORIGINAL (Apenas Impressão - COM as colunas de marcação) */}
                                 <table className="hidden print:table w-full text-left border-collapse border-2 border-black">
                                     <thead>
-                                        <tr className="bg-black text-white font-black border-b-2 border-black">
+                                        <tr className="bg-white text-black font-black border-b-2 border-black">
                                             <th className="px-2 py-1 w-10 text-center border-r border-black">#</th>
-                                            <th className="px-3 py-1 border-r border-black">Candidato</th>
-                                            <th className="px-3 py-1 w-32 border-r border-black">CPF</th>
-                                            <th className="px-3 py-1 w-24 border-r border-black">Presença</th>
-                                            <th className="px-3 py-1 w-24 border-r border-black">Apto</th>
-                                            <th className="px-3 py-1 w-24">Inapto</th>
+                                            <th className="px-3 py-1 border-r border-black">CPF</th>
+                                            <th className="px-3 py-1 border-r border-black">NOME DO CANDIDATO</th>
+                                            <th className="px-3 py-1 w-20 text-center border-r border-black">RESTR.</th>
+                                            <th className="px-2 py-1 w-14 text-center border-r border-black">FALTOU</th>
+                                            <th className="px-2 py-1 w-14 text-center border-r border-black">APTO</th>
+                                            <th className="px-2 py-1 w-14 text-center">INAPTO</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y-2 divide-black">
                                         {students.map((req, idx) => (
-                                            <tr key={req.id} className="border-b-2 border-black">
+                                            <tr key={req.id} className="border-b-2 border-black print:!text-black">
                                                 <td className="px-2 py-1 text-center font-black border-r border-black">{idx + 1}</td>
-                                                <td className="px-3 py-1 font-black uppercase text-[11px] border-r border-black truncate">{req.socialName || req.studentName}</td>
                                                 <td className="px-3 py-1 font-mono text-[10px] border-r border-black">{req.cpf}</td>
-                                                <td className="px-3 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto"></div></td>
-                                                <td className="px-3 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto"></div></td>
-                                                <td className="px-3 py-1"><div className="w-5 h-5 border-2 border-black mx-auto"></div></td>
+                                                <td className="px-3 py-1 font-black uppercase text-[10px] border-r border-black truncate">{req.socialName || req.studentName}</td>
+                                                <td className="px-3 py-1 text-center font-bold text-[10px] border-r border-black">{req.cnhRestriction || '-'}</td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-2 py-1"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -449,13 +450,13 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                 </div>
 
                 {/* Assinatura do Examinador (Print Only) */}
-                <div className="hidden print:flex flex-col items-center mt-auto mb-20 pt-10">
-                    <div className="w-96 border-b-4 border-black mb-2"></div>
+                <div className="hidden print:flex flex-col items-center mt-auto mb-20 pt-10 break-inside-avoid">
+                    <div className="w-96 border-b-2 border-black mb-2"></div>
                     <span className="text-sm font-black uppercase tracking-widest text-black">Assinatura do Examinador Responsável</span>
                 </div>
 
                 {/* Rodapé Institucional (Print Only) */}
-                <div className="hidden print:flex absolute bottom-0 left-0 w-full bg-white border-t-4 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                <div className="hidden print:flex absolute bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
                     <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                     <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
                 </div>
