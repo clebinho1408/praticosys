@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { Logo } from './Logo';
+import { api } from '../services/mockData';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -16,7 +18,9 @@ import {
   Map,
   Car,
   Accessibility,
-  BarChart3
+  BarChart3,
+  Database,
+  CloudOff
 } from 'lucide-react';
 
 interface SubItem {
@@ -43,6 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
+  const [dbStatus, setDbStatus] = useState<'ONLINE' | 'OFFLINE'>('ONLINE');
 
   const handleLogout = () => {
     onLogout();
@@ -61,6 +66,21 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       [label]: !prev[label]
     }));
   };
+
+  useEffect(() => {
+    const checkDb = async () => {
+       try {
+          const res = await fetch('/api/test');
+          const data = await res.json();
+          setDbStatus(data.status === 'OK' ? 'ONLINE' : 'OFFLINE');
+       } catch {
+          setDbStatus('OFFLINE');
+       }
+    };
+    checkDb();
+    const interval = setInterval(checkDb, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-expand menu if a sub-item is active on load
   useEffect(() => {
@@ -98,7 +118,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          subItems: [
            { label: 'Agendamentos', path: '/admin/scheduling/common', icon: CalendarCheck },
            { label: 'Candidatos', path: '/admin/requests/common', icon: FileText },
-           { label: 'Relatórios', path: '/admin/reports/cnh', icon: BarChart3 } // Placeholder
+           { label: 'Relatórios', path: '/admin/reports/cnh', icon: BarChart3 }
          ]
        });
 
@@ -107,9 +127,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Car,
          label: 'Prova Prática CFC',
          subItems: [
-           { label: 'Agendamentos', path: '/admin/scheduling/cfc', icon: CalendarCheck }, // Placeholder
-           { label: 'Candidatos', path: '/admin/requests/cfc', icon: FileText }, // Placeholder
-           { label: 'Relatórios', path: '/admin/reports/cfc', icon: BarChart3 } // Placeholder
+           { label: 'Agendamentos', path: '/admin/scheduling/cfc', icon: CalendarCheck },
+           { label: 'Candidatos', path: '/admin/requests/cfc', icon: FileText },
+           { label: 'Relatórios', path: '/admin/reports/cfc', icon: BarChart3 }
          ]
        });
 
@@ -118,14 +138,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Accessibility,
          label: 'Prova Prática PCD',
          subItems: [
-           { label: 'Agendamentos', path: '/admin/scheduling/pcd', icon: CalendarCheck }, // Placeholder
-           { label: 'Candidatos', path: '/admin/requests/pcd', icon: FileText }, // Atual PCD
-           { label: 'Relatórios', path: '/admin/reports/pcd', icon: BarChart3 } // Placeholder
+           { label: 'Agendamentos', path: '/admin/scheduling/pcd', icon: CalendarCheck },
+           { label: 'Candidatos', path: '/admin/requests/pcd', icon: FileText },
+           { label: 'Relatórios', path: '/admin/reports/pcd', icon: BarChart3 }
          ]
        });
     }
 
-    // --- CADASTROS E CONFIGURAÇÕES (Mantidos conforme solicitado) ---
     if (user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR) {
       items.push({ icon: Users, label: 'Cadastros', path: '/admin/users' });
       items.push({ icon: Settings, label: 'Configurações', path: '/admin/settings' });
@@ -136,7 +155,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row print:bg-white">
-      {/* Sidebar (Dark Theme) */}
+      {/* Sidebar */}
       <aside className="w-full md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col flex-shrink-0 print:hidden z-20 transition-all duration-300">
         <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-900">
           <div className="bg-white/10 p-1.5 rounded-lg">
@@ -180,7 +199,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                   </Link>
                 )}
 
-                {/* Submenu Items */}
                 {hasSubmenu && isOpen && (
                   <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 animate-fadeIn">
                     {item.subItems!.map((sub) => (
@@ -204,16 +222,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           })}
         </nav>
         
-        {/* Rodapé da Sidebar */}
-        <div className="p-4 border-t border-slate-800 text-[10px] text-center text-slate-600 uppercase tracking-widest">
-           PráticoSys v1.0.0
+        {/* Connection Status & Footer */}
+        <div className="p-4 border-t border-slate-800">
+           <div className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-colors ${dbStatus === 'ONLINE' ? 'bg-green-500/10 text-green-400' : 'bg-orange-500/10 text-orange-400'}`}>
+               {dbStatus === 'ONLINE' ? <Database className="h-3 w-3" /> : <CloudOff className="h-3 w-3" />}
+               {dbStatus === 'ONLINE' ? 'Banco Conectado' : 'Modo Navegador (Offline)'}
+           </div>
+           <div className="mt-2 text-[10px] text-center text-slate-600 uppercase tracking-widest">
+              PráticoSys v1.0.0
+           </div>
         </div>
       </aside>
 
-      {/* Main Content Wrapper */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        
-        {/* Top Header */}
         <header className="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-6 print:hidden shadow-sm z-10">
             <div className="flex items-center gap-4">
                 <button className="md:hidden text-gray-500">
@@ -228,7 +250,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 </div>
             </div>
 
-            {/* Right Side: User Profile & Logout */}
             <div className="flex items-center gap-6">
                 <div className="flex items-center gap-3">
                     <div className="text-right hidden sm:block">
@@ -245,7 +266,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 <button 
                     onClick={handleLogout}
                     className="flex items-center gap-2 text-gray-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-full transition-all text-sm font-medium"
-                    title="Sair do Sistema"
                 >
                     <LogOut className="h-4 w-4" />
                     <span className="hidden sm:inline">Sair</span>
@@ -253,10 +273,8 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             </div>
         </header>
 
-        {/* Content Scroll Area */}
         <main className="flex-1 overflow-auto bg-gray-50/50 p-6 md:p-8 print:p-0 print:bg-white relative">
           <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-blue-50/50 to-transparent -z-10 pointer-events-none"></div>
-          
           <div className="max-w-7xl mx-auto print:max-w-none">
             {children}
           </div>

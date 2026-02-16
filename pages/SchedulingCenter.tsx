@@ -474,24 +474,24 @@ const SchedulingCenter: React.FC = () => {
                })}
             </div>
 
-            {/* Rodapé Impressão - Assinatura ACIMA da linha divisória */}
-            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white pt-4 pb-8 flex-col items-center justify-center text-[10px] leading-tight">
+            {/* Rodapé Impressão - Assinatura ACIMA da linha divisória (mais grossa) */}
+            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white pt-4 pb-10 flex-col items-center justify-center text-[10px] leading-tight">
                  
-                 {/* BLOCO DE ASSINATURA - ACIMA DA LINHA COM MAIOR ESPAÇAMENTO */}
-                 <div className="mb-6 flex flex-col items-center">
-                    <div className="w-72 border-b border-black mb-1"></div>
-                    <span className="font-bold text-[9px] uppercase tracking-wider">Assinatura do Examinador</span>
+                 {/* BLOCO DE ASSINATURA - CLARAMENTE ACIMA DA LINHA COM ESPAÇO */}
+                 <div className="mb-10 flex flex-col items-center">
+                    <div className="w-80 border-b-2 border-black mb-1"></div>
+                    <span className="font-bold text-[10px] uppercase tracking-widest">Assinatura do Examinador</span>
                  </div>
 
-                 {/* LINHA DIVISÓRIA MAIS GROSSA (3px) */}
-                 <div className="w-full border-t-[3px] border-black pt-3 flex flex-col items-center">
+                 {/* LINHA DIVISÓRIA BEM GROSSA (4px) */}
+                 <div className="w-full border-t-[4px] border-black pt-4 flex flex-col items-center">
                     {settings?.agencyAddress && (
-                    <div className="font-bold uppercase w-full text-center mb-1">
+                    <div className="font-bold uppercase w-full text-center mb-1 text-[11px]">
                         {settings.agencyAddress}
                     </div>
                     )}
-                    <div className="w-full text-center opacity-70">
-                    Documento impresso em: {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}
+                    <div className="w-full text-center opacity-80 text-[9px]">
+                    Documento extraído do PráticoSys em: {new Date().toLocaleDateString()} às {new Date().toLocaleTimeString()}
                     </div>
                  </div>
             </div>
