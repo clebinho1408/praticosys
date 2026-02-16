@@ -58,7 +58,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
-  const [studentSearch, setStudentSearch] = useState('');
+  const [studentSearch, setSearchTermInput] = useState('');
 
   const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
   const [scheduleForm, setScheduleForm] = useState({ 
@@ -284,7 +284,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white">
-                {/* Cabeçalho de Impressão (Fiel ao DETRAN-SC) */}
+                {/* Cabeçalho de Impressão */}
                 <div className="p-6 bg-slate-900 text-white print:bg-white print:text-black print:p-0">
                     <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-4 mb-4">
                         {settings?.logoUrl ? (
@@ -298,8 +298,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                         </div>
                     </div>
 
-                    {/* Meta Data Line (Print Only) */}
-                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-2 mb-6">
+                    {/* Meta Data Line */}
+                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-4">
                         <div className="flex gap-8">
                             <span className="text-sm uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
                             <span className="text-sm uppercase font-bold">HORA: <span className="font-normal">{selectedSchedule.time}</span></span>
@@ -320,49 +320,49 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     </div>
                 </div>
 
-                <div className="p-6 space-y-10 print:p-0">
+                <div className="p-6 space-y-4 print:p-0">
                     {['A', 'B'].map(cat => {
                         const students = scheduledStudents.filter(s => s.scheduledCategory === cat);
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
                         return (
-                            <div key={cat} className="break-inside-avoid mb-10">
-                                <div className="flex items-center gap-2 border-b-2 border-gray-100 pb-2 mb-4 print:border-black">
-                                    <Layers className="h-5 w-5 text-gray-400 print:text-black" />
-                                    <h3 className="text-xl font-bold text-gray-800 uppercase print:text-lg">Categoria {cat}</h3>
+                            <div key={cat} className="break-inside-avoid mb-4">
+                                <div className="flex items-center gap-2 border-b-2 border-gray-100 pb-1 mb-2 print:border-black">
+                                    <Layers className="h-4 w-4 text-gray-400 print:text-black" />
+                                    <h3 className="text-lg font-bold text-gray-800 uppercase print:text-base">Categoria {cat}</h3>
                                 </div>
 
-                                <table className="w-full text-sm text-left border-collapse">
+                                <table className="w-full text-sm text-left border-collapse print:border print:border-black">
                                     <thead>
-                                        <tr className="bg-gray-50 text-gray-600 print:bg-white print:border border-black">
-                                            <th className="px-3 py-2 w-10 text-center font-bold border-r border-black">#</th>
-                                            <th className="px-4 py-2 font-bold border-r border-black w-32">CPF</th>
-                                            <th className="px-4 py-2 font-bold border-r border-black">Nome</th>
-                                            <th className="px-4 py-2 font-bold border-r border-black w-24">Restrição</th>
-                                            <th className="px-2 py-2 text-center font-bold border-r border-black w-16">Faltou</th>
-                                            <th className="px-2 py-2 text-center font-bold border-r border-black w-16">Apto</th>
-                                            <th className="px-2 py-2 text-center font-bold w-16">Inapto</th>
-                                            <th className="px-4 py-2 text-right print:hidden font-bold">Ações</th>
+                                        <tr className="bg-gray-50 text-gray-600 print:bg-white print:border-b-2 print:border-black">
+                                            <th className="px-2 py-2 print:py-1 w-8 text-center font-bold border-r border-black">#</th>
+                                            <th className="px-3 py-2 print:py-1 font-bold border-r border-black w-32">CPF</th>
+                                            <th className="px-3 py-2 print:py-1 font-bold border-r border-black">Nome</th>
+                                            <th className="px-3 py-2 print:py-1 font-bold border-r border-black w-24">Restrição</th>
+                                            <th className="px-1 py-2 print:py-1 text-center font-bold border-r border-black w-14">Faltou</th>
+                                            <th className="px-1 py-2 print:py-1 text-center font-bold border-r border-black w-14">Apto</th>
+                                            <th className="px-1 py-2 print:py-1 text-center font-bold w-14">Inapto</th>
+                                            <th className="px-3 py-2 text-right print:hidden font-bold">Ações</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="print:border-x print:border-b print:border-black">
+                                    <tbody className="divide-y divide-gray-200 print:divide-black">
                                         {students.map((req, idx) => (
                                             <tr key={req.id} className="hover:bg-gray-50 transition-colors border-b border-gray-100 print:border-black">
-                                                <td className="px-3 py-3 text-center font-bold text-gray-400 print:text-black border-r print:border-black">{idx + 1}</td>
-                                                <td className="px-4 py-3 font-mono text-gray-600 print:text-black border-r print:border-black">{req.cpf}</td>
-                                                <td className="px-4 py-3">
-                                                    <div className="font-bold text-gray-900 uppercase truncate">{req.socialName || req.studentName}</div>
+                                                <td className="px-2 py-3 print:py-1 text-center font-bold text-gray-400 print:text-black border-r print:border-black">{idx + 1}</td>
+                                                <td className="px-3 py-3 print:py-1 font-mono text-gray-600 print:text-black border-r print:border-black">{req.cpf}</td>
+                                                <td className="px-3 py-3 print:py-1 border-r print:border-black">
+                                                    <div className="font-bold text-gray-900 uppercase truncate text-xs">{req.socialName || req.studentName}</div>
                                                 </td>
-                                                <td className="px-4 py-3 text-center border-x print:border-black">{req.cnhRestriction || '-'}</td>
-                                                <td className="px-2 py-3 border-r print:border-black">
-                                                    <div className="flex justify-center"><div className="w-5 h-5 border border-black rounded-sm"></div></div>
+                                                <td className="px-3 py-3 print:py-1 text-center border-r print:border-black text-xs">{req.cnhRestriction || '-'}</td>
+                                                <td className="px-1 py-3 print:py-1 border-r print:border-black">
+                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm"></div></div>
                                                 </td>
-                                                <td className="px-2 py-3 border-r print:border-black">
-                                                    <div className="flex justify-center"><div className="w-5 h-5 border border-black rounded-sm"></div></div>
+                                                <td className="px-1 py-3 print:py-1 border-r print:border-black">
+                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm"></div></div>
                                                 </td>
-                                                <td className="px-2 py-3">
-                                                    <div className="flex justify-center"><div className="w-5 h-5 border border-black rounded-sm"></div></div>
+                                                <td className="px-1 py-3 print:py-1">
+                                                    <div className="flex justify-center"><div className="w-4 h-4 border-2 border-black rounded-sm"></div></div>
                                                 </td>
-                                                <td className="px-4 py-3 text-right print:hidden">
+                                                <td className="px-3 py-3 text-right print:hidden">
                                                     <button onClick={() => handleRemoveStudent(req.id)} className="p-2 text-red-400 hover:text-red-600 rounded-full">
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
@@ -370,7 +370,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                                             </tr>
                                         ))}
                                         {students.length === 0 && (
-                                            <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400 italic">Nenhum candidato agendado.</td></tr>
+                                            <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400 italic">Nenhum candidato agendado.</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -380,7 +380,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                 </div>
 
                 {/* Rodapé de Impressão */}
-                <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-bold">
+                <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-1 pb-2 px-10 justify-between items-center text-[9px] font-bold">
                     <div className="uppercase">{settings?.agencyAddress || 'AV. DO ESTADO DALMO VIEIRA, 4281 - CENTRO, BALNEÁRIO CAMBORIÚ - SC'}</div>
                     <div>Impressão: {new Date().toLocaleDateString()}</div>
                 </div>
@@ -388,7 +388,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
         </div>
       )}
 
-      {/* MODAIS (Manter como estão) */}
+      {/* MODAIS (Inalterados) */}
       {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
               <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
@@ -432,7 +432,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                       <button onClick={() => setIsAddStudentOpen(false)}><X className="h-6 w-6" /></button>
                   </div>
                   <div className="p-6 bg-gray-50 border-b">
-                      <input type="text" placeholder="Buscar por nome ou CPF..." className="w-full px-4 py-3 border rounded-xl" value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
+                      <input type="text" placeholder="Buscar por nome ou CPF..." className="w-full px-4 py-3 border rounded-xl" value={studentSearch} onChange={e => setSearchTermInput(e.target.value)} />
                   </div>
                   <div className="flex-1 overflow-y-auto p-2">
                       {availableStudents.map(s => (
