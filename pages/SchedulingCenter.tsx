@@ -255,7 +255,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     <div className="space-y-2 border-t pt-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <User className="h-4 w-4 opacity-50" />
-                            {/* FIX: Use s.examinerIds[0] instead of undefined 'id' */}
                             <span className="truncate">{s.examinerIds.length > 0 ? getExaminerName(s.examinerIds[0]) : 'Sem examinador'}</span>
                             {s.examinerIds.length > 1 && <span className="text-[10px] bg-gray-100 px-1 rounded">+{s.examinerIds.length - 1}</span>}
                         </div>
@@ -331,10 +330,10 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
                     <div className="print:hidden">
                         <div className="flex items-center gap-3 mb-2">
-                            <h2 className="text-3xl font-black">{formatDateDisplay(selectedSchedule.date)}</h2>
+                            <h2 className="text-3xl font-black text-white">{formatDateDisplay(selectedSchedule.date)}</h2>
                             <StatusBadge status={selectedSchedule.status} />
                         </div>
-                        <div className="flex flex-wrap gap-6 text-sm opacity-80 font-medium uppercase tracking-wider">
+                        <div className="flex flex-wrap gap-6 text-sm opacity-80 font-medium uppercase tracking-wider text-white">
                             <span className="flex items-center gap-2"><Clock className="h-5 w-5" /> {selectedSchedule.time}</span>
                             <span className="flex items-center gap-2"><User className="h-5 w-5" /> {selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span>
                         </div>
@@ -347,12 +346,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
                         
                         return (
-                            <div key={cat} className="break-inside-avoid print:mb-16 mb-4">
+                            <div key={cat} className="break-inside-avoid print:mb-2 mb-4">
                                 <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-2 mb-6 print:border-black print:!text-black">
                                     <div className="bg-blue-600 text-white p-2 rounded-lg print:hidden">
                                         <Layers className="h-5 w-5" />
                                     </div>
-                                    <h3 className="text-2xl font-black uppercase print:text-lg">Categoria {cat}</h3>
+                                    <h3 className="text-2xl font-black uppercase print:text-sm print:font-black">Categoria {cat}</h3>
                                     <span className="text-sm font-bold text-gray-400 ml-auto print:hidden">
                                         {students.length} candidatos agendados
                                     </span>
@@ -422,7 +421,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                                     <thead>
                                         <tr className="bg-white text-black font-black border-b-2 border-black">
                                             <th className="px-2 py-1 w-10 text-center border-r border-black">#</th>
-                                            <th className="px-3 py-1 border-r border-black">CPF</th>
+                                            <th className="px-3 py-1 w-32 border-r border-black">CPF</th>
                                             <th className="px-3 py-1 border-r border-black">NOME DO CANDIDATO</th>
                                             <th className="px-3 py-1 w-20 text-center border-r border-black">RESTR.</th>
                                             <th className="px-2 py-1 w-14 text-center border-r border-black">FALTOU</th>
@@ -434,7 +433,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                                         {students.map((req, idx) => (
                                             <tr key={req.id} className="border-b-2 border-black print:!text-black">
                                                 <td className="px-2 py-1 text-center font-black border-r border-black">{idx + 1}</td>
-                                                <td className="px-3 py-1 font-mono text-[10px] border-r border-black">{req.cpf}</td>
+                                                {/* CPF FONT EQUAL TO NAME FONT */}
+                                                <td className="px-3 py-1 font-black text-[10px] border-r border-black">{req.cpf}</td>
                                                 <td className="px-3 py-1 font-black uppercase text-[10px] border-r border-black truncate">{req.socialName || req.studentName}</td>
                                                 <td className="px-3 py-1 text-center font-bold text-[10px] border-r border-black">{req.cnhRestriction || '-'}</td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
@@ -450,13 +450,13 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                 </div>
 
                 {/* Assinatura do Examinador (Print Only) */}
-                <div className="hidden print:flex flex-col items-center mt-auto mb-20 pt-10 break-inside-avoid">
+                <div className="hidden print:flex flex-col items-center mt-10 mb-20 break-inside-avoid">
                     <div className="w-96 border-b-2 border-black mb-2"></div>
                     <span className="text-sm font-black uppercase tracking-widest text-black">Assinatura do Examinador Responsável</span>
                 </div>
 
                 {/* Rodapé Institucional (Print Only) */}
-                <div className="hidden print:flex absolute bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
                     <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                     <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
                 </div>
@@ -475,16 +475,16 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                   <form onSubmit={handleSaveSchedule} className="p-8 space-y-6">
                       <div className="grid grid-cols-2 gap-6">
                           <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Data da Prova</label>
-                            <input required type="date" className="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 transition-colors bg-slate-50 font-bold" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 text-gray-400">Data da Prova</label>
+                            <input required type="date" className="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 transition-colors bg-slate-50 font-bold text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Horário Início</label>
-                            <input required type="time" className="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 transition-colors bg-slate-50 font-bold" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
+                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 text-gray-400">Horário Início</label>
+                            <input required type="time" className="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 transition-colors bg-slate-50 font-bold text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
                           </div>
                       </div>
                       <div>
-                          <label className="block text-[10px] font-black text-slate-400 uppercase mb-2">Escalar Examinadores (Máx 3)</label>
+                          <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 text-gray-400">Escalar Examinadores (Máx 3)</label>
                           <div className="space-y-2 max-h-48 overflow-y-auto border-2 border-slate-50 rounded-2xl p-4 bg-slate-50/50">
                               {examiners.map(ex => (
                                   <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-700'}`}>
@@ -520,7 +520,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                   <div className="p-6 bg-slate-50 border-b">
                       <div className="relative">
                           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                          <input type="text" placeholder="Buscar por nome ou CPF..." className="w-full pl-12 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:border-blue-500 font-bold" value={studentSearch} onChange={e => setSearchTermInput(e.target.value)} />
+                          <input type="text" placeholder="Buscar por nome ou CPF..." className="w-full pl-12 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:border-blue-500 font-bold text-gray-900" value={studentSearch} onChange={e => setSearchTermInput(e.target.value)} />
                       </div>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 space-y-2">
