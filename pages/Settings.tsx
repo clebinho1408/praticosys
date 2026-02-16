@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, Info } from 'lucide-react';
 
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
@@ -93,7 +93,7 @@ const Settings: React.FC = () => {
                             <input type="text" name="agencyName" value={settings.agencyName} onChange={handleChange} className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" />
                         </div>
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">Endereço da Agência</label>
+                            <label className="block text-sm font-medium text-gray-700">Endereço da Agência (Rodapé Relatórios)</label>
                             <input type="text" name="agencyAddress" value={settings.agencyAddress || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" />
                         </div>
                         <div className="col-span-2">
@@ -115,16 +115,81 @@ const Settings: React.FC = () => {
             {activeTab === 'RULES' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="grid grid-cols-2 gap-6 text-gray-900">
-                        <div><label className="block text-sm font-medium">Vagas Moto Padrão</label><input type="number" name="defaultMaxSlotsA" value={settings.defaultMaxSlotsA} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
-                        <div><label className="block text-sm font-medium">Vagas Carro Padrão</label><input type="number" name="defaultMaxSlotsB" value={settings.defaultMaxSlotsB} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
+                        <div><label className="block text-sm font-medium">Vagas Moto Padrão (Cat. A)</label><input type="number" name="defaultMaxSlotsA" value={settings.defaultMaxSlotsA} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
+                        <div><label className="block text-sm font-medium">Vagas Carro Padrão (Cat. B)</label><input type="number" name="defaultMaxSlotsB" value={settings.defaultMaxSlotsB} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
                     </div>
                 </div>
             )}
 
             {activeTab === 'COMMUNICATION' && (
-                <div className="space-y-6 animate-fadeIn">
-                    <label className="block font-medium text-gray-700">Modelo WhatsApp</label>
-                    <textarea name="whatsappMessageTemplate" rows={5} value={settings.whatsappMessageTemplate} onChange={handleChange} className="w-full border p-2 rounded bg-white text-gray-900" />
+                <div className="space-y-8 animate-fadeIn">
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-blue-600" /> Endereço Padrão do Exame
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Endereço Completo</label>
+                                <input 
+                                    type="text" 
+                                    name="defaultExamAddress" 
+                                    value={settings.defaultExamAddress || ''} 
+                                    onChange={handleChange} 
+                                    placeholder="Ex: Av. Principal, 123 - Centro"
+                                    className="w-full border p-2 rounded bg-white text-gray-900" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
+                                    <LinkIcon className="h-3 w-3" /> Link do Google Maps
+                                </label>
+                                <input 
+                                    type="text" 
+                                    name="defaultExamAddressLink" 
+                                    value={settings.defaultExamAddressLink || ''} 
+                                    onChange={handleChange} 
+                                    placeholder="Ex: https://goo.gl/maps/..."
+                                    className="w-full border p-2 rounded bg-white text-gray-900" 
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                            <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp
+                        </h3>
+                        <div>
+                            <textarea 
+                                name="whatsappMessageTemplate" 
+                                rows={6} 
+                                value={settings.whatsappMessageTemplate} 
+                                onChange={handleChange} 
+                                className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium" 
+                            />
+                            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">
+                                    <Info className="h-3 w-3" /> Tags Disponíveis
+                                </h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {[
+                                        { tag: '{CANDIDATO}', desc: 'Nome do aluno' },
+                                        { tag: '{DATA}', desc: 'Data da prova' },
+                                        { tag: '{HORA}', desc: 'Hora da prova' },
+                                        { tag: '{CATEGORIA}', desc: 'Cat. agendada' },
+                                        { tag: '{TELEFONE}', desc: 'Fone do aluno' },
+                                        { tag: '{ENDERECO}', desc: 'Local do exame' },
+                                        { tag: '{MAPS_LINK}', desc: 'Link do GPS' },
+                                    ].map(item => (
+                                        <div key={item.tag} className="flex flex-col">
+                                            <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
+                                            <span className="text-[10px] text-gray-500">{item.desc}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

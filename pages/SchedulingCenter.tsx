@@ -103,7 +103,10 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       .replace('{CANDIDATO}', req.socialName || req.studentName)
       .replace('{DATA}', formatDateDisplay(selectedSchedule.date))
       .replace('{HORA}', selectedSchedule.time)
-      .replace('{ENDERECO}', settings.defaultExamAddress || '');
+      .replace('{CATEGORIA}', req.scheduledCategory || req.intendedCategory || '-')
+      .replace('{TELEFONE}', req.phone)
+      .replace('{ENDERECO}', settings.defaultExamAddress || '')
+      .replace('{MAPS_LINK}', settings.defaultExamAddressLink || '');
     
     const phone = req.phone.replace(/\D/g, '');
     window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
@@ -255,6 +258,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     <div className="space-y-2 border-t pt-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <User className="h-4 w-4 opacity-50" />
+                            {/* FIX: Use s.examinerIds[0] instead of undefined 'id' */}
                             <span className="truncate">{s.examinerIds.length > 0 ? getExaminerName(s.examinerIds[0]) : 'Sem examinador'}</span>
                             {s.examinerIds.length > 1 && <span className="text-[10px] bg-gray-100 px-1 rounded">+{s.examinerIds.length - 1}</span>}
                         </div>
