@@ -2,15 +2,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, Bell, Calendar, Shield, AlertTriangle, CheckCircle, MessageCircle, MapPin, Image as ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, Database, RefreshCw } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare } from 'lucide-react';
 
-type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION' | 'ADVANCED';
+type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,24 +47,6 @@ const Settings: React.FC = () => {
       }
   };
 
-  const handleSyncDatabase = async () => {
-      if (!confirm("Isso irá atualizar as tabelas do seu banco Neon para garantir que todas as colunas existam. Deseja continuar?")) return;
-      setSyncing(true);
-      try {
-          const res = await fetch('/api/setup', { method: 'POST' });
-          const data = await res.json();
-          if (data.success) {
-              alert("BANCO SINCRONIZADO! Agora as gravações devem funcionar corretamente.");
-          } else {
-              alert("Erro na sincronização: " + data.details);
-          }
-      } catch (e: any) {
-          alert("Falha ao acessar servidor: " + e.message);
-      } finally {
-          setSyncing(false);
-      }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!settings) return;
@@ -87,17 +68,6 @@ const Settings: React.FC = () => {
           <SettingsIcon className="h-6 w-6 text-gray-600" />
           Configurações do Sistema
         </h2>
-        
-        {/* BOTÃO DE SINCRONIZAÇÃO EM DESTAQUE NO TOPO */}
-        <button 
-            type="button" 
-            onClick={handleSyncDatabase}
-            disabled={syncing}
-            className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all animate-pulse hover:animate-none"
-        >
-            {syncing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-            Sincronizar Banco (Corrigir Erros)
-        </button>
       </div>
 
       {successMsg && (
@@ -112,7 +82,6 @@ const Settings: React.FC = () => {
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('RULES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Sliders className="h-4 w-4" /> REGRAS</button>
            <button type="button" onClick={() => setActiveTab('COMMUNICATION')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'COMMUNICATION' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MessageSquare className="h-4 w-4" /> COMUNICAÇÃO</button>
-           <button type="button" onClick={() => setActiveTab('ADVANCED')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'ADVANCED' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Database className="h-4 w-4" /> AVANÇADO</button>
         </div>
 
         <div className="p-8">
@@ -139,15 +108,6 @@ const Settings: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'ADVANCED' && (
-                <div className="space-y-6 animate-fadeIn">
-                    <div className="p-6 bg-amber-50 border border-amber-200 rounded-xl">
-                        <h4 className="font-bold text-amber-800 flex items-center gap-2 mb-2"><AlertTriangle className="h-5 w-5" /> Sincronização do Banco de Dados</h4>
-                        <p className="text-sm text-amber-700 mb-4">Caso o sistema não esteja salvando candidatos ou instrutores, o banco de dados Neon pode estar desatualizado. Clique no botão de sincronização no topo desta página.</p>
                     </div>
                 </div>
             )}

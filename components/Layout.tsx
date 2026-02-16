@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { Logo } from './Logo';
-import { api } from '../services/mockData';
 import { 
   LayoutDashboard, 
   FileText, 
@@ -18,9 +17,7 @@ import {
   Map,
   Car,
   Accessibility,
-  BarChart3,
-  Database,
-  CloudOff
+  BarChart3
 } from 'lucide-react';
 
 interface SubItem {
@@ -47,7 +44,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
-  const [dbStatus, setDbStatus] = useState<'ONLINE' | 'OFFLINE'>('ONLINE');
 
   const handleLogout = () => {
     onLogout();
@@ -66,21 +62,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       [label]: !prev[label]
     }));
   };
-
-  useEffect(() => {
-    const checkDb = async () => {
-       try {
-          const res = await fetch('/api/test');
-          const data = await res.json();
-          setDbStatus(data.status === 'OK' ? 'ONLINE' : 'OFFLINE');
-       } catch {
-          setDbStatus('OFFLINE');
-       }
-    };
-    checkDb();
-    const interval = setInterval(checkDb, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Auto-expand menu if a sub-item is active on load
   useEffect(() => {
@@ -222,13 +203,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           })}
         </nav>
         
-        {/* Connection Status & Footer */}
+        {/* Footer */}
         <div className="p-4 border-t border-slate-800">
-           <div className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-colors ${dbStatus === 'ONLINE' ? 'bg-green-500/10 text-green-400' : 'bg-orange-500/10 text-orange-400'}`}>
-               {dbStatus === 'ONLINE' ? <Database className="h-3 w-3" /> : <CloudOff className="h-3 w-3" />}
-               {dbStatus === 'ONLINE' ? 'Banco Conectado' : 'Modo Navegador (Offline)'}
-           </div>
-           <div className="mt-2 text-[10px] text-center text-slate-600 uppercase tracking-widest">
+           <div className="text-[10px] text-center text-slate-600 uppercase tracking-widest">
               PráticoSys v1.0.0
            </div>
         </div>
