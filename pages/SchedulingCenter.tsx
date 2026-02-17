@@ -112,9 +112,11 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '[HOURGLASS]': '\u23F3'         // ⏳
     };
 
-    let result = text;
+    let result = text || '';
     
-    // LIMPEZA DE CARACTERES CORROMPIDOS (Diamond Question Mark)
+    // LIMPEZA CIRÚRGICA:
+    // Removemos apenas o caractere unicode de erro (\uFFFD)
+    // Mantemos todo o resto do texto que veio do banco
     result = result.replace(/\uFFFD/g, ''); 
 
     // Substitui as tags de texto pelos emojis reais
@@ -128,26 +130,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // Se o template carregado tiver caracteres corrompidos, usa um template hardcoded seguro.
-    let currentTemplate = settings.whatsappMessageTemplate || '';
-    if (currentTemplate.includes('\uFFFD')) {
-        console.warn("Template corrompido detectado. Usando fallback seguro.");
-        currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
+    // PEGA O TEXTO DO BANCO DE DADOS (Mesmo que tenha caracteres estranhos, vamos limpar depois)
+    let currentTemplate = settings.whatsappMessageTemplate;
 
-Aqui é do {AGENCIA} – Setor CNH.
-Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:
-
-[CALENDAR] *{DATA}*
-[CLOCK] *{HORA}*
-[MAP] *{ENDERECO}*
-
-[WARNING] Não esqueça:
-[ID] _*Documento com foto (válido)*_
-[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
-
-[CHECK] *Posso confirmar sua presença?*
-
-[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
+    // Se por algum motivo vier vazio do banco, usa um fallback básico
+    if (!currentTemplate || !currentTemplate.trim()) {
+        currentTemplate = `Olá, *{CANDIDATO}*! [WAVE]\n\nAqui é do {AGENCIA}. Confirmamos sua prova para *{DATA}* às *{HORA}*.`;
     }
     
     const replacements: Record<string, string> = {
@@ -166,7 +154,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // 2. Injeta os emojis via Unicode
+    // 2. Injeta os emojis via Unicode e limpa sujeira
     finalMessage = injectEmojis(finalMessage);
     
     const phoneDigits = req.phone.replace(/\D/g, '');
