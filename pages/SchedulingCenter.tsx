@@ -97,42 +97,30 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   useEffect(() => { refreshData(); }, [type]);
 
   const injectEmojis = (text: string) => {
-    // Se o texto vier corrompido do banco (contém ), usamos o padrão limpo como fallback
-    if (text.includes('\uFFFD')) {
-      return injectEmojis(`Olá, *{CANDIDATO}*! [WAVE][SMILE]
-Aqui é do {AGENCIA} – Setor CNH.
-Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR_SIDE], marcada para:
-[CALENDAR] *{DATA}*
-[CLOCK] *{HORA}*
-[MAP] *{ENDERECO}*
-
-[WARNING] Não esqueça:
-[ID_CARD] _*Documento com foto (válido)*_
-[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
-
-[CHECK] *Posso confirmar sua presença?*
-
-[HOURGLASS] _*Confirmação até amanhã às 18:00*_`);
-    }
-
     const emojiMap: Record<string, string> = {
       '[WAVE]': '👋',
       '[SMILE]': '😊',
-      '[CAR_SIDE]': '🚗',
+      '[CAR]': '🚗',
       '[CALENDAR]': '📅',
       '[CLOCK]': '⏰',
       '[MAP]': '📍',
       '[WARNING]': '⚠️',
-      '[ID_CARD]': '🪪',
+      '[ID]': '🪪',
       '[CAR_FRONT]': '🚘',
       '[CHECK]': '✅',
       '[HOURGLASS]': '⏳'
     };
 
     let result = text;
+    // Primeiro removemos qualquer caractere de erro (Replacement Character) que venha do banco
+    result = result.replace(/\uFFFD/g, '');
+
+    // Substitui as tags de texto pelos emojis reais apenas na hora de montar a URL
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
+      // split/join é usado como replaceAll para compatibilidade
       result = result.split(tag).join(emoji);
     });
+
     return result;
   };
 
@@ -151,17 +139,19 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     };
 
     let finalMessage = template;
+    
+    // Substitui variáveis do sistema
     Object.entries(replacements).forEach(([tag, value]) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // Injeta os emojis reais apenas no momento do envio para evitar corrupção no banco
+    // Injeta os emojis reais e limpa caracteres corrompidos
     finalMessage = injectEmojis(finalMessage);
     
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // Força encodeURIComponent para garantir que os caracteres multi-byte (Emojis) sejam passados corretamente na URL
+    // Força encodeURIComponent para garantir que os emojis e acentos sejam convertidos para URL-safe strings
     const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(finalMessage)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -312,7 +302,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     <div className="space-y-2 border-t pt-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <User className="h-4 w-4 opacity-50" />
-                            {/* Corrected to map over examinerIds and fetch names */}
                             <span className="truncate">{s.examinerIds.length > 0 ? s.examinerIds.map(id => getExaminerName(id)).join(', ') : 'Sem examinador'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
