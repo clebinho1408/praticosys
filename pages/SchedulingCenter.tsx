@@ -95,7 +95,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   };
 
   useEffect(() => { refreshData(); }, [type]);
-
+console.log("TEMPLATE PURO:", currentTemplate);
   const injectEmojis = (text: string) => {
     // USO DE UNICODE ESCAPES PARA GARANTIR QUE NÃO HAJA CORRUPÇÃO NO CÓDIGO FONTE
     // O sistema troca a TAG pelo EMOJI REAL antes de gerar o link
