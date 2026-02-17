@@ -96,6 +96,46 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
   useEffect(() => { refreshData(); }, [type]);
 
+  const injectEmojis = (text: string) => {
+    // Se o texto vier corrompido do banco (contém ), usamos o padrão limpo como fallback
+    if (text.includes('\uFFFD')) {
+      return injectEmojis(`Olá, *{CANDIDATO}*! [WAVE][SMILE]
+Aqui é do {AGENCIA} – Setor CNH.
+Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR_SIDE], marcada para:
+[CALENDAR] *{DATA}*
+[CLOCK] *{HORA}*
+[MAP] *{ENDERECO}*
+
+[WARNING] Não esqueça:
+[ID_CARD] _*Documento com foto (válido)*_
+[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
+
+[CHECK] *Posso confirmar sua presença?*
+
+[HOURGLASS] _*Confirmação até amanhã às 18:00*_`);
+    }
+
+    const emojiMap: Record<string, string> = {
+      '[WAVE]': '👋',
+      '[SMILE]': '😊',
+      '[CAR_SIDE]': '🚗',
+      '[CALENDAR]': '📅',
+      '[CLOCK]': '⏰',
+      '[MAP]': '📍',
+      '[WARNING]': '⚠️',
+      '[ID_CARD]': '🪪',
+      '[CAR_FRONT]': '🚘',
+      '[CHECK]': '✅',
+      '[HOURGLASS]': '⏳'
+    };
+
+    let result = text;
+    Object.entries(emojiMap).forEach(([tag, emoji]) => {
+      result = result.split(tag).join(emoji);
+    });
+    return result;
+  };
+
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
@@ -115,9 +155,13 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
     
+    // Injeta os emojis reais apenas no momento do envio para evitar corrupção no banco
+    finalMessage = injectEmojis(finalMessage);
+    
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
+    // Força encodeURIComponent para garantir que os caracteres multi-byte (Emojis) sejam passados corretamente na URL
     const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(finalMessage)}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -268,8 +312,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                     <div className="space-y-2 border-t pt-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <User className="h-4 w-4 opacity-50" />
-                            <span className="truncate">{s.examinerIds.length > 0 ? getExaminerName(s.examinerIds[0]) : 'Sem examinador'}</span>
-                            {s.examinerIds.length > 1 && <span className="text-[10px] bg-gray-100 px-1 rounded">+{s.examinerIds.length - 1}</span>}
+                            {/* Corrected to map over examinerIds and fetch names */}
+                            <span className="truncate">{s.examinerIds.length > 0 ? s.examinerIds.map(id => getExaminerName(id)).join(', ') : 'Sem examinador'}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <Users className="h-4 w-4 opacity-50" />

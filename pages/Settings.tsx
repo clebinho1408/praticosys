@@ -34,9 +34,22 @@ const Settings: React.FC = () => {
 
   const handleRestoreDefaultMessage = () => {
     if (!settings) return;
-    const confirm = window.confirm("Isso irá apagar sua mensagem atual e restaurar o modelo padrão oficial (Incorruptível). Deseja continuar?");
+    const confirm = window.confirm("Isso irá apagar sua mensagem atual e restaurar o modelo padrão oficial com marcadores [TAGS] que evitam erros de caracteres. Deseja continuar?");
     if (confirm) {
-      const defaultTemplate = `Olá, *{CANDIDATO}*! \u{1F44B}\u{1F60A}\n\nAqui é do {AGENCIA} \u{2013} Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* \u{1F697}, marcada para:\n\u{1F4C5} *{DATA}*\n\u{23F0} *{HORA}*\n\u{1F4CD} *{ENDERECO}*\n\n\u{26A0}\u{FE0F} Não esqueça:\n\u{1FAAA} _*Documento com foto (válido)*_\n\u{1F698} _*Veículo ou moto em condições para a prova*_\n\n\u{2705} *Posso confirmar sua presença?*\n\n\u{23F3} _*Confirmação até amanhã às 18:00*_`;
+      const defaultTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
+Aqui é do {AGENCIA} – Setor CNH.
+Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR_SIDE], marcada para:
+[CALENDAR] *{DATA}*
+[CLOCK] *{HORA}*
+[MAP] *{ENDERECO}*
+
+[WARNING] Não esqueça:
+[ID_CARD] _*Documento com foto (válido)*_
+[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
+
+[CHECK] *Posso confirmar sua presença?*
+
+[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
       setSettings({ ...settings, whatsappMessageTemplate: defaultTemplate });
     }
   };
@@ -161,7 +174,7 @@ const Settings: React.FC = () => {
                                 onClick={handleRestoreDefaultMessage}
                                 className="flex items-center gap-1 text-[10px] font-black text-red-600 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100"
                             >
-                                <RotateCcw className="h-3 w-3" /> RESTAURAR PADRÃO
+                                <RotateCcw className="h-3 w-3" /> LIMPAR ERROS E RESTAURAR
                             </button>
                         </div>
                         <div>
@@ -174,15 +187,28 @@ const Settings: React.FC = () => {
                             />
                             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                                 <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">
-                                    <Info className="h-3 w-3" /> Ajuda de Edição
+                                    <Info className="h-3 w-3" /> Instruções Importantes
                                 </h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <p className="text-[10px] text-gray-600 mb-4">
+                                    Para evitar que os emojis apareçam como <strong></strong>, não cole emojis diretamente. Use os códigos abaixo. O sistema os converterá automaticamente no momento do envio.
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                     {[
-                                        { tag: '{CANDIDATO}', desc: 'Nome Aluno' },
-                                        { tag: '{CATEGORIA}', desc: 'Cat. Prova' },
-                                        { tag: '{DATA}', desc: 'Data Prova' },
-                                        { tag: '{HORA}', desc: 'Hora Prova' },
-                                        { tag: '{AGENCIA}', desc: 'Agência' },
+                                        { tag: '{CANDIDATO}', desc: 'Nome' },
+                                        { tag: '{CATEGORIA}', desc: 'Cat.' },
+                                        { tag: '{DATA}', desc: 'Data' },
+                                        { tag: '{HORA}', desc: 'Hora' },
+                                        { tag: '[WAVE]', desc: '👋' },
+                                        { tag: '[SMILE]', desc: '😊' },
+                                        { tag: '[CAR_SIDE]', desc: '🚗' },
+                                        { tag: '[CALENDAR]', desc: '📅' },
+                                        { tag: '[CLOCK]', desc: '⏰' },
+                                        { tag: '[MAP]', desc: '📍' },
+                                        { tag: '[WARNING]', desc: '⚠️' },
+                                        { tag: '[ID_CARD]', desc: '🪪' },
+                                        { tag: '[CAR_FRONT]', desc: '🚘' },
+                                        { tag: '[CHECK]', desc: '✅' },
+                                        { tag: '[HOURGLASS]', desc: '⏳' },
                                     ].map(item => (
                                         <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100">
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
@@ -190,8 +216,8 @@ const Settings: React.FC = () => {
                                         </div>
                                     ))}
                                 </div>
-                                <p className="text-[10px] text-blue-700 mt-4 font-bold italic">
-                                    Dica: Para evitar caracteres corrompidos, se precisar adicionar novos emojis, use o botão "RESTAURAR PADRÃO" para carregar o modelo seguro.
+                                <p className="text-[10px] text-red-600 mt-4 font-bold italic">
+                                    * Se você estiver vendo símbolos estranhos () na caixa acima, clique no botão "LIMPAR ERROS" para consertar.
                                 </p>
                             </div>
                         </div>
