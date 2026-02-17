@@ -237,7 +237,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                         { tag: '[CLOCK]', desc: '\u23F0' },
                                         { tag: '[MAP]', desc: '\uD83D\uDCCD' },
                                         { tag: '[WARNING]', desc: '\u26A0\uFE0F' },
-                                        { tag: '[ID]', desc: '\uD83E\uAAAA' },
+                                        { tag: '[ID]', desc: '\uD83E\uDEAA' }, // CORRIGIDO AQUI TAMBÉM
                                         { tag: '[CAR_FRONT]', desc: '\uD83D\uDE98' },
                                         { tag: '[CHECK]', desc: '\u2705' },
                                         { tag: '[HOURGLASS]', desc: '\u23F3' },

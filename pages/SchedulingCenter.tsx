@@ -97,6 +97,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   useEffect(() => { refreshData(); }, [type]);
 
   const injectEmojis = (text: string) => {
+    // CORREÇÃO: O código para [ID] (Identidade) estava incorreto (\uAAAA resulta em 'ꪪ')
+    // O código correto para 🪪 (Identity Card) é \uD83E\uDEAA
     const emojiMap: Record<string, string> = {
       '[WAVE]': '\uD83D\uDC4B',       // 👋
       '[SMILE]': '\uD83D\uDE04',      // 😄
@@ -105,7 +107,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '[CLOCK]': '\u23F0',            // ⏰
       '[MAP]': '\uD83D\uDCCD',        // 📍
       '[WARNING]': '\u26A0\uFE0F',    // ⚠️
-      '[ID]': '\uD83E\uAAAA',         // 🪪
+      '[ID]': '\uD83E\uDEAA',         // 🪪 (CORRIGIDO)
       '[CAR_FRONT]': '\uD83D\uDE98',  // 🚘
       '[CHECK]': '\u2705',            // ✅
       '[HOURGLASS]': '\u23F3',        // ⏳
@@ -116,10 +118,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     if (!text) return '';
     let result = String(text);
     
-    // LIMPEZA CRÍTICA: Remove caracteres corrompidos residuais ( e ꪪ) antes da injeção
-    result = result.replace(/\uFFFD/g, ''); 
-    result = result.replace(/\uAAAA/g, '');
-    result = result.replace(/ꪪ/g, '');
+    // Limpeza de segurança para dados antigos
+    result = result.replace(/\uFFFD/g, '').replace(/\uAAAA/g, '').replace(/ꪪ/g, '');
 
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
       result = result.split(tag).join(emoji);
@@ -139,10 +139,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     
     let currentTemplate = safeSettings.whatsappMessageTemplate || '';
 
-    // DETECÇÃO DE CORRUPÇÃO AMPLIADA: Verifica caracteres  ou ꪪ
-    const isCorrupted = currentTemplate.includes('\uFFFD') || currentTemplate.includes('\uAAAA') || currentTemplate.includes('ꪪ');
-
-    if (!currentTemplate.trim() || isCorrupted) {
+    if (!currentTemplate.trim()) {
         currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
 
 Aqui é do {AGENCIA} – Setor CNH.
@@ -176,6 +173,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       finalMessage = finalMessage.split(tag).join(value || '');
     });
     
+    // Injeta os emojis corretos
     finalMessage = injectEmojis(finalMessage);
     
     const rawPhone = req.phone || '';
@@ -192,11 +190,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     try {
         encodedMessage = encodeURIComponent(finalMessage);
     } catch (e) {
+        // Fallback básico remove caracteres problemáticos se encode falhar
         const sanitized = finalMessage.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
         encodedMessage = encodeURIComponent(sanitized);
     }
     
-    const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodedMessage}`;
+    // Uso da API direta em vez de wa.me para evitar redirects que quebram encoding
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
 
