@@ -183,7 +183,7 @@ export const api = {
         minDaysForScheduling: 2, 
         enableEmailNotifications: false, 
         enableSmsNotifications: false,
-        whatsappMessageTemplate: 'Olá, *{CANDIDATO}*! 👋😊\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*\n\n⚠️ Não esqueça:\n🪪 _*Documento com foto (válido)*_\n🚘 _*Veículo ou moto em condições para a prova*_\n\n✅ *Posso confirmar sua presença?*\n\n⏳ _*Confirmação até amanhã às 18:00*_.',
+        whatsappMessageTemplate: 'Olá, *{CANDIDATO}*! 👋😊\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*\n\n⚠️ Não esqueça:\n🪪 _*Documento com foto (válido)*_\n🚘 _*Veículo ou moto em condições para a prova*_\n\n✅ *Posso confirmar sua presença?*\n\n⏳ _*Confirmação até amanhã às 18:00*_',
         defaultExamAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
         defaultExamAddressLink: 'https://maps.google.com'
       };

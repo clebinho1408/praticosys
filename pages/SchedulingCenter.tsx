@@ -99,14 +99,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // Prioriza o modelo das configurações salvas no sistema
-    let message = settings.whatsappMessageTemplate;
+    // Obtém o modelo das configurações - garantindo que não há nulidade
+    let template = settings.whatsappMessageTemplate || '';
     
-    // Modelo de segurança robusto caso o banco retorne vazio
-    const fallbackTemplate = 'Olá, *{CANDIDATO}*! 👋😊\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*\n\n⚠️ Não esqueça:\n🪪 _*Documento com foto (válido)*_\n🚘 _*Veículo ou moto em condições para a prova*_\n\n✅ *Posso confirmar sua presença?*\n\n⏳ _*Confirmação até amanhã às 18:00*_.';
-
-    if (!message || message.trim() === '') {
-      message = fallbackTemplate;
+    // Fallback caso o template esteja vazio
+    if (!template.trim()) {
+      template = 'Olá, *{CANDIDATO}*! 👋😊\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*\n\n⚠️ Não esqueça:\n🪪 _*Documento com foto (válido)*_\n🚘 _*Veículo ou moto em condições para a prova*_\n\n✅ *Posso confirmar sua presença?*\n\n⏳ _*Confirmação até amanhã às 18:00*_';
     }
     
     // Mapeamento de tags para substituição literal
@@ -122,17 +120,21 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '{AGENCIA}': settings.agencyName || 'Detran'
     };
 
-    // Substituição global segura (split/join preserva emojis e quebras de linha melhor que regex em strings Unicode)
+    // Processa a substituição
+    let finalMessage = template;
     Object.entries(replacements).forEach(([tag, value]) => {
-      message = message.split(tag).join(value);
+      finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // Formatação do número: Remove não dígitos e garante prefixo 55
+    // Limpeza do número de telefone (apenas dígitos)
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // Abre o WhatsApp com a mensagem codificada adequadamente
-    window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    // Codifica para URI - o navegador lida nativamente com UTF-8
+    const encodedText = encodeURIComponent(finalMessage);
+    
+    // Abre no WhatsApp Web/App
+    window.open(`https://wa.me/${finalPhone}?text=${encodedText}`, '_blank');
   };
 
   const toggleAttendance = async (req: ExamRequest) => {
@@ -445,22 +447,22 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                                 {/* TABELA ORIGINAL (Apenas Impressão - COM as colunas de marcação) */}
                                 <table className="hidden print:table w-full text-left border-collapse border-2 border-black">
                                     <thead>
-                                        <tr className="bg-white text-black font-black border-b-2 border-black">
-                                            <th className="px-2 py-1 w-10 text-center border-r border-black">#</th>
-                                            <th className="px-3 py-1 w-32 border-r border-black">CPF</th>
-                                            <th className="px-3 py-1 border-r border-black">NOME DO CANDIDATO</th>
-                                            <th className="px-3 py-1 w-20 text-center border-r border-black">RESTR.</th>
-                                            <th className="px-2 py-1 w-14 text-center border-r border-black">FALTOU</th>
-                                            <th className="px-2 py-1 w-14 text-center border-r border-black">APTO</th>
-                                            <th className="px-2 py-1 w-14 text-center">INAPTO</th>
+                                        <tr className="bg-white text-black font-black border-b-2 border-black text-[9px]">
+                                            <th className="px-2 py-1 w-10 text-center border-r border-black uppercase">#</th>
+                                            <th className="px-3 py-1 w-32 border-r border-black uppercase">CPF</th>
+                                            <th className="px-3 py-1 border-r border-black uppercase">Nome do Candidato</th>
+                                            <th className="px-3 py-1 w-20 text-center border-r border-black uppercase">Restr.</th>
+                                            <th className="px-2 py-1 w-14 text-center border-r border-black uppercase">Faltou</th>
+                                            <th className="px-2 py-1 w-14 text-center border-r border-black uppercase">Apto</th>
+                                            <th className="px-2 py-1 w-14 text-center uppercase">Inapto</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y-2 divide-black">
                                         {students.map((req, idx) => (
                                             <tr key={req.id} className="border-b-2 border-black print:!text-black">
-                                                <td className="px-2 py-1 text-center font-black border-r border-black">{idx + 1}</td>
-                                                <td className="px-3 py-1 font-black text-[10px] border-r border-black">{req.cpf}</td>
-                                                <td className="px-3 py-1 font-black uppercase text-[10px] border-r border-black truncate">{req.socialName || req.studentName}</td>
+                                                <td className="px-2 py-1 text-center font-black border-r border-black text-[11px]">{idx + 1}</td>
+                                                <td className="px-3 py-1 font-black text-[12px] border-r border-black">{req.cpf}</td>
+                                                <td className="px-3 py-1 font-black uppercase text-[12px] border-r border-black truncate">{req.socialName || req.studentName}</td>
                                                 <td className="px-3 py-1 text-center font-bold text-[10px] border-r border-black">{req.cnhRestriction || '-'}</td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
@@ -477,7 +479,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
                 {/* Assinatura do Examinador (Print Only) */}
                 <div className="hidden print:flex flex-col items-center mt-10 mb-20 break-inside-avoid">
                     <div className="w-96 border-b-2 border-black mb-2"></div>
-                    <span className="text-sm font-black uppercase tracking-widest text-black">Assinatura do Examinador Responsável</span>
+                    <span className="text-sm font-black uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
 
                 {/* Rodapé Institucional (Print Only) */}
