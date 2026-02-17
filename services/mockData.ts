@@ -205,10 +205,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       
       const localSettings = getLocal(STORAGE_KEYS.SETTINGS, def);
 
-      // AUTO-HEALING: Se estiver rodando offline/mock e o template estiver corrompido,
-      // força a restauração do padrão limpo imediatamente.
-      if (localSettings.whatsappMessageTemplate && (localSettings.whatsappMessageTemplate.includes('') || localSettings.whatsappMessageTemplate.includes('\uFFFD'))) {
-          console.warn("MOCK DATA: Corrupção detectada no LocalStorage. Restaurando template padrão automaticamente.");
+      // AUTO-HEALING AVANÇADO: Detecta caractere de erro () OU caractere de quebra (ꪪ)
+      // Se detectado, limpa o LocalStorage e restaura o padrão oficial.
+      const tmpl = localSettings.whatsappMessageTemplate || '';
+      const isBroken = tmpl.includes('\uFFFD') || tmpl.includes('\uAAAA') || tmpl.includes('ꪪ');
+
+      if (isBroken || !tmpl.trim()) {
+          console.warn("MOCK DATA: Corrupção crítica detectada ( ou ꪪ). Restaurando template oficial.");
           localSettings.whatsappMessageTemplate = def.whatsappMessageTemplate;
           setLocal(STORAGE_KEYS.SETTINGS, localSettings);
       }

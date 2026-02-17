@@ -116,8 +116,10 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     if (!text) return '';
     let result = String(text);
     
-    // Remove caracteres corrompidos residuais se existirem (Fallback extra)
+    // LIMPEZA CRÍTICA: Remove caracteres corrompidos residuais ( e ꪪ) antes da injeção
     result = result.replace(/\uFFFD/g, ''); 
+    result = result.replace(/\uAAAA/g, '');
+    result = result.replace(/ꪪ/g, '');
 
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
       result = result.split(tag).join(emoji);
@@ -135,13 +137,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
         defaultExamAddress: ''
     };
     
-    let currentTemplate = safeSettings.whatsappMessageTemplate;
+    let currentTemplate = safeSettings.whatsappMessageTemplate || '';
 
-    // DETECÇÃO DE CORRUPÇÃO: Se o texto contiver o caractere  (\uFFFD) ou estiver vazio,
-    // usamos forçosamente o template padrão limpo para garantir que os emojis funcionem.
-    const isCorrupted = currentTemplate && currentTemplate.includes('\uFFFD');
+    // DETECÇÃO DE CORRUPÇÃO AMPLIADA: Verifica caracteres  ou ꪪ
+    const isCorrupted = currentTemplate.includes('\uFFFD') || currentTemplate.includes('\uAAAA') || currentTemplate.includes('ꪪ');
 
-    if (!currentTemplate || !currentTemplate.trim() || isCorrupted) {
+    if (!currentTemplate.trim() || isCorrupted) {
         currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
 
 Aqui é do {AGENCIA} – Setor CNH.
