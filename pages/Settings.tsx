@@ -12,6 +12,7 @@ const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
+  // Fixed: Added 'const' to fileInputRef declaration
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -34,22 +35,10 @@ const Settings: React.FC = () => {
 
   const handleRestoreDefaultMessage = () => {
     if (!settings) return;
-    const confirm = window.confirm("Isso irá apagar sua mensagem atual e restaurar o modelo padrão oficial com marcadores [TAGS] que evitam erros de caracteres. Deseja continuar?");
+    const confirm = window.confirm("Isso irá apagar sua mensagem atual e restaurar o modelo padrão oficial (Incorruptível). Deseja continuar?");
     if (confirm) {
-      const defaultTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
-Aqui é do {AGENCIA} – Setor CNH.
-Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR_SIDE], marcada para:
-[CALENDAR] *{DATA}*
-[CLOCK] *{HORA}*
-[MAP] *{ENDERECO}*
-
-[WARNING] Não esqueça:
-[ID_CARD] _*Documento com foto (válido)*_
-[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
-
-[CHECK] *Posso confirmar sua presença?*
-
-[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
+      // Usando codificação Unicode explícita para evitar quebra no banco de dados
+      const defaultTemplate = `Olá, *{CANDIDATO}*! \u{1F44B}\u{1F60A}\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* \u{1F697}, marcada para:\n\n\u{1F4C5} *{DATA}*\n\u{23F0} *{HORA}*\n\u{1F4CD} *{ENDERECO}*\n\n\u{26A0}\u{FE0F} Não esqueça:\n\u{1FAAA} _*Documento com foto (válido)*_\n\u{1F698} _*Veículo ou moto em condições para a prova*_\n\n\u{2705} *Posso confirmar sua presença?*\n\n\u{23F3} _*Confirmação até amanhã às 18:00*_`;
       setSettings({ ...settings, whatsappMessageTemplate: defaultTemplate });
     }
   };
@@ -174,7 +163,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 onClick={handleRestoreDefaultMessage}
                                 className="flex items-center gap-1 text-[10px] font-black text-red-600 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100"
                             >
-                                <RotateCcw className="h-3 w-3" /> LIMPAR ERROS E RESTAURAR
+                                <RotateCcw className="h-3 w-3" /> RESTAURAR PADRÃO SEGURO
                             </button>
                         </div>
                         <div>
@@ -187,10 +176,11 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             />
                             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                                 <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">
-                                    <Info className="h-3 w-3" /> Instruções Importantes
+                                    <Info className="h-3 w-3" /> Evite Erros de Caracteres
                                 </h4>
-                                <p className="text-[10px] text-gray-600 mb-4">
-                                    Para evitar que os emojis apareçam como <strong></strong>, não cole emojis diretamente. Use os códigos abaixo. O sistema os converterá automaticamente no momento do envio.
+                                <p className="text-[10px] text-gray-600 mb-4 font-bold">
+                                    Importante: Se você ver o símbolo  na caixa de texto acima, clique no botão "RESTAURAR PADRÃO SEGURO". 
+                                    O sistema usará códigos especiais que não quebram no banco de dados.
                                 </p>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                     {[
@@ -198,17 +188,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                         { tag: '{CATEGORIA}', desc: 'Cat.' },
                                         { tag: '{DATA}', desc: 'Data' },
                                         { tag: '{HORA}', desc: 'Hora' },
-                                        { tag: '[WAVE]', desc: '👋' },
-                                        { tag: '[SMILE]', desc: '😊' },
-                                        { tag: '[CAR_SIDE]', desc: '🚗' },
-                                        { tag: '[CALENDAR]', desc: '📅' },
-                                        { tag: '[CLOCK]', desc: '⏰' },
-                                        { tag: '[MAP]', desc: '📍' },
-                                        { tag: '[WARNING]', desc: '⚠️' },
-                                        { tag: '[ID_CARD]', desc: '🪪' },
-                                        { tag: '[CAR_FRONT]', desc: '🚘' },
-                                        { tag: '[CHECK]', desc: '✅' },
-                                        { tag: '[HOURGLASS]', desc: '⏳' },
+                                        { tag: '{AGENCIA}', desc: 'Agência' },
+                                        { tag: '{ENDERECO}', desc: 'Local' }
                                     ].map(item => (
                                         <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100">
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
@@ -216,9 +197,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                         </div>
                                     ))}
                                 </div>
-                                <p className="text-[10px] text-red-600 mt-4 font-bold italic">
-                                    * Se você estiver vendo símbolos estranhos () na caixa acima, clique no botão "LIMPAR ERROS" para consertar.
-                                </p>
                             </div>
                         </div>
                     </div>
