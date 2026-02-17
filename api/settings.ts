@@ -5,21 +5,28 @@ import { eq } from 'drizzle-orm';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
+// Template seguro com escapes Unicode para evitar caracteres corrompidos
+const getSafeTemplate = (agencyName: string, address: string) => {
+  return `Olá, *{CANDIDATO}*! \u{1F44B}\u{1F60A}\n\nAqui é do ${agencyName} \u{2013} Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* \u{1F697}, marcada para:\n\n\u{1F4C5} *{DATA}*\n\u{23F0} *{HORA}*\n\u{1F4CD} *${address}*\n\n\u{26A0}\u{FE0F} Não esqueça:\n\u{1FAAA} _*Documento com foto (válido)*_\n\u{1F698} _*Veículo ou moto em condições para a prova*_\n\n\u{2705} *Posso confirmar sua presença?*\n\n\u{23F3} _*Confirmação até amanhã às 18:00*_`;
+};
+
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
       const data = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
       if (data.length === 0) {
+        const agency = 'Detran de Balneário Camboriú';
+        const addr = 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC';
         return res.status(200).json({
-          agencyName: 'Detran de Balneário Camboriú',
-          agencyAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC',
+          agencyName: agency,
+          agencyAddress: addr,
           maintenanceMode: false,
           maxDailySlots: 50,
           defaultMaxSlotsA: 10,
           defaultMaxSlotsB: 10,
           minDaysForScheduling: 2,
-          whatsappMessageTemplate: 'Olá, *{CANDIDATO}*! 👋😊\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*\n\n⚠️ Não esqueça:\n🪪 _*Documento com foto (válido)*_\n🚘 _*Veículo ou moto em condições para a prova*_\n\n✅ *Posso confirmar sua presença?*\n\n⏳ _*Confirmação até amanhã às 18:00*_',
-          defaultExamAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC',
+          whatsappMessageTemplate: getSafeTemplate(agency, addr),
+          defaultExamAddress: addr,
           defaultExamAddressLink: 'https://maps.google.com'
         });
       }

@@ -102,12 +102,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     // Obtém o modelo das configurações - garantindo que não há nulidade
     let template = settings.whatsappMessageTemplate || '';
     
-    // Fallback caso o template esteja vazio
-    if (!template.trim()) {
-      template = 'Olá, *{CANDIDATO}*! 👋😊\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*\n\n⚠️ Não esqueça:\n🪪 _*Documento com foto (válido)*_\n🚘 _*Veículo ou moto em condições para a prova*_\n\n✅ *Posso confirmar sua presença?*\n\n⏳ _*Confirmação até amanhã às 18:00*_';
+    // Fallback à prova de falhas com Unicode Escapes
+    if (!template.trim() || template.includes('')) {
+      template = `Olá, *{CANDIDATO}*! \u{1F44B}\u{1F60A}\n\nAqui é do {AGENCIA} \u{2013} Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* \u{1F697}, marcada para:\n\n\u{1F4C5} *{DATA}*\n\u{23F0} *{HORA}*\n\u{1F4CD} *{ENDERECO}*\n\n\u{26A0}\u{FE0F} Não esqueça:\n\u{1FAAA} _*Documento com foto (válido)*_\n\u{1F698} _*Veículo ou moto em condições para a prova*_\n\n\u{2705} *Posso confirmar sua presença?*\n\n\u{23F3} _*Confirmação até amanhã às 18:00*_`;
     }
     
-    // Mapeamento de tags para substituição literal
+    // Mapeamento de tags
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
       '{NOME}': req.socialName || req.studentName || '',
@@ -120,21 +120,19 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '{AGENCIA}': settings.agencyName || 'Detran'
     };
 
-    // Processa a substituição
+    // Substituição segura
     let finalMessage = template;
     Object.entries(replacements).forEach(([tag, value]) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // Limpeza do número de telefone (apenas dígitos)
+    // Telefone limpo
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // Codifica para URI - o navegador lida nativamente com UTF-8
-    const encodedText = encodeURIComponent(finalMessage);
-    
-    // Abre no WhatsApp Web/App
-    window.open(`https://wa.me/${finalPhone}?text=${encodedText}`, '_blank');
+    // Abertura segura
+    const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(finalMessage)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const toggleAttendance = async (req: ExamRequest) => {
