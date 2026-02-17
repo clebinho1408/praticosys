@@ -138,10 +138,10 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
         defaultExamAddress: ''
     };
     
-    // PEGA O TEXTO DO BANCO DE DADOS (Mesmo que tenha caracteres estranhos, vamos limpar depois)
+    // PEGA O TEXTO DO BANCO DE DADOS
     let currentTemplate = safeSettings.whatsappMessageTemplate;
 
-    // Se por algum motivo vier vazio do banco, usa um fallback básico
+    // Se vier vazio do banco, usa um fallback básico
     if (!currentTemplate || !currentTemplate.trim()) {
         currentTemplate = `Olá, *{CANDIDATO}*! [WAVE]\n\nAqui é do {AGENCIA}. Confirmamos sua prova para *{DATA}* às *{HORA}*.`;
     }
@@ -175,8 +175,23 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // 3. Encode final para URL
-    const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(finalMessage)}`;
+    // 3. Encode Seguro para URL (Proteção contra URI malformed/Lone Surrogates)
+    let encodedMessage = '';
+    try {
+        encodedMessage = encodeURIComponent(finalMessage);
+    } catch (e) {
+        console.warn("Erro de encoding detectado (possíveis caracteres corrompidos). Tentando sanitizar...");
+        // Remove Lone Surrogates que causam o crash do encodeURIComponent
+        const sanitized = finalMessage.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
+        try {
+            encodedMessage = encodeURIComponent(sanitized);
+        } catch (e2) {
+             alert("Erro crítico ao gerar link: O texto contém caracteres inválidos que não puderam ser processados.");
+             return;
+        }
+    }
+    
+    const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
 
