@@ -97,31 +97,33 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   useEffect(() => { refreshData(); }, [type]);
 
   const injectEmojis = (text: string) => {
-    // USO DE UNICODE ESCAPES PARA EVITAR CORRUPÇÃO DE ENCODING
+    // USO DE UNICODE ESCAPES PARA GARANTIR QUE NÃO HAJA CORRUPÇÃO NO CÓDIGO FONTE
+    // O sistema troca a TAG pelo EMOJI REAL antes de gerar o link
     const emojiMap: Record<string, string> = {
       '[WAVE]': '\uD83D\uDC4B',       // 👋
-      '[SMILE]': '\uD83D\uDE0A',      // 😊
+      '[SMILE]': '\uD83D\uDE04',      // 😄 (Sorriso largo)
       '[CAR]': '\uD83D\uDE97',        // 🚗
       '[CALENDAR]': '\uD83D\uDCC5',   // 📅
       '[CLOCK]': '\u23F0',            // ⏰
       '[MAP]': '\uD83D\uDCCD',        // 📍
       '[WARNING]': '\u26A0\uFE0F',    // ⚠️
-      '[ID]': '\uD83E\uAAAA',         // 🪪
+      '[ID]': '\uD83E\uAAAA',         // 🪪 (Identidade/CNH)
       '[CAR_FRONT]': '\uD83D\uDE98',  // 🚘
       '[CHECK]': '\u2705',            // ✅
-      '[HOURGLASS]': '\u23F3'         // ⏳
+      '[HOURGLASS]': '\u23F3',        // ⏳
+      '[PHONE]': '\uD83D\uDCF1',      // 📱
+      '[EMAIL]': '\uD83D\uDCE7'       // 📧
     };
 
     if (!text) return '';
     let result = String(text);
     
-    // LIMPEZA CIRÚRGICA:
-    // Removemos apenas o caractere unicode de erro (\uFFFD)
-    // Mantemos todo o resto do texto que veio do banco
+    // LIMPEZA CIRÚRGICA: Remove caracteres corrompidos antigos se existirem
     result = result.replace(/\uFFFD/g, ''); 
 
     // Substitui as tags de texto pelos emojis reais
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
+      // Usa split/join para substituir todas as ocorrências de forma segura
       result = result.split(tag).join(emoji);
     });
 
@@ -143,7 +145,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
     // Se vier vazio do banco, usa um fallback básico
     if (!currentTemplate || !currentTemplate.trim()) {
-        currentTemplate = `Olá, *{CANDIDATO}*! [WAVE]\n\nAqui é do {AGENCIA}. Confirmamos sua prova para *{DATA}* às *{HORA}*.`;
+        currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]\n\nAqui é do {AGENCIA}. Confirmamos sua prova para *{DATA}* às *{HORA}*.`;
     }
     
     const replacements: Record<string, string> = {
@@ -162,7 +164,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       finalMessage = finalMessage.split(tag).join(value || '');
     });
     
-    // 2. Injeta os emojis via Unicode e limpa sujeira
+    // 2. Injeta os emojis via Unicode
     finalMessage = injectEmojis(finalMessage);
     
     const rawPhone = req.phone || '';
@@ -175,12 +177,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // 3. Encode Seguro para URL (Proteção contra URI malformed/Lone Surrogates)
+    // 3. Encode Seguro para URL
     let encodedMessage = '';
     try {
         encodedMessage = encodeURIComponent(finalMessage);
     } catch (e) {
-        console.warn("Erro de encoding detectado (possíveis caracteres corrompidos). Tentando sanitizar...");
+        console.warn("Erro de encoding detectado. Tentando sanitizar...");
         // Remove Lone Surrogates que causam o crash do encodeURIComponent
         const sanitized = finalMessage.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
         try {
@@ -191,6 +193,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
         }
     }
     
+    // ALTERAÇÃO: Usa o formato wa.me conforme solicitado
     const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };

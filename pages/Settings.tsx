@@ -231,7 +231,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                     {[
                                         { tag: '[WAVE]', desc: '\uD83D\uDC4B' },
-                                        { tag: '[SMILE]', desc: '\uD83D\uDE0A' },
+                                        { tag: '[SMILE]', desc: '\uD83D\uDE04' },
                                         { tag: '[CAR]', desc: '\uD83D\uDE97' },
                                         { tag: '[CALENDAR]', desc: '\uD83D\uDCC5' },
                                         { tag: '[CLOCK]', desc: '\u23F0' },
