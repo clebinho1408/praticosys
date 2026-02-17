@@ -96,18 +96,48 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
   useEffect(() => { refreshData(); }, [type]);
 
+  /**
+   * Converte marcadores de texto em emojis reais usando CodePoints.
+   * Isso evita que caracteres sejam corrompidos por encoding de banco ou rede.
+   */
+  const injectEmojis = (text: string) => {
+    const emojiMap: Record<string, string> = {
+      '[WAVE]': String.fromCodePoint(0x1F44B),
+      '[SMILE]': String.fromCodePoint(0x1F60A),
+      '[CAR]': String.fromCodePoint(0x1F697),
+      '[CALENDAR]': String.fromCodePoint(0x1F4C5),
+      '[CLOCK]': String.fromCodePoint(0x23F0),
+      '[MAP]': String.fromCodePoint(0x1F4CD),
+      '[WARNING]': String.fromCodePoint(0x26A0, 0xFE0F),
+      '[ID_CARD]': String.fromCodePoint(0x1FAAA),
+      '[CAR_FRONT]': String.fromCodePoint(0x1F698),
+      '[CHECK]': String.fromCodePoint(0x2705),
+      '[HOURGLASS]': String.fromCodePoint(0x23F3)
+    };
+
+    let result = text;
+    // Primeiro limpamos qualquer caractere '' ou quebras de encoding que já existam
+    result = result.replace(/[\uFFFD\u20FD\uFFFD\uFFFD]/g, '');
+
+    // Injetamos os emojis baseados nos códigos seguros
+    Object.entries(emojiMap).forEach(([tag, emoji]) => {
+      result = result.split(tag).join(emoji);
+    });
+
+    return result;
+  };
+
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // Obtém o modelo das configurações - garantindo que não há nulidade
     let template = settings.whatsappMessageTemplate || '';
     
-    // Fallback à prova de falhas com Unicode Escapes
+    // Se o template vier limpo/vazio ou corrompido, usamos o fallback com marcadores
     if (!template.trim() || template.includes('')) {
-      template = `Olá, *{CANDIDATO}*! \u{1F44B}\u{1F60A}\n\nAqui é do {AGENCIA} \u{2013} Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* \u{1F697}, marcada para:\n\n\u{1F4C5} *{DATA}*\n\u{23F0} *{HORA}*\n\u{1F4CD} *{ENDERECO}*\n\n\u{26A0}\u{FE0F} Não esqueça:\n\u{1FAAA} _*Documento com foto (válido)*_\n\u{1F698} _*Veículo ou moto em condições para a prova*_\n\n\u{2705} *Posso confirmar sua presença?*\n\n\u{23F3} _*Confirmação até amanhã às 18:00*_`;
+      template = `Olá, *{CANDIDATO}*! [WAVE][SMILE]\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:\n\n[CALENDAR] *{DATA}*\n[CLOCK] *{HORA}*\n[MAP] *{ENDERECO}*\n\n[WARNING] Não esqueça:\n[ID_CARD] _*Documento com foto (válido)*_\n[CAR_FRONT] _*Veículo ou moto em condições para a prova*_\n\n[CHECK] *Posso confirmar sua presença?*\n\n[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
     }
     
-    // Mapeamento de tags
+    // Primeiro resolvemos as TAGS de dados
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
       '{NOME}': req.socialName || req.studentName || '',
@@ -120,17 +150,17 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '{AGENCIA}': settings.agencyName || 'Detran'
     };
 
-    // Substituição segura
     let finalMessage = template;
     Object.entries(replacements).forEach(([tag, value]) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // Telefone limpo
+    // AGORA injetamos os emojis reais sobre os marcadores
+    finalMessage = injectEmojis(finalMessage);
+    
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // Abertura segura
     const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(finalMessage)}`;
     window.open(whatsappUrl, '_blank');
   };

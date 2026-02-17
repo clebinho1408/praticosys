@@ -169,17 +169,23 @@ const Settings: React.FC = () => {
                             />
                             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                                 <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">
-                                    <Info className="h-3 w-3" /> Tags Disponíveis
+                                    <Info className="h-3 w-3" /> Tags de Dados e Emojis Seguros
                                 </h4>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {[
                                         { tag: '{CANDIDATO}', desc: 'Nome do aluno' },
                                         { tag: '{DATA}', desc: 'Data da prova' },
                                         { tag: '{HORA}', desc: 'Hora da prova' },
-                                        { tag: '{CATEGORIA}', desc: 'Cat. agendada' },
-                                        { tag: '{TELEFONE}', desc: 'Fone do aluno' },
-                                        { tag: '{ENDERECO}', desc: 'Local do exame' },
-                                        { tag: '{MAPS_LINK}', desc: 'Link do GPS' },
+                                        { tag: '{AGENCIA}', desc: 'Nome da Agência' },
+                                        { tag: '[WAVE]', desc: 'Emoji 👋' },
+                                        { tag: '[SMILE]', desc: 'Emoji 😊' },
+                                        { tag: '[CAR]', desc: 'Emoji 🚗' },
+                                        { tag: '[CALENDAR]', desc: 'Emoji 📅' },
+                                        { tag: '[CLOCK]', desc: 'Emoji ⏰' },
+                                        { tag: '[MAP]', desc: 'Emoji 📍' },
+                                        { tag: '[WARNING]', desc: 'Emoji ⚠️' },
+                                        { tag: '[ID_CARD]', desc: 'Emoji 🪪' },
+                                        { tag: '[CHECK]', desc: 'Emoji ✅' },
                                     ].map(item => (
                                         <div key={item.tag} className="flex flex-col">
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
@@ -187,6 +193,9 @@ const Settings: React.FC = () => {
                                         </div>
                                     ))}
                                 </div>
+                                <p className="text-[10px] text-blue-700 mt-4 font-bold">
+                                    * Use os códigos [ENTRE_COLCHETES] para garantir que os emojis apareçam corretamente no WhatsApp.
+                                </p>
                             </div>
                         </div>
                     </div>
