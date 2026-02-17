@@ -230,17 +230,17 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 </p>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                     {[
-                                        { tag: '[WAVE]', desc: '👋' },
-                                        { tag: '[SMILE]', desc: '😊' },
-                                        { tag: '[CAR]', desc: '🚗' },
-                                        { tag: '[CALENDAR]', desc: '📅' },
-                                        { tag: '[CLOCK]', desc: '⏰' },
-                                        { tag: '[MAP]', desc: '📍' },
-                                        { tag: '[WARNING]', desc: '⚠️' },
-                                        { tag: '[ID]', desc: '🪪' },
-                                        { tag: '[CAR_FRONT]', desc: '🚘' },
-                                        { tag: '[CHECK]', desc: '✅' },
-                                        { tag: '[HOURGLASS]', desc: '⏳' },
+                                        { tag: '[WAVE]', desc: '\uD83D\uDC4B' },
+                                        { tag: '[SMILE]', desc: '\uD83D\uDE0A' },
+                                        { tag: '[CAR]', desc: '\uD83D\uDE97' },
+                                        { tag: '[CALENDAR]', desc: '\uD83D\uDCC5' },
+                                        { tag: '[CLOCK]', desc: '\u23F0' },
+                                        { tag: '[MAP]', desc: '\uD83D\uDCCD' },
+                                        { tag: '[WARNING]', desc: '\u26A0\uFE0F' },
+                                        { tag: '[ID]', desc: '\uD83E\uAAAA' },
+                                        { tag: '[CAR_FRONT]', desc: '\uD83D\uDE98' },
+                                        { tag: '[CHECK]', desc: '\u2705' },
+                                        { tag: '[HOURGLASS]', desc: '\u23F3' },
                                     ].map(item => (
                                         <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" title="Clique para copiar" onClick={() => navigator.clipboard.writeText(item.tag)}>
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>

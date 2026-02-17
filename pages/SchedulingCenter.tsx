@@ -97,28 +97,27 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   useEffect(() => { refreshData(); }, [type]);
 
   const injectEmojis = (text: string) => {
+    // USO DE UNICODE ESCAPES PARA EVITAR CORRUPÇÃO DE ENCODING
     const emojiMap: Record<string, string> = {
-      '[WAVE]': '👋',
-      '[SMILE]': '😊',
-      '[CAR]': '🚗',
-      '[CALENDAR]': '📅',
-      '[CLOCK]': '⏰',
-      '[MAP]': '📍',
-      '[WARNING]': '⚠️',
-      '[ID]': '🪪',
-      '[CAR_FRONT]': '🚘',
-      '[CHECK]': '✅',
-      '[HOURGLASS]': '⏳'
+      '[WAVE]': '\uD83D\uDC4B',       // 👋
+      '[SMILE]': '\uD83D\uDE0A',      // 😊
+      '[CAR]': '\uD83D\uDE97',        // 🚗
+      '[CALENDAR]': '\uD83D\uDCC5',   // 📅
+      '[CLOCK]': '\u23F0',            // ⏰
+      '[MAP]': '\uD83D\uDCCD',        // 📍
+      '[WARNING]': '\u26A0\uFE0F',    // ⚠️
+      '[ID]': '\uD83E\uAAAA',         // 🪪
+      '[CAR_FRONT]': '\uD83D\uDE98',  // 🚘
+      '[CHECK]': '\u2705',            // ✅
+      '[HOURGLASS]': '\u23F3'         // ⏳
     };
 
     let result = text;
     
-    // LIMPEZA AGRESSIVA DE CARACTERES CORROMPIDOS (Diamond Question Mark)
-    // Removemos tanto o caractere Unicode \uFFFD quanto a string literal se ela aparecer
+    // LIMPEZA DE CARACTERES CORROMPIDOS (Diamond Question Mark)
     result = result.replace(/\uFFFD/g, ''); 
 
     // Substitui as tags de texto pelos emojis reais
-    // Usamos split/join para evitar problemas com regex em caracteres especiais
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
       result = result.split(tag).join(emoji);
     });
@@ -129,10 +128,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // FALLBACK DE SEGURANÇA:
-    // Se o template carregado tiver caracteres corrompidos, ignora e usa um template hardcoded seguro.
+    // Se o template carregado tiver caracteres corrompidos, usa um template hardcoded seguro.
     let currentTemplate = settings.whatsappMessageTemplate || '';
-    if (currentTemplate.includes('\uFFFD') || currentTemplate.includes('')) {
+    if (currentTemplate.includes('\uFFFD')) {
         console.warn("Template corrompido detectado. Usando fallback seguro.");
         currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
 
@@ -168,7 +166,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // 2. Injeta os emojis reais E LIMPA A SUJEIRA (redundância)
+    // 2. Injeta os emojis via Unicode
     finalMessage = injectEmojis(finalMessage);
     
     const phoneDigits = req.phone.replace(/\D/g, '');
