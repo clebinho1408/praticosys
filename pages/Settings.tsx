@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, Info } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, Info, RotateCcw } from 'lucide-react';
 
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
@@ -30,6 +30,15 @@ const Settings: React.FC = () => {
       ...settings,
       [name]: type === 'checkbox' ? checked : value
     });
+  };
+
+  const handleRestoreDefaultMessage = () => {
+    if (!settings) return;
+    const confirm = window.confirm("Isso irá apagar sua mensagem atual e restaurar o modelo padrão oficial (Incorruptível). Deseja continuar?");
+    if (confirm) {
+      const defaultTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR_SIDE], marcada para:\n\n[CALENDAR] *{DATA}*\n[CLOCK] *{HORA}*\n[MAP] *{ENDERECO}*\n\n[WARNING] Não esqueça:\n[ID_CARD] _*Documento com foto (válido)*_\n[CAR_FRONT] _*Veículo ou moto em condições para a prova*_\n\n[CHECK] *Posso confirmar sua presença?*\n\n[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
+      setSettings({ ...settings, whatsappMessageTemplate: defaultTemplate });
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,62 +148,61 @@ const Settings: React.FC = () => {
                                     className="w-full border p-2 rounded bg-white text-gray-900" 
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
-                                    <LinkIcon className="h-3 w-3" /> Link do Google Maps
-                                </label>
-                                <input 
-                                    type="text" 
-                                    name="defaultExamAddressLink" 
-                                    value={settings.defaultExamAddressLink || ''} 
-                                    onChange={handleChange} 
-                                    placeholder="Ex: https://goo.gl/maps/..."
-                                    className="w-full border p-2 rounded bg-white text-gray-900" 
-                                />
-                            </div>
                         </div>
                     </div>
 
                     <div className="space-y-4 pt-4 border-t">
-                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                            <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp
-                        </h3>
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp
+                            </h3>
+                            <button 
+                                type="button" 
+                                onClick={handleRestoreDefaultMessage}
+                                className="flex items-center gap-1 text-[10px] font-black text-red-600 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100"
+                            >
+                                <RotateCcw className="h-3 w-3" /> RESTAURAR PADRÃO
+                            </button>
+                        </div>
                         <div>
                             <textarea 
                                 name="whatsappMessageTemplate" 
-                                rows={6} 
+                                rows={8} 
                                 value={settings.whatsappMessageTemplate} 
                                 onChange={handleChange} 
-                                className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium" 
+                                className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
                             />
                             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                                 <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">
-                                    <Info className="h-3 w-3" /> Tags de Dados e Emojis Seguros
+                                    <Info className="h-3 w-3" /> Tags e Emojis Obrigatórios
                                 </h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                                     {[
-                                        { tag: '{CANDIDATO}', desc: 'Nome do aluno' },
-                                        { tag: '{DATA}', desc: 'Data da prova' },
-                                        { tag: '{HORA}', desc: 'Hora da prova' },
-                                        { tag: '{AGENCIA}', desc: 'Nome da Agência' },
-                                        { tag: '[WAVE]', desc: 'Emoji 👋' },
-                                        { tag: '[SMILE]', desc: 'Emoji 😊' },
-                                        { tag: '[CAR]', desc: 'Emoji 🚗' },
-                                        { tag: '[CALENDAR]', desc: 'Emoji 📅' },
-                                        { tag: '[CLOCK]', desc: 'Emoji ⏰' },
-                                        { tag: '[MAP]', desc: 'Emoji 📍' },
-                                        { tag: '[WARNING]', desc: 'Emoji ⚠️' },
-                                        { tag: '[ID_CARD]', desc: 'Emoji 🪪' },
-                                        { tag: '[CHECK]', desc: 'Emoji ✅' },
+                                        { tag: '{CANDIDATO}', desc: 'Nome Aluno' },
+                                        { tag: '{CATEGORIA}', desc: 'Cat. Prova' },
+                                        { tag: '{DATA}', desc: 'Data Prova' },
+                                        { tag: '{HORA}', desc: 'Hora Prova' },
+                                        { tag: '{AGENCIA}', desc: 'Agência' },
+                                        { tag: '[WAVE]', desc: 'Mãozinha 👋' },
+                                        { tag: '[SMILE]', desc: 'Rosto 😊' },
+                                        { tag: '[CAR_SIDE]', desc: 'Carro 🚗' },
+                                        { tag: '[CAR_FRONT]', desc: 'Carro 🚘' },
+                                        { tag: '[CALENDAR]', desc: 'Data 📅' },
+                                        { tag: '[CLOCK]', desc: 'Hora ⏰' },
+                                        { tag: '[MAP]', desc: 'Local 📍' },
+                                        { tag: '[WARNING]', desc: 'Alerta ⚠️' },
+                                        { tag: '[ID_CARD]', desc: 'RG 🪪' },
+                                        { tag: '[CHECK]', desc: 'Confirmar ✅' },
+                                        { tag: '[HOURGLASS]', desc: 'Ampulheta ⏳' },
                                     ].map(item => (
-                                        <div key={item.tag} className="flex flex-col">
+                                        <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100">
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
-                                            <span className="text-[10px] text-gray-500">{item.desc}</span>
+                                            <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
                                         </div>
                                     ))}
                                 </div>
-                                <p className="text-[10px] text-blue-700 mt-4 font-bold">
-                                    * Use os códigos [ENTRE_COLCHETES] para garantir que os emojis apareçam corretamente no WhatsApp.
+                                <p className="text-[10px] text-blue-700 mt-4 font-bold italic">
+                                    * Importante: Se sua mensagem contiver o símbolo , clique no botão "RESTAURAR PADRÃO" acima para limpar a corrupção do banco de dados.
                                 </p>
                             </div>
                         </div>
@@ -205,7 +213,7 @@ const Settings: React.FC = () => {
 
         <div className="bg-gray-50 p-6 border-t flex justify-end">
           <button type="submit" disabled={saving} className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold disabled:opacity-50 shadow-md transition-all">
-            {saving ? 'Salvando...' : 'Salvar Alterações'} <Save className="w-4 h-4 ml-2" />
+            {saving ? 'Salvando...' : 'Salvar Configurações'} <Save className="w-4 h-4 ml-2" />
           </button>
         </div>
       </form>

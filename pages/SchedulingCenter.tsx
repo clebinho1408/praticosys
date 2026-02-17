@@ -96,15 +96,11 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
   useEffect(() => { refreshData(); }, [type]);
 
-  /**
-   * Converte marcadores de texto em emojis reais usando CodePoints.
-   * Isso evita que caracteres sejam corrompidos por encoding de banco ou rede.
-   */
   const injectEmojis = (text: string) => {
     const emojiMap: Record<string, string> = {
       '[WAVE]': String.fromCodePoint(0x1F44B),
       '[SMILE]': String.fromCodePoint(0x1F60A),
-      '[CAR]': String.fromCodePoint(0x1F697),
+      '[CAR_SIDE]': String.fromCodePoint(0x1F697),
       '[CALENDAR]': String.fromCodePoint(0x1F4C5),
       '[CLOCK]': String.fromCodePoint(0x23F0),
       '[MAP]': String.fromCodePoint(0x1F4CD),
@@ -116,10 +112,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     };
 
     let result = text;
-    // Primeiro limpamos qualquer caractere '' ou quebras de encoding que já existam
-    result = result.replace(/[\uFFFD\u20FD\uFFFD\uFFFD]/g, '');
+    // Remove qualquer "caractere de substituição" Unicode () que possa ter vindo do banco
+    result = result.replace(/\uFFFD/g, '');
 
-    // Injetamos os emojis baseados nos códigos seguros
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
       result = result.split(tag).join(emoji);
     });
@@ -132,21 +127,17 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     
     let template = settings.whatsappMessageTemplate || '';
     
-    // Se o template vier limpo/vazio ou corrompido, usamos o fallback com marcadores
-    if (!template.trim() || template.includes('')) {
-      template = `Olá, *{CANDIDATO}*! [WAVE][SMILE]\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:\n\n[CALENDAR] *{DATA}*\n[CLOCK] *{HORA}*\n[MAP] *{ENDERECO}*\n\n[WARNING] Não esqueça:\n[ID_CARD] _*Documento com foto (válido)*_\n[CAR_FRONT] _*Veículo ou moto em condições para a prova*_\n\n[CHECK] *Posso confirmar sua presença?*\n\n[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
+    // DETECÇÃO DE CORRUPÇÃO: Se a mensagem contiver o símbolo de erro, forçamos o padrão seguro
+    if (template.includes('\uFFFD') || !template.trim() || !template.includes('[')) {
+      template = `Olá, *{CANDIDATO}*! [WAVE][SMILE]\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR_SIDE], marcada para:\n\n[CALENDAR] *{DATA}*\n[CLOCK] *{HORA}*\n[MAP] *{ENDERECO}*\n\n[WARNING] Não esqueça:\n[ID_CARD] _*Documento com foto (válido)*_\n[CAR_FRONT] _*Veículo ou moto em condições para a prova*_\n\n[CHECK] *Posso confirmar sua presença?*\n\n[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
     }
     
-    // Primeiro resolvemos as TAGS de dados
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
-      '{NOME}': req.socialName || req.studentName || '',
-      '{TELEFONE}': req.phone || '',
       '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
       '{DATA}': formatDateDisplay(selectedSchedule.date),
       '{HORA}': selectedSchedule.time,
       '{ENDERECO}': settings.defaultExamAddress || '',
-      '{MAPS_LINK}': settings.defaultExamAddressLink || '',
       '{AGENCIA}': settings.agencyName || 'Detran'
     };
 
@@ -155,7 +146,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // AGORA injetamos os emojis reais sobre os marcadores
     finalMessage = injectEmojis(finalMessage);
     
     const phoneDigits = req.phone.replace(/\D/g, '');
