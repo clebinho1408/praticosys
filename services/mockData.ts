@@ -4,29 +4,69 @@ import {
   SystemSettings, ExamStatus, ExamType, RequestSource
 } from '../types';
 
-// Chaves para persistência local
-const STORAGE_KEYS = {
-    USERS: 'psys_users',
-    SCHOOLS: 'psys_schools',
-    EXAMINERS: 'psys_examiners',
-    INSTRUCTORS: 'psys_instructors',
-    SCHEDULES: 'psys_schedules',
-    REQUESTS: 'psys_requests',
-    SETTINGS: 'psys_settings'
+// ============================================================================
+// STORE EM MEMÓRIA (VOLÁTIL) - SUBSTITUI O LOCALSTORAGE
+// ============================================================================
+// Se a API falhar, os dados ficam apenas aqui e somem ao recarregar a página.
+// Isso impede que dados corrompidos persistam no navegador.
+const MEMORY_STORE = {
+    users: [] as any[],
+    schools: [] as any[],
+    examiners: [] as any[],
+    instructors: [] as any[],
+    schedules: [] as any[],
+    requests: [] as any[],
+    settings: {
+        agencyName: 'Detran de Balneário Camboriú', 
+        agencyAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
+        logoUrl: '',
+        maintenanceMode: false, 
+        maxDailySlots: 50, 
+        defaultMaxSlotsA: 10, 
+        defaultMaxSlotsB: 10, 
+        minDaysForScheduling: 2, 
+        enableEmailNotifications: false, 
+        enableSmsNotifications: false,
+        whatsappMessageTemplate: `Olá, *{CANDIDATO}*! [WAVE][SMILE]
+
+Aqui é do {AGENCIA} – Setor CNH.
+Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:
+
+[CALENDAR] *{DATA}*
+[CLOCK] *{HORA}*
+[MAP] *{ENDERECO}*
+
+[WARNING] Não esqueça:
+[ID] _*Documento com foto (válido)*_
+[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
+
+[CHECK] *Posso confirmar sua presença?*
+
+[HOURGLASS] _*Confirmação até amanhã às 18:00*_`,
+        defaultExamAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
+        defaultExamAddressLink: 'https://maps.google.com'
+    } as SystemSettings
 };
+
+// ============================================================================
+// LIMPEZA PROFUNDA (GARBAGE COLLECTION)
+// ============================================================================
+// Remove chaves antigas do LocalStorage para garantir que nada corrompido sobrevive.
+try {
+    const keysToRemove = [
+        'psys_users', 'psys_schools', 'psys_examiners', 'psys_instructors', 
+        'psys_schedules', 'psys_requests', 'psys_settings', 'praticosys_user'
+    ];
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+    console.log("Sistema limpo: LocalStorage removido com sucesso.");
+} catch (e) {
+    // Ignora erros de acesso (ex: modo anônimo restrito)
+}
 
 // Gerador de ID Universal
 const genId = () => {
     return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 9);
 };
-
-const getLocal = <T>(key: string, def: T): T => {
-    try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : def;
-    } catch { return def; }
-};
-const setLocal = (key: string, data: any) => localStorage.setItem(key, JSON.stringify(data));
 
 const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string): 'OPEN' | 'CLOSED' | 'CONCLUDED' | 'CANCELLED' => {
     if (currentStatus === 'CANCELLED') return 'CANCELLED';
@@ -66,6 +106,8 @@ const fetchOrMock = async <T>(
         return await res.json();
     } catch (error: any) {
         clearTimeout(timeoutId);
+        // Em caso de falha da API, usa a memória RAM limpa
+        console.warn(`[API FALHOU] Usando memória RAM para ${endpoint}. Motivo:`, error.message);
         return mockFn();
     }
 };
@@ -77,216 +119,132 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ login, password })
     }, async () => {
+        // Fallback de Emergência (Sem Banco)
         if (login === 'admin' && (password === 'admin' || password === '123456')) {
-            const adminUser: User = { id: 'admin', name: 'Administrador Local', login: 'admin', role: UserRole.ADMIN };
-            localStorage.setItem('praticosys_user', JSON.stringify(adminUser));
+            const adminUser: User = { id: 'admin', name: 'Administrador (RAM)', login: 'admin', role: UserRole.ADMIN };
             return adminUser;
         }
-        const users = getLocal<any[]>(STORAGE_KEYS.USERS, []);
-        const found = users.find((u: any) => u.login === login && u.password === password);
-        if (found) localStorage.setItem('praticosys_user', JSON.stringify(found));
+        const found = MEMORY_STORE.users.find((u: any) => u.login === login && u.password === password);
         return found || null;
     });
   },
-  getUsers: async (): Promise<User[]> => fetchOrMock('users', {}, () => getLocal(STORAGE_KEYS.USERS, [])),
+  getUsers: async (): Promise<User[]> => fetchOrMock('users', {}, () => MEMORY_STORE.users),
   createUser: async (data: any): Promise<User> => fetchOrMock('users', { method: 'POST', body: JSON.stringify(data) }, () => {
-        const users = getLocal<any[]>(STORAGE_KEYS.USERS, []);
         const newUser = { ...data, id: genId(), password: data.password || '123456' };
-        setLocal(STORAGE_KEYS.USERS, [...users, newUser]);
+        MEMORY_STORE.users.push(newUser);
         return newUser;
   }),
   updateUser: async (id: string, updates: Partial<User>): Promise<User> => fetchOrMock('users', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
-        const users = getLocal<any[]>(STORAGE_KEYS.USERS, []);
-        const idx = users.findIndex(u => u.id === id);
-        users[idx] = { ...users[idx], ...updates };
-        setLocal(STORAGE_KEYS.USERS, users);
-        return users[idx];
+        const idx = MEMORY_STORE.users.findIndex(u => u.id === id);
+        if (idx !== -1) MEMORY_STORE.users[idx] = { ...MEMORY_STORE.users[idx], ...updates };
+        return MEMORY_STORE.users[idx];
   }),
   deleteUser: async (id: string): Promise<void> => fetchOrMock(`users?id=${id}`, { method: 'DELETE' }, () => {
-        const users = getLocal<any[]>(STORAGE_KEYS.USERS, []);
-        setLocal(STORAGE_KEYS.USERS, users.filter(u => u.id !== id));
+        MEMORY_STORE.users = MEMORY_STORE.users.filter(u => u.id !== id);
   }),
 
   // --- SCHOOLS ---
-  getSchools: (): DrivingSchool[] => getLocal(STORAGE_KEYS.SCHOOLS, []),
-  getSchoolsAsync: async (): Promise<DrivingSchool[]> => fetchOrMock('schools', {}, () => getLocal(STORAGE_KEYS.SCHOOLS, [])),
+  getSchools: (): DrivingSchool[] => MEMORY_STORE.schools,
+  getSchoolsAsync: async (): Promise<DrivingSchool[]> => fetchOrMock('schools', {}, () => MEMORY_STORE.schools),
   createSchool: async (data: any): Promise<DrivingSchool> => fetchOrMock('schools', { method: 'POST', body: JSON.stringify(data) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.SCHOOLS, []);
       const novo = { ...data, id: genId() };
-      setLocal(STORAGE_KEYS.SCHOOLS, [...list, novo]);
+      MEMORY_STORE.schools.push(novo);
       return novo;
   }),
   updateSchool: async (id: string, updates: Partial<DrivingSchool>): Promise<DrivingSchool> => fetchOrMock('schools', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.SCHOOLS, []);
-      const idx = list.findIndex(i => i.id === id);
-      list[idx] = { ...list[idx], ...updates };
-      setLocal(STORAGE_KEYS.SCHOOLS, list);
-      return list[idx];
+      const idx = MEMORY_STORE.schools.findIndex(i => i.id === id);
+      if (idx !== -1) MEMORY_STORE.schools[idx] = { ...MEMORY_STORE.schools[idx], ...updates };
+      return MEMORY_STORE.schools[idx];
   }),
   deleteSchool: async (id: string): Promise<void> => fetchOrMock(`schools?id=${id}`, { method: 'DELETE' }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.SCHOOLS, []);
-      setLocal(STORAGE_KEYS.SCHOOLS, list.filter(i => i.id !== id));
+      MEMORY_STORE.schools = MEMORY_STORE.schools.filter(i => i.id !== id);
   }),
 
   // --- EXAMINERS ---
-  getExaminers: (): Examiner[] => getLocal(STORAGE_KEYS.EXAMINERS, []),
-  getExaminersAsync: async (): Promise<Examiner[]> => fetchOrMock('examiners', {}, () => getLocal(STORAGE_KEYS.EXAMINERS, [])),
+  getExaminers: (): Examiner[] => MEMORY_STORE.examiners,
+  getExaminersAsync: async (): Promise<Examiner[]> => fetchOrMock('examiners', {}, () => MEMORY_STORE.examiners),
   createExaminer: async (data: any): Promise<Examiner> => fetchOrMock('examiners', { method: 'POST', body: JSON.stringify(data) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.EXAMINERS, []);
       const novo = { ...data, id: genId() };
-      setLocal(STORAGE_KEYS.EXAMINERS, [...list, novo]);
+      MEMORY_STORE.examiners.push(novo);
       return novo;
   }),
   updateExaminer: async (id: string, updates: Partial<Examiner>): Promise<Examiner> => fetchOrMock('examiners', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.EXAMINERS, []);
-      const idx = list.findIndex(i => i.id === id);
-      list[idx] = { ...list[idx], ...updates };
-      setLocal(STORAGE_KEYS.EXAMINERS, list);
-      return list[idx];
+      const idx = MEMORY_STORE.examiners.findIndex(i => i.id === id);
+      if (idx !== -1) MEMORY_STORE.examiners[idx] = { ...MEMORY_STORE.examiners[idx], ...updates };
+      return MEMORY_STORE.examiners[idx];
   }),
   deleteExaminer: async (id: string): Promise<void> => fetchOrMock(`examiners?id=${id}`, { method: 'DELETE' }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.EXAMINERS, []);
-      setLocal(STORAGE_KEYS.EXAMINERS, list.filter(i => i.id !== id));
+      MEMORY_STORE.examiners = MEMORY_STORE.examiners.filter(i => i.id !== id);
   }),
 
   // --- INSTRUCTORS ---
-  getInstructors: (): Instructor[] => getLocal(STORAGE_KEYS.INSTRUCTORS, []),
-  getInstructorsAsync: async (): Promise<Instructor[]> => fetchOrMock('instructors', {}, () => getLocal(STORAGE_KEYS.INSTRUCTORS, [])),
+  getInstructors: (): Instructor[] => MEMORY_STORE.instructors,
+  getInstructorsAsync: async (): Promise<Instructor[]> => fetchOrMock('instructors', {}, () => MEMORY_STORE.instructors),
   createInstructor: async (data: any): Promise<Instructor> => fetchOrMock('instructors', { method: 'POST', body: JSON.stringify(data) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.INSTRUCTORS, []);
       const novo = { ...data, id: genId() };
-      setLocal(STORAGE_KEYS.INSTRUCTORS, [...list, novo]);
+      MEMORY_STORE.instructors.push(novo);
       return novo;
   }),
   updateInstructor: async (id: string, updates: Partial<Instructor>): Promise<Instructor> => fetchOrMock('instructors', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.INSTRUCTORS, []);
-      const idx = list.findIndex(i => i.id === id);
-      list[idx] = { ...list[idx], ...updates };
-      setLocal(STORAGE_KEYS.INSTRUCTORS, list);
-      return list[idx];
+      const idx = MEMORY_STORE.instructors.findIndex(i => i.id === id);
+      if (idx !== -1) MEMORY_STORE.instructors[idx] = { ...MEMORY_STORE.instructors[idx], ...updates };
+      return MEMORY_STORE.instructors[idx];
   }),
   deleteInstructor: async (id: string): Promise<void> => fetchOrMock(`instructors?id=${id}`, { method: 'DELETE' }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.INSTRUCTORS, []);
-      setLocal(STORAGE_KEYS.INSTRUCTORS, list.filter(i => i.id !== id));
+      MEMORY_STORE.instructors = MEMORY_STORE.instructors.filter(i => i.id !== id);
   }),
 
   // --- SETTINGS ---
-  getSettings: async (): Promise<SystemSettings> => fetchOrMock('settings', {}, () => {
-      const def: SystemSettings = {
-        agencyName: 'Detran de Balneário Camboriú', 
-        agencyAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
-        logoUrl: '',
-        maintenanceMode: false, 
-        maxDailySlots: 50, 
-        defaultMaxSlotsA: 10, 
-        defaultMaxSlotsB: 10, 
-        minDaysForScheduling: 2, 
-        enableEmailNotifications: false, 
-        enableSmsNotifications: false,
-        whatsappMessageTemplate: `Olá, *{CANDIDATO}*! [WAVE][SMILE]
-
-Aqui é do {AGENCIA} – Setor CNH.
-Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:
-
-[CALENDAR] *{DATA}*
-[CLOCK] *{HORA}*
-[MAP] *{ENDERECO}*
-
-[WARNING] Não esqueça:
-[ID] _*Documento com foto (válido)*_
-[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
-
-[CHECK] *Posso confirmar sua presença?*
-
-[HOURGLASS] _*Confirmação até amanhã às 18:00*_`,
-        defaultExamAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
-        defaultExamAddressLink: 'https://maps.google.com'
-      };
-      
-      const localSettings = getLocal(STORAGE_KEYS.SETTINGS, def);
-
-      // AUTO-HEALING AVANÇADO: Detecta caractere de erro () OU caractere de quebra (ꪪ)
-      // Se detectado, limpa o LocalStorage e restaura o padrão oficial.
-      const tmpl = localSettings.whatsappMessageTemplate || '';
-      const isBroken = tmpl.includes('\uFFFD') || tmpl.includes('\uAAAA') || tmpl.includes('ꪪ');
-
-      if (isBroken || !tmpl.trim()) {
-          console.warn("MOCK DATA: Corrupção crítica detectada ( ou ꪪ). Restaurando template oficial.");
-          localSettings.whatsappMessageTemplate = def.whatsappMessageTemplate;
-          setLocal(STORAGE_KEYS.SETTINGS, localSettings);
-      }
-
-      return localSettings;
-  }),
+  getSettings: async (): Promise<SystemSettings> => fetchOrMock('settings', {}, () => MEMORY_STORE.settings),
   updateSettings: async (newSettings: SystemSettings): Promise<SystemSettings> => fetchOrMock('settings', { method: 'PUT', body: JSON.stringify(newSettings) }, () => {
-      const current = getLocal(STORAGE_KEYS.SETTINGS, {});
-      const updated = { ...current, ...newSettings };
-      setLocal(STORAGE_KEYS.SETTINGS, updated);
-      return updated;
+      MEMORY_STORE.settings = { ...MEMORY_STORE.settings, ...newSettings };
+      return MEMORY_STORE.settings;
   }),
 
   // --- SCHEDULES ---
   getSchedules: async (): Promise<ExamSchedule[]> => fetchOrMock('schedules', {}, () => {
-      let schedules = getLocal<ExamSchedule[]>(STORAGE_KEYS.SCHEDULES, []);
-      let changed = false;
-      schedules = schedules.map(s => {
+      MEMORY_STORE.schedules = MEMORY_STORE.schedules.map((s: any) => {
           const newStatus = calculateStatus(s.date, s.time, s.status);
-          if (newStatus !== s.status) {
-              changed = true;
-              return { ...s, status: newStatus };
-          }
-          return s;
+          return { ...s, status: newStatus };
       });
-      if (changed) setLocal(STORAGE_KEYS.SCHEDULES, schedules);
-      return schedules;
+      return MEMORY_STORE.schedules;
   }),
   createSchedule: async (data: any): Promise<ExamSchedule> => fetchOrMock('schedules', { method: 'POST', body: JSON.stringify(data) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
       const cleanDate = data.date ? data.date.split('T')[0] : new Date().toISOString().split('T')[0];
       const novo = { ...data, id: genId(), status: 'OPEN', examinerIds: data.examinerIds || [], date: cleanDate };
-      setLocal(STORAGE_KEYS.SCHEDULES, [...list, novo]);
+      MEMORY_STORE.schedules.push(novo);
       return novo;
   }),
   updateSchedule: async (id: string, updates: Partial<ExamSchedule>): Promise<ExamSchedule> => fetchOrMock('schedules', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
-      const idx = list.findIndex(i => i.id === id);
-      list[idx] = { ...list[idx], ...updates };
-      setLocal(STORAGE_KEYS.SCHEDULES, list);
-      return list[idx];
+      const idx = MEMORY_STORE.schedules.findIndex((i: any) => i.id === id);
+      if (idx !== -1) MEMORY_STORE.schedules[idx] = { ...MEMORY_STORE.schedules[idx], ...updates };
+      return MEMORY_STORE.schedules[idx];
   }),
   cancelSchedule: async (id: string, reason: string): Promise<ExamSchedule> => fetchOrMock('schedules', { method: 'PUT', body: JSON.stringify({ id, action: 'CANCEL', reason }) }, () => {
-       const schedules = getLocal<any[]>(STORAGE_KEYS.SCHEDULES, []);
-       const sIdx = schedules.findIndex(s => s.id === id);
+       const sIdx = MEMORY_STORE.schedules.findIndex((s: any) => s.id === id);
        if (sIdx !== -1) {
-           schedules[sIdx].status = 'CANCELLED';
-           schedules[sIdx].cancellationReason = reason;
-           setLocal(STORAGE_KEYS.SCHEDULES, schedules);
+           MEMORY_STORE.schedules[sIdx].status = 'CANCELLED';
+           MEMORY_STORE.schedules[sIdx].cancellationReason = reason;
        }
-       const requests = getLocal<any[]>(STORAGE_KEYS.REQUESTS, []);
-       const updatedRequests = requests.map(r => r.scheduleId === id ? { ...r, status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined } : r);
-       setLocal(STORAGE_KEYS.REQUESTS, updatedRequests);
-       return schedules[sIdx];
+       MEMORY_STORE.requests = MEMORY_STORE.requests.map((r: any) => r.scheduleId === id ? { ...r, status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined } : r);
+       return MEMORY_STORE.schedules[sIdx];
   }),
 
   // --- REQUESTS ---
-  getRequests: async (): Promise<ExamRequest[]> => fetchOrMock('requests', {}, () => getLocal(STORAGE_KEYS.REQUESTS, [])),
+  getRequests: async (): Promise<ExamRequest[]> => fetchOrMock('requests', {}, () => MEMORY_STORE.requests),
   getRequestByCpf: async (cpf: string): Promise<ExamRequest[]> => fetchOrMock(`requests?cpf=${cpf}`, {}, () => {
-      const list = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
       const cleanSearch = cpf.replace(/\D/g, '');
-      return list.filter(r => r.cpf.replace(/\D/g, '').includes(cleanSearch));
+      return MEMORY_STORE.requests.filter((r: any) => r.cpf.replace(/\D/g, '').includes(cleanSearch));
   }),
   createRequest: async (data: any): Promise<ExamRequest> => fetchOrMock('requests', { method: 'POST', body: JSON.stringify(data) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.REQUESTS, []);
       const novo = { ...data, id: genId(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), examHistory: data.examHistory || [] };
-      setLocal(STORAGE_KEYS.REQUESTS, [...list, novo]);
+      MEMORY_STORE.requests.push(novo);
       return novo;
   }),
   updateRequest: async (id: string, updates: Partial<ExamRequest>): Promise<ExamRequest> => fetchOrMock('requests', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }, () => {
-      const list = getLocal<any[]>(STORAGE_KEYS.REQUESTS, []);
-      const idx = list.findIndex(i => i.id === id);
-      const updated = { ...list[idx], ...updates, updatedAt: new Date().toISOString() };
-      list[idx] = updated;
-      setLocal(STORAGE_KEYS.REQUESTS, list);
+      const idx = MEMORY_STORE.requests.findIndex((i: any) => i.id === id);
+      const updated = { ...MEMORY_STORE.requests[idx], ...updates, updatedAt: new Date().toISOString() };
+      MEMORY_STORE.requests[idx] = updated;
       return updated;
   }),
 
@@ -294,22 +252,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   assignStudentToSchedule: async (requestId: string, scheduleId: string, category: string): Promise<void> => {
        const payload = { id: requestId, status: ExamStatus.SCHEDULED, scheduleId: scheduleId, scheduledCategory: category };
        return fetchOrMock('requests', { method: 'PUT', body: JSON.stringify(payload) }, async () => {
-           const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
-           const rIdx = requests.findIndex(r => r.id === requestId);
-           if (rIdx !== -1) {
-               requests[rIdx] = { ...requests[rIdx], status: ExamStatus.SCHEDULED, scheduleId, scheduledCategory: category, updatedAt: new Date().toISOString() };
-               setLocal(STORAGE_KEYS.REQUESTS, requests);
+           const idx = MEMORY_STORE.requests.findIndex((r: any) => r.id === requestId);
+           if (idx !== -1) {
+               MEMORY_STORE.requests[idx] = { ...MEMORY_STORE.requests[idx], status: ExamStatus.SCHEDULED, scheduleId, scheduledCategory: category, updatedAt: new Date().toISOString() };
            }
        });
   },
   removeStudentFromSchedule: async (requestId: string): Promise<void> => {
       const payload = { id: requestId, status: ExamStatus.WAITING_SCHEDULING, scheduleId: null, scheduledCategory: null, attendanceConfirmed: false };
       return fetchOrMock('requests', { method: 'PUT', body: JSON.stringify(payload) }, async () => {
-          const requests = getLocal<ExamRequest[]>(STORAGE_KEYS.REQUESTS, []);
-          const rIdx = requests.findIndex(r => r.id === requestId);
-          if (rIdx !== -1) {
-               requests[rIdx] = { ...requests[rIdx], status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined, scheduledCategory: undefined, attendanceConfirmed: false, updatedAt: new Date().toISOString() };
-               setLocal(STORAGE_KEYS.REQUESTS, requests);
+          const idx = MEMORY_STORE.requests.findIndex((r: any) => r.id === requestId);
+          if (idx !== -1) {
+               MEMORY_STORE.requests[idx] = { ...MEMORY_STORE.requests[idx], status: ExamStatus.WAITING_SCHEDULING, scheduleId: undefined, scheduledCategory: undefined, attendanceConfirmed: false, updatedAt: new Date().toISOString() };
            }
       });
   }
