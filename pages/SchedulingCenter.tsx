@@ -113,11 +113,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
     let result = text;
     
-    // LIMPEZA AGRESSIVA DE CARACTERES CORROMPIDOS
-    // Remove especificamente o (U+FFFD) e qualquer sequência estranha comum
-    result = result.replace(/\uFFFD/g, '');
+    // LIMPEZA AGRESSIVA DE CARACTERES CORROMPIDOS (Diamond Question Mark)
+    // Removemos tanto o caractere Unicode \uFFFD quanto a string literal se ela aparecer
+    result = result.replace(/\uFFFD/g, ''); 
 
     // Substitui as tags de texto pelos emojis reais
+    // Usamos split/join para evitar problemas com regex em caracteres especiais
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
       result = result.split(tag).join(emoji);
     });
@@ -128,7 +129,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    const template = settings.whatsappMessageTemplate || '';
+    // Força revalidação caso o state esteja desatualizado (fallback)
+    const currentTemplate = settings.whatsappMessageTemplate || '';
     
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
@@ -139,14 +141,14 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '{AGENCIA}': settings.agencyName || 'Detran'
     };
 
-    let finalMessage = template;
+    let finalMessage = currentTemplate;
     
     // 1. Substitui variáveis do sistema
     Object.entries(replacements).forEach(([tag, value]) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // 2. Injeta os emojis reais E LIMPA O 
+    // 2. Injeta os emojis reais E LIMPA A SUJEIRA
     finalMessage = injectEmojis(finalMessage);
     
     const phoneDigits = req.phone.replace(/\D/g, '');

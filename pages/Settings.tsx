@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, Info, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, Info, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
 
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
@@ -10,16 +10,21 @@ const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = () => {
     api.getSettings().then(data => {
       setSettings(data);
       setLoading(false);
     });
-  }, []);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!settings) return;
@@ -32,10 +37,11 @@ const Settings: React.FC = () => {
     });
   };
 
-  const handleRestoreDefaultMessage = () => {
+  const handleRestoreDefaultMessage = async () => {
     if (!settings) return;
-    const confirm = window.confirm("Isso irá apagar sua mensagem atual e restaurar o modelo padrão oficial usando TAGS seguras. Recomendado para corrigir o erro '' no WhatsApp. Deseja continuar?");
+    const confirm = window.confirm("Confirmar a restauração do modelo oficial? Isso corrigirá os erros de emojis e SALVARÁ automaticamente.");
     if (confirm) {
+      setRestoring(true);
       const defaultTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
 
 Aqui é do {AGENCIA} – Setor CNH.
@@ -52,7 +58,21 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 [CHECK] *Posso confirmar sua presença?*
 
 [HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
-      setSettings({ ...settings, whatsappMessageTemplate: defaultTemplate });
+      
+      const newSettings = { ...settings, whatsappMessageTemplate: defaultTemplate };
+      
+      try {
+          // Atualiza estado local
+          setSettings(newSettings);
+          // Salva imediatamente no servidor
+          await api.updateSettings(newSettings);
+          setSuccessMsg('Modelo restaurado e salvo com sucesso!');
+          setTimeout(() => setSuccessMsg(''), 4000);
+      } catch (error) {
+          alert("Erro ao salvar o modelo restaurado.");
+      } finally {
+          setRestoring(false);
+      }
     }
   };
 
@@ -155,7 +175,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
                                 <h3 className="text-red-800 font-bold text-sm">Problema de Caracteres Detectado!</h3>
                             </div>
-                            <p className="text-red-700 text-xs mt-1">Sua mensagem atual contém o caractere de erro (). Isso fará com que o link do WhatsApp falhe. Por favor, clique no botão "RESTAURAR" abaixo imediatamente.</p>
+                            <p className="text-red-700 text-xs mt-1">Sua mensagem atual contém o caractere de erro (). Isso fará com que o link do WhatsApp falhe. Por favor, clique no botão "RESTAURAR E SALVAR" abaixo imediatamente.</p>
                          </div>
                     )}
 
@@ -186,9 +206,11 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             <button 
                                 type="button" 
                                 onClick={handleRestoreDefaultMessage}
-                                className={`flex items-center gap-1 text-[10px] font-black border px-2 py-1 rounded hover:opacity-80 ${hasCorruptionError ? 'bg-red-600 text-white border-red-600 animate-pulse' : 'text-red-600 border-red-200 bg-red-50 hover:bg-red-100'}`}
+                                disabled={restoring}
+                                className={`flex items-center gap-1 text-[10px] font-black border px-3 py-2 rounded hover:opacity-80 transition-all shadow-sm ${hasCorruptionError ? 'bg-red-600 text-white border-red-600 animate-pulse' : 'text-blue-700 border-blue-200 bg-blue-50 hover:bg-blue-100'}`}
                             >
-                                <RotateCcw className="h-3 w-3" /> CORRIGIR E RESTAURAR PADRÃO
+                                {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                                {restoring ? 'SALVANDO...' : 'RESTAURAR PADRÃO E SALVAR AGORA'}
                             </button>
                         </div>
                         <div>
@@ -220,7 +242,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                         { tag: '[CHECK]', desc: '✅' },
                                         { tag: '[HOURGLASS]', desc: '⏳' },
                                     ].map(item => (
-                                        <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100">
+                                        <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" title="Clique para copiar" onClick={() => navigator.clipboard.writeText(item.tag)}>
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
                                             <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
                                         </div>
@@ -235,7 +257,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                         { tag: '{AGENCIA}', desc: 'Agência' },
                                         { tag: '{ENDERECO}', desc: 'Local' }
                                     ].map(item => (
-                                        <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100">
+                                        <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
                                             <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
                                         </div>
