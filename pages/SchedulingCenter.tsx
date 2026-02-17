@@ -129,8 +129,28 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // Força revalidação caso o state esteja desatualizado (fallback)
-    const currentTemplate = settings.whatsappMessageTemplate || '';
+    // FALLBACK DE SEGURANÇA:
+    // Se o template carregado tiver caracteres corrompidos, ignora e usa um template hardcoded seguro.
+    let currentTemplate = settings.whatsappMessageTemplate || '';
+    if (currentTemplate.includes('\uFFFD') || currentTemplate.includes('')) {
+        console.warn("Template corrompido detectado. Usando fallback seguro.");
+        currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
+
+Aqui é do {AGENCIA} – Setor CNH.
+Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:
+
+[CALENDAR] *{DATA}*
+[CLOCK] *{HORA}*
+[MAP] *{ENDERECO}*
+
+[WARNING] Não esqueça:
+[ID] _*Documento com foto (válido)*_
+[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
+
+[CHECK] *Posso confirmar sua presença?*
+
+[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
+    }
     
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
@@ -148,7 +168,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // 2. Injeta os emojis reais E LIMPA A SUJEIRA
+    // 2. Injeta os emojis reais E LIMPA A SUJEIRA (redundância)
     finalMessage = injectEmojis(finalMessage);
     
     const phoneDigits = req.phone.replace(/\D/g, '');
