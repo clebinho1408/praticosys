@@ -99,15 +99,17 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    // Obtém o modelo das configurações
+    // Prioriza o modelo das configurações salvas no sistema
     let message = settings.whatsappMessageTemplate;
     
-    // Caso o modelo esteja vazio, usa um padrão de segurança
-    if (!message) {
-      message = 'Olá, *{CANDIDATO}*! 👋😊\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*';
+    // Modelo de segurança robusto caso o banco retorne vazio
+    const fallbackTemplate = 'Olá, *{CANDIDATO}*! 👋😊\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* 🚗, marcada para:\n📅 *{DATA}*\n⏰ *{HORA}*\n📍 *{ENDERECO}*\n\n⚠️ Não esqueça:\n🪪 _*Documento com foto (válido)*_\n🚘 _*Veículo ou moto em condições para a prova*_\n\n✅ *Posso confirmar sua presença?*\n\n⏳ _*Confirmação até amanhã às 18:00*_.';
+
+    if (!message || message.trim() === '') {
+      message = fallbackTemplate;
     }
     
-    // Mapeamento de tags para substituição
+    // Mapeamento de tags para substituição literal
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
       '{NOME}': req.socialName || req.studentName || '',
@@ -117,24 +119,20 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '{HORA}': selectedSchedule.time,
       '{ENDERECO}': settings.defaultExamAddress || '',
       '{MAPS_LINK}': settings.defaultExamAddressLink || '',
-      '{AGENCIA}': settings.agencyName || 'DETRAN'
+      '{AGENCIA}': settings.agencyName || 'Detran'
     };
 
-    // Substituição robusta preservando emojis e quebras de linha
+    // Substituição global segura (split/join preserva emojis e quebras de linha melhor que regex em strings Unicode)
     Object.entries(replacements).forEach(([tag, value]) => {
-      // split/join é a forma mais segura para evitar problemas com caracteres especiais de regex
       message = message.split(tag).join(value);
     });
     
-    // Limpeza do número de telefone (apenas dígitos)
+    // Formatação do número: Remove não dígitos e garante prefixo 55
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // Codifica a mensagem para URL, o encodeURIComponent lida nativamente com emojis
-    const encodedMessage = encodeURIComponent(message);
-    
-    // Abre o WhatsApp
-    window.open(`https://wa.me/${finalPhone}?text=${encodedMessage}`, '_blank');
+    // Abre o WhatsApp com a mensagem codificada adequadamente
+    window.open(`https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const toggleAttendance = async (req: ExamRequest) => {
