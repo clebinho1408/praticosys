@@ -36,7 +36,7 @@ const Settings: React.FC = () => {
     if (!settings) return;
     const confirm = window.confirm("Isso irá apagar sua mensagem atual e restaurar o modelo padrão oficial (Incorruptível). Deseja continuar?");
     if (confirm) {
-      const defaultTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR_SIDE], marcada para:\n\n[CALENDAR] *{DATA}*\n[CLOCK] *{HORA}*\n[MAP] *{ENDERECO}*\n\n[WARNING] Não esqueça:\n[ID_CARD] _*Documento com foto (válido)*_\n[CAR_FRONT] _*Veículo ou moto em condições para a prova*_\n\n[CHECK] *Posso confirmar sua presença?*\n\n[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
+      const defaultTemplate = `Olá, *{CANDIDATO}*! \u{1F44B}\u{1F60A}\n\nAqui é do {AGENCIA} \u{2013} Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* \u{1F697}, marcada para:\n\u{1F4C5} *{DATA}*\n\u{23F0} *{HORA}*\n\u{1F4CD} *{ENDERECO}*\n\n\u{26A0}\u{FE0F} Não esqueça:\n\u{1FAAA} _*Documento com foto (válido)*_\n\u{1F698} _*Veículo ou moto em condições para a prova*_\n\n\u{2705} *Posso confirmar sua presença?*\n\n\u{23F3} _*Confirmação até amanhã às 18:00*_`;
       setSettings({ ...settings, whatsappMessageTemplate: defaultTemplate });
     }
   };
@@ -174,26 +174,15 @@ const Settings: React.FC = () => {
                             />
                             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                                 <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">
-                                    <Info className="h-3 w-3" /> Tags e Emojis Obrigatórios
+                                    <Info className="h-3 w-3" /> Ajuda de Edição
                                 </h4>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {[
                                         { tag: '{CANDIDATO}', desc: 'Nome Aluno' },
                                         { tag: '{CATEGORIA}', desc: 'Cat. Prova' },
                                         { tag: '{DATA}', desc: 'Data Prova' },
                                         { tag: '{HORA}', desc: 'Hora Prova' },
                                         { tag: '{AGENCIA}', desc: 'Agência' },
-                                        { tag: '[WAVE]', desc: 'Mãozinha 👋' },
-                                        { tag: '[SMILE]', desc: 'Rosto 😊' },
-                                        { tag: '[CAR_SIDE]', desc: 'Carro 🚗' },
-                                        { tag: '[CAR_FRONT]', desc: 'Carro 🚘' },
-                                        { tag: '[CALENDAR]', desc: 'Data 📅' },
-                                        { tag: '[CLOCK]', desc: 'Hora ⏰' },
-                                        { tag: '[MAP]', desc: 'Local 📍' },
-                                        { tag: '[WARNING]', desc: 'Alerta ⚠️' },
-                                        { tag: '[ID_CARD]', desc: 'RG 🪪' },
-                                        { tag: '[CHECK]', desc: 'Confirmar ✅' },
-                                        { tag: '[HOURGLASS]', desc: 'Ampulheta ⏳' },
                                     ].map(item => (
                                         <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100">
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
@@ -202,7 +191,7 @@ const Settings: React.FC = () => {
                                     ))}
                                 </div>
                                 <p className="text-[10px] text-blue-700 mt-4 font-bold italic">
-                                    * Importante: Se sua mensagem contiver o símbolo , clique no botão "RESTAURAR PADRÃO" acima para limpar a corrupção do banco de dados.
+                                    Dica: Para evitar caracteres corrompidos, se precisar adicionar novos emojis, use o botão "RESTAURAR PADRÃO" para carregar o modelo seguro.
                                 </p>
                             </div>
                         </div>

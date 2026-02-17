@@ -96,41 +96,10 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
   useEffect(() => { refreshData(); }, [type]);
 
-  const injectEmojis = (text: string) => {
-    const emojiMap: Record<string, string> = {
-      '[WAVE]': String.fromCodePoint(0x1F44B),
-      '[SMILE]': String.fromCodePoint(0x1F60A),
-      '[CAR_SIDE]': String.fromCodePoint(0x1F697),
-      '[CALENDAR]': String.fromCodePoint(0x1F4C5),
-      '[CLOCK]': String.fromCodePoint(0x23F0),
-      '[MAP]': String.fromCodePoint(0x1F4CD),
-      '[WARNING]': String.fromCodePoint(0x26A0, 0xFE0F),
-      '[ID_CARD]': String.fromCodePoint(0x1FAAA),
-      '[CAR_FRONT]': String.fromCodePoint(0x1F698),
-      '[CHECK]': String.fromCodePoint(0x2705),
-      '[HOURGLASS]': String.fromCodePoint(0x23F3)
-    };
-
-    let result = text;
-    // Remove qualquer "caractere de substituição" Unicode () que possa ter vindo do banco
-    result = result.replace(/\uFFFD/g, '');
-
-    Object.entries(emojiMap).forEach(([tag, emoji]) => {
-      result = result.split(tag).join(emoji);
-    });
-
-    return result;
-  };
-
   const handleWhatsApp = (req: ExamRequest) => {
     if (!settings || !selectedSchedule) return;
     
-    let template = settings.whatsappMessageTemplate || '';
-    
-    // DETECÇÃO DE CORRUPÇÃO: Se a mensagem contiver o símbolo de erro, forçamos o padrão seguro
-    if (template.includes('\uFFFD') || !template.trim() || !template.includes('[')) {
-      template = `Olá, *{CANDIDATO}*! [WAVE][SMILE]\n\nAqui é do {AGENCIA} – Setor CNH.\nEstamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR_SIDE], marcada para:\n\n[CALENDAR] *{DATA}*\n[CLOCK] *{HORA}*\n[MAP] *{ENDERECO}*\n\n[WARNING] Não esqueça:\n[ID_CARD] _*Documento com foto (válido)*_\n[CAR_FRONT] _*Veículo ou moto em condições para a prova*_\n\n[CHECK] *Posso confirmar sua presença?*\n\n[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
-    }
+    const template = settings.whatsappMessageTemplate || '';
     
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
@@ -145,8 +114,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     Object.entries(replacements).forEach(([tag, value]) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
-    
-    finalMessage = injectEmojis(finalMessage);
     
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
