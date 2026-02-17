@@ -179,7 +179,7 @@ export const api = {
         maintenanceMode: false, 
         maxDailySlots: 50, 
         defaultMaxSlotsA: 10, 
-        defaultMaxSlotsB: 10,
+        defaultMaxSlotsB: 10, 
         minDaysForScheduling: 2, 
         enableEmailNotifications: false, 
         enableSmsNotifications: false,
@@ -202,7 +202,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         defaultExamAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
         defaultExamAddressLink: 'https://maps.google.com'
       };
-      return getLocal(STORAGE_KEYS.SETTINGS, def);
+      
+      const localSettings = getLocal(STORAGE_KEYS.SETTINGS, def);
+
+      // AUTO-HEALING: Se estiver rodando offline/mock e o template estiver corrompido,
+      // força a restauração do padrão limpo imediatamente.
+      if (localSettings.whatsappMessageTemplate && (localSettings.whatsappMessageTemplate.includes('') || localSettings.whatsappMessageTemplate.includes('\uFFFD'))) {
+          console.warn("MOCK DATA: Corrupção detectada no LocalStorage. Restaurando template padrão automaticamente.");
+          localSettings.whatsappMessageTemplate = def.whatsappMessageTemplate;
+          setLocal(STORAGE_KEYS.SETTINGS, localSettings);
+      }
+
+      return localSettings;
   }),
   updateSettings: async (newSettings: SystemSettings): Promise<SystemSettings> => fetchOrMock('settings', { method: 'PUT', body: JSON.stringify(newSettings) }, () => {
       const current = getLocal(STORAGE_KEYS.SETTINGS, {});

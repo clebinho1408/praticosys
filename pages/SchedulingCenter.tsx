@@ -95,19 +95,17 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   };
 
   useEffect(() => { refreshData(); }, [type]);
-console.log("TEMPLATE PURO:", currentTemplate);
+
   const injectEmojis = (text: string) => {
-    // USO DE UNICODE ESCAPES PARA GARANTIR QUE NÃO HAJA CORRUPÇÃO NO CÓDIGO FONTE
-    // O sistema troca a TAG pelo EMOJI REAL antes de gerar o link
     const emojiMap: Record<string, string> = {
       '[WAVE]': '\uD83D\uDC4B',       // 👋
-      '[SMILE]': '\uD83D\uDE04',      // 😄 (Sorriso largo)
+      '[SMILE]': '\uD83D\uDE04',      // 😄
       '[CAR]': '\uD83D\uDE97',        // 🚗
       '[CALENDAR]': '\uD83D\uDCC5',   // 📅
       '[CLOCK]': '\u23F0',            // ⏰
       '[MAP]': '\uD83D\uDCCD',        // 📍
       '[WARNING]': '\u26A0\uFE0F',    // ⚠️
-      '[ID]': '\uD83E\uAAAA',         // 🪪 (Identidade/CNH)
+      '[ID]': '\uD83E\uAAAA',         // 🪪
       '[CAR_FRONT]': '\uD83D\uDE98',  // 🚘
       '[CHECK]': '\u2705',            // ✅
       '[HOURGLASS]': '\u23F3',        // ⏳
@@ -118,12 +116,10 @@ console.log("TEMPLATE PURO:", currentTemplate);
     if (!text) return '';
     let result = String(text);
     
-    // LIMPEZA CIRÚRGICA: Remove caracteres corrompidos antigos se existirem
+    // Remove caracteres corrompidos residuais se existirem (Fallback extra)
     result = result.replace(/\uFFFD/g, ''); 
 
-    // Substitui as tags de texto pelos emojis reais
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
-      // Usa split/join para substituir todas as ocorrências de forma segura
       result = result.split(tag).join(emoji);
     });
 
@@ -133,19 +129,35 @@ console.log("TEMPLATE PURO:", currentTemplate);
   const handleWhatsApp = (req: ExamRequest) => {
     if (!selectedSchedule) return;
 
-    // Garante configurações padrão caso o carregamento tenha falhado
     const safeSettings = settings || {
         whatsappMessageTemplate: '',
         agencyName: 'Detran',
         defaultExamAddress: ''
     };
     
-    // PEGA O TEXTO DO BANCO DE DADOS
     let currentTemplate = safeSettings.whatsappMessageTemplate;
 
-    // Se vier vazio do banco, usa um fallback básico
-    if (!currentTemplate || !currentTemplate.trim()) {
-        currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]\n\nAqui é do {AGENCIA}. Confirmamos sua prova para *{DATA}* às *{HORA}*.`;
+    // DETECÇÃO DE CORRUPÇÃO: Se o texto contiver o caractere  (\uFFFD) ou estiver vazio,
+    // usamos forçosamente o template padrão limpo para garantir que os emojis funcionem.
+    const isCorrupted = currentTemplate && currentTemplate.includes('\uFFFD');
+
+    if (!currentTemplate || !currentTemplate.trim() || isCorrupted) {
+        currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
+
+Aqui é do {AGENCIA} – Setor CNH.
+Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:
+
+[CALENDAR] *{DATA}*
+[CLOCK] *{HORA}*
+[MAP] *{ENDERECO}*
+
+[WARNING] Não esqueça:
+[ID] _*Documento com foto (válido)*_
+[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
+
+[CHECK] *Posso confirmar sua presença?*
+
+[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
     }
     
     const replacements: Record<string, string> = {
@@ -159,12 +171,10 @@ console.log("TEMPLATE PURO:", currentTemplate);
 
     let finalMessage = currentTemplate;
     
-    // 1. Substitui variáveis do sistema
     Object.entries(replacements).forEach(([tag, value]) => {
       finalMessage = finalMessage.split(tag).join(value || '');
     });
     
-    // 2. Injeta os emojis via Unicode
     finalMessage = injectEmojis(finalMessage);
     
     const rawPhone = req.phone || '';
@@ -177,23 +187,14 @@ console.log("TEMPLATE PURO:", currentTemplate);
 
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // 3. Encode Seguro para URL
     let encodedMessage = '';
     try {
         encodedMessage = encodeURIComponent(finalMessage);
     } catch (e) {
-        console.warn("Erro de encoding detectado. Tentando sanitizar...");
-        // Remove Lone Surrogates que causam o crash do encodeURIComponent
         const sanitized = finalMessage.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
-        try {
-            encodedMessage = encodeURIComponent(sanitized);
-        } catch (e2) {
-             alert("Erro crítico ao gerar link: O texto contém caracteres inválidos que não puderam ser processados.");
-             return;
-        }
+        encodedMessage = encodeURIComponent(sanitized);
     }
     
-    // ALTERAÇÃO: Usa o formato wa.me conforme solicitado
     const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
