@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, Info, RotateCcw } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, Info, RotateCcw, AlertTriangle } from 'lucide-react';
 
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
@@ -81,6 +81,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
+  const hasCorruptionError = settings?.whatsappMessageTemplate?.includes('') || settings?.whatsappMessageTemplate?.includes('\uFFFD');
+
   if (loading || !settings) {
     return <div className="p-8 text-center text-gray-500">Carregando configurações...</div>;
   }
@@ -147,6 +149,16 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
             {activeTab === 'COMMUNICATION' && (
                 <div className="space-y-8 animate-fadeIn">
+                    {hasCorruptionError && (
+                         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded">
+                            <div className="flex items-center">
+                                <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
+                                <h3 className="text-red-800 font-bold text-sm">Problema de Caracteres Detectado!</h3>
+                            </div>
+                            <p className="text-red-700 text-xs mt-1">Sua mensagem atual contém o caractere de erro (). Isso fará com que o link do WhatsApp falhe. Por favor, clique no botão "RESTAURAR" abaixo imediatamente.</p>
+                         </div>
+                    )}
+
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-blue-600" /> Endereço Padrão do Exame
@@ -174,7 +186,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             <button 
                                 type="button" 
                                 onClick={handleRestoreDefaultMessage}
-                                className="flex items-center gap-1 text-[10px] font-black text-red-600 border border-red-200 px-2 py-1 rounded bg-red-50 hover:bg-red-100"
+                                className={`flex items-center gap-1 text-[10px] font-black border px-2 py-1 rounded hover:opacity-80 ${hasCorruptionError ? 'bg-red-600 text-white border-red-600 animate-pulse' : 'text-red-600 border-red-200 bg-red-50 hover:bg-red-100'}`}
                             >
                                 <RotateCcw className="h-3 w-3" /> CORRIGIR E RESTAURAR PADRÃO
                             </button>
@@ -185,7 +197,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 rows={8} 
                                 value={settings.whatsappMessageTemplate} 
                                 onChange={handleChange} 
-                                className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
+                                className={`w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed ${hasCorruptionError ? 'border-red-300 ring-2 ring-red-100' : ''}`} 
                             />
                             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                                 <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">

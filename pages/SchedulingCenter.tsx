@@ -112,12 +112,13 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     };
 
     let result = text;
-    // Primeiro removemos qualquer caractere de erro (Replacement Character) que venha do banco
+    
+    // LIMPEZA AGRESSIVA DE CARACTERES CORROMPIDOS
+    // Remove especificamente o (U+FFFD) e qualquer sequência estranha comum
     result = result.replace(/\uFFFD/g, '');
 
-    // Substitui as tags de texto pelos emojis reais apenas na hora de montar a URL
+    // Substitui as tags de texto pelos emojis reais
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
-      // split/join é usado como replaceAll para compatibilidade
       result = result.split(tag).join(emoji);
     });
 
@@ -140,18 +141,18 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
 
     let finalMessage = template;
     
-    // Substitui variáveis do sistema
+    // 1. Substitui variáveis do sistema
     Object.entries(replacements).forEach(([tag, value]) => {
       finalMessage = finalMessage.split(tag).join(value);
     });
     
-    // Injeta os emojis reais e limpa caracteres corrompidos
+    // 2. Injeta os emojis reais E LIMPA O 
     finalMessage = injectEmojis(finalMessage);
     
     const phoneDigits = req.phone.replace(/\D/g, '');
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
-    // Força encodeURIComponent para garantir que os emojis e acentos sejam convertidos para URL-safe strings
+    // 3. Encode final para URL
     const whatsappUrl = `https://wa.me/${finalPhone}?text=${encodeURIComponent(finalMessage)}`;
     window.open(whatsappUrl, '_blank');
   };
