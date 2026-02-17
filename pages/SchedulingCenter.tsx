@@ -112,7 +112,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '[HOURGLASS]': '\u23F3'         // ⏳
     };
 
-    let result = text || '';
+    if (!text) return '';
+    let result = String(text);
     
     // LIMPEZA CIRÚRGICA:
     // Removemos apenas o caractere unicode de erro (\uFFFD)
@@ -128,10 +129,17 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   };
 
   const handleWhatsApp = (req: ExamRequest) => {
-    if (!settings || !selectedSchedule) return;
+    if (!selectedSchedule) return;
+
+    // Garante configurações padrão caso o carregamento tenha falhado
+    const safeSettings = settings || {
+        whatsappMessageTemplate: '',
+        agencyName: 'Detran',
+        defaultExamAddress: ''
+    };
     
     // PEGA O TEXTO DO BANCO DE DADOS (Mesmo que tenha caracteres estranhos, vamos limpar depois)
-    let currentTemplate = settings.whatsappMessageTemplate;
+    let currentTemplate = safeSettings.whatsappMessageTemplate;
 
     // Se por algum motivo vier vazio do banco, usa um fallback básico
     if (!currentTemplate || !currentTemplate.trim()) {
@@ -143,21 +151,28 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
       '{DATA}': formatDateDisplay(selectedSchedule.date),
       '{HORA}': selectedSchedule.time,
-      '{ENDERECO}': settings.defaultExamAddress || '',
-      '{AGENCIA}': settings.agencyName || 'Detran'
+      '{ENDERECO}': safeSettings.defaultExamAddress || '',
+      '{AGENCIA}': safeSettings.agencyName || 'Detran'
     };
 
     let finalMessage = currentTemplate;
     
     // 1. Substitui variáveis do sistema
     Object.entries(replacements).forEach(([tag, value]) => {
-      finalMessage = finalMessage.split(tag).join(value);
+      finalMessage = finalMessage.split(tag).join(value || '');
     });
     
     // 2. Injeta os emojis via Unicode e limpa sujeira
     finalMessage = injectEmojis(finalMessage);
     
-    const phoneDigits = req.phone.replace(/\D/g, '');
+    const rawPhone = req.phone || '';
+    const phoneDigits = rawPhone.replace(/\D/g, '');
+    
+    if (!phoneDigits) {
+        alert('Este candidato não possui um número de telefone válido cadastrado.');
+        return;
+    }
+
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
     
     // 3. Encode final para URL
