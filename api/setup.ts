@@ -124,8 +124,10 @@ export default async function handler(req: any, res: any) {
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`,
 
-      // Garantir colunas extras em instructors
-      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS category text`
+      // Garantir colunas extras em instructors (FIX: Adicionado plate e cpf)
+      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS category text`,
+      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS plate text`,
+      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS cpf text`
     ];
 
     // Executa criação de tabelas
@@ -140,7 +142,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({ 
       success: true, 
-      message: 'Tabelas criadas e sincronizadas com sucesso! A tabela de veículos agora deve estar ativa.' 
+      message: 'Tabelas criadas e sincronizadas com sucesso! Estrutura do banco atualizada.' 
     });
   } catch (error: any) {
     console.error("[Setup] Erro crítico:", error);

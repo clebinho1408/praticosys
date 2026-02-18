@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Info, Link as LinkIcon } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Info, Link as LinkIcon, Database, RefreshCw } from 'lucide-react';
 
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
@@ -10,6 +10,7 @@ const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [repairing, setRepairing] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +62,25 @@ const Settings: React.FC = () => {
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
+  const handleRepairDatabase = async () => {
+      if (!confirm("Isso tentará criar tabelas ou colunas faltantes no banco de dados. Deseja continuar?")) return;
+      
+      setRepairing(true);
+      try {
+          const res = await fetch('/api/setup', { method: 'POST' });
+          const data = await res.json();
+          if (res.ok) {
+              alert(`Sucesso: ${data.message}`);
+          } else {
+              alert(`Erro: ${data.details || 'Falha desconhecida'}`);
+          }
+      } catch (e) {
+          alert("Erro ao conectar com o servidor.");
+      } finally {
+          setRepairing(false);
+      }
+  };
+
   if (loading || !settings) {
     return <div className="p-8 text-center text-gray-500">Carregando configurações...</div>;
   }
@@ -72,6 +92,16 @@ const Settings: React.FC = () => {
           <SettingsIcon className="h-6 w-6 text-gray-600" />
           Configurações do Sistema
         </h2>
+        
+        <button 
+            type="button" 
+            onClick={handleRepairDatabase} 
+            disabled={repairing}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-md text-xs font-bold hover:bg-slate-700 disabled:opacity-50"
+        >
+            {repairing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+            {repairing ? 'Reparando...' : 'Reparar Banco de Dados'}
+        </button>
       </div>
 
       {successMsg && (
