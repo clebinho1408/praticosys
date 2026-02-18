@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
 import { ExamRequest, ExamStatus, ExamType, User, UserRole, RequestSource, ExamResult, ExamResultEntry, Instructor } from '../types';
-import { Search, Calendar, Plus, UserPlus, Save, CheckSquare, X, User as UserIcon, Settings as SettingsIcon, History, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, AlertTriangle, Filter, Edit, Gavel } from 'lucide-react';
+import { Search, Calendar, Plus, UserPlus, Save, CheckSquare, X, User as UserIcon, Settings as SettingsIcon, History, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, AlertTriangle, Filter, Edit, Gavel, Car, Bike } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
 interface RequestManagerProps {
@@ -77,6 +78,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       message: '',
       type: 'error'
   });
+
+  // Estado auxiliar para a segunda placa no caso de categoria AB
+  // Se for AB: newRequestData.vehiclePlate será a Moto, e secondaryPlate será o Carro.
+  const [secondaryPlate, setSecondaryPlate] = useState('');
 
   // Create/Edit Request Form State
   const [newRequestData, setNewRequestData] = useState({
@@ -186,6 +191,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   };
 
   const openCreateModal = (req?: ExamRequest) => {
+      setSecondaryPlate(''); // Reset secondary plate
       if (req) {
           setNewRequestData({
               id: req.id,
@@ -245,14 +251,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
           return;
       }
 
+      // Validação Básica
       if (!newRequestData.studentName.trim() || 
           !newRequestData.phone.trim() || 
           !newRequestData.cpf.trim() || 
-          !newRequestData.intendedCategory || // Validação de categoria obrigatória
-          !newRequestData.instructor.trim() ||
-          !newRequestData.vehiclePlate.trim()) {
-          showAlert("Campos Obrigatórios", "Preencha todos os campos marcados com (*). Categoria, Instrutor e Placa são obrigatórios.");
+          !newRequestData.intendedCategory || 
+          !newRequestData.instructor.trim()) {
+          showAlert("Campos Obrigatórios", "Preencha os campos obrigatórios: Nome, CPF, Telefone, Categoria e Instrutor.");
           return;
+      }
+
+      // Validação de Placas
+      if (newRequestData.intendedCategory === 'AB') {
+          if (!newRequestData.vehiclePlate || !secondaryPlate) {
+              showAlert("Veículos Obrigatórios", "Para a categoria AB, é necessário selecionar a placa da Moto e do Carro.");
+              return;
+          }
+      } else {
+          if (!newRequestData.vehiclePlate) {
+              showAlert("Veículo Obrigatório", "Selecione o veículo correspondente à categoria.");
+              return;
+          }
       }
 
       const payload = {
@@ -281,8 +300,24 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
          showAlert("Sucesso", "Cadastro atualizado com sucesso!", "success");
       } else {
          if (newRequestData.intendedCategory === 'AB') {
-             await api.createRequest({ ...payload, intendedCategory: 'A', source: RequestSource.SCHOOL, schoolId: user.schoolId, status: initialStatus });
-             await api.createRequest({ ...payload, intendedCategory: 'B', source: RequestSource.SCHOOL, schoolId: user.schoolId, status: initialStatus });
+             // Cria Solicitação Moto (Categoria A)
+             await api.createRequest({ 
+                 ...payload, 
+                 intendedCategory: 'A', 
+                 vehiclePlate: newRequestData.vehiclePlate, // Moto Plate
+                 source: RequestSource.SCHOOL, 
+                 schoolId: user.schoolId, 
+                 status: initialStatus 
+             });
+             // Cria Solicitação Carro (Categoria B)
+             await api.createRequest({ 
+                 ...payload, 
+                 intendedCategory: 'B', 
+                 vehiclePlate: secondaryPlate, // Car Plate
+                 source: RequestSource.SCHOOL, 
+                 schoolId: user.schoolId, 
+                 status: initialStatus 
+             });
              showAlert("Sucesso", "Cadastro AB realizado! Foram criadas duas solicitações separadas (A e B).", "success");
          } else {
              await api.createRequest({ ...payload, source: RequestSource.SCHOOL, schoolId: user.schoolId, status: initialStatus });
@@ -292,7 +327,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
       setIsCreateModalOpen(false);
       await fetchData();
-      // Auto-abre o card de aguardando para mostrar o novo cadastro
       setOpenSections({ [initialStatus]: true });
       
     } catch (error) {
@@ -315,18 +349,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   
   const handleInstructorSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
       const instructorName = e.target.value;
-      const selectedInstructor = instructors.find(i => i.name === instructorName);
-      
+      // Ao mudar instrutor, limpa as placas selecionadas
       setNewRequestData(prev => ({ 
           ...prev, 
           instructor: instructorName,
-          vehiclePlate: selectedInstructor ? selectedInstructor.plate : prev.vehiclePlate
+          vehiclePlate: '' 
       }));
-  };
-
-  const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z0-9]/g, "");
-      setNewRequestData(prev => ({ ...prev, vehiclePlate: val }));
+      setSecondaryPlate('');
   };
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -338,6 +367,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       let raw = e.target.value.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/[^A-Z]/g, "");
       const spaced = raw.split('').join(' ');
       setNewRequestData(prev => ({ ...prev, cnhRestriction: spaced }));
+  };
+
+  // --- Helpers for Dynamic Vehicles ---
+  const getSelectedInstructorVehicles = () => {
+      const inst = instructors.find(i => i.name === newRequestData.instructor);
+      if (!inst || !inst.vehicles) return { cars: [], motos: [] };
+      return {
+          cars: inst.vehicles.filter(v => v.type === 'CAR' && v.active),
+          motos: inst.vehicles.filter(v => v.type === 'MOTO' && v.active)
+      };
   };
 
   const statusGroups = [
@@ -648,7 +687,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-600">Categoria Pretendida <span className="text-red-500">*</span></label>
-                                    <select required className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" value={newRequestData.intendedCategory} onChange={e => setNewRequestData({...newRequestData, intendedCategory: e.target.value})}>
+                                    <select 
+                                        required 
+                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
+                                        value={newRequestData.intendedCategory} 
+                                        onChange={e => {
+                                            setNewRequestData({...newRequestData, intendedCategory: e.target.value, vehiclePlate: ''});
+                                            setSecondaryPlate('');
+                                        }}
+                                    >
                                         <option value="">Selecione...</option>
                                         <option value="A">A (Moto)</option>
                                         <option value="B">B (Carro)</option>
@@ -666,7 +713,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     />
                                 </div>
                                 
-                                <div className="md:col-span-2">
+                                <div className="md:col-span-3">
                                     <label className="block text-xs font-medium text-gray-600">Instrutor <span className="text-red-500">*</span></label>
                                     <select 
                                         required 
@@ -681,17 +728,88 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     </select>
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-600">Placa do Veículo <span className="text-red-500">*</span></label>
-                                    <input 
-                                        type="text"
-                                        required
-                                        placeholder="ABC1D23" 
-                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900" 
-                                        value={newRequestData.vehiclePlate} 
-                                        onChange={handlePlateChange} 
-                                    />
-                                </div>
+                                {/* SELEÇÃO DE VEÍCULOS DINÂMICA */}
+                                {newRequestData.instructor && (
+                                    <>
+                                        {/* Caso AB: Exibe 2 selects (Moto e Carro) */}
+                                        {newRequestData.intendedCategory === 'AB' && (
+                                            <>
+                                                <div className="md:col-span-1">
+                                                    <label className="block text-xs font-medium text-gray-600 flex items-center gap-1"><Bike className="h-3 w-3"/> Placa Moto (Cat. A) <span className="text-red-500">*</span></label>
+                                                    <select 
+                                                        required 
+                                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900"
+                                                        value={newRequestData.vehiclePlate}
+                                                        onChange={e => setNewRequestData({...newRequestData, vehiclePlate: e.target.value})}
+                                                    >
+                                                        <option value="">Selecione a Moto...</option>
+                                                        {getSelectedInstructorVehicles().motos.map(v => (
+                                                            <option key={v.id} value={v.plate}>{v.brand} {v.model} ({v.plate})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="md:col-span-1">
+                                                    <label className="block text-xs font-medium text-gray-600 flex items-center gap-1"><Car className="h-3 w-3"/> Placa Carro (Cat. B) <span className="text-red-500">*</span></label>
+                                                    <select 
+                                                        required 
+                                                        className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900"
+                                                        value={secondaryPlate}
+                                                        onChange={e => setSecondaryPlate(e.target.value)}
+                                                    >
+                                                        <option value="">Selecione o Carro...</option>
+                                                        {getSelectedInstructorVehicles().cars.map(v => (
+                                                            <option key={v.id} value={v.plate}>{v.brand} {v.model} ({v.plate})</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        {/* Caso A: Exibe 1 select (Moto) */}
+                                        {newRequestData.intendedCategory === 'A' && (
+                                            <div className="md:col-span-2">
+                                                <label className="block text-xs font-medium text-gray-600 flex items-center gap-1"><Bike className="h-3 w-3"/> Placa Moto <span className="text-red-500">*</span></label>
+                                                <select 
+                                                    required 
+                                                    className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900"
+                                                    value={newRequestData.vehiclePlate}
+                                                    onChange={e => setNewRequestData({...newRequestData, vehiclePlate: e.target.value})}
+                                                >
+                                                    <option value="">Selecione a Moto...</option>
+                                                    {getSelectedInstructorVehicles().motos.map(v => (
+                                                        <option key={v.id} value={v.plate}>{v.brand} {v.model} ({v.plate})</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        {/* Caso B: Exibe 1 select (Carro) */}
+                                        {newRequestData.intendedCategory === 'B' && (
+                                            <div className="md:col-span-2">
+                                                <label className="block text-xs font-medium text-gray-600 flex items-center gap-1"><Car className="h-3 w-3"/> Placa Carro <span className="text-red-500">*</span></label>
+                                                <select 
+                                                    required 
+                                                    className="mt-1 w-full border rounded-md p-2 bg-white text-gray-900"
+                                                    value={newRequestData.vehiclePlate}
+                                                    onChange={e => setNewRequestData({...newRequestData, vehiclePlate: e.target.value})}
+                                                >
+                                                    <option value="">Selecione o Carro...</option>
+                                                    {getSelectedInstructorVehicles().cars.map(v => (
+                                                        <option key={v.id} value={v.plate}>{v.brand} {v.model} ({v.plate})</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Caso o instrutor não tenha veículos cadastrados na categoria selecionada */}
+                                        {((newRequestData.intendedCategory === 'B' && getSelectedInstructorVehicles().cars.length === 0) ||
+                                          (newRequestData.intendedCategory === 'A' && getSelectedInstructorVehicles().motos.length === 0)) && (
+                                            <div className="col-span-3 text-red-500 text-xs mt-1">
+                                                Atenção: Este instrutor não possui veículos cadastrados para a categoria selecionada.
+                                            </div>
+                                        )}
+                                    </>
+                                )}
 
                                 <div className="col-span-3 pt-4 border-t mt-2">
                                     <label className="block text-xs font-medium text-gray-600 mb-2">Requisitos</label>
