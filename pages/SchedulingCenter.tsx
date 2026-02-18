@@ -159,18 +159,14 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 [HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
     }
     
-    // Concatena o endereço com o link (se houver)
-    let addressDisplay = safeSettings.defaultExamAddress || '';
-    if (safeSettings.defaultExamAddressLink) {
-        addressDisplay += `\n${safeSettings.defaultExamAddressLink}`;
-    }
-
+    // Agora o endereço e a localização são independentes
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
       '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
       '{DATA}': formatDateDisplay(selectedSchedule.date),
       '{HORA}': selectedSchedule.time,
-      '{ENDERECO}': addressDisplay,
+      '{ENDERECO}': safeSettings.defaultExamAddress || '',
+      '{LOCALIZACAO}': safeSettings.defaultExamAddressLink || '',
       '{AGENCIA}': safeSettings.agencyName || 'Detran'
     };
 

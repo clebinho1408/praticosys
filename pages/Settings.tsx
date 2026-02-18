@@ -182,7 +182,8 @@ const Settings: React.FC = () => {
                                         { tag: '{DATA}', desc: 'Data' },
                                         { tag: '{HORA}', desc: 'Hora' },
                                         { tag: '{AGENCIA}', desc: 'Agência' },
-                                        { tag: '{ENDERECO}', desc: 'Local' }
+                                        { tag: '{ENDERECO}', desc: 'Local' },
+                                        { tag: '{LOCALIZACAO}', desc: 'Link Maps' }
                                     ].map(item => (
                                         <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
