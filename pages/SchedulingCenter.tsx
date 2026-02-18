@@ -134,7 +134,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     const safeSettings = settings || {
         whatsappMessageTemplate: '',
         agencyName: 'Detran',
-        defaultExamAddress: ''
+        defaultExamAddress: '',
+        defaultExamAddressLink: ''
     };
     
     let currentTemplate = safeSettings.whatsappMessageTemplate || '';
@@ -158,12 +159,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 [HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
     }
     
+    // Concatena o endereço com o link (se houver)
+    let addressDisplay = safeSettings.defaultExamAddress || '';
+    if (safeSettings.defaultExamAddressLink) {
+        addressDisplay += `\n${safeSettings.defaultExamAddressLink}`;
+    }
+
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
       '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
       '{DATA}': formatDateDisplay(selectedSchedule.date),
       '{HORA}': selectedSchedule.time,
-      '{ENDERECO}': safeSettings.defaultExamAddress || '',
+      '{ENDERECO}': addressDisplay,
       '{AGENCIA}': safeSettings.agencyName || 'Detran'
     };
 

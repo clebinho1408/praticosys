@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Info } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Info, Link as LinkIcon } from 'lucide-react';
 
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
@@ -142,6 +142,20 @@ const Settings: React.FC = () => {
                                     placeholder="Ex: Av. Principal, 123 - Centro"
                                     className="w-full border p-2 rounded bg-white text-gray-900" 
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Localização (Link Google Maps)</label>
+                                <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <input 
+                                        type="text" 
+                                        name="defaultExamAddressLink" 
+                                        value={settings.defaultExamAddressLink || ''} 
+                                        onChange={handleChange} 
+                                        placeholder="Ex: https://maps.app.goo.gl/..."
+                                        className="w-full border p-2 pl-10 rounded bg-white text-gray-900" 
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
