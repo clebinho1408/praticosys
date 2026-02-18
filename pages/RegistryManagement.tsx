@@ -3214,11 +3214,6 @@ const InstructorsManager: React.FC = () => {
                                 <option value="B">B (Apenas Carro)</option>
                             </select>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium">Placa Principal (Opcional/Legacy)</label>
-                            <input className="w-full border rounded p-2 bg-white text-gray-900 font-mono" value={formData.plate} onChange={handleLegacyPlateChange} placeholder="ABC1D23" />
-                            <p className="text-xs text-gray-500 mt-1">Para adicionar múltiplos veículos, use as abas acima.</p>
-                          </div>
                         </>
                     )}
 
