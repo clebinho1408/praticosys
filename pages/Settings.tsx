@@ -161,33 +161,7 @@ const Settings: React.FC = () => {
                                 className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
                             />
                             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">
-                                    <Info className="h-3 w-3" /> Como usar Emojis sem erro
-                                </h4>
-                                <p className="text-[10px] text-gray-600 mb-4">
-                                    Para evitar que os emojis apareçam como <strong></strong>, não cole emojis diretamente. Use as tags abaixo. O sistema as converterá no momento do envio.
-                                </p>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                    {[
-                                        { tag: '[WAVE]', desc: '\uD83D\uDC4B' },
-                                        { tag: '[SMILE]', desc: '\uD83D\uDE04' },
-                                        { tag: '[CAR]', desc: '\uD83D\uDE97' },
-                                        { tag: '[CALENDAR]', desc: '\uD83D\uDCC5' },
-                                        { tag: '[CLOCK]', desc: '\u23F0' },
-                                        { tag: '[MAP]', desc: '\uD83D\uDCCD' },
-                                        { tag: '[WARNING]', desc: '\u26A0\uFE0F' },
-                                        { tag: '[ID]', desc: '\uD83E\uDEAA' },
-                                        { tag: '[CAR_FRONT]', desc: '\uD83D\uDE98' },
-                                        { tag: '[CHECK]', desc: '\u2705' },
-                                        { tag: '[HOURGLASS]', desc: '\u23F3' },
-                                    ].map(item => (
-                                        <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" title="Clique para copiar" onClick={() => navigator.clipboard.writeText(item.tag)}>
-                                            <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
-                                            <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {[
                                         { tag: '{CANDIDATO}', desc: 'Nome' },
                                         { tag: '{CATEGORIA}', desc: 'Categoria' },
