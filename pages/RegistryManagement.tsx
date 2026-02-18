@@ -1,7 +1,8 @@
+
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
-import { User, UserRole, DrivingSchool, Examiner, Instructor } from '../types';
-import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, X, Save, Lock, RotateCcw, Car } from 'lucide-react';
+import { User, UserRole, DrivingSchool, Examiner, Instructor, Vehicle } from '../types';
+import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, X, Save, Lock, RotateCcw, Car, User as UserIcon, Bike, CheckCircle2, XCircle } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
@@ -613,7 +614,29 @@ const InstructorsManager: React.FC = () => {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Instructor | null>(null);
-  const [formData, setFormData] = useState({ name: '', cpf: '', phone: '', plate: '' });
+  
+  // State for Form Tabs
+  const [modalTab, setModalTab] = useState<'DATA' | 'CARS' | 'MOTOS'>('DATA');
+
+  // Form Data including Vehicles
+  const [formData, setFormData] = useState<{
+      name: string;
+      cpf: string;
+      phone: string;
+      plate: string;
+      category: string;
+      vehicles: Vehicle[];
+  }>({ 
+      name: '', 
+      cpf: '', 
+      phone: '', 
+      plate: '', 
+      category: 'AB',
+      vehicles: []
+  });
+
+  // State for adding new Vehicle inside Modal
+  const [newVehicle, setNewVehicle] = useState({ brand: '', model: '', plate: '', active: true });
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -638,7 +661,27 @@ const InstructorsManager: React.FC = () => {
 
   const openModal = (inst?: Instructor) => {
     setEditing(inst || null);
-    setFormData(inst ? { name: inst.name, cpf: inst.cpf, phone: inst.phone, plate: inst.plate } : { name: '', cpf: '', phone: '', plate: '' });
+    if (inst) {
+        setFormData({
+            name: inst.name,
+            cpf: inst.cpf,
+            phone: inst.phone,
+            plate: inst.plate, // Legacy Plate
+            category: inst.category || 'AB',
+            vehicles: inst.vehicles || []
+        });
+    } else {
+        setFormData({
+            name: '',
+            cpf: '',
+            phone: '',
+            plate: '',
+            category: 'AB',
+            vehicles: []
+        });
+    }
+    setModalTab('DATA');
+    setNewVehicle({ brand: '', model: '', plate: '', active: true });
     setIsModalOpen(true);
   };
 
@@ -654,7 +697,7 @@ const InstructorsManager: React.FC = () => {
       setConfirmState({
           isOpen: true,
           title: 'Remover Instrutor',
-          message: 'Tem certeza que deseja remover este instrutor?',
+          message: 'Tem certeza que deseja remover este instrutor? Todos os veículos vinculados também serão removidos.',
           isDestructive: true,
           onConfirm: async () => {
               await api.deleteInstructor(id);
@@ -673,9 +716,48 @@ const InstructorsManager: React.FC = () => {
       setFormData({...formData, cpf: val});
   };
 
-  const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLegacyPlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
       setFormData({...formData, plate: val});
+  };
+
+  // --- Vehicle Management Logic ---
+  const handleAddVehicle = (type: 'CAR' | 'MOTO') => {
+      if (!newVehicle.brand || !newVehicle.model || !newVehicle.plate) {
+          alert('Preencha marca, modelo e placa.');
+          return;
+      }
+
+      const vehicle: Vehicle = {
+          id: `temp_${Date.now()}`, // ID temporário
+          instructorId: editing?.id || '',
+          type: type,
+          brand: newVehicle.brand.toUpperCase(),
+          model: newVehicle.model.toUpperCase(),
+          plate: newVehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+          active: newVehicle.active
+      };
+
+      setFormData(prev => ({
+          ...prev,
+          vehicles: [...prev.vehicles, vehicle]
+      }));
+
+      setNewVehicle({ brand: '', model: '', plate: '', active: true });
+  };
+
+  const handleRemoveVehicle = (id: string) => {
+      setFormData(prev => ({
+          ...prev,
+          vehicles: prev.vehicles.filter(v => v.id !== id)
+      }));
+  };
+
+  const toggleVehicleStatus = (id: string) => {
+      setFormData(prev => ({
+          ...prev,
+          vehicles: prev.vehicles.map(v => v.id === id ? { ...v, active: !v.active } : v)
+      }));
   };
   
   // Filter Logic
@@ -718,7 +800,8 @@ const InstructorsManager: React.FC = () => {
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">CPF</th>
               <th className="px-4 py-3">Telefone</th>
-              <th className="px-4 py-3">Placa</th>
+              <th className="px-4 py-3">Categoria</th>
+              <th className="px-4 py-3">Veículos</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -729,7 +812,22 @@ const InstructorsManager: React.FC = () => {
                 <td className="px-4 py-3 text-gray-500">{inst.cpf}</td>
                 <td className="px-4 py-3 text-gray-500">{inst.phone}</td>
                 <td className="px-4 py-3 text-gray-500">
-                   <span className="font-mono bg-gray-100 px-1.5 py-0.5 rounded border">{inst.plate || '-'}</span>
+                   <span className="font-mono bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 font-bold text-blue-800">{inst.category || 'AB'}</span>
+                </td>
+                <td className="px-4 py-3 text-gray-500 text-xs">
+                   {inst.vehicles && inst.vehicles.length > 0 ? (
+                       <div className="flex flex-col gap-1">
+                           {inst.vehicles.filter(v => v.active).slice(0, 2).map(v => (
+                               <span key={v.id} className="inline-flex items-center gap-1">
+                                   {v.type === 'CAR' ? <Car className="h-3 w-3 text-gray-400" /> : <Bike className="h-3 w-3 text-gray-400" />}
+                                   <span className="font-mono">{v.plate}</span>
+                               </span>
+                           ))}
+                           {inst.vehicles.filter(v => v.active).length > 2 && <span className="text-gray-400 italic">+{inst.vehicles.filter(v => v.active).length - 2} mais...</span>}
+                       </div>
+                   ) : (
+                       <span className="text-gray-400">-</span>
+                   )}
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button onClick={() => openModal(inst)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
@@ -738,7 +836,7 @@ const InstructorsManager: React.FC = () => {
               </tr>
             ))}
              {filteredInstructors.length === 0 && (
-                <tr><td colSpan={5} className="p-4 text-center text-gray-500">Nenhum instrutor encontrado.</td></tr>
+                <tr><td colSpan={6} className="p-4 text-center text-gray-500">Nenhum instrutor encontrado.</td></tr>
             )}
           </tbody>
         </table>
@@ -746,30 +844,162 @@ const InstructorsManager: React.FC = () => {
       
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold mb-4">{editing ? 'Editar Instrutor' : 'Novo Instrutor'}</h3>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium">Nome Completo <span className="text-red-500">*</span></label>
-                <input required className="w-full border rounded p-2 bg-white text-gray-900 uppercase" value={formData.name} onChange={handleNameChange} placeholder="NOME DO INSTRUTOR" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">CPF <span className="text-red-500">*</span></label>
-                <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.cpf} onChange={handleCpfChange} placeholder="Apenas números" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Telefone</label>
-                <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(00) 00000-0000" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Placa do Veículo</label>
-                <input className="w-full border rounded p-2 bg-white text-gray-900 font-mono" value={formData.plate} onChange={handlePlateChange} placeholder="ABC1D23" />
-              </div>
-              <div className="flex justify-end gap-3 mt-6">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b">
+                <h3 className="text-lg font-bold">{editing ? 'Editar Instrutor' : 'Novo Instrutor'}</h3>
+            </div>
+            
+            {/* Modal Tabs */}
+            <div className="flex bg-gray-50 border-b px-6">
+                <button 
+                    type="button"
+                    onClick={() => setModalTab('DATA')} 
+                    className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'DATA' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                >
+                   <UserIcon className="h-4 w-4" /> Dados Gerais
+                </button>
+                
+                {(formData.category === 'B' || formData.category === 'AB') && (
+                    <button 
+                        type="button"
+                        onClick={() => setModalTab('CARS')} 
+                        className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'CARS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    >
+                       <Car className="h-4 w-4" /> Carros
+                    </button>
+                )}
+
+                {(formData.category === 'A' || formData.category === 'AB') && (
+                    <button 
+                        type="button"
+                        onClick={() => setModalTab('MOTOS')} 
+                        className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'MOTOS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                    >
+                       <Bike className="h-4 w-4" /> Motos
+                    </button>
+                )}
+            </div>
+
+            <div className="p-6 overflow-y-auto flex-1">
+                <form id="instructorForm" onSubmit={handleSave} className="space-y-4">
+                    
+                    {/* TAB: DATA */}
+                    {modalTab === 'DATA' && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium">Nome Completo <span className="text-red-500">*</span></label>
+                            <input required className="w-full border rounded p-2 bg-white text-gray-900 uppercase" value={formData.name} onChange={handleNameChange} placeholder="NOME DO INSTRUTOR" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">CPF <span className="text-red-500">*</span></label>
+                            <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.cpf} onChange={handleCpfChange} placeholder="Apenas números" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">Telefone</label>
+                            <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="(00) 00000-0000" />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">Categoria de Instrução</label>
+                            <select className="w-full border rounded p-2 bg-white text-gray-900" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                                <option value="AB">AB (Carro e Moto)</option>
+                                <option value="A">A (Apenas Moto)</option>
+                                <option value="B">B (Apenas Carro)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium">Placa Principal (Opcional/Legacy)</label>
+                            <input className="w-full border rounded p-2 bg-white text-gray-900 font-mono" value={formData.plate} onChange={handleLegacyPlateChange} placeholder="ABC1D23" />
+                            <p className="text-xs text-gray-500 mt-1">Para adicionar múltiplos veículos, use as abas acima.</p>
+                          </div>
+                        </>
+                    )}
+
+                    {/* TAB: CARS OR MOTOS */}
+                    {(modalTab === 'CARS' || modalTab === 'MOTOS') && (
+                        <div className="space-y-6">
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                                <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase flex items-center gap-2">
+                                    <Plus className="h-4 w-4" /> Adicionar {modalTab === 'CARS' ? 'Carro' : 'Moto'}
+                                </h4>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <input 
+                                        placeholder="Marca" 
+                                        className="border rounded p-2 text-sm bg-white" 
+                                        value={newVehicle.brand}
+                                        onChange={e => setNewVehicle({...newVehicle, brand: e.target.value})}
+                                    />
+                                    <input 
+                                        placeholder="Modelo" 
+                                        className="border rounded p-2 text-sm bg-white" 
+                                        value={newVehicle.model}
+                                        onChange={e => setNewVehicle({...newVehicle, model: e.target.value})}
+                                    />
+                                    <input 
+                                        placeholder="Placa" 
+                                        className="border rounded p-2 text-sm bg-white font-mono uppercase" 
+                                        value={newVehicle.plate}
+                                        onChange={e => setNewVehicle({...newVehicle, plate: e.target.value})}
+                                    />
+                                </div>
+                                <div className="flex justify-between items-center mt-3">
+                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                        <input type="checkbox" checked={newVehicle.active} onChange={e => setNewVehicle({...newVehicle, active: e.target.checked})} />
+                                        Ativo
+                                    </label>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleAddVehicle(modalTab === 'CARS' ? 'CAR' : 'MOTO')}
+                                        className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700"
+                                    >
+                                        Adicionar
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <h4 className="text-xs font-bold text-gray-500 uppercase">Veículos Cadastrados ({modalTab === 'CARS' ? 'Carros' : 'Motos'})</h4>
+                                {formData.vehicles.filter(v => v.type === (modalTab === 'CARS' ? 'CAR' : 'MOTO')).length === 0 && (
+                                    <div className="text-center py-4 text-gray-400 text-sm border-2 border-dashed rounded-lg">
+                                        Nenhum veículo cadastrado.
+                                    </div>
+                                )}
+                                {formData.vehicles.filter(v => v.type === (modalTab === 'CARS' ? 'CAR' : 'MOTO')).map((vehicle) => (
+                                    <div key={vehicle.id} className={`flex items-center justify-between p-3 rounded-lg border ${vehicle.active ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+                                        <div>
+                                            <div className="font-bold text-sm text-gray-800">{vehicle.brand} {vehicle.model}</div>
+                                            <div className="text-xs font-mono text-gray-500">{vehicle.plate}</div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => toggleVehicleStatus(vehicle.id)}
+                                                className={`p-1.5 rounded ${vehicle.active ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}
+                                                title={vehicle.active ? 'Desativar' : 'Ativar'}
+                                            >
+                                                {vehicle.active ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleRemoveVehicle(vehicle.id)}
+                                                className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                </form>
+            </div>
+            
+            <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
-              </div>
-            </form>
+                <button type="submit" form="instructorForm" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
+            </div>
+
           </div>
         </div>
       )}

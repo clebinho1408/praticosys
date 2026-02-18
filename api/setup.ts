@@ -15,7 +15,20 @@ export default async function handler(req: any, res: any) {
           name text NOT NULL,
           cpf text,
           phone text,
+          category text,
           plate text,
+          created_at timestamp DEFAULT now()
+      )`,
+
+      // 1.1 VEÍCULOS (Novo)
+      sql`CREATE TABLE IF NOT EXISTS vehicles (
+          id text PRIMARY KEY,
+          instructor_id text NOT NULL,
+          type text NOT NULL,
+          brand text NOT NULL,
+          model text NOT NULL,
+          plate text NOT NULL,
+          active boolean DEFAULT true,
           created_at timestamp DEFAULT now()
       )`,
 
@@ -109,7 +122,10 @@ export default async function handler(req: any, res: any) {
       
       // Garantir colunas extras em users
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`,
-      sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`
+      sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`,
+
+      // Garantir colunas extras em instructors
+      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS category text`
     ];
 
     // Executa criação de tabelas
@@ -124,7 +140,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({ 
       success: true, 
-      message: 'Tabelas criadas e sincronizadas com sucesso! A tabela de instrutores agora deve estar ativa.' 
+      message: 'Tabelas criadas e sincronizadas com sucesso! A tabela de veículos agora deve estar ativa.' 
     });
   } catch (error: any) {
     console.error("[Setup] Erro crítico:", error);

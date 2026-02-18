@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   SUPERVISOR = 'SUPERVISOR',
@@ -49,12 +50,24 @@ export interface Examiner {
   canExamPCD: boolean;
 }
 
+export interface Vehicle {
+  id: string;
+  instructorId: string;
+  type: 'CAR' | 'MOTO';
+  brand: string;
+  model: string;
+  plate: string;
+  active: boolean;
+}
+
 export interface Instructor {
   id: string;
   name: string;
   cpf: string;
   phone: string;
-  plate: string;
+  category?: string; // New: A, B, AB
+  plate: string; // Legacy/Default plate
+  vehicles?: Vehicle[]; // New: List of vehicles
 }
 
 export interface ExamSchedule {
