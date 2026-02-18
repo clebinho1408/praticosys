@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, Info, RotateCcw, AlertTriangle, Loader2 } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Info } from 'lucide-react';
 
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
@@ -10,7 +10,6 @@ const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [restoring, setRestoring] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,45 +36,6 @@ const Settings: React.FC = () => {
     });
   };
 
-  const handleRestoreDefaultMessage = async () => {
-    if (!settings) return;
-    const confirm = window.confirm("Confirmar a restauração do modelo oficial? Isso corrigirá os erros de emojis e SALVARÁ automaticamente.");
-    if (confirm) {
-      setRestoring(true);
-      const defaultTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
-
-Aqui é do {AGENCIA} – Setor CNH.
-Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:
-
-[CALENDAR] *{DATA}*
-[CLOCK] *{HORA}*
-[MAP] *{ENDERECO}*
-
-[WARNING] Não esqueça:
-[ID] _*Documento com foto (válido)*_
-[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
-
-[CHECK] *Posso confirmar sua presença?*
-
-[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
-      
-      const newSettings = { ...settings, whatsappMessageTemplate: defaultTemplate };
-      
-      try {
-          // Atualiza estado local
-          setSettings(newSettings);
-          // Salva imediatamente no servidor
-          await api.updateSettings(newSettings);
-          setSuccessMsg('Modelo restaurado e salvo com sucesso!');
-          setTimeout(() => setSuccessMsg(''), 4000);
-      } catch (error) {
-          alert("Erro ao salvar o modelo restaurado.");
-      } finally {
-          setRestoring(false);
-      }
-    }
-  };
-
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file && settings) {
@@ -100,8 +60,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     setSuccessMsg('Configurações salvas com sucesso!');
     setTimeout(() => setSuccessMsg(''), 3000);
   };
-
-  const hasCorruptionError = settings?.whatsappMessageTemplate?.includes('') || settings?.whatsappMessageTemplate?.includes('\uFFFD');
 
   if (loading || !settings) {
     return <div className="p-8 text-center text-gray-500">Carregando configurações...</div>;
@@ -169,16 +127,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
             {activeTab === 'COMMUNICATION' && (
                 <div className="space-y-8 animate-fadeIn">
-                    {hasCorruptionError && (
-                         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded">
-                            <div className="flex items-center">
-                                <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
-                                <h3 className="text-red-800 font-bold text-sm">Problema de Caracteres Detectado!</h3>
-                            </div>
-                            <p className="text-red-700 text-xs mt-1">Sua mensagem atual contém o caractere de erro (). Isso fará com que o link do WhatsApp falhe. Por favor, clique no botão "RESTAURAR E SALVAR" abaixo imediatamente.</p>
-                         </div>
-                    )}
-
                     <div className="space-y-4">
                         <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                             <MapPin className="h-4 w-4 text-blue-600" /> Endereço Padrão do Exame
@@ -203,15 +151,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                                 <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp
                             </h3>
-                            <button 
-                                type="button" 
-                                onClick={handleRestoreDefaultMessage}
-                                disabled={restoring}
-                                className={`flex items-center gap-1 text-[10px] font-black border px-3 py-2 rounded hover:opacity-80 transition-all shadow-sm ${hasCorruptionError ? 'bg-red-600 text-white border-red-600 animate-pulse' : 'text-blue-700 border-blue-200 bg-blue-50 hover:bg-blue-100'}`}
-                            >
-                                {restoring ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
-                                {restoring ? 'SALVANDO...' : 'RESTAURAR PADRÃO E SALVAR AGORA'}
-                            </button>
                         </div>
                         <div>
                             <textarea 
@@ -219,7 +158,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 rows={8} 
                                 value={settings.whatsappMessageTemplate} 
                                 onChange={handleChange} 
-                                className={`w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed ${hasCorruptionError ? 'border-red-300 ring-2 ring-red-100' : ''}`} 
+                                className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
                             />
                             <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
                                 <h4 className="text-xs font-black text-blue-800 uppercase mb-2 flex items-center gap-1">
@@ -237,7 +176,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                         { tag: '[CLOCK]', desc: '\u23F0' },
                                         { tag: '[MAP]', desc: '\uD83D\uDCCD' },
                                         { tag: '[WARNING]', desc: '\u26A0\uFE0F' },
-                                        { tag: '[ID]', desc: '\uD83E\uDEAA' }, // CORRIGIDO AQUI TAMBÉM
+                                        { tag: '[ID]', desc: '\uD83E\uDEAA' },
                                         { tag: '[CAR_FRONT]', desc: '\uD83D\uDE98' },
                                         { tag: '[CHECK]', desc: '\u2705' },
                                         { tag: '[HOURGLASS]', desc: '\u23F3' },
