@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/mockData';
 import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult } from '../types';
-import { Plus, Search, Edit, Trash2, X, CheckSquare, Gavel } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon } from 'lucide-react';
 
 const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({ result, status }) => {
   if (status === ExamStatus.WAITING_RESULT) return <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Aguardando</span>;
@@ -25,8 +26,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   
+  // Estado para controlar quais grupos estão expandidos
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+      [ExamStatus.WAITING_SCHEDULING]: true,
+      [ExamStatus.SCHEDULED]: false,
+      [ExamStatus.WAITING_RESULT]: true,
+      [ExamStatus.DONE]: false,
+      [ExamStatus.CANCELLED]: false,
+  });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<ExamRequest | null>(null);
@@ -129,11 +138,30 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     setIsResultModalOpen(true);
   };
 
-  const filteredRequests = requests.filter(r => {
-    const matchesSearch = r.studentName.toLowerCase().includes(searchTerm.toLowerCase()) || r.cpf.includes(searchTerm);
-    const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const toggleGroup = (status: string) => {
+      setExpandedGroups(prev => ({ ...prev, [status]: !prev[status] }));
+  };
+
+  const filteredRequests = requests.filter(r => 
+    r.studentName.toLowerCase().includes(searchTerm.toLowerCase()) || r.cpf.includes(searchTerm)
+  );
+
+  // Group requests by status
+  const groupedRequests = {
+      [ExamStatus.WAITING_SCHEDULING]: filteredRequests.filter(r => r.status === ExamStatus.WAITING_SCHEDULING),
+      [ExamStatus.SCHEDULED]: filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED),
+      [ExamStatus.WAITING_RESULT]: filteredRequests.filter(r => r.status === ExamStatus.WAITING_RESULT),
+      [ExamStatus.DONE]: filteredRequests.filter(r => r.status === ExamStatus.DONE),
+      [ExamStatus.CANCELLED]: filteredRequests.filter(r => r.status === ExamStatus.CANCELLED),
+  };
+
+  const groupConfig = {
+      [ExamStatus.WAITING_SCHEDULING]: { label: 'Aguardando Agendamento', color: 'yellow', icon: Clock },
+      [ExamStatus.SCHEDULED]: { label: 'Agendado', color: 'blue', icon: Calendar },
+      [ExamStatus.WAITING_RESULT]: { label: 'Aguardando Resultado', color: 'purple', icon: AlertOctagon },
+      [ExamStatus.DONE]: { label: 'Realizado', color: 'green', icon: CheckCircle },
+      [ExamStatus.CANCELLED]: { label: 'Cancelado', color: 'red', icon: X },
+  };
 
   if (loading) return <div className="p-8 text-center text-gray-500">Carregando solicitações...</div>;
 
@@ -141,142 +169,180 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     <div className="space-y-6">
        {/* Header and filters */}
        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-         <h2 className="text-2xl font-bold text-gray-800">
-            {typeFilter === ExamType.PCD ? 'Candidatos PCD' : 'Candidatos'}
+         <h2 className="text-xl font-bold text-gray-800 uppercase tracking-wide">
+            GESTÃO DE CANDIDATOS {typeFilter === ExamType.PCD ? '(PCD)' : ''}
          </h2>
          <div className="flex gap-2 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input 
                     type="text" 
-                    placeholder="Buscar nome ou CPF..." 
+                    placeholder="Buscar por nome ou CPF..." 
                     className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900"
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                 />
             </div>
-            <select 
-                className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900"
-                value={statusFilter}
-                onChange={e => setStatusFilter(e.target.value)}
-            >
-                <option value="ALL">Todos Status</option>
-                <option value={ExamStatus.WAITING_SCHEDULING}>Aguardando Agendamento</option>
-                <option value={ExamStatus.SCHEDULED}>Agendado</option>
-                <option value={ExamStatus.WAITING_RESULT}>Aguardando Resultado</option>
-                <option value={ExamStatus.DONE}>Realizado</option>
-                <option value={ExamStatus.CANCELLED}>Cancelado</option>
-            </select>
+            
+            {/* Filtro de Status removido pois agora usamos grupos */}
+            <div className="relative">
+                <button className="border rounded-md px-4 py-2 text-sm bg-white text-gray-900 flex items-center gap-2">
+                    <span className="text-gray-500">Todos os Status</span>
+                </button>
+            </div>
+
             <button 
                 onClick={() => openCreateModal()} 
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium"
             >
-                <Plus className="h-4 w-4" /> Novo
+                <Plus className="h-4 w-4" /> Novo Candidato
             </button>
          </div>
        </div>
 
-       {/* Table */}
-       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-600 border-b">
-               <tr>
-                 <th className="px-6 py-3 font-semibold">Data/Status</th>
-                 <th className="px-6 py-3 font-semibold">Candidato</th>
-                 <th className="px-6 py-3 font-semibold">Cat.</th>
-                 <th className="px-6 py-3 font-semibold">Modalidade</th>
-                 <th className="px-6 py-3 font-semibold">Tentativas</th>
-                 <th className="px-6 py-3 font-semibold text-right">Ações</th>
-               </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-               {filteredRequests.map(req => (
-                 <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 align-middle">
-                        <div className="text-gray-600 text-xs">
-                          {req.createdAt ? new Date(req.createdAt).toLocaleDateString() : '-'}
-                          <div className="mt-1">
-                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                req.status === ExamStatus.SCHEDULED ? 'bg-yellow-100 text-yellow-800' :
-                                req.status === ExamStatus.DONE ? 'bg-green-100 text-green-800' :
-                                req.status === ExamStatus.CANCELLED ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                             }`}>
-                                {req.status === ExamStatus.DONE && req.result ? req.result : req.status}
-                             </span>
-                          </div>
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 cursor-pointer align-middle" onClick={() => openCreateModal(req)}>
-                      <div className="font-medium text-gray-900 hover:text-blue-600 uppercase">
-                          {req.socialName || req.studentName}
-                      </div>
-                      <div className="text-xs text-gray-500">{req.cpf}</div>
-                      {(req.instructor || req.vehiclePlate) && (
-                          <div className="text-[10px] text-gray-400 mt-0.5">
-                             {req.instructor && `Instr: ${req.instructor}`}
-                             {req.vehiclePlate && ` | Placa: ${req.vehiclePlate}`}
-                          </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 align-middle">
-                        <span className="font-mono font-bold bg-gray-100 px-2 py-1 rounded text-gray-700">
-                            {req.intendedCategory || 'B'}
-                        </span>
-                    </td>
-                    <td className="px-6 py-4 align-middle">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${req.examType === ExamType.PCD ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}`}>
-                        {req.examType === ExamType.COMMON ? '1ª Hab.' : req.examType}
-                      </span>
-                    </td>
-                     <td className="px-6 py-4 align-middle">
-                        <span className="text-xs text-gray-500">{(req.examHistory?.length || 0) + (req.result ? 1 : 0)}º Exame</span>
-                    </td>
-                    <td className="px-6 py-4 align-middle text-right">
-                      <div className="flex justify-end items-center space-x-2">
-                        <button onClick={() => openCreateModal(req)} className="text-gray-500 hover:text-blue-600 p-1" title="Editar">
-                            <Edit className="h-4 w-4" />
-                        </button>
+       {/* Grupos Expansíveis (Acordeões) */}
+       <div className="space-y-4">
+           {(Object.keys(groupedRequests) as ExamStatus[]).map(status => {
+               const items = groupedRequests[status];
+               if (items.length === 0 && status !== ExamStatus.WAITING_SCHEDULING) return null; // Esconde grupos vazios exceto o principal
+               
+               const config = groupConfig[status];
+               const isExpanded = expandedGroups[status];
+               const Icon = config.icon;
 
-                        {user.role !== UserRole.SCHOOL && (
-                          <>
-                              {(req.status === ExamStatus.WAITING_SCHEDULING || req.status === ExamStatus.RETEST) && (
-                                  <button onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)} className="text-red-600 hover:text-red-800 p-1" title="Cancelar"><X className="h-4 w-4"/></button>
-                              )}
-                              
-                              {req.status === ExamStatus.SCHEDULED && (
-                                  <button onClick={() => handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)} className="text-blue-600 hover:text-blue-800 p-1" title="Enviar para Aguardando Resultado"><CheckSquare className="h-4 w-4"/></button>
-                              )}
+               // Tailwind colors mapping
+               const bgColors: Record<string, string> = {
+                   yellow: 'bg-orange-50',
+                   blue: 'bg-blue-50',
+                   purple: 'bg-purple-50',
+                   green: 'bg-green-50',
+                   red: 'bg-red-50'
+               };
+               const textColors: Record<string, string> = {
+                   yellow: 'text-orange-700',
+                   blue: 'text-blue-700',
+                   purple: 'text-purple-700',
+                   green: 'text-green-700',
+                   red: 'text-red-700'
+               };
+               const borderColors: Record<string, string> = {
+                   yellow: 'border-l-4 border-l-orange-400',
+                   blue: 'border-l-4 border-l-blue-400',
+                   purple: 'border-l-4 border-l-purple-400',
+                   green: 'border-l-4 border-l-green-400',
+                   red: 'border-l-4 border-l-red-400'
+               };
 
-                              {req.status === ExamStatus.WAITING_RESULT && (
-                                  <button onClick={() => openResultModal(req)} className="text-green-600 hover:text-green-800 border border-green-200 px-2 py-1 rounded text-xs font-medium flex items-center gap-1" title="Lançar Resultado">
-                                      <Gavel className="h-3 w-3" /> Resultado
-                                  </button>
-                              )}
+               return (
+                   <div key={status} className={`bg-white rounded-lg shadow-sm overflow-hidden transition-all ${isExpanded ? 'ring-1 ring-black/5' : ''}`}>
+                       <button 
+                           onClick={() => toggleGroup(status)}
+                           className={`w-full flex items-center justify-between p-4 ${bgColors[config.color]} ${borderColors[config.color]}`}
+                       >
+                           <div className="flex items-center gap-3">
+                               <Icon className={`h-5 w-5 ${textColors[config.color]}`} />
+                               <h3 className={`font-bold text-sm ${textColors[config.color]}`}>{config.label}</h3>
+                               <span className="bg-white px-2 py-0.5 rounded-full text-xs font-bold text-gray-500 shadow-sm">
+                                   {items.length}
+                               </span>
+                           </div>
+                           {isExpanded ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                       </button>
 
-                              {req.status === ExamStatus.DONE && req.result === 'INAPTO' && (
-                                  <button 
-                                      onClick={() => handleUpdateStatus(req.id, ExamStatus.RETEST)} 
-                                      className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded hover:bg-orange-200 border border-orange-200"
-                                  >
-                                      Reteste
-                                  </button>
-                              )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                 </tr>
-               ))}
-               {filteredRequests.length === 0 && (
-                   <tr>
-                       <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
-                           Nenhum candidato encontrado.
-                       </td>
-                   </tr>
-               )}
-            </tbody>
-          </table>
+                       {isExpanded && (
+                           <div className="overflow-x-auto">
+                               <table className="w-full text-sm text-left">
+                                   <thead className="bg-white text-gray-500 border-b">
+                                       <tr>
+                                           <th className="px-6 py-3 font-bold text-xs uppercase">Data Cadastro</th>
+                                           <th className="px-6 py-3 font-bold text-xs uppercase">Candidato</th>
+                                           <th className="px-6 py-3 font-bold text-xs uppercase">Categoria</th>
+                                           <th className="px-6 py-3 font-bold text-xs uppercase">Tipo</th>
+                                           <th className="px-6 py-3 font-bold text-xs uppercase">Histórico</th>
+                                           <th className="px-6 py-3 font-bold text-xs uppercase text-right">Ações</th>
+                                       </tr>
+                                   </thead>
+                                   <tbody className="divide-y divide-gray-50">
+                                       {items.map(req => (
+                                           <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
+                                                   {new Date(req.createdAt).toLocaleString()}
+                                                   {req.result && req.status === ExamStatus.DONE && (
+                                                       <div className="mt-1"><ResultBadge result={req.result as any} status={req.status} /></div>
+                                                   )}
+                                               </td>
+                                               <td className="px-6 py-4 align-middle">
+                                                   <div className="flex flex-col">
+                                                       <span className="font-bold text-gray-800 uppercase">{req.studentName}</span>
+                                                       <span className="text-xs text-gray-500">{req.cpf}</span>
+                                                       <span className="text-[10px] text-gray-400 mt-0.5">
+                                                           Instr: {req.instructor || '-'} | Placa: {req.vehiclePlate || '-'}
+                                                       </span>
+                                                   </div>
+                                               </td>
+                                               <td className="px-6 py-4 align-middle">
+                                                   <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
+                                                       {req.intendedCategory}
+                                                   </span>
+                                               </td>
+                                               <td className="px-6 py-4 align-middle">
+                                                   <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
+                                                       {req.examType === ExamType.COMMON ? '1ª Hab.' : 'PCD'}
+                                                   </span>
+                                               </td>
+                                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
+                                                   {(req.examHistory?.length || 0)} tentativas
+                                               </td>
+                                               <td className="px-6 py-4 align-middle text-right">
+                                                    <div className="flex justify-end items-center space-x-2">
+                                                        <button onClick={() => openCreateModal(req)} className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500" title="Editar">
+                                                            <Edit className="h-4 w-4" />
+                                                        </button>
+
+                                                        {user.role !== UserRole.SCHOOL && (
+                                                        <>
+                                                            {(req.status === ExamStatus.WAITING_SCHEDULING || req.status === ExamStatus.RETEST) && (
+                                                                <button onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)} className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600" title="Cancelar"><X className="h-4 w-4"/></button>
+                                                            )}
+                                                            
+                                                            {req.status === ExamStatus.SCHEDULED && (
+                                                                <button onClick={() => handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)} className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600" title="Enviar para Aguardando Resultado"><CheckSquare className="h-4 w-4"/></button>
+                                                            )}
+
+                                                            {req.status === ExamStatus.WAITING_RESULT && (
+                                                                <button onClick={() => openResultModal(req)} className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1" title="Lançar Resultado">
+                                                                    <Gavel className="h-3 w-3" /> Resultado
+                                                                </button>
+                                                            )}
+
+                                                            {req.status === ExamStatus.DONE && req.result === 'INAPTO' && (
+                                                                <button 
+                                                                    onClick={() => handleUpdateStatus(req.id, ExamStatus.RETEST)} 
+                                                                    className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 border border-orange-200 text-xs font-bold"
+                                                                >
+                                                                    Reteste
+                                                                </button>
+                                                            )}
+                                                        </>
+                                                        )}
+                                                    </div>
+                                               </td>
+                                           </tr>
+                                       ))}
+                                       {items.length === 0 && (
+                                           <tr>
+                                               <td colSpan={6} className="px-6 py-8 text-center text-gray-400 text-sm">
+                                                   Nenhum candidato nesta situação.
+                                               </td>
+                                           </tr>
+                                       )}
+                                   </tbody>
+                               </table>
+                           </div>
+                       )}
+                   </div>
+               );
+           })}
        </div>
 
        {/* Create/Edit Modal */}
