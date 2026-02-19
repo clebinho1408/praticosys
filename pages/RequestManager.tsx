@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/mockData';
 import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult } from '../types';
-import { Plus, Search, Edit, Trash2, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter } from 'lucide-react';
 
 const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({ result, status }) => {
   if (status === ExamStatus.WAITING_RESULT) return <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Aguardando</span>;
@@ -26,8 +26,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
   
-  // Estado para controlar quais grupos estão expandidos (Todos fechados por padrão)
+  // Estado para controlar quais grupos estão expandidos
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
       [ExamStatus.WAITING_SCHEDULING]: false,
       [ExamStatus.SCHEDULED]: false,
@@ -71,6 +72,23 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   useEffect(() => {
     fetchRequests();
   }, [user, typeFilter]);
+
+  // Handle Filter Change logic (Auto open accordion if specific status selected)
+  const handleStatusFilterChange = (status: string) => {
+      setStatusFilter(status);
+      if (status !== 'ALL') {
+          // Fecha todos e abre apenas o selecionado
+          const newExpandedState = { ...expandedGroups };
+          Object.keys(newExpandedState).forEach(k => newExpandedState[k] = false);
+          newExpandedState[status] = true;
+          setExpandedGroups(newExpandedState);
+      } else {
+          // Se selecionar "Todos", fecha tudo (ou mantém o estado anterior, optei por fechar p/ limpar a tela)
+          const newExpandedState = { ...expandedGroups };
+          Object.keys(newExpandedState).forEach(k => newExpandedState[k] = false);
+          setExpandedGroups(newExpandedState);
+      }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,14 +173,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       [ExamStatus.CANCELLED]: filteredRequests.filter(r => r.status === ExamStatus.CANCELLED),
   };
 
-  // Explicit order for the cards
-  const statusOrder = [
+  // Determine visible statuses based on filter
+  const allStatuses = [
       ExamStatus.WAITING_SCHEDULING,
       ExamStatus.SCHEDULED,
       ExamStatus.WAITING_RESULT,
       ExamStatus.DONE,
       ExamStatus.CANCELLED
   ];
+
+  const visibleStatuses = statusFilter === 'ALL' ? allStatuses : [statusFilter];
 
   const groupConfig = {
       [ExamStatus.WAITING_SCHEDULING]: { label: 'Aguardando Agendamento', color: 'yellow', icon: Clock },
@@ -178,30 +198,47 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     <div className="space-y-6">
        {/* Header and filters */}
        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-         <h2 className="text-xl font-bold text-gray-800 uppercase tracking-wide">
-            GESTÃO DE CANDIDATOS {typeFilter === ExamType.PCD ? '(PCD)' : ''}
-         </h2>
-         <div className="flex gap-2 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
+         
+         {/* Filters (Left Side) */}
+         <div className="flex gap-3 w-full md:w-auto items-center">
+            <div className="relative w-full md:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input 
                     type="text" 
                     placeholder="Buscar por nome ou CPF..." 
-                    className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900"
+                    className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                 />
             </div>
             
-            <div className="relative">
-                <button className="border rounded-md px-4 py-2 text-sm bg-white text-gray-900 flex items-center gap-2">
-                    <span className="text-gray-500">Todos os Status</span>
-                </button>
+            <div className="relative w-full md:w-56">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <Filter className="h-4 w-4 text-gray-400" />
+                </div>
+                <select 
+                    className="w-full pl-10 pr-8 py-2 border rounded-md text-sm bg-white text-gray-900 appearance-none focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                    value={statusFilter}
+                    onChange={(e) => handleStatusFilterChange(e.target.value)}
+                >
+                    <option value="ALL">Todos os Status</option>
+                    <option value={ExamStatus.WAITING_SCHEDULING}>Aguardando Agendamento</option>
+                    <option value={ExamStatus.SCHEDULED}>Agendado</option>
+                    <option value={ExamStatus.WAITING_RESULT}>Aguardando Resultado</option>
+                    <option value={ExamStatus.DONE}>Realizado</option>
+                    <option value={ExamStatus.CANCELLED}>Cancelado</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                </div>
             </div>
+         </div>
 
+         {/* Action Button (Right Side) */}
+         <div className="w-full md:w-auto flex justify-end">
             <button 
                 onClick={() => openCreateModal()} 
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium"
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
             >
                 <Plus className="h-4 w-4" /> Novo Candidato
             </button>
@@ -210,9 +247,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
        {/* Grupos Expansíveis (Acordeões) */}
        <div className="space-y-4">
-           {statusOrder.map(status => {
-               const items = groupedRequests[status];
-               const config = groupConfig[status];
+           {visibleStatuses.map(status => {
+               const items = groupedRequests[status as ExamStatus];
+               const config = groupConfig[status as ExamStatus];
                const isExpanded = expandedGroups[status];
                const Icon = config.icon;
 
