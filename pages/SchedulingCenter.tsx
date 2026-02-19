@@ -19,7 +19,9 @@ import {
   Layers,
   MessageCircle,
   CheckCircle2,
-  CheckCircle
+  CheckCircle,
+  Filter,
+  ChevronDown
 } from 'lucide-react';
 
 const formatDateDisplay = (dateString: string) => {
@@ -292,36 +294,49 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       {!selectedSchedule ? (
         <>
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <h2 className="text-2xl font-bold text-gray-800">Agendamentos - {type === ExamType.PCD ? 'PCD' : 'Comum'}</h2>
-            <div className="flex gap-2 w-full md:w-auto">
-                <div className="relative flex-1 md:w-64">
+             {/* Left Side Filters */}
+             <div className="flex gap-3 w-full md:w-auto items-center">
+                <div className="relative w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input 
                         type="text" 
                         placeholder="Buscar data ou examinador..." 
-                        className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900"
+                        className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <select 
-                    className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900"
-                    value={statusFilter}
-                    onChange={e => setStatusFilter(e.target.value)}
-                >
-                    <option value="ALL">Todos os Status</option>
-                    <option value="OPEN">Abertas</option>
-                    <option value="CLOSED">Fechadas</option>
-                    <option value="CONCLUDED">Concluídas</option>
-                    <option value="CANCELLED">Canceladas</option>
-                </select>
+                
+                <div className="relative w-full md:w-56">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Filter className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <select 
+                        className="w-full pl-10 pr-8 py-2 border rounded-md text-sm bg-white text-gray-900 appearance-none focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                    >
+                        <option value="ALL">Todos os Status</option>
+                        <option value="OPEN">Abertas</option>
+                        <option value="CLOSED">Fechadas</option>
+                        <option value="CONCLUDED">Concluídas</option>
+                        <option value="CANCELLED">Canceladas</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
+                </div>
+             </div>
+
+             {/* Right Side Action */}
+             <div className="w-full md:w-auto flex justify-end">
                 <button 
                   onClick={() => handleOpenModal()}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold transition-colors"
                 >
                   <Plus className="h-4 w-4" /> Nova Banca
                 </button>
-            </div>
+             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
