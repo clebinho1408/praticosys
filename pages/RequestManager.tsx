@@ -155,6 +155,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       [ExamStatus.CANCELLED]: filteredRequests.filter(r => r.status === ExamStatus.CANCELLED),
   };
 
+  // Explicit order for the cards
+  const statusOrder = [
+      ExamStatus.WAITING_SCHEDULING,
+      ExamStatus.SCHEDULED,
+      ExamStatus.WAITING_RESULT,
+      ExamStatus.DONE,
+      ExamStatus.CANCELLED
+  ];
+
   const groupConfig = {
       [ExamStatus.WAITING_SCHEDULING]: { label: 'Aguardando Agendamento', color: 'yellow', icon: Clock },
       [ExamStatus.SCHEDULED]: { label: 'Agendado', color: 'blue', icon: Calendar },
@@ -184,7 +193,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                 />
             </div>
             
-            {/* Filtro de Status removido pois agora usamos grupos */}
             <div className="relative">
                 <button className="border rounded-md px-4 py-2 text-sm bg-white text-gray-900 flex items-center gap-2">
                     <span className="text-gray-500">Todos os Status</span>
@@ -202,10 +210,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
        {/* Grupos Expansíveis (Acordeões) */}
        <div className="space-y-4">
-           {(Object.keys(groupedRequests) as ExamStatus[]).map(status => {
+           {statusOrder.map(status => {
                const items = groupedRequests[status];
-               if (items.length === 0 && status !== ExamStatus.WAITING_SCHEDULING) return null; // Esconde grupos vazios exceto o principal
-               
                const config = groupConfig[status];
                const isExpanded = expandedGroups[status];
                const Icon = config.icon;
