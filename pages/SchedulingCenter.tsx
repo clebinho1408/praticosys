@@ -21,7 +21,12 @@ import {
   CheckCircle2,
   CheckCircle,
   Filter,
-  ChevronDown
+  ChevronDown,
+  ChevronUp,
+  Square,
+  CheckSquare,
+  Bike,
+  Car
 } from 'lucide-react';
 
 const formatDateDisplay = (dateString: string) => {
@@ -59,10 +64,19 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   
   const [selectedSchedule, setSelectedSchedule] = useState<ExamSchedule | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // States for Add Student Modal
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [studentSearch, setSearchTermInput] = useState('');
+  const [selectedCandidates, setSelectedCandidates] = useState<Record<string, 'A' | 'B'>>({});
+  const [expandedCategories, setExpandedCategories] = useState<{A: boolean, B: boolean}>({ A: false, B: false });
+
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
-  const [studentSearch, setSearchTermInput] = useState('');
+  
+  // Date Filters
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
   const [scheduleForm, setScheduleForm] = useState({ 
@@ -99,8 +113,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
   useEffect(() => { refreshData(); }, [type]);
 
   const injectEmojis = (text: string) => {
-    // CORREÇÃO: O código para [ID] (Identidade) estava incorreto (\uAAAA resulta em 'ꪪ')
-    // O código correto para 🪪 (Identity Card) é \uD83E\uDEAA
     const emojiMap: Record<string, string> = {
       '[WAVE]': '\uD83D\uDC4B',       // 👋
       '[SMILE]': '\uD83D\uDE04',      // 😄
@@ -109,7 +121,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
       '[CLOCK]': '\u23F0',            // ⏰
       '[MAP]': '\uD83D\uDCCD',        // 📍
       '[WARNING]': '\u26A0\uFE0F',    // ⚠️
-      '[ID]': '\uD83E\uDEAA',         // 🪪 (CORRIGIDO)
+      '[ID]': '\uD83E\uDEAA',         // 🪪 
       '[CAR_FRONT]': '\uD83D\uDE98',  // 🚘
       '[CHECK]': '\u2705',            // ✅
       '[HOURGLASS]': '\u23F3',        // ⏳
@@ -120,7 +132,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     if (!text) return '';
     let result = String(text);
     
-    // Limpeza de segurança para dados antigos
     result = result.replace(/\uFFFD/g, '').replace(/\uAAAA/g, '').replace(/ꪪ/g, '');
 
     Object.entries(emojiMap).forEach(([tag, emoji]) => {
@@ -161,7 +172,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 [HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
     }
     
-    // Agora o endereço e a localização são independentes
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
       '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
@@ -178,7 +188,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       finalMessage = finalMessage.split(tag).join(value || '');
     });
     
-    // Injeta os emojis corretos
     finalMessage = injectEmojis(finalMessage);
     
     const rawPhone = req.phone || '';
@@ -195,12 +204,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     try {
         encodedMessage = encodeURIComponent(finalMessage);
     } catch (e) {
-        // Fallback básico remove caracteres problemáticos se encode falhar
         const sanitized = finalMessage.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
         encodedMessage = encodeURIComponent(sanitized);
     }
     
-    // Uso da API direta em vez de wa.me para evitar redirects que quebram encoding
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedMessage}`;
     window.open(whatsappUrl, '_blank');
   };
@@ -235,6 +242,42 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     setIsModalOpen(true);
   };
 
+  const handleOpenAddStudent = () => {
+      setSearchTermInput('');
+      setSelectedCandidates({});
+      setExpandedCategories({ A: false, B: false });
+      setIsAddStudentOpen(true);
+  };
+
+  const toggleCandidateSelection = (id: string, category: 'A' | 'B') => {
+      setSelectedCandidates(prev => {
+          const newState = { ...prev };
+          if (newState[id]) {
+              delete newState[id];
+          } else {
+              newState[id] = category;
+          }
+          return newState;
+      });
+  };
+
+  const handleConfirmBatchSchedule = async () => {
+      if (!selectedSchedule) return;
+      setLoading(true);
+      try {
+          const updates = Object.entries(selectedCandidates).map(([id, cat]) => 
+              api.assignStudentToSchedule(id, selectedSchedule.id, cat)
+          );
+          await Promise.all(updates);
+          setIsAddStudentOpen(false);
+          refreshData();
+      } catch (err) {
+          alert('Erro ao agendar candidatos.');
+      } finally {
+          setLoading(false);
+      }
+  };
+
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -245,7 +288,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       }
       setIsModalOpen(false);
       refreshData();
-    } catch (e) {
+    } catch (error) {
+      console.error(error);
       alert("Erro ao salvar banca.");
     }
   };
@@ -258,12 +302,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     }
   };
 
-  const handleAddStudent = async (requestId: string, category: string) => {
-    if (!selectedSchedule) return;
-    await api.assignStudentToSchedule(requestId, selectedSchedule.id, category);
-    refreshData();
-  };
-
   const handleRemoveStudent = async (requestId: string) => {
     await api.removeStudentFromSchedule(requestId);
     refreshData();
@@ -274,15 +312,42 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   const filteredSchedules = schedules.filter(s => {
     const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
     const matchesSearch = s.date.includes(searchTerm) || s.examinerIds.some(id => getExaminerName(id).toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesStatus && matchesSearch;
+    
+    // Date Range Filter
+    let matchesDate = true;
+    if (startDate || endDate) {
+        const schedTime = new Date(s.date).getTime();
+        if (startDate && schedTime < new Date(startDate).getTime()) matchesDate = false;
+        if (endDate && schedTime > new Date(endDate).getTime()) matchesDate = false;
+    }
+
+    return matchesStatus && matchesSearch && matchesDate;
   });
 
   const scheduledStudents = allRequests.filter(r => r.scheduleId === selectedSchedule?.id);
-  const availableStudents = allRequests.filter(r => 
-    r.status === ExamStatus.WAITING_SCHEDULING && 
-    r.examType === selectedSchedule?.type &&
-    (r.studentName.toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch))
-  );
+  
+  // Logic for Available Students (Modal)
+  const availableRequests = allRequests
+    .filter(r => 
+        r.status === ExamStatus.WAITING_SCHEDULING && 
+        r.examType === selectedSchedule?.type &&
+        (r.studentName.toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch))
+    )
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
+
+  // Split into categories
+  const candidatesA = availableRequests.filter(r => r.intendedCategory === 'A' || r.intendedCategory === 'AB');
+  const candidatesB = availableRequests.filter(r => r.intendedCategory === 'B' || r.intendedCategory === 'AB');
+
+  // Counts for selection limits
+  const currentCountA = scheduledStudents.filter(s => s.scheduledCategory === 'A').length;
+  const currentCountB = scheduledStudents.filter(s => s.scheduledCategory === 'B').length;
+  
+  const selectedCountA = Object.values(selectedCandidates).filter(c => c === 'A').length;
+  const selectedCountB = Object.values(selectedCandidates).filter(c => c === 'B').length;
+
+  const remainingA = (selectedSchedule?.maxSlotsA || 0) - currentCountA - selectedCountA;
+  const remainingB = (selectedSchedule?.maxSlotsB || 0) - currentCountB - selectedCountB;
 
   if (loading) return <div className="p-10 text-center text-gray-500 flex flex-col items-center gap-4">
     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -295,19 +360,19 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         <>
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
              {/* Left Side Filters */}
-             <div className="flex gap-3 w-full md:w-auto items-center">
-                <div className="relative w-full md:w-64">
+             <div className="flex gap-3 w-full md:w-auto items-center flex-wrap">
+                <div className="relative w-full md:w-48">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input 
                         type="text" 
-                        placeholder="Buscar data ou examinador..." 
+                        placeholder="Buscar..." 
                         className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         value={searchTerm}
                         onChange={e => setSearchTerm(e.target.value)}
                     />
                 </div>
                 
-                <div className="relative w-full md:w-56">
+                <div className="relative w-full md:w-40">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <Filter className="h-4 w-4 text-gray-400" />
                     </div>
@@ -316,7 +381,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         value={statusFilter}
                         onChange={e => setStatusFilter(e.target.value)}
                     >
-                        <option value="ALL">Todos os Status</option>
+                        <option value="ALL">Status</option>
                         <option value="OPEN">Abertas</option>
                         <option value="CLOSED">Fechadas</option>
                         <option value="CONCLUDED">Concluídas</option>
@@ -325,6 +390,22 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <ChevronDown className="h-4 w-4 text-gray-400" />
                     </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <input 
+                        type="date" 
+                        className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                    />
+                    <span className="text-gray-400">-</span>
+                    <input 
+                        type="date" 
+                        className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                    />
                 </div>
              </div>
 
@@ -406,7 +487,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         <Printer className="h-4 w-4" /> Imprimir Lista
                     </button>
                     {selectedSchedule.status === 'OPEN' && (
-                        <button onClick={() => setIsAddStudentOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-md text-sm font-bold">
+                        <button onClick={handleOpenAddStudent} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-md text-sm font-bold">
                             <Plus className="h-4 w-4" /> Agendar Candidato
                         </button>
                     )}
@@ -616,33 +697,137 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
           </div>
       )}
 
-      {/* MODAL: ADICIONAR ESTUDANTE */}
+      {/* MODAL: ADICIONAR ESTUDANTE (REDESIGNED) */}
       {isAddStudentOpen && selectedSchedule && (
-          <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-md">
-              <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[85vh] overflow-hidden border border-white/20">
-                  <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
-                      <h3 className="text-xl font-black uppercase tracking-tight">Agendar Candidatos</h3>
-                      <button onClick={() => setIsAddStudentOpen(false)} className="hover:rotate-90 transition-transform"><X className="h-7 w-7" /></button>
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+                  <div className="flex justify-between items-center p-5 border-b">
+                      <h3 className="text-lg font-bold text-gray-800">Agendar Candidatos</h3>
+                      <button onClick={() => setIsAddStudentOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="h-6 w-6" /></button>
                   </div>
-                  <div className="p-6 bg-slate-50 border-b">
+                  
+                  <div className="p-5 border-b bg-gray-50">
                       <div className="relative">
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                          <input type="text" placeholder="Buscar por nome ou CPF..." className="w-full pl-12 pr-4 py-4 border-2 border-slate-100 rounded-2xl focus:border-blue-500 font-bold text-gray-900" value={studentSearch} onChange={e => setSearchTermInput(e.target.value)} />
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="Buscar nome ou CPF..." 
+                            className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={studentSearch} 
+                            onChange={e => setSearchTermInput(e.target.value)} 
+                          />
                       </div>
                   </div>
-                  <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                      {availableStudents.map(s => (
-                          <div key={s.id} className="flex items-center justify-between p-4 hover:bg-blue-50 rounded-2xl border-2 border-transparent transition-all hover:border-blue-100">
-                              <div>
-                                  <div className="font-black text-slate-900 uppercase">{s.studentName}</div>
-                                  <div className="text-xs font-bold text-slate-400">{s.cpf} • {s.intendedCategory || 'B'}</div>
+
+                  <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                      
+                      {/* CARD: CATEGORIA A */}
+                      <div className={`border rounded-lg overflow-hidden transition-all ${expandedCategories.A ? 'ring-1 ring-blue-200' : ''}`}>
+                          <button 
+                            onClick={() => setExpandedCategories(prev => ({ ...prev, A: !prev.A }))}
+                            className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+                          >
+                              <div className="flex items-center gap-3">
+                                  <div className="bg-blue-100 text-blue-700 p-2 rounded-lg"><Bike className="h-5 w-5" /></div>
+                                  <div className="text-left">
+                                      <h4 className="font-bold text-gray-800">Categoria A (Moto)</h4>
+                                      <span className="text-xs text-gray-500 font-medium">
+                                          {selectedCountA} selecionados / {remainingA} vagas restantes
+                                      </span>
+                                  </div>
                               </div>
-                              <button onClick={() => handleAddStudent(s.id, s.intendedCategory || 'B')} className="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase shadow-lg shadow-blue-100">Selecionar</button>
-                          </div>
-                      ))}
-                      {availableStudents.length === 0 && (
-                          <div className="text-center py-20 text-slate-300 font-black uppercase text-sm">Nenhum candidato aguardando agendamento.</div>
-                      )}
+                              {expandedCategories.A ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                          </button>
+                          
+                          {expandedCategories.A && (
+                              <div className="border-t bg-gray-50/50 p-2 max-h-60 overflow-y-auto space-y-1">
+                                  {candidatesA.map(cand => {
+                                      const isSelected = selectedCandidates[cand.id] === 'A';
+                                      const isDisabled = !isSelected && (remainingA <= 0 || selectedCandidates[cand.id] === 'B');
+                                      
+                                      return (
+                                          <label key={cand.id} className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors border ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white border-transparent hover:border-gray-200'} ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
+                                              <input 
+                                                type="checkbox" 
+                                                className="hidden"
+                                                disabled={isDisabled}
+                                                checked={isSelected}
+                                                onChange={() => toggleCandidateSelection(cand.id, 'A')}
+                                              />
+                                              <div className={isSelected ? 'text-blue-600' : 'text-gray-400'}>
+                                                  {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+                                              </div>
+                                              <div className="flex-1">
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
+                                                  <div className="text-xs text-gray-500">Cadastro: {new Date(cand.createdAt).toLocaleDateString()} • {cand.cpf}</div>
+                                              </div>
+                                          </label>
+                                      );
+                                  })}
+                                  {candidatesA.length === 0 && <div className="p-4 text-center text-xs text-gray-400">Nenhum candidato disponível.</div>}
+                              </div>
+                          )}
+                      </div>
+
+                      {/* CARD: CATEGORIA B */}
+                      <div className={`border rounded-lg overflow-hidden transition-all ${expandedCategories.B ? 'ring-1 ring-blue-200' : ''}`}>
+                          <button 
+                            onClick={() => setExpandedCategories(prev => ({ ...prev, B: !prev.B }))}
+                            className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+                          >
+                              <div className="flex items-center gap-3">
+                                  <div className="bg-green-100 text-green-700 p-2 rounded-lg"><Car className="h-5 w-5" /></div>
+                                  <div className="text-left">
+                                      <h4 className="font-bold text-gray-800">Categoria B (Carro)</h4>
+                                      <span className="text-xs text-gray-500 font-medium">
+                                          {selectedCountB} selecionados / {remainingB} vagas restantes
+                                      </span>
+                                  </div>
+                              </div>
+                              {expandedCategories.B ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                          </button>
+                          
+                          {expandedCategories.B && (
+                              <div className="border-t bg-gray-50/50 p-2 max-h-60 overflow-y-auto space-y-1">
+                                  {candidatesB.map(cand => {
+                                      const isSelected = selectedCandidates[cand.id] === 'B';
+                                      const isDisabled = !isSelected && (remainingB <= 0 || selectedCandidates[cand.id] === 'A');
+                                      
+                                      return (
+                                          <label key={cand.id} className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors border ${isSelected ? 'bg-green-50 border-green-200' : 'bg-white border-transparent hover:border-gray-200'} ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
+                                              <input 
+                                                type="checkbox" 
+                                                className="hidden"
+                                                disabled={isDisabled}
+                                                checked={isSelected}
+                                                onChange={() => toggleCandidateSelection(cand.id, 'B')}
+                                              />
+                                              <div className={isSelected ? 'text-green-600' : 'text-gray-400'}>
+                                                  {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+                                              </div>
+                                              <div className="flex-1">
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
+                                                  <div className="text-xs text-gray-500">Cadastro: {new Date(cand.createdAt).toLocaleDateString()} • {cand.cpf}</div>
+                                              </div>
+                                          </label>
+                                      );
+                                  })}
+                                  {candidatesB.length === 0 && <div className="p-4 text-center text-xs text-gray-400">Nenhum candidato disponível.</div>}
+                              </div>
+                          )}
+                      </div>
+
+                  </div>
+
+                  <div className="p-5 border-t bg-gray-50 flex justify-end gap-3">
+                      <button onClick={() => setIsAddStudentOpen(false)} className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 font-medium">Cancelar</button>
+                      <button 
+                        onClick={handleConfirmBatchSchedule}
+                        disabled={Object.keys(selectedCandidates).length === 0}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
+                      >
+                          Confirmar Agendamento ({Object.keys(selectedCandidates).length})
+                      </button>
                   </div>
               </div>
           </div>
