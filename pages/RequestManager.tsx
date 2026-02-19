@@ -27,11 +27,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Estado para controlar quais grupos estão expandidos
+  // Estado para controlar quais grupos estão expandidos (Todos fechados por padrão)
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-      [ExamStatus.WAITING_SCHEDULING]: true,
+      [ExamStatus.WAITING_SCHEDULING]: false,
       [ExamStatus.SCHEDULED]: false,
-      [ExamStatus.WAITING_RESULT]: true,
+      [ExamStatus.WAITING_RESULT]: false,
       [ExamStatus.DONE]: false,
       [ExamStatus.CANCELLED]: false,
   });
