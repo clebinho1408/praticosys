@@ -11,6 +11,8 @@ import RequestManager from './pages/RequestManager';
 import RegistryManagement from './pages/RegistryManagement';
 import Settings from './pages/Settings';
 import SchedulingCenter from './pages/SchedulingCenter';
+import Reports from './pages/Reports';
+import StudentDatabase from './pages/StudentDatabase';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>({
@@ -45,7 +47,7 @@ const App: React.FC = () => {
                   <Route path="/" element={<AdminDashboard user={auth.user} />} />
                   
                   {/* Common Routes for specific filters */}
-                  <Route path="requests" element={<RequestManager user={auth.user} />} /> {/* For Schools mostly */}
+                  <Route path="requests" element={<RequestManager user={auth.user} />} /> 
                   <Route path="requests/common" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
                   <Route path="requests/pcd" element={<RequestManager user={auth.user} typeFilter={ExamType.PCD} />} />
                   <Route path="requests/cfc" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
@@ -55,14 +57,17 @@ const App: React.FC = () => {
                   <Route path="scheduling/cfc" element={<SchedulingCenter type={ExamType.COMMON} />} />
                   <Route path="scheduling/pcd" element={<SchedulingCenter type={ExamType.PCD} />} />
 
+                  {/* Reports */}
+                  <Route path="reports/:reportType" element={<Reports />} />
+
                   {/* Registries */}
                   <Route path="users" element={<RegistryManagement />} />
                   
                   {/* Settings */}
                   <Route path="settings" element={<Settings />} />
                   
-                  {/* Placeholders */}
-                  <Route path="students" element={<div className="p-4 bg-white rounded shadow">Base de Candidatos (Em desenvolvimento)</div>} />
+                  {/* Student Database */}
+                  <Route path="students" element={<StudentDatabase />} />
                 </Routes>
               </Layout>
             ) : (
