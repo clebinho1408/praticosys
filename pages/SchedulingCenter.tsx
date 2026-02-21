@@ -654,43 +654,43 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
       {/* MODAL: NOVA BANCA */}
       {isModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-md">
-              <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-white/20">
-                  <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
-                      <h3 className="text-xl font-black uppercase tracking-tight">{editingSchedule ? 'Editar Banca' : 'Nova Banca'}</h3>
-                      <button onClick={() => setIsModalOpen(false)} className="hover:rotate-90 transition-transform"><X className="h-7 w-7" /></button>
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-bold text-gray-900">{editingSchedule ? 'Editar Banca' : 'Nova Banca'}</h3>
+                      <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors"><X className="h-6 w-6" /></button>
                   </div>
-                  <form onSubmit={handleSaveSchedule} className="p-8 space-y-6">
-                      <div className="grid grid-cols-2 gap-6">
+                  <form onSubmit={handleSaveSchedule} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 text-gray-400">Data da Prova</label>
-                            <input required type="date" className="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 transition-colors bg-slate-50 font-bold text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Data da Prova</label>
+                            <input required type="date" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 text-gray-400">Horário Início</label>
-                            <input required type="time" className="w-full border-2 border-slate-100 rounded-xl p-3 focus:border-blue-500 transition-colors bg-slate-50 font-bold text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Horário Início</label>
+                            <input required type="time" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
                           </div>
                       </div>
                       <div>
-                          <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 text-gray-400">Escalar Examinadores (Máx 3)</label>
-                          <div className="space-y-2 max-h-48 overflow-y-auto border-2 border-slate-50 rounded-2xl p-4 bg-slate-50/50">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Escalar Examinadores (Máx 3)</label>
+                          <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-gray-50">
                               {examiners.map(ex => (
-                                  <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-3 rounded-xl transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 text-slate-700'}`}>
+                                  <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-2 rounded-md transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}`}>
                                       <input type="checkbox" className="hidden" checked={scheduleForm.examinerIds.includes(ex.id)} onChange={(e) => {
                                             const ids = e.target.checked ? [...scheduleForm.examinerIds, ex.id].slice(0, 3) : scheduleForm.examinerIds.filter(id => id !== ex.id);
                                             setScheduleForm({...scheduleForm, examinerIds: ids});
                                       }} />
-                                      <div className={`h-5 w-5 rounded-full border-2 flex items-center justify-center ${scheduleForm.examinerIds.includes(ex.id) ? 'border-white bg-white' : 'border-slate-300'}`}>
-                                          {scheduleForm.examinerIds.includes(ex.id) && <div className="h-2 w-2 rounded-full bg-blue-600"></div>}
+                                      <div className={`h-4 w-4 rounded border flex items-center justify-center ${scheduleForm.examinerIds.includes(ex.id) ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'}`}>
+                                          {scheduleForm.examinerIds.includes(ex.id) && <CheckCircle2 className="h-3 w-3" />}
                                       </div>
-                                      <span className="text-sm font-black uppercase">{ex.name}</span>
+                                      <span className="text-sm font-medium">{ex.name}</span>
                                   </label>
                               ))}
                           </div>
                       </div>
                       <div className="flex justify-end gap-3 pt-4">
-                          <button type="button" onClick={() => setIsModalOpen(false)} className="px-6 py-3 text-slate-400 font-black uppercase text-xs">Cancelar</button>
-                          <button type="submit" className="px-10 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-sm shadow-xl shadow-blue-200 hover:scale-105 active:scale-95 transition-all">Salvar Banca</button>
+                          <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50 font-medium">Cancelar</button>
+                          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 shadow-sm transition-all">Salvar Banca</button>
                       </div>
                   </form>
               </div>

@@ -99,20 +99,20 @@ const StudentDatabase: React.FC = () => {
       </div>
 
       {selectedStudent && (
-        <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fadeIn">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden border border-white/20">
-            <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
-              <div className="flex items-center gap-6">
-                <div className="h-16 w-16 bg-white/10 rounded-2xl flex items-center justify-center font-black text-2xl border border-white/20">
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden">
+            <div className="p-6 border-b flex justify-between items-center bg-white">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xl">
                     {selectedStudent.studentName.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black uppercase tracking-tight">{selectedStudent.studentName}</h3>
-                  <p className="text-xs text-blue-300 font-black tracking-widest">{selectedStudent.cpf}</p>
+                  <h3 className="text-xl font-bold text-gray-900 uppercase">{selectedStudent.studentName}</h3>
+                  <p className="text-sm text-gray-500">{selectedStudent.cpf}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedStudent(null)} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white">
-                <X className="h-7 w-7" />
+              <button onClick={() => setSelectedStudent(null)} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400">
+                <X className="h-6 w-6" />
               </button>
             </div>
 
