@@ -494,9 +494,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
                 {/* Cabeçalho de Impressão e UI */}
-                <div className="p-8 bg-slate-900 text-white print:bg-white print:p-0 print:!text-black">
+                <div className="p-6 bg-white border-b print:p-0 print:border-none">
                     <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-4 mb-3">
                         {settings?.logoUrl ? (
                             <img src={settings.logoUrl} className="h-16 w-auto" />
@@ -519,48 +519,48 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
                     <div className="print:hidden">
                         <div className="flex items-center gap-3 mb-2">
-                            <h2 className="text-3xl font-black text-white">{formatDateDisplay(selectedSchedule.date)}</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">{formatDateDisplay(selectedSchedule.date)}</h2>
                             <StatusBadge status={selectedSchedule.status} />
                         </div>
-                        <div className="flex flex-wrap gap-6 text-sm opacity-80 font-medium uppercase tracking-wider text-white">
-                            <span className="flex items-center gap-2"><Clock className="h-5 w-5" /> {selectedSchedule.time}</span>
-                            <span className="flex items-center gap-2"><User className="h-5 w-5" /> {selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span>
+                        <div className="flex flex-wrap gap-6 text-sm text-gray-500 font-medium">
+                            <span className="flex items-center gap-2"><Clock className="h-4 w-4" /> {selectedSchedule.time}</span>
+                            <span className="flex items-center gap-2"><User className="h-4 w-4" /> {selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="p-8 space-y-12 print:p-0">
+                <div className="p-6 space-y-8 print:p-0">
                     {['A', 'B'].map(cat => {
                         const students = scheduledStudents.filter(s => s.scheduledCategory === cat);
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
                         
                         return (
                             <div key={cat} className="break-inside-avoid print:mb-2 mb-4">
-                                <div className="flex items-center gap-3 border-b-2 border-gray-100 pb-2 mb-6 print:border-black print:!text-black">
-                                    <div className="bg-blue-600 text-white p-2 rounded-lg print:hidden">
+                                <div className="flex items-center gap-3 border-b pb-2 mb-4 print:border-black print:!text-black">
+                                    <div className="bg-blue-50 text-blue-600 p-2 rounded-md print:hidden">
                                         <Layers className="h-5 w-5" />
                                     </div>
-                                    <h3 className="text-2xl font-black uppercase print:text-sm print:font-black">Categoria {cat}</h3>
-                                    <span className="text-sm font-bold text-gray-400 ml-auto print:hidden">
+                                    <h3 className="text-lg font-bold text-gray-800 print:text-sm print:font-black">Categoria {cat}</h3>
+                                    <span className="text-sm text-gray-500 ml-auto print:hidden">
                                         {students.length} candidatos agendados
                                     </span>
                                 </div>
 
                                 {/* LISTA CLEAN (Apenas Web - SEM as colunas de marcação) */}
-                                <div className="space-y-3 print:hidden">
+                                <div className="space-y-2 print:hidden">
                                     {students.map((req, idx) => (
-                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-4 rounded-xl border-2 transition-all hover:border-blue-200 bg-white ${req.attendanceConfirmed ? 'border-green-100 bg-green-50/20' : 'border-gray-100'}`}>
+                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-3 rounded-md border transition-all hover:border-blue-200 bg-white ${req.attendanceConfirmed ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
                                             <div className="flex items-center gap-4 flex-1 w-full">
-                                                <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center font-black text-slate-400 shrink-0">
+                                                <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 text-sm shrink-0">
                                                     {idx + 1}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <div className="text-lg font-black text-slate-900 uppercase truncate">
+                                                    <div className="text-sm font-bold text-gray-900 uppercase truncate">
                                                         {req.socialName || req.studentName}
                                                     </div>
-                                                    <div className="flex gap-3 text-xs font-bold text-slate-500 uppercase tracking-tighter">
+                                                    <div className="flex gap-2 text-xs text-gray-500">
                                                         <span>{req.cpf}</span>
-                                                        <span className="text-slate-300">|</span>
+                                                        <span className="text-gray-300">|</span>
                                                         <span>Instrutor: {req.instructor || '-'}</span>
                                                     </div>
                                                 </div>
@@ -570,7 +570,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                 {/* Botão Confirmação */}
                                                 <button 
                                                     onClick={() => toggleAttendance(req)}
-                                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-black text-xs uppercase transition-all ${req.attendanceConfirmed ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'}`}
+                                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium text-xs transition-all ${req.attendanceConfirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                                                     title="Confirmar Presença/Agendamento"
                                                 >
                                                     {req.attendanceConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
@@ -580,26 +580,26 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                 {/* Botão WhatsApp */}
                                                 <button 
                                                     onClick={() => handleWhatsApp(req)}
-                                                    className="p-2.5 bg-green-100 text-green-600 hover:bg-green-600 hover:text-white rounded-lg transition-all"
+                                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-all"
                                                     title="Enviar mensagem WhatsApp"
                                                 >
-                                                    <MessageCircle className="h-5 w-5" />
+                                                    <MessageCircle className="h-4 w-4" />
                                                 </button>
 
-                                                <div className="w-px h-6 bg-slate-200 mx-1"></div>
+                                                <div className="w-px h-4 bg-gray-200 mx-1"></div>
 
                                                 <button 
                                                     onClick={() => handleRemoveStudent(req.id)}
-                                                    className="p-2.5 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
                                                     title="Remover da Banca"
                                                 >
-                                                    <Trash2 className="h-5 w-5" />
+                                                    <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </div>
                                         </div>
                                     ))}
                                     {students.length === 0 && (
-                                        <div className="text-center py-10 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 text-slate-400 font-bold uppercase text-xs">
+                                        <div className="text-center py-6 bg-gray-50 rounded-md border border-dashed border-gray-200 text-gray-500 text-sm">
                                             Nenhum candidato nesta categoria.
                                         </div>
                                     )}
