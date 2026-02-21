@@ -44,6 +44,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   // Form State
   const [formData, setFormData] = useState<Partial<ExamRequest>>({});
   const [resultData, setResultData] = useState<{ result: ExamResult; observation: string }>({ result: 'APTO', observation: '' });
+  const [activeTab, setActiveTab] = useState<'personal' | 'exam' | 'history'>('personal');
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -132,6 +133,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
   const openCreateModal = (req?: ExamRequest) => {
     setEditingRequest(req || null);
+    setActiveTab('personal');
     if (req) {
       setFormData(req);
     } else {
@@ -391,84 +393,243 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
        {/* Create/Edit Modal */}
        {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
-                <h3 className="text-lg font-bold mb-4">{editingRequest ? 'Editar Candidato' : 'Novo Candidato'}</h3>
-                <form onSubmit={handleSave} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium">Nome Completo</label>
-                            <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.studentName || ''} onChange={e => setFormData({...formData, studentName: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Nome Social</label>
-                            <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.socialName || ''} onChange={e => setFormData({...formData, socialName: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">CPF</label>
-                            <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.cpf || ''} onChange={e => setFormData({...formData, cpf: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Telefone</label>
-                            <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Categoria Pretendida</label>
-                            <select className="w-full border rounded p-2 bg-white text-gray-900" value={formData.intendedCategory || 'B'} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
-                                <option value="A">A (Moto)</option>
-                                <option value="B">B (Carro)</option>
-                                <option value="AB">AB (Carro e Moto)</option>
-                            </select>
-                        </div>
-                        {!typeFilter && (
-                           <div>
-                                <label className="block text-sm font-medium">Tipo de Exame</label>
-                                <select className="w-full border rounded p-2 bg-white text-gray-900" value={formData.examType || ExamType.COMMON} onChange={e => setFormData({...formData, examType: e.target.value as ExamType})}>
-                                    <option value={ExamType.COMMON}>1ª Habilitação</option>
-                                    <option value={ExamType.PCD}>PCD</option>
-                                </select>
-                           </div>
-                        )}
-                        <div>
-                            <label className="block text-sm font-medium">Restrição CNH</label>
-                            <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.cnhRestriction || ''} onChange={e => setFormData({...formData, cnhRestriction: e.target.value})} placeholder="Ex: A, G..." />
-                        </div>
-                    </div>
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+                <div className="p-6 border-b flex justify-between items-center">
+                    <h3 className="text-lg font-bold text-gray-900">{editingRequest ? 'Editar Candidato' : 'Novo Candidato'}</h3>
+                    <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="h-6 w-6" /></button>
+                </div>
+                
+                {/* Tabs */}
+                <div className="flex border-b bg-gray-50">
+                    <button 
+                        className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'personal' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setActiveTab('personal')}
+                    >
+                        Dados Pessoais
+                    </button>
+                    <button 
+                        className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'exam' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setActiveTab('exam')}
+                    >
+                        Dados do Exame
+                    </button>
+                    <button 
+                        className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'history' ? 'border-blue-600 text-blue-600 bg-white' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                        onClick={() => setActiveTab('history')}
+                    >
+                        Histórico
+                    </button>
+                </div>
 
-                    <div className="border-t pt-4">
-                        <h4 className="font-bold text-sm mb-3">Dados para Prova Prática</h4>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium">Instrutor</label>
-                                <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.instructor || ''} onChange={e => setFormData({...formData, instructor: e.target.value})} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium">Placa do Veículo</label>
-                                <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.vehiclePlate || ''} onChange={e => setFormData({...formData, vehiclePlate: e.target.value})} />
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {formData.examType === ExamType.PCD && (
-                         <div className="border-t pt-4">
-                            <h4 className="font-bold text-sm mb-3">Dados PCD</h4>
-                            <div className="space-y-3">
-                                <div>
-                                    <label className="block text-sm font-medium">Tipo de Deficiência</label>
-                                    <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.disabilityType || ''} onChange={e => setFormData({...formData, disabilityType: e.target.value})} />
+                <div className="p-6 overflow-y-auto">
+                    <form id="candidateForm" onSubmit={handleSave} className="space-y-6">
+                        {activeTab === 'personal' && (
+                            <div className="space-y-4 animate-fadeIn">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                                        <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.studentName || ''} onChange={e => setFormData({...formData, studentName: e.target.value})} />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome Social</label>
+                                        <input className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.socialName || ''} onChange={e => setFormData({...formData, socialName: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+                                        <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.cpf || ''} onChange={e => setFormData({...formData, cpf: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                                        <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoria Pretendida</label>
+                                        <select className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || 'B'} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
+                                            <option value="A">A (Moto)</option>
+                                            <option value="B">B (Carro)</option>
+                                            <option value="AB">AB (Carro e Moto)</option>
+                                        </select>
+                                    </div>
+                                    {!typeFilter && (
+                                    <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Exame</label>
+                                            <select className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.examType || ExamType.COMMON} onChange={e => setFormData({...formData, examType: e.target.value as ExamType})}>
+                                                <option value={ExamType.COMMON}>1ª Habilitação</option>
+                                                <option value={ExamType.PCD}>PCD</option>
+                                            </select>
+                                    </div>
+                                    )}
+                                    <div className="col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Restrição CNH</label>
+                                        <input className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.cnhRestriction || ''} onChange={e => setFormData({...formData, cnhRestriction: e.target.value})} placeholder="Ex: A, G..." />
+                                    </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium">Necessidades Especiais</label>
-                                    <textarea className="w-full border rounded p-2 bg-white text-gray-900" value={formData.specialNeeds || ''} onChange={e => setFormData({...formData, specialNeeds: e.target.value})} />
-                                </div>
                             </div>
-                        </div>
-                    )}
-                    
-                    <div className="flex justify-end gap-3 mt-4">
-                        <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded hover:bg-gray-50">Cancelar</button>
-                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
-                    </div>
-                </form>
+                        )}
+
+                        {activeTab === 'exam' && (
+                            <div className="space-y-6 animate-fadeIn">
+                                {(formData.intendedCategory === 'A' || formData.intendedCategory === 'AB') && (
+                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                                        <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
+                                            Categoria A (Moto)
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor Moto</label>
+                                                <input 
+                                                    className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                                    value={formData.instructor?.split(' / ')[0]?.replace('Moto: ', '') || formData.instructor || ''} 
+                                                    onChange={e => {
+                                                        const motoInstr = e.target.value;
+                                                        const carroInstr = formData.instructor?.includes('Carro:') ? formData.instructor.split('Carro: ')[1] : '';
+                                                        const newVal = formData.intendedCategory === 'AB' 
+                                                            ? `Moto: ${motoInstr} / Carro: ${carroInstr}`
+                                                            : motoInstr;
+                                                        setFormData({...formData, instructor: newVal});
+                                                    }} 
+                                                    placeholder="Nome do Instrutor"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Placa Moto</label>
+                                                <input 
+                                                    className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                                    value={formData.vehiclePlate?.split(' / ')[0]?.replace('Moto: ', '') || formData.vehiclePlate || ''} 
+                                                    onChange={e => {
+                                                        const motoPlate = e.target.value;
+                                                        const carroPlate = formData.vehiclePlate?.includes('Carro:') ? formData.vehiclePlate.split('Carro: ')[1] : '';
+                                                        const newVal = formData.intendedCategory === 'AB' 
+                                                            ? `Moto: ${motoPlate} / Carro: ${carroPlate}`
+                                                            : motoPlate;
+                                                        setFormData({...formData, vehiclePlate: newVal});
+                                                    }}
+                                                    placeholder="ABC-1234"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(formData.intendedCategory === 'B' || formData.intendedCategory === 'AB') && (
+                                    <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                                        <h4 className="font-bold text-green-800 mb-3 flex items-center gap-2">
+                                            Categoria B (Carro)
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor Carro</label>
+                                                <input 
+                                                    className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                                    value={formData.intendedCategory === 'AB' ? (formData.instructor?.split('Carro: ')[1] || '') : (formData.instructor || '')} 
+                                                    onChange={e => {
+                                                        const carroInstr = e.target.value;
+                                                        if (formData.intendedCategory === 'AB') {
+                                                            const motoInstr = formData.instructor?.split(' / ')[0]?.replace('Moto: ', '') || '';
+                                                            setFormData({...formData, instructor: `Moto: ${motoInstr} / Carro: ${carroInstr}`});
+                                                        } else {
+                                                            setFormData({...formData, instructor: carroInstr});
+                                                        }
+                                                    }}
+                                                    placeholder="Nome do Instrutor"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Placa Carro</label>
+                                                <input 
+                                                    className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                                    value={formData.intendedCategory === 'AB' ? (formData.vehiclePlate?.split('Carro: ')[1] || '') : (formData.vehiclePlate || '')} 
+                                                    onChange={e => {
+                                                        const carroPlate = e.target.value;
+                                                        if (formData.intendedCategory === 'AB') {
+                                                            const motoPlate = formData.vehiclePlate?.split(' / ')[0]?.replace('Moto: ', '') || '';
+                                                            setFormData({...formData, vehiclePlate: `Moto: ${motoPlate} / Carro: ${carroPlate}`});
+                                                        } else {
+                                                            setFormData({...formData, vehiclePlate: carroPlate});
+                                                        }
+                                                    }}
+                                                    placeholder="ABC-1234"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {formData.examType === ExamType.PCD && (
+                                    <div className="border-t pt-4">
+                                        <h4 className="font-bold text-sm mb-3">Dados PCD</h4>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Deficiência</label>
+                                                <input className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.disabilityType || ''} onChange={e => setFormData({...formData, disabilityType: e.target.value})} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Necessidades Especiais</label>
+                                                <textarea className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.specialNeeds || ''} onChange={e => setFormData({...formData, specialNeeds: e.target.value})} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'history' && (
+                            <div className="space-y-4 animate-fadeIn">
+                                <h4 className="font-bold text-gray-800 mb-2">Histórico de Exames</h4>
+                                {formData.examHistory && formData.examHistory.length > 0 ? (
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-gray-50 text-gray-500 font-bold">
+                                                <tr>
+                                                    <th className="px-4 py-2">Data</th>
+                                                    <th className="px-4 py-2">Categoria</th>
+                                                    <th className="px-4 py-2">Resultado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y">
+                                                {formData.examHistory.map((hist, idx) => (
+                                                    <tr key={idx}>
+                                                        <td className="px-4 py-2">{hist.date}</td>
+                                                        <td className="px-4 py-2">{hist.category}</td>
+                                                        <td className="px-4 py-2">
+                                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                                                hist.result === 'APTO' ? 'bg-green-100 text-green-700' :
+                                                                hist.result === 'INAPTO' ? 'bg-red-100 text-red-700' :
+                                                                'bg-gray-100 text-gray-700'
+                                                            }`}>
+                                                                {hist.result}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-lg border border-dashed">
+                                        Nenhum histórico registrado.
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </form>
+                </div>
+
+                <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+                    <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100 font-medium">Cancelar</button>
+                    <button 
+                        type="button" 
+                        onClick={(e) => {
+                            // Se não estiver na última aba, avança. Se estiver, submete.
+                            // Mas o usuário pediu abas para navegar, então o botão Salvar deve estar sempre disponível ou apenas no final?
+                            // O padrão geralmente é Salvar disponível sempre.
+                            handleSave(e as any);
+                        }} 
+                        className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 shadow-sm transition-all"
+                    >
+                        Salvar
+                    </button>
+                </div>
             </div>
         </div>
        )}
