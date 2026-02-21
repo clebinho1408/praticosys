@@ -108,12 +108,49 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       if (editingRequest) {
         await api.updateRequest(editingRequest.id, formData);
       } else {
-        await api.createRequest({
-          ...formData,
-          schoolId: user.schoolId,
-          source: user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT,
-          status: ExamStatus.WAITING_SCHEDULING
-        });
+        if (formData.intendedCategory === 'AB') {
+            const instructorParts = (formData.instructor || '').split(' / ');
+            const plateParts = (formData.vehiclePlate || '').split(' / ');
+            
+            const getVal = (parts: string[], prefix: string) => {
+                const part = parts.find(p => p.trim().startsWith(prefix));
+                return part ? part.replace(prefix, '').trim() : '';
+            };
+
+            const motoInstructor = getVal(instructorParts, 'Moto: ');
+            const carInstructor = getVal(instructorParts, 'Carro: ');
+            const motoPlate = getVal(plateParts, 'Moto: ');
+            const carPlate = getVal(plateParts, 'Carro: ');
+
+            // Create A
+            await api.createRequest({
+                ...formData,
+                intendedCategory: 'A',
+                instructor: motoInstructor,
+                vehiclePlate: motoPlate,
+                schoolId: user.schoolId,
+                source: user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT,
+                status: ExamStatus.WAITING_SCHEDULING
+            });
+
+            // Create B
+            await api.createRequest({
+                ...formData,
+                intendedCategory: 'B',
+                instructor: carInstructor,
+                vehiclePlate: carPlate,
+                schoolId: user.schoolId,
+                source: user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT,
+                status: ExamStatus.WAITING_SCHEDULING
+            });
+        } else {
+            await api.createRequest({
+              ...formData,
+              schoolId: user.schoolId,
+              source: user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT,
+              status: ExamStatus.WAITING_SCHEDULING
+            });
+        }
       }
       setIsModalOpen(false);
       fetchRequests();
@@ -579,14 +616,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
                                         <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoria Pretendida</label>
-                                        <select className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || 'B'} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
-                                            <option value="A">A (Moto)</option>
-                                            <option value="B">B (Carro)</option>
-                                            <option value="AB">AB (Carro e Moto)</option>
-                                        </select>
-                                    </div>
                                     {!typeFilter && (
                                     <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Exame</label>
@@ -596,16 +625,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                             </select>
                                     </div>
                                     )}
-                                    <div className="col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Restrição CNH</label>
-                                        <input className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.cnhRestriction || ''} onChange={e => setFormData({...formData, cnhRestriction: e.target.value})} placeholder="Ex: A, G..." />
-                                    </div>
                                 </div>
                             </div>
                         )}
 
                         {activeTab === 'exam' && (
                             <div className="space-y-6 animate-fadeIn">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoria Pretendida</label>
+                                        <select className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || 'B'} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
+                                            <option value="A">A (Moto)</option>
+                                            <option value="B">B (Carro)</option>
+                                            <option value="AB">AB (Carro e Moto)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Restrição CNH</label>
+                                        <input className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.cnhRestriction || ''} onChange={e => setFormData({...formData, cnhRestriction: e.target.value})} placeholder="Ex: A, G..." />
+                                    </div>
+                                </div>
+
                                 {(formData.intendedCategory === 'A' || formData.intendedCategory === 'AB') && 
                                     renderInstructorVehicleSelection('Categoria A (Moto)', 'A', 'Moto', 'bg-blue-50 border-blue-100')
                                 }
