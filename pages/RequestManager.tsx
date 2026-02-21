@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/mockData';
-import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult } from '../types';
+import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult, Instructor, Vehicle } from '../types';
 import { Plus, Search, Edit, Trash2, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter } from 'lucide-react';
 
 const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({ result, status }) => {
@@ -24,6 +24,7 @@ interface RequestManagerProps {
 
 const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -49,7 +50,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const data = await api.getRequests();
+      const [data, instructorsData] = await Promise.all([
+        api.getRequests(),
+        api.getInstructorsAsync()
+      ]);
+      setInstructors(instructorsData);
       let filtered = data;
       
       // Role Filtering
@@ -129,6 +134,132 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     
     setIsResultModalOpen(false);
     fetchRequests();
+  };
+
+  // Helper functions for filtering instructors and vehicles
+  const getInstructorsByCategory = (category: 'A' | 'B') => {
+      return instructors.filter(inst => {
+          // Se o instrutor não tem categoria definida, assume que pode dar aula em tudo (ou filtrar se tiver lógica mais estrita)
+          // Aqui vamos assumir que se tiver vehicles do tipo correspondente, ele serve.
+          // Ou se a categoria dele incluir a letra.
+          const hasVehicle = inst.vehicles?.some(v => v.type === (category === 'A' ? 'MOTO' : 'CAR') && v.active);
+          const hasCategory = inst.category?.includes(category) || inst.category === 'AB';
+          return hasVehicle || hasCategory;
+      });
+  };
+
+  const getVehiclesByInstructor = (instructorId: string, type: 'MOTO' | 'CAR') => {
+      const instructor = instructors.find(i => i.id === instructorId);
+      if (!instructor) return [];
+      return instructor.vehicles?.filter(v => v.type === type && v.active) || [];
+  };
+
+  // Renderiza o select de instrutor e veículo para uma categoria específica
+  const renderInstructorVehicleSelection = (categoryLabel: string, categoryCode: 'A' | 'B', fieldPrefix: string, colorClass: string) => {
+      const availableInstructors = getInstructorsByCategory(categoryCode);
+      
+      // Extrair o ID do instrutor e a placa atual do formData
+      // O formato no formData para AB é "Moto: Nome / Carro: Nome" e "Moto: Placa / Carro: Placa"
+      // Precisamos parsear isso para saber o valor atual dos selects
+      
+      let currentInstructorName = '';
+      let currentPlate = '';
+
+      if (formData.intendedCategory === 'AB') {
+          if (categoryCode === 'A') {
+              currentInstructorName = formData.instructor?.split(' / ')[0]?.replace('Moto: ', '') || '';
+              currentPlate = formData.vehiclePlate?.split(' / ')[0]?.replace('Moto: ', '') || '';
+          } else {
+              currentInstructorName = formData.instructor?.split(' / ')[1]?.replace('Carro: ', '') || '';
+              currentPlate = formData.vehiclePlate?.split(' / ')[1]?.replace('Carro: ', '') || '';
+          }
+      } else {
+          currentInstructorName = formData.instructor || '';
+          currentPlate = formData.vehiclePlate || '';
+      }
+
+      // Encontrar o objeto instrutor pelo nome (já que salvamos o nome no banco, não o ID... ideal seria ID, mas vamos manter compatibilidade)
+      const selectedInstructor = instructors.find(i => i.name === currentInstructorName);
+      const availableVehicles = selectedInstructor ? getVehiclesByInstructor(selectedInstructor.id, categoryCode === 'A' ? 'MOTO' : 'CAR') : [];
+
+      return (
+        <div className={`p-4 rounded-lg border ${colorClass}`}>
+            <h4 className={`font-bold mb-3 flex items-center gap-2 ${categoryCode === 'A' ? 'text-blue-800' : 'text-green-800'}`}>
+                {categoryLabel}
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor {categoryCode === 'A' ? 'Moto' : 'Carro'}</label>
+                    <select 
+                        className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                        value={currentInstructorName}
+                        onChange={e => {
+                            const newName = e.target.value;
+                            const newInstructor = instructors.find(i => i.name === newName);
+                            // Auto-select first vehicle if available
+                            const firstVehicle = newInstructor?.vehicles?.find(v => v.type === (categoryCode === 'A' ? 'MOTO' : 'CAR') && v.active);
+                            const newPlate = firstVehicle ? firstVehicle.plate : (newInstructor?.plate || '');
+
+                            if (formData.intendedCategory === 'AB') {
+                                const otherPartInstr = formData.instructor?.split(' / ')[categoryCode === 'A' ? 1 : 0] || '';
+                                const otherPartPlate = formData.vehiclePlate?.split(' / ')[categoryCode === 'A' ? 1 : 0] || '';
+                                
+                                const finalInstr = categoryCode === 'A' 
+                                    ? `Moto: ${newName} / ${otherPartInstr}` 
+                                    : `${otherPartInstr} / Carro: ${newName}`;
+                                
+                                const finalPlate = categoryCode === 'A'
+                                    ? `Moto: ${newPlate} / ${otherPartPlate}`
+                                    : `${otherPartPlate} / Carro: ${newPlate}`;
+
+                                setFormData({...formData, instructor: finalInstr, vehiclePlate: finalPlate});
+                            } else {
+                                setFormData({...formData, instructor: newName, vehiclePlate: newPlate});
+                            }
+                        }}
+                    >
+                        <option value="">Selecione...</option>
+                        {availableInstructors.map(inst => (
+                            <option key={inst.id} value={inst.name}>{inst.name}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Veículo/Placa</label>
+                    <select 
+                        className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                        value={currentPlate}
+                        onChange={e => {
+                            const newPlate = e.target.value;
+                            if (formData.intendedCategory === 'AB') {
+                                const otherPartPlate = formData.vehiclePlate?.split(' / ')[categoryCode === 'A' ? 1 : 0] || '';
+                                const finalPlate = categoryCode === 'A'
+                                    ? `Moto: ${newPlate} / ${otherPartPlate}`
+                                    : `${otherPartPlate} / Carro: ${newPlate}`;
+                                setFormData({...formData, vehiclePlate: finalPlate});
+                            } else {
+                                setFormData({...formData, vehiclePlate: newPlate});
+                            }
+                        }}
+                        disabled={!currentInstructorName}
+                    >
+                        <option value="">Selecione...</option>
+                        {availableVehicles.map(v => (
+                            <option key={v.id} value={v.plate}>{v.model} - {v.plate}</option>
+                        ))}
+                        {/* Fallback option if instructor has no vehicles list but has a plate property */}
+                        {selectedInstructor && !availableVehicles.length && selectedInstructor.plate && (
+                             <option value={selectedInstructor.plate}>{selectedInstructor.plate}</option>
+                        )}
+                         {/* Allow manual entry if needed or show current value if not in list */}
+                         {currentPlate && !availableVehicles.some(v => v.plate === currentPlate) && (!selectedInstructor || selectedInstructor.plate !== currentPlate) && (
+                            <option value={currentPlate}>{currentPlate}</option>
+                         )}
+                    </select>
+                </div>
+            </div>
+        </div>
+      );
   };
 
   const openCreateModal = (req?: ExamRequest) => {
@@ -469,91 +600,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
                         {activeTab === 'exam' && (
                             <div className="space-y-6 animate-fadeIn">
-                                {(formData.intendedCategory === 'A' || formData.intendedCategory === 'AB') && (
-                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                                        <h4 className="font-bold text-blue-800 mb-3 flex items-center gap-2">
-                                            Categoria A (Moto)
-                                        </h4>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor Moto</label>
-                                                <input 
-                                                    className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
-                                                    value={formData.instructor?.split(' / ')[0]?.replace('Moto: ', '') || formData.instructor || ''} 
-                                                    onChange={e => {
-                                                        const motoInstr = e.target.value;
-                                                        const carroInstr = formData.instructor?.includes('Carro:') ? formData.instructor.split('Carro: ')[1] : '';
-                                                        const newVal = formData.intendedCategory === 'AB' 
-                                                            ? `Moto: ${motoInstr} / Carro: ${carroInstr}`
-                                                            : motoInstr;
-                                                        setFormData({...formData, instructor: newVal});
-                                                    }} 
-                                                    placeholder="Nome do Instrutor"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Placa Moto</label>
-                                                <input 
-                                                    className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
-                                                    value={formData.vehiclePlate?.split(' / ')[0]?.replace('Moto: ', '') || formData.vehiclePlate || ''} 
-                                                    onChange={e => {
-                                                        const motoPlate = e.target.value;
-                                                        const carroPlate = formData.vehiclePlate?.includes('Carro:') ? formData.vehiclePlate.split('Carro: ')[1] : '';
-                                                        const newVal = formData.intendedCategory === 'AB' 
-                                                            ? `Moto: ${motoPlate} / Carro: ${carroPlate}`
-                                                            : motoPlate;
-                                                        setFormData({...formData, vehiclePlate: newVal});
-                                                    }}
-                                                    placeholder="ABC-1234"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                {(formData.intendedCategory === 'A' || formData.intendedCategory === 'AB') && 
+                                    renderInstructorVehicleSelection('Categoria A (Moto)', 'A', 'Moto', 'bg-blue-50 border-blue-100')
+                                }
 
-                                {(formData.intendedCategory === 'B' || formData.intendedCategory === 'AB') && (
-                                    <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-                                        <h4 className="font-bold text-green-800 mb-3 flex items-center gap-2">
-                                            Categoria B (Carro)
-                                        </h4>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor Carro</label>
-                                                <input 
-                                                    className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
-                                                    value={formData.intendedCategory === 'AB' ? (formData.instructor?.split('Carro: ')[1] || '') : (formData.instructor || '')} 
-                                                    onChange={e => {
-                                                        const carroInstr = e.target.value;
-                                                        if (formData.intendedCategory === 'AB') {
-                                                            const motoInstr = formData.instructor?.split(' / ')[0]?.replace('Moto: ', '') || '';
-                                                            setFormData({...formData, instructor: `Moto: ${motoInstr} / Carro: ${carroInstr}`});
-                                                        } else {
-                                                            setFormData({...formData, instructor: carroInstr});
-                                                        }
-                                                    }}
-                                                    placeholder="Nome do Instrutor"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">Placa Carro</label>
-                                                <input 
-                                                    className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
-                                                    value={formData.intendedCategory === 'AB' ? (formData.vehiclePlate?.split('Carro: ')[1] || '') : (formData.vehiclePlate || '')} 
-                                                    onChange={e => {
-                                                        const carroPlate = e.target.value;
-                                                        if (formData.intendedCategory === 'AB') {
-                                                            const motoPlate = formData.vehiclePlate?.split(' / ')[0]?.replace('Moto: ', '') || '';
-                                                            setFormData({...formData, vehiclePlate: `Moto: ${motoPlate} / Carro: ${carroPlate}`});
-                                                        } else {
-                                                            setFormData({...formData, vehiclePlate: carroPlate});
-                                                        }
-                                                    }}
-                                                    placeholder="ABC-1234"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+                                {(formData.intendedCategory === 'B' || formData.intendedCategory === 'AB') && 
+                                    renderInstructorVehicleSelection('Categoria B (Carro)', 'B', 'Carro', 'bg-green-50 border-green-100')
+                                }
 
                                 {formData.examType === ExamType.PCD && (
                                     <div className="border-t pt-4">
