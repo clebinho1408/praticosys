@@ -79,6 +79,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     fetchRequests();
   }, [user, typeFilter]);
 
+  useEffect(() => {
+    if (isModalOpen) {
+      api.getInstructorsAsync().then(setInstructors);
+    }
+  }, [isModalOpen]);
+
   // Handle Filter Change logic (Auto open accordion if specific status selected)
   const handleStatusFilterChange = (status: string) => {
       setStatusFilter(status);
