@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/mockData';
 import { User, UserRole, DrivingSchool, Examiner, Instructor, Vehicle } from '../types';
-import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, X, Save, Lock, RotateCcw, Car, User as UserIcon, Bike, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
@@ -2978,11 +2978,6 @@ const InstructorsManager: React.FC = () => {
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value.replace(/\D/g, '');
       setFormData({...formData, cpf: val});
-  };
-
-  const handleLegacyPlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      setFormData({...formData, plate: val});
   };
 
   // --- Vehicle Management Logic ---

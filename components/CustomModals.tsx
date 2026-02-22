@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, AlertCircle, CheckCircle, HelpCircle, AlertTriangle } from 'lucide-react';
+import { AlertCircle, CheckCircle, HelpCircle, AlertTriangle } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;

@@ -43,13 +43,13 @@ const StudentDatabase: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
+      <div className="bg-white p-3 rounded-lg shadow-sm border border-gray-100 flex items-center gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input 
             type="text" 
             placeholder="Buscar por Nome ou CPF..." 
-            className="w-full pl-12 pr-4 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 bg-gray-50/50 transition-all"
+            className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-900 bg-white transition-all"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />

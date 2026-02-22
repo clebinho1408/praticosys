@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/mockData';
 import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings } from '../types';
+import { AlertModal, ConfirmModal, PromptModal } from '../components/CustomModals';
 import { 
   Calendar, 
   Clock, 
@@ -86,6 +87,27 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     maxSlotsA: 10, 
     maxSlotsB: 10,
     type: type || ExamType.COMMON
+  });
+
+  // Custom Modals State
+  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; title: string; message: string; type?: 'error' | 'success' | 'info' }>({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
+
+  const [confirmConfig, setConfirmConfig] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: () => void; isDestructive?: boolean }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const [promptConfig, setPromptConfig] = useState<{ isOpen: boolean; title: string; message: string; onConfirm: (val: string) => void; defaultValue?: string; placeholder?: string }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
   });
 
   const refreshData = async () => {
@@ -194,7 +216,12 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     const phoneDigits = rawPhone.replace(/\D/g, '');
     
     if (!phoneDigits) {
-        alert('Este candidato não possui um número de telefone válido cadastrado.');
+        setAlertConfig({
+          isOpen: true,
+          title: 'Telefone Inválido',
+          message: 'Este candidato não possui um número de telefone válido cadastrado.',
+          type: 'error'
+        });
         return;
     }
 
@@ -272,7 +299,12 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
           setIsAddStudentOpen(false);
           refreshData();
       } catch (err) {
-          alert('Erro ao agendar candidatos.');
+          setAlertConfig({
+            isOpen: true,
+            title: 'Erro no Agendamento',
+            message: 'Ocorreu um erro ao tentar agendar os candidatos selecionados.',
+            type: 'error'
+          });
       } finally {
           setLoading(false);
       }
@@ -290,16 +322,28 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       refreshData();
     } catch (error) {
       console.error(error);
-      alert("Erro ao salvar banca.");
+      setAlertConfig({
+        isOpen: true,
+        title: 'Erro ao Salvar',
+        message: 'Não foi possível salvar as informações da banca examinadora.',
+        type: 'error'
+      });
     }
   };
 
   const handleCancelSchedule = async (id: string) => {
-    const reason = prompt("Informe o motivo do cancelamento:");
-    if (reason) {
-      await api.cancelSchedule(id, reason);
-      refreshData();
-    }
+    setPromptConfig({
+      isOpen: true,
+      title: 'Cancelar Banca',
+      message: 'Informe o motivo do cancelamento:',
+      placeholder: 'Ex: Condições climáticas, falta de examinador...',
+      onConfirm: async (reason) => {
+        if (reason) {
+          await api.cancelSchedule(id, reason);
+          refreshData();
+        }
+      }
+    });
   };
 
   const handleRemoveStudent = async (requestId: string) => {
@@ -832,6 +876,34 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
               </div>
           </div>
       )}
+
+      {/* Global Custom Modals */}
+      <AlertModal 
+        isOpen={alertConfig.isOpen}
+        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
+
+      <ConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        isDestructive={confirmConfig.isDestructive}
+      />
+
+      <PromptModal 
+        isOpen={promptConfig.isOpen}
+        onClose={() => setPromptConfig({ ...promptConfig, isOpen: false })}
+        onConfirm={promptConfig.onConfirm}
+        title={promptConfig.title}
+        message={promptConfig.message}
+        defaultValue={promptConfig.defaultValue}
+        placeholder={promptConfig.placeholder}
+      />
     </div>
   );
 };
