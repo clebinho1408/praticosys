@@ -495,8 +495,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
        {/* Grupos Expansíveis (Acordeões) */}
        <div className="space-y-4">
            {visibleStatuses.map(status => {
-               const items = groupedRequests[status as ExamStatus];
-               const config = groupConfig[status as ExamStatus];
+               const items = (groupedRequests as any)[status];
+               const config = (groupConfig as any)[status];
                const isExpanded = expandedGroups[status];
                const Icon = config.icon;
 
@@ -547,13 +547,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Data Cadastro</th>
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Candidato</th>
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Categoria</th>
-                                           <th className="px-6 py-3 font-bold text-xs uppercase">Tipo</th>
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Histórico</th>
                                            <th className="px-6 py-3 font-bold text-xs uppercase text-right">Ações</th>
                                        </tr>
                                    </thead>
                                    <tbody className="divide-y divide-gray-50">
-                                       {items.map(req => (
+                                       {items.map((req: ExamRequest) => (
                                            <tr key={req.id} className="hover:bg-gray-50 transition-colors">
                                                <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                                    {new Date(req.createdAt).toLocaleString()}
@@ -573,11 +572,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                                <td className="px-6 py-4 align-middle">
                                                    <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
                                                        {req.intendedCategory}
-                                                   </span>
-                                               </td>
-                                               <td className="px-6 py-4 align-middle">
-                                                   <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
-                                                       {req.examType === ExamType.COMMON ? '1ª Hab.' : 'PCD'}
                                                    </span>
                                                </td>
                                                <td className="px-6 py-4 align-middle text-xs text-gray-500">
