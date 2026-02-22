@@ -89,6 +89,7 @@ export interface ExamResultEntry {
   result: ExamResult;
   category?: string; // New: A, B, etc.
   examinerId?: string;
+  examiners?: string; // Names of examiners
   observation?: string;
 }
 

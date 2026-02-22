@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/mockData';
-import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult, Instructor, Vehicle } from '../types';
-import { Plus, Search, Edit, Trash2, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter } from 'lucide-react';
+import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult, Instructor, Examiner, ExamSchedule } from '../types';
+import { Plus, Search, Edit, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter } from 'lucide-react';
 
 const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({ result, status }) => {
   if (status === ExamStatus.WAITING_RESULT) return <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Aguardando</span>;
@@ -25,6 +25,8 @@ interface RequestManagerProps {
 const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [examiners, setExaminers] = useState<Examiner[]>([]);
+  const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -50,11 +52,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const [data, instructorsData] = await Promise.all([
+      const [data, instructorsData, examinersData, schedulesData] = await Promise.all([
         api.getRequests(),
-        api.getInstructorsAsync()
+        api.getInstructorsAsync(),
+        api.getExaminersAsync(),
+        api.getSchedules()
       ]);
       setInstructors(instructorsData);
+      setExaminers(examinersData);
+      setSchedules(schedulesData);
       let filtered = data;
       
       // Role Filtering
@@ -172,12 +178,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     e.preventDefault();
     if (!editingRequest) return;
     
+    const schedule = schedules.find(s => s.id === editingRequest.scheduleId);
+    const examinerNames = schedule 
+      ? schedule.examinerIds.map((id: string) => examiners.find(e => e.id === id)?.name).filter(Boolean).join(', ')
+      : '';
+
     const newHistoryEntry = {
       id: 'hist_' + Date.now(),
       date: editingRequest.scheduledDate || new Date().toISOString().split('T')[0],
       time: editingRequest.scheduledTime || new Date().toLocaleTimeString().substring(0, 5),
       result: resultData.result,
       category: editingRequest.scheduledCategory || editingRequest.intendedCategory,
+      examiners: examinerNames,
       observation: resultData.observation
     };
 
@@ -208,6 +220,36 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     fetchRequests();
   };
 
+  const handleChangeHistoryResult = async (requestId: string, historyId: string) => {
+    const request = requests.find(r => r.id === requestId);
+    if (!request) return;
+
+    const entry = request.examHistory.find(h => h.id === historyId);
+    if (!entry) return;
+
+    const newResult = window.prompt(`Mudar resultado de ${entry.result} para: (APTO, INAPTO, FALTOU)`, entry.result);
+    if (!newResult) return;
+    
+    const upperResult = newResult.toUpperCase();
+    if (!['APTO', 'INAPTO', 'FALTOU'].includes(upperResult)) {
+        alert('Resultado inválido. Use: APTO, INAPTO ou FALTOU');
+        return;
+    }
+
+    const updatedHistory = request.examHistory.map(h => 
+      h.id === historyId ? { ...h, result: upperResult as ExamResult } : h
+    );
+
+    await api.updateRequest(requestId, { examHistory: updatedHistory });
+    
+    // Update local state for modal if open
+    if (editingRequest && editingRequest.id === requestId) {
+        setFormData(prev => ({ ...prev, examHistory: updatedHistory }));
+    }
+    
+    fetchRequests();
+  };
+
   // Helper functions for filtering instructors and vehicles
   const getInstructorsByCategory = (category: 'A' | 'B') => {
       return instructors.filter(inst => {
@@ -227,7 +269,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   };
 
   // Renderiza o select de instrutor e veículo para uma categoria específica
-  const renderInstructorVehicleSelection = (categoryLabel: string, categoryCode: 'A' | 'B', fieldPrefix: string, colorClass: string) => {
+  const renderInstructorVehicleSelection = (categoryLabel: string, categoryCode: 'A' | 'B', colorClass: string) => {
       const availableInstructors = getInstructorsByCategory(categoryCode);
       
       // Extrair o ID do instrutor e a placa atual do formData
@@ -690,11 +732,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                 </div>
 
                                 {(formData.intendedCategory === 'A' || formData.intendedCategory === 'AB') && 
-                                    renderInstructorVehicleSelection('Categoria A (Moto)', 'A', 'Moto', 'bg-blue-50 border-blue-100')
+                                    renderInstructorVehicleSelection('Categoria A (Moto)', 'A', 'bg-blue-50 border-blue-100')
                                 }
 
                                 {(formData.intendedCategory === 'B' || formData.intendedCategory === 'AB') && 
-                                    renderInstructorVehicleSelection('Categoria B (Carro)', 'B', 'Carro', 'bg-green-50 border-green-100')
+                                    renderInstructorVehicleSelection('Categoria B (Carro)', 'B', 'bg-green-50 border-green-100')
                                 }
 
                                 {formData.examType === ExamType.PCD && (
@@ -720,21 +762,35 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                 <h4 className="font-bold text-gray-800 mb-2">Histórico de Exames</h4>
                                 {formData.examHistory && formData.examHistory.length > 0 ? (
                                     <div className="border rounded-lg overflow-hidden">
-                                        <table className="w-full text-sm text-left">
+                                        <table className="w-full text-xs text-left">
                                             <thead className="bg-gray-50 text-gray-500 font-bold">
                                                 <tr>
-                                                    <th className="px-4 py-2">Data</th>
-                                                    <th className="px-4 py-2">Categoria</th>
-                                                    <th className="px-4 py-2">Resultado</th>
+                                                    <th className="px-3 py-2">Data/Hora</th>
+                                                    <th className="px-3 py-2">Examinadores</th>
+                                                    <th className="px-3 py-2">Cat.</th>
+                                                    <th className="px-3 py-2">Obs.</th>
+                                                    <th className="px-3 py-2">Resultado</th>
+                                                    {(user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR) && (
+                                                        <th className="px-3 py-2 text-right">Ação</th>
+                                                    )}
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y">
                                                 {formData.examHistory.map((hist, idx) => (
-                                                    <tr key={idx}>
-                                                        <td className="px-4 py-2">{hist.date}</td>
-                                                        <td className="px-4 py-2">{hist.category}</td>
-                                                        <td className="px-4 py-2">
-                                                            <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                                    <tr key={idx} className="hover:bg-gray-50">
+                                                        <td className="px-3 py-2 whitespace-nowrap">
+                                                            <div className="font-medium">{hist.date}</div>
+                                                            <div className="text-[10px] text-gray-400">{hist.time}</div>
+                                                        </td>
+                                                        <td className="px-3 py-2 text-[10px] max-w-[120px] truncate" title={hist.examiners}>
+                                                            {hist.examiners || '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2 font-bold">{hist.category}</td>
+                                                        <td className="px-3 py-2 text-[10px] max-w-[150px] truncate" title={hist.observation}>
+                                                            {hist.observation || '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2">
+                                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                                                 hist.result === 'APTO' ? 'bg-green-100 text-green-700' :
                                                                 hist.result === 'INAPTO' ? 'bg-red-100 text-red-700' :
                                                                 'bg-gray-100 text-gray-700'
@@ -742,6 +798,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                                                 {hist.result}
                                                             </span>
                                                         </td>
+                                                        {(user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR) && (
+                                                            <td className="px-3 py-2 text-right">
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => editingRequest && handleChangeHistoryResult(editingRequest.id, hist.id)}
+                                                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                                                    title="Mudar Resultado"
+                                                                >
+                                                                    <Edit className="h-3.5 w-3.5" />
+                                                                </button>
+                                                            </td>
+                                                        )}
                                                     </tr>
                                                 ))}
                                             </tbody>
