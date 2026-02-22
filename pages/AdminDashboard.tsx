@@ -119,7 +119,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
                   paddingAngle={5}
                   dataKey="value"
                 >
-                  {dataByType.map((entry, index) => (
+                  {dataByType.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={index === 0 ? '#3B82F6' : '#10B981'} strokeWidth={0} />
                   ))}
                 </Pie>

@@ -137,7 +137,7 @@ const Reports: React.FC = () => {
                             paddingAngle={8}
                             dataKey="value"
                         >
-                            {stats.pieData.map((entry, index) => (
+                            {stats.pieData.map((_, index) => (
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
                             ))}
                         </Pie>

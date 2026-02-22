@@ -3,7 +3,6 @@ import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/mockData';
 import { SystemSettings } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon } from 'lucide-react';
-import { AlertModal } from '../components/CustomModals';
 
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
 
@@ -14,12 +13,6 @@ const Settings: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; title: string; message: string; type?: 'error' | 'success' | 'info' }>({
-    isOpen: false,
-    title: '',
-    message: '',
-  });
 
   useEffect(() => {
     loadSettings();
@@ -47,12 +40,7 @@ const Settings: React.FC = () => {
       const file = e.target.files?.[0];
       if (file && settings) {
           if (file.size > 2 * 1024 * 1024) {
-              setAlertConfig({
-                isOpen: true,
-                title: 'Arquivo muito grande',
-                message: 'A imagem selecionada excede o limite de 2MB. Por favor, escolha uma imagem menor.',
-                type: 'error'
-              });
+              alert("A imagem é muito grande. Por favor, escolha uma imagem menor que 2MB.");
               return;
           }
           const reader = new FileReader();
@@ -216,14 +204,6 @@ const Settings: React.FC = () => {
           </button>
         </div>
       </form>
-
-      <AlertModal 
-        isOpen={alertConfig.isOpen}
-        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-      />
     </div>
   );
 };
