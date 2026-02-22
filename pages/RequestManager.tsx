@@ -67,6 +67,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
         filtered = filtered.filter(r => r.examType === typeFilter);
       }
       
+      // Sort by updatedAt ASC (oldest first, newest at the bottom)
+      filtered.sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime());
+      
       setRequests(filtered);
     } catch (error) {
       console.error(error);
@@ -169,11 +172,37 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     e.preventDefault();
     if (!editingRequest) return;
     
-    await api.updateRequest(editingRequest.id, {
-      status: ExamStatus.DONE,
+    const newHistoryEntry = {
+      id: 'hist_' + Date.now(),
+      date: editingRequest.scheduledDate || new Date().toISOString().split('T')[0],
+      time: editingRequest.scheduledTime || new Date().toLocaleTimeString().substring(0, 5),
       result: resultData.result,
+      category: editingRequest.scheduledCategory || editingRequest.intendedCategory,
       observation: resultData.observation
-    });
+    };
+
+    const updatedHistory = [...(editingRequest.examHistory || []), newHistoryEntry];
+
+    // Se Apto -> Realizado (DONE)
+    // Se Inapto ou Faltou -> Aguardando Agendamento (WAITING_SCHEDULING)
+    const nextStatus = resultData.result === 'APTO' ? ExamStatus.DONE : ExamStatus.WAITING_SCHEDULING;
+
+    const updates: any = {
+      status: nextStatus,
+      result: resultData.result,
+      observation: resultData.observation,
+      examHistory: updatedHistory
+    };
+
+    // Se voltou para aguardando agendamento, limpa os dados do agendamento anterior
+    if (nextStatus === ExamStatus.WAITING_SCHEDULING) {
+      updates.scheduleId = null;
+      updates.scheduledDate = null;
+      updates.scheduledTime = null;
+      updates.attendanceConfirmed = false;
+    }
+
+    await api.updateRequest(editingRequest.id, updates);
     
     setIsResultModalOpen(false);
     fetchRequests();
@@ -316,7 +345,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
         cpf: '',
         phone: '',
         examType: typeFilter || ExamType.COMMON,
-        intendedCategory: 'B',
+        intendedCategory: '',
         paidFee: false,
         completedPracticalCourse: false,
         hasVehicle: false,
@@ -347,6 +376,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       [ExamStatus.WAITING_RESULT]: filteredRequests.filter(r => r.status === ExamStatus.WAITING_RESULT),
       [ExamStatus.DONE]: filteredRequests.filter(r => r.status === ExamStatus.DONE),
       [ExamStatus.CANCELLED]: filteredRequests.filter(r => r.status === ExamStatus.CANCELLED),
+      [ExamStatus.RETEST]: filteredRequests.filter(r => r.status === ExamStatus.RETEST),
   };
 
   // Determine visible statuses based on filter
@@ -355,7 +385,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       ExamStatus.SCHEDULED,
       ExamStatus.WAITING_RESULT,
       ExamStatus.DONE,
-      ExamStatus.CANCELLED
+      ExamStatus.CANCELLED,
+      ExamStatus.RETEST
   ];
 
   const visibleStatuses = statusFilter === 'ALL' ? allStatuses : [statusFilter];
@@ -366,6 +397,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       [ExamStatus.WAITING_RESULT]: { label: 'Aguardando Resultado', color: 'purple', icon: AlertOctagon },
       [ExamStatus.DONE]: { label: 'Realizado', color: 'green', icon: CheckCircle },
       [ExamStatus.CANCELLED]: { label: 'Cancelado', color: 'red', icon: X },
+      [ExamStatus.RETEST]: { label: 'Reteste', color: 'yellow', icon: Clock },
   };
 
   if (loading) return <div className="p-8 text-center text-gray-500">Carregando solicitações...</div>;
@@ -634,7 +666,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Categoria Pretendida</label>
-                                        <select className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || 'B'} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
+                                        <select required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || ''} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
+                                            <option value="">Selecione...</option>
                                             <option value="A">A (Moto)</option>
                                             <option value="B">B (Carro)</option>
                                             <option value="AB">AB (Carro e Moto)</option>
@@ -642,7 +675,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Restrição CNH</label>
-                                        <input className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.cnhRestriction || ''} onChange={e => setFormData({...formData, cnhRestriction: e.target.value})} placeholder="Ex: A, G..." />
+                                        <input 
+                                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                            value={formData.cnhRestriction || ''} 
+                                            onChange={e => {
+                                                const val = e.target.value;
+                                                const letters = val.replace(/[^a-zA-Z]/g, '').toUpperCase();
+                                                const formatted = letters.split('').join(', ');
+                                                setFormData({...formData, cnhRestriction: formatted});
+                                            }} 
+                                            placeholder="Ex: A, G..." 
+                                        />
                                     </div>
                                 </div>
 
