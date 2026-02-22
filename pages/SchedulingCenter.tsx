@@ -53,9 +53,10 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 
 interface SchedulingCenterProps {
   type?: ExamType;
+  user: User;
 }
 
-const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
+const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -87,6 +88,17 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type }) => {
     maxSlotsB: 10,
     type: type || ExamType.COMMON
   });
+
+  const handleDeleteSchedule = async (id: string) => {
+    if (user.role !== UserRole.ADMIN) {
+        alert("Somente administradores podem excluir bancas.");
+        return;
+    }
+    if (window.confirm("Tem certeza que deseja EXCLUIR permanentemente esta banca? Esta ação não pode ser desfeita.")) {
+        await api.deleteSchedule(id);
+        refreshData();
+    }
+  };
 
   const refreshData = async () => {
     setLoading(true);
@@ -295,6 +307,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   };
 
   const handleCancelSchedule = async (id: string) => {
+    if (user.role !== UserRole.ADMIN) {
+        alert("Somente administradores podem cancelar bancas.");
+        return;
+    }
     const reason = prompt("Informe o motivo do cancelamento:");
     if (reason) {
       await api.cancelSchedule(id, reason);

@@ -53,9 +53,9 @@ const App: React.FC = () => {
                   <Route path="requests/cfc" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
                   
                   {/* Scheduling Center */}
-                  <Route path="scheduling/common" element={<SchedulingCenter type={ExamType.COMMON} />} />
-                  <Route path="scheduling/cfc" element={<SchedulingCenter type={ExamType.COMMON} />} />
-                  <Route path="scheduling/pcd" element={<SchedulingCenter type={ExamType.PCD} />} />
+                  <Route path="scheduling/common" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
+                  <Route path="scheduling/cfc" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
+                  <Route path="scheduling/pcd" element={<SchedulingCenter user={auth.user} type={ExamType.PCD} />} />
 
                   {/* Reports */}
                   <Route path="reports/:reportType" element={<Reports />} />

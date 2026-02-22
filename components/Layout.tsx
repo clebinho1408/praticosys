@@ -254,7 +254,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                         <p className="text-sm font-black text-slate-900 leading-tight uppercase tracking-tighter">{user.name}</p>
                         <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest opacity-80">{user.role}</p>
                     </div>
-                    <div className="h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-2xl flex items-center justify-center font-black shadow-lg shadow-blue-200 border border-blue-400/20">
+                    <div className="h-10 w-10 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center font-black border border-slate-200 shadow-sm">
                         {user.name.charAt(0)}
                     </div>
                 </div>
