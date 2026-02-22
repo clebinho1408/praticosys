@@ -418,7 +418,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       [ExamStatus.WAITING_RESULT]: filteredRequests.filter(r => r.status === ExamStatus.WAITING_RESULT),
       [ExamStatus.DONE]: filteredRequests.filter(r => r.status === ExamStatus.DONE),
       [ExamStatus.CANCELLED]: filteredRequests.filter(r => r.status === ExamStatus.CANCELLED),
-      [ExamStatus.RETEST]: filteredRequests.filter(r => r.status === ExamStatus.RETEST),
   };
 
   // Determine visible statuses based on filter
@@ -427,8 +426,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       ExamStatus.SCHEDULED,
       ExamStatus.WAITING_RESULT,
       ExamStatus.DONE,
-      ExamStatus.CANCELLED,
-      ExamStatus.RETEST
+      ExamStatus.CANCELLED
   ];
 
   const visibleStatuses = statusFilter === 'ALL' ? allStatuses : [statusFilter];
@@ -439,7 +437,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       [ExamStatus.WAITING_RESULT]: { label: 'Aguardando Resultado', color: 'purple', icon: AlertOctagon },
       [ExamStatus.DONE]: { label: 'Realizado', color: 'green', icon: CheckCircle },
       [ExamStatus.CANCELLED]: { label: 'Cancelado', color: 'red', icon: X },
-      [ExamStatus.RETEST]: { label: 'Reteste', color: 'yellow', icon: Clock },
   };
 
   if (loading) return <div className="p-8 text-center text-gray-500">Carregando solicitações...</div>;
