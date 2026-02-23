@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../services/mockData';
-import { ExamRequest, ExamStatus, ExamSchedule } from '../types';
+import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend
@@ -17,7 +17,8 @@ import {
   Download,
   Users,
   Layout,
-  List
+  List,
+  Printer
 } from 'lucide-react';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
@@ -65,16 +66,24 @@ const Reports: React.FC = () => {
   const [activeView, setActiveView] = useState<ReportView>('approval-stats');
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+
+  // Filters for Candidates List
+  const [candidateStatusFilter, setCandidateStatusFilter] = useState<string>('ALL');
+  const [candidateCategoryFilter, setCandidateCategoryFilter] = useState<string>('ALL');
+  const [candidateDateStart, setCandidateDateStart] = useState<string>('');
+  const [candidateDateEnd, setCandidateDateEnd] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [reqs, scheds] = await Promise.all([
+            const [reqs, scheds, sysSettings] = await Promise.all([
                 api.getRequests(),
-                api.getSchedules()
+                api.getSchedules(),
+                api.getSettings()
             ]);
 
             let filteredReqs = reqs;
@@ -90,6 +99,7 @@ const Reports: React.FC = () => {
 
             setRequests(filteredReqs);
             setSchedules(filteredScheds);
+            setSettings(sysSettings);
         } catch (error) {
             console.error("Error fetching report data", error);
         } finally {
@@ -171,12 +181,31 @@ const Reports: React.FC = () => {
   const groupedRequests = useMemo(() => {
     const groups: Record<string, Record<string, ExamRequest[]>> = {};
     
+    // Apply Filters
+    let filtered = requests;
+
+    if (candidateStatusFilter !== 'ALL') {
+        filtered = filtered.filter(r => r.status === candidateStatusFilter);
+    }
+
+    if (candidateCategoryFilter !== 'ALL') {
+        filtered = filtered.filter(r => r.intendedCategory === candidateCategoryFilter);
+    }
+
+    if (candidateDateStart) {
+        filtered = filtered.filter(r => new Date(r.createdAt) >= new Date(candidateDateStart));
+    }
+
+    if (candidateDateEnd) {
+        filtered = filtered.filter(r => new Date(r.createdAt) <= new Date(candidateDateEnd));
+    }
+
     // Sort requests by name first
-    const sortedRequests = [...requests].sort((a, b) => a.studentName.localeCompare(b.studentName));
+    const sortedRequests = [...filtered].sort((a, b) => a.studentName.localeCompare(b.studentName));
 
     sortedRequests.forEach(req => {
         const status = req.status;
-        const category = req.intendedCategory;
+        const category = req.intendedCategory || 'N/A';
 
         if (!groups[status]) groups[status] = {};
         if (!groups[status][category]) groups[status][category] = [];
@@ -185,7 +214,7 @@ const Reports: React.FC = () => {
     });
     
     return groups;
-  }, [requests]);
+  }, [requests, candidateStatusFilter, candidateCategoryFilter, candidateDateStart, candidateDateEnd]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -310,10 +339,77 @@ const Reports: React.FC = () => {
       {/* VIEW: Lista de Candidatos */}
       {activeView === 'candidates-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                  <h3 className="text-lg font-bold">Todos os Candidatos ({requests.length})</h3>
+              <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+                  <h3 className="text-lg font-bold">Todos os Candidatos</h3>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                      <select 
+                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={candidateStatusFilter}
+                          onChange={e => setCandidateStatusFilter(e.target.value)}
+                      >
+                          <option value="ALL">Todos Status</option>
+                          {Object.entries(STATUS_TRANSLATION).map(([key, label]) => (
+                              <option key={key} value={key}>{label}</option>
+                          ))}
+                      </select>
+
+                      <select 
+                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={candidateCategoryFilter}
+                          onChange={e => setCandidateCategoryFilter(e.target.value)}
+                      >
+                          <option value="ALL">Todas Categorias</option>
+                          <option value="A">Categoria A</option>
+                          <option value="B">Categoria B</option>
+                          <option value="AB">Categoria AB</option>
+                      </select>
+
+                      <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                          <input 
+                              type="date" 
+                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                              value={candidateDateStart}
+                              onChange={e => setCandidateDateStart(e.target.value)}
+                          />
+                          <span className="text-gray-400">-</span>
+                          <input 
+                              type="date" 
+                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                              value={candidateDateEnd}
+                              onChange={e => setCandidateDateEnd(e.target.value)}
+                          />
+                      </div>
+
+                      <button 
+                          onClick={() => window.print()} 
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                      >
+                          <Printer className="h-4 w-4" /> Imprimir
+                      </button>
+                  </div>
               </div>
-              <div className="overflow-x-auto">
+
+              {/* Print Header (Visible only in print) */}
+              <div className="hidden print:block p-6 border-b-2 border-black mb-4">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-3">
+                      {settings?.logoUrl ? (
+                          <img src={settings.logoUrl} className="h-16 w-auto" />
+                      ) : (
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                      )}
+                      <div>
+                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO DE CANDIDATOS</h2>
+                      </div>
+                  </div>
+                  <div className="flex justify-between text-xs font-bold uppercase text-black">
+                      <span>DATA: {new Date().toLocaleDateString()}</span>
+                      <span>FILTROS: {candidateStatusFilter !== 'ALL' ? STATUS_TRANSLATION[candidateStatusFilter] : 'TODOS'} | {candidateCategoryFilter !== 'ALL' ? `CAT ${candidateCategoryFilter}` : 'TODAS CAT'}</span>
+                  </div>
+              </div>
+
+              <div className="overflow-x-auto print:overflow-visible">
                   {Object.keys(groupedRequests).length === 0 ? (
                       <div className="p-10 text-center text-gray-400">Nenhum candidato encontrado.</div>
                   ) : (
@@ -331,11 +427,20 @@ const Reports: React.FC = () => {
                                           Categoria {category} ({reqs.length})
                                       </div>
                                       <table className="w-full text-sm text-left">
+                                          <thead>
+                                              <tr className="text-xs text-gray-400 border-b">
+                                                  <th className="px-6 py-2 pl-14 font-medium">Nome</th>
+                                                  <th className="px-6 py-2 font-medium">CPF</th>
+                                                  <th className="px-6 py-2 font-medium">Tentativa</th>
+                                                  <th className="px-6 py-2 font-medium">Resultado</th>
+                                              </tr>
+                                          </thead>
                                           <tbody className="divide-y divide-gray-100">
                                               {reqs.map(req => (
                                                   <tr key={req.id} className="hover:bg-gray-50 transition-colors">
                                                       <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14">{req.studentName}</td>
                                                       <td className="px-6 py-3 text-gray-500">{req.cpf}</td>
+                                                      <td className="px-6 py-3 text-gray-500 font-medium">{(req.examHistory?.length || 0) + 1}ª</td>
                                                       <td className="px-6 py-3">
                                                           {req.result ? (
                                                               <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
@@ -355,6 +460,12 @@ const Reports: React.FC = () => {
                           </div>
                       ))
                   )}
+              </div>
+
+              {/* Print Footer (Visible only in print) */}
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                  <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
       )}
