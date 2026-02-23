@@ -64,6 +64,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const [changeResultData, setChangeResultData] = useState<{ requestId: string, historyId: string, currentResult: string } | null>(null);
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [errorField, setErrorField] = useState<string | null>(null);
   const [editingRequest, setEditingRequest] = useState<ExamRequest | null>(null);
 
   // Form State
@@ -147,6 +148,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     for (const req of requiredFields) {
         if (!formData[req.field as keyof ExamRequest]) {
             setErrorMessage(`O campo ${req.label} é obrigatório.`);
+            setErrorField(req.field);
             setIsErrorModalOpen(true);
             return;
         }
@@ -154,6 +156,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
     if (!validateCPF(formData.cpf || '')) {
         setErrorMessage('CPF inválido! Por favor, verifique o número digitado.');
+        setErrorField('cpf');
         setIsErrorModalOpen(true);
         return;
     }
@@ -169,6 +172,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
         if (!motoInstr || !motoPlate) {
             setErrorMessage('Para Categoria A, Instrutor e Veículo (Moto) são obrigatórios.');
+            setErrorField('instructor_A'); // We will add this ID
             setIsErrorModalOpen(true);
             return;
         }
@@ -184,6 +188,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
         if (!carInstr || !carPlate) {
             setErrorMessage('Para Categoria B, Instrutor e Veículo (Carro) são obrigatórios.');
+            setErrorField('instructor_B'); // We will add this ID
             setIsErrorModalOpen(true);
             return;
         }
@@ -390,6 +395,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor {categoryCode === 'A' ? 'Moto' : 'Carro'} <span className="text-red-500">*</span></label>
                     <select 
+                        id={`instructor_${categoryCode}`}
                         className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                         value={currentInstructorName}
                         onChange={e => {
@@ -759,6 +765,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">CPF <span className="text-red-500">*</span></label>
                                         <input 
+                                            id="cpf"
                                             required 
                                             className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
                                             value={formData.cpf || ''} 
@@ -772,15 +779,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     </div>
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo <span className="text-red-500">*</span></label>
-                                        <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.studentName || ''} onChange={e => setFormData({...formData, studentName: e.target.value})} />
+                                        <input id="studentName" required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.studentName || ''} onChange={e => setFormData({...formData, studentName: e.target.value})} />
                                     </div>
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Nome Social</label>
-                                        <input className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.socialName || ''} onChange={e => setFormData({...formData, socialName: e.target.value})} />
+                                        <input id="socialName" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.socialName || ''} onChange={e => setFormData({...formData, socialName: e.target.value})} />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Telefone <span className="text-red-500">*</span></label>
-                                        <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                        <input id="phone" required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                     </div>
                                     {!typeFilter && (
                                     <div>
@@ -800,7 +807,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Categoria Pretendida <span className="text-red-500">*</span></label>
-                                        <select required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || ''} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
+                                        <select id="intendedCategory" required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || ''} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
                                             <option value="">Selecione...</option>
                                             <option value="A">A (Moto)</option>
                                             <option value="B">B (Carro)</option>
@@ -1027,7 +1034,26 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                         </div>
                         
                         <button 
-                            onClick={() => setIsErrorModalOpen(false)}
+                            onClick={() => {
+                                setIsErrorModalOpen(false);
+                                if (errorField) {
+                                    // Se o campo estiver em outra aba, muda a aba
+                                    if (['cpf', 'studentName', 'phone'].includes(errorField)) {
+                                        setActiveTab('personal');
+                                    } else if (['intendedCategory', 'instructor_A', 'instructor_B'].includes(errorField)) {
+                                        setActiveTab('exam');
+                                    }
+                                    
+                                    // Foca no campo após um pequeno delay para garantir que a aba trocou
+                                    setTimeout(() => {
+                                        const element = document.getElementById(errorField);
+                                        if (element) {
+                                            element.focus();
+                                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        }
+                                    }, 100);
+                                }
+                            }}
                             className="w-full py-2.5 px-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
                         >
                             Entendi
