@@ -65,6 +65,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [errorField, setErrorField] = useState<string | null>(null);
+  const [isABConfirmationOpen, setIsABConfirmationOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<ExamRequest | null>(null);
 
   // Form State
@@ -192,6 +193,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
             setIsErrorModalOpen(true);
             return;
         }
+    }
+
+    // Se for categoria AB e for um novo cadastro, pede confirmação
+    if (formData.intendedCategory === 'AB' && !editingRequest && !isABConfirmationOpen) {
+        setIsABConfirmationOpen(true);
+        return;
     }
 
     try {
@@ -779,7 +786,19 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     </div>
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo <span className="text-red-500">*</span></label>
-                                        <input id="studentName" required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.studentName || ''} onChange={e => setFormData({...formData, studentName: e.target.value})} />
+                                        <input 
+                                            id="studentName" 
+                                            required 
+                                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                            value={formData.studentName || ''} 
+                                            onChange={e => {
+                                                // Remove acentos e converte para maiúsculas
+                                                const val = e.target.value.normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase();
+                                                // Opcional: permitir apenas letras e espaços (descomente se necessário)
+                                                // const cleanVal = val.replace(/[^A-Z ]/g, "");
+                                                setFormData({...formData, studentName: val});
+                                            }} 
+                                        />
                                     </div>
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Nome Social</label>
@@ -787,7 +806,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Telefone <span className="text-red-500">*</span></label>
-                                        <input id="phone" required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                                        <input 
+                                            id="phone" 
+                                            required 
+                                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                            value={formData.phone || ''} 
+                                            onChange={e => {
+                                                const onlyNums = e.target.value.replace(/\D/g, '');
+                                                setFormData({...formData, phone: onlyNums});
+                                            }} 
+                                            placeholder="Somente números"
+                                        />
                                     </div>
                                     {!typeFilter && (
                                     <div>
@@ -1019,6 +1048,43 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                </div>
            </div>
        )}
+        {/* AB Confirmation Modal */}
+        {isABConfirmationOpen && (
+            <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 animate-fadeIn">
+                <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative">
+                    <div className="flex flex-col items-center text-center">
+                        <div className="mb-4 p-3 rounded-full bg-blue-50">
+                            <AlertOctagon className="h-10 w-10 text-blue-500" />
+                        </div>
+                        
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Confirmação</h3>
+                        <div className="text-gray-600 mb-6">
+                            Ao selecionar a categoria <strong>AB</strong>, o sistema criará automaticamente <strong>dois cadastros separados</strong>: um para a categoria A (Moto) e outro para a categoria B (Carro).
+                        </div>
+                        
+                        <div className="flex gap-3 w-full">
+                            <button 
+                                onClick={() => setIsABConfirmationOpen(false)}
+                                className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={(e) => {
+                                    // Continua o salvamento
+                                    handleSave(e as any);
+                                    setIsABConfirmationOpen(false);
+                                }}
+                                className="flex-1 py-2.5 px-4 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                Confirmar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {/* Error Modal */}
         {isErrorModalOpen && (
             <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 animate-fadeIn">
