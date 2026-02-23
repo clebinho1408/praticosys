@@ -249,7 +249,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       setEditingSchedule(null);
       setScheduleForm({
         date: '',
-        time: '08:00',
+        time: '',
         examinerIds: [],
         maxSlotsA: settings?.defaultMaxSlotsA || 10,
         maxSlotsB: settings?.defaultMaxSlotsB || 10,

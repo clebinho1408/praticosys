@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../services/mockData';
-import { ExamRequest, ExamStatus } from '../types';
+import { ExamRequest, ExamStatus, ExamSchedule } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend
@@ -14,10 +14,13 @@ import {
   FileText, 
   Calendar,
   Filter,
-  Download
+  Download,
+  Users,
+  Layout,
+  List
 } from 'lucide-react';
 
-const COLORS = ['#10B981', '#EF4444', '#6B7280']; // Apto, Inapto, Faltou
+const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
 
 const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; color: string; subtitle?: string }> = ({ title, value, icon: Icon, color, subtitle }) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
@@ -34,29 +37,55 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
   </div>
 );
 
+type ReportView = 'approval-stats' | 'candidates-list' | 'schedule-stats' | 'schedules-list';
+
 const Reports: React.FC = () => {
   const { reportType } = useParams<{ reportType: string }>();
+  const [activeView, setActiveView] = useState<ReportView>('approval-stats');
   const [requests, setRequests] = useState<ExamRequest[]>([]);
+  const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
   useEffect(() => {
-    setLoading(true);
-    api.getRequests().then(data => {
-      let filtered = data.filter(r => r.status === ExamStatus.DONE);
-      if (reportType === 'pcd') filtered = filtered.filter(r => r.examType === 'PCD');
-      if (reportType === 'cnh' || reportType === 'cfc') filtered = filtered.filter(r => r.examType === 'COMMON');
-      setRequests(filtered);
-      setLoading(false);
-    });
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            const [reqs, scheds] = await Promise.all([
+                api.getRequests(),
+                api.getSchedules()
+            ]);
+
+            let filteredReqs = reqs;
+            let filteredScheds = scheds;
+
+            if (reportType === 'pcd') {
+                filteredReqs = filteredReqs.filter(r => r.examType === 'PCD');
+                filteredScheds = filteredScheds.filter(s => s.type === 'PCD');
+            } else if (reportType === 'cnh' || reportType === 'cfc') {
+                filteredReqs = filteredReqs.filter(r => r.examType === 'COMMON');
+                filteredScheds = filteredScheds.filter(s => s.type === 'COMMON');
+            }
+
+            setRequests(filteredReqs);
+            setSchedules(filteredScheds);
+        } catch (error) {
+            console.error("Error fetching report data", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchData();
   }, [reportType]);
 
-  const stats = useMemo(() => {
-    const total = requests.length;
-    const apto = requests.filter(r => r.result === 'APTO').length;
-    const inapto = requests.filter(r => r.result === 'INAPTO').length;
-    const faltou = requests.filter(r => r.result === 'FALTOU').length;
-    const rate = total > 0 ? ((apto / (apto + inapto)) * 100).toFixed(1) : '0';
+  // 1. Índice de Reprovação e Aprovação
+  const approvalStats = useMemo(() => {
+    const finishedRequests = requests.filter(r => r.status === ExamStatus.DONE);
+    const total = finishedRequests.length;
+    const apto = finishedRequests.filter(r => r.result === 'APTO').length;
+    const inapto = finishedRequests.filter(r => r.result === 'INAPTO').length;
+    const faltou = finishedRequests.filter(r => r.result === 'FALTOU').length;
+    const rate = total > 0 ? ((apto / total) * 100).toFixed(1) : '0';
 
     const pieData = [
       { name: 'Apto', value: apto },
@@ -65,7 +94,7 @@ const Reports: React.FC = () => {
     ];
 
     const monthlyData: Record<string, any> = {};
-    requests.forEach(r => {
+    finishedRequests.forEach(r => {
       const date = new Date(r.updatedAt || r.createdAt);
       const month = date.toLocaleString('pt-BR', { month: 'short' });
       if (!monthlyData[month]) monthlyData[month] = { name: month, apto: 0, inapto: 0 };
@@ -73,12 +102,26 @@ const Reports: React.FC = () => {
       if (r.result === 'INAPTO') monthlyData[month].inapto++;
     });
 
-    return { 
-      total, apto, inapto, faltou, rate, 
-      pieData, 
-      chartData: Object.values(monthlyData) 
-    };
+    return { total, apto, inapto, faltou, rate, pieData, chartData: Object.values(monthlyData) };
   }, [requests]);
+
+  // 3. Índice de Bancas
+  const scheduleStats = useMemo(() => {
+      const total = schedules.length;
+      const open = schedules.filter(s => s.status === 'OPEN').length;
+      const concluded = schedules.filter(s => s.status === 'CONCLUDED').length;
+      const cancelled = schedules.filter(s => s.status === 'CANCELLED').length;
+      const closed = schedules.filter(s => s.status === 'CLOSED').length;
+
+      const pieData = [
+          { name: 'Abertas', value: open },
+          { name: 'Concluídas', value: concluded },
+          { name: 'Canceladas', value: cancelled },
+          { name: 'Fechadas', value: closed }
+      ];
+
+      return { total, open, concluded, cancelled, closed, pieData };
+  }, [schedules]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -87,9 +130,9 @@ const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">
-            Relatório de Desempenho - {reportType?.toUpperCase()}
+            Relatórios - {reportType?.toUpperCase()}
           </h2>
-          <p className="text-sm text-gray-500 font-medium">Análise estatística de provas finalizadas.</p>
+          <p className="text-sm text-gray-500 font-medium">Selecione o tipo de relatório abaixo.</p>
         </div>
         
         <div className="flex items-center gap-2 print:hidden">
@@ -113,101 +156,226 @@ const Reports: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <SummaryCard title="Total de Exames" value={stats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas no período" />
-        <SummaryCard title="Taxa de Aprovação" value={`${stats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos / Total" />
-        <SummaryCard title="Reprovações" value={stats.inapto} icon={XCircle} color="bg-red-600" subtitle="Candidatos Inaptos" />
-        <SummaryCard title="Faltas" value={stats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Candidatos que não compareceram" />
+      {/* Navigation Tabs */}
+      <div className="flex flex-wrap gap-2 border-b pb-1">
+          <button 
+            onClick={() => setActiveView('approval-stats')}
+            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'approval-stats' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+              Índice de Aprovação
+          </button>
+          <button 
+            onClick={() => setActiveView('candidates-list')}
+            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'candidates-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+              Lista de Candidatos
+          </button>
+          <button 
+            onClick={() => setActiveView('schedule-stats')}
+            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'schedule-stats' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+              Índice de Bancas
+          </button>
+          <button 
+            onClick={() => setActiveView('schedules-list')}
+            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'schedules-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+              Lista de Bancas
+          </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                <Filter className="h-5 w-5 text-blue-600" /> Distribuição de Resultados
-            </h3>
-            <div className="flex-1 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Pie
-                            data={stats.pieData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={70}
-                            outerRadius={90}
-                            paddingAngle={8}
-                            dataKey="value"
-                        >
-                            {stats.pieData.map((_, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
-                            ))}
-                        </Pie>
-                        <Tooltip 
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} 
-                        />
-                        <Legend verticalAlign="bottom" iconType="circle" />
-                    </PieChart>
-                </ResponsiveContainer>
+      {/* VIEW: Índice de Reprovação e Aprovação */}
+      {activeView === 'approval-stats' && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
+                <SummaryCard title="Taxa de Aprovação" value={`${approvalStats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos" />
+                <SummaryCard title="Reprovações" value={approvalStats.inapto} icon={XCircle} color="bg-red-600" subtitle="Candidatos Inaptos" />
+                <SummaryCard title="Faltas" value={approvalStats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Não compareceram" />
             </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-            <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-blue-600" /> Evolução Mensal (Aptos vs Inaptos)
-            </h3>
-            <div className="flex-1 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.chartData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                        <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                        <Bar dataKey="apto" fill="#10B981" radius={[4, 4, 0, 0]} name="Aptos" />
-                        <Bar dataKey="inapto" fill="#EF4444" radius={[4, 4, 0, 0]} name="Inaptos" />
-                    </BarChart>
-                </ResponsiveContainer>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                        <Filter className="h-5 w-5 text-blue-600" /> Distribuição de Resultados
+                    </h3>
+                    <div className="flex-1 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={approvalStats.pieData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={70}
+                                    outerRadius={90}
+                                    paddingAngle={8}
+                                    dataKey="value"
+                                >
+                                    {approvalStats.pieData.map((_, index) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                                    ))}
+                                </Pie>
+                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                <Legend verticalAlign="bottom" iconType="circle" />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-blue-600" /> Evolução Mensal
+                    </h3>
+                    <div className="flex-1 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={approvalStats.chartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                <Bar dataKey="apto" fill="#10B981" radius={[4, 4, 0, 0]} name="Aptos" />
+                                <Bar dataKey="inapto" fill="#EF4444" radius={[4, 4, 0, 0]} name="Inaptos" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
             </div>
-        </div>
-      </div>
-      
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-              <h3 className="text-lg font-bold">Desempenho Detalhado (Recentes)</h3>
           </div>
-          <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                  <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-widest">
-                      <tr>
-                          <th className="px-6 py-4">Candidato</th>
-                          <th className="px-6 py-4">Data Finalização</th>
-                          <th className="px-6 py-4">Categoria</th>
-                          <th className="px-6 py-4">Resultado</th>
-                          <th className="px-6 py-4">Observação</th>
-                      </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                      {requests.slice(0, 10).map(req => (
-                          <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-6 py-4 font-bold text-gray-800 uppercase">{req.studentName}</td>
-                              <td className="px-6 py-4 text-gray-500">{new Date(req.updatedAt).toLocaleDateString()}</td>
-                              <td className="px-6 py-4 font-mono font-bold text-blue-600">{req.scheduledCategory || req.intendedCategory}</td>
-                              <td className="px-6 py-4">
-                                  <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                      req.result === 'APTO' ? 'bg-green-100 text-green-700' : 
-                                      req.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                  }`}>
-                                      {req.result}
-                                  </span>
-                              </td>
-                              <td className="px-6 py-4 text-gray-400 italic text-xs">{req.observation || '-'}</td>
+      )}
+
+      {/* VIEW: Lista de Candidatos */}
+      {activeView === 'candidates-list' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="text-lg font-bold">Todos os Candidatos ({requests.length})</h3>
+              </div>
+              <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                      <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-widest">
+                          <tr>
+                              <th className="px-6 py-4">Nome</th>
+                              <th className="px-6 py-4">CPF</th>
+                              <th className="px-6 py-4">Categoria</th>
+                              <th className="px-6 py-4">Status</th>
+                              <th className="px-6 py-4">Resultado</th>
                           </tr>
-                      ))}
-                      {requests.length === 0 && (
-                          <tr><td colSpan={5} className="p-10 text-center text-gray-400">Nenhum dado para exibir no momento.</td></tr>
-                      )}
-                  </tbody>
-              </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                          {requests.map(req => (
+                              <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-6 py-4 font-bold text-gray-800 uppercase">{req.studentName}</td>
+                                  <td className="px-6 py-4 text-gray-500">{req.cpf}</td>
+                                  <td className="px-6 py-4 font-mono font-bold text-blue-600">{req.intendedCategory}</td>
+                                  <td className="px-6 py-4">
+                                      <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">
+                                          {req.status}
+                                      </span>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                      {req.result ? (
+                                          <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                              req.result === 'APTO' ? 'bg-green-100 text-green-700' : 
+                                              req.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                          }`}>
+                                              {req.result}
+                                          </span>
+                                      ) : <span className="text-gray-400">-</span>}
+                                  </td>
+                              </tr>
+                          ))}
+                          {requests.length === 0 && (
+                              <tr><td colSpan={5} className="p-10 text-center text-gray-400">Nenhum candidato encontrado.</td></tr>
+                          )}
+                      </tbody>
+                  </table>
+              </div>
           </div>
-      </div>
+      )}
+
+      {/* VIEW: Índice de Bancas */}
+      {activeView === 'schedule-stats' && (
+          <div className="space-y-6 animate-fadeIn">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
+                  <SummaryCard title="Realizadas" value={scheduleStats.concluded} icon={Trophy} color="bg-green-600" />
+                  <SummaryCard title="Canceladas" value={scheduleStats.cancelled} icon={XCircle} color="bg-red-600" />
+                  <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
+              </div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                      <Filter className="h-5 w-5 text-blue-600" /> Status das Bancas
+                  </h3>
+                  <div className="flex-1 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                              <Pie
+                                  data={scheduleStats.pieData}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={70}
+                                  outerRadius={90}
+                                  paddingAngle={8}
+                                  dataKey="value"
+                              >
+                                  {scheduleStats.pieData.map((_, index) => (
+                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                                  ))}
+                              </Pie>
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                              <Legend verticalAlign="bottom" iconType="circle" />
+                          </PieChart>
+                      </ResponsiveContainer>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* VIEW: Lista de Bancas */}
+      {activeView === 'schedules-list' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="text-lg font-bold">Todas as Bancas ({schedules.length})</h3>
+              </div>
+              <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left">
+                      <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-widest">
+                          <tr>
+                              <th className="px-6 py-4">Data</th>
+                              <th className="px-6 py-4">Horário</th>
+                              <th className="px-6 py-4">Tipo</th>
+                              <th className="px-6 py-4">Status</th>
+                              <th className="px-6 py-4">Examinadores</th>
+                              <th className="px-6 py-4">Vagas (A/B)</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                          {schedules.map(sch => (
+                              <tr key={sch.id} className="hover:bg-gray-50 transition-colors">
+                                  <td className="px-6 py-4 font-bold text-gray-800">{new Date(sch.date).toLocaleDateString()}</td>
+                                  <td className="px-6 py-4 text-gray-500">{sch.time}</td>
+                                  <td className="px-6 py-4 text-gray-500">{sch.type}</td>
+                                  <td className="px-6 py-4">
+                                      <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                          sch.status === 'OPEN' ? 'bg-green-100 text-green-700' : 
+                                          sch.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 
+                                          sch.status === 'CONCLUDED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                                      }`}>
+                                          {sch.status}
+                                      </span>
+                                  </td>
+                                  <td className="px-6 py-4 text-gray-500">{sch.examinerIds.length}</td>
+                                  <td className="px-6 py-4 text-gray-500">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
+                              </tr>
+                          ))}
+                          {schedules.length === 0 && (
+                              <tr><td colSpan={6} className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</td></tr>
+                          )}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
