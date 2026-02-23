@@ -22,6 +22,27 @@ import {
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
 
+const STATUS_TRANSLATION: Record<string, string> = {
+  'WAITING_SCHEDULING': 'Aguardando Agendamento',
+  'SCHEDULED': 'Agendado',
+  'WAITING_RESULT': 'Aguardando Resultado',
+  'DONE': 'Realizado',
+  'CANCELLED': 'Cancelado',
+  'RETEST': 'Reteste'
+};
+
+const SCHEDULE_STATUS_TRANSLATION: Record<string, string> = {
+  'OPEN': 'Aberta',
+  'CLOSED': 'Fechada',
+  'CONCLUDED': 'Concluída',
+  'CANCELLED': 'Cancelada'
+};
+
+const EXAM_TYPE_TRANSLATION: Record<string, string> = {
+  'COMMON': '1ª Habilitação',
+  'PCD': 'PCD'
+};
+
 const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; color: string; subtitle?: string }> = ({ title, value, icon: Icon, color, subtitle }) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
     <div className="flex justify-between items-start">
@@ -268,7 +289,7 @@ const Reports: React.FC = () => {
                                   <td className="px-6 py-4 font-mono font-bold text-blue-600">{req.intendedCategory}</td>
                                   <td className="px-6 py-4">
                                       <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">
-                                          {req.status}
+                                          {STATUS_TRANSLATION[req.status] || req.status}
                                       </span>
                                   </td>
                                   <td className="px-6 py-4">
@@ -354,14 +375,14 @@ const Reports: React.FC = () => {
                               <tr key={sch.id} className="hover:bg-gray-50 transition-colors">
                                   <td className="px-6 py-4 font-bold text-gray-800">{new Date(sch.date).toLocaleDateString()}</td>
                                   <td className="px-6 py-4 text-gray-500">{sch.time}</td>
-                                  <td className="px-6 py-4 text-gray-500">{sch.type}</td>
+                                  <td className="px-6 py-4 text-gray-500">{EXAM_TYPE_TRANSLATION[sch.type] || sch.type}</td>
                                   <td className="px-6 py-4">
                                       <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                                           sch.status === 'OPEN' ? 'bg-green-100 text-green-700' : 
                                           sch.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 
                                           sch.status === 'CONCLUDED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
                                       }`}>
-                                          {sch.status}
+                                          {SCHEDULE_STATUS_TRANSLATION[sch.status] || sch.status}
                                       </span>
                                   </td>
                                   <td className="px-6 py-4 text-gray-500">{sch.examinerIds.length}</td>
