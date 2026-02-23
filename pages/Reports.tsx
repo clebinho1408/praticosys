@@ -144,6 +144,26 @@ const Reports: React.FC = () => {
       return { total, open, concluded, cancelled, closed, pieData };
   }, [schedules]);
 
+  // Grouping logic for Candidates List
+  const groupedRequests = useMemo(() => {
+    const groups: Record<string, Record<string, ExamRequest[]>> = {};
+    
+    // Sort requests by name first
+    const sortedRequests = [...requests].sort((a, b) => a.studentName.localeCompare(b.studentName));
+
+    sortedRequests.forEach(req => {
+        const status = req.status;
+        const category = req.intendedCategory;
+
+        if (!groups[status]) groups[status] = {};
+        if (!groups[status][category]) groups[status][category] = [];
+        
+        groups[status][category].push(req);
+    });
+    
+    return groups;
+  }, [requests]);
+
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
   return (
@@ -271,44 +291,47 @@ const Reports: React.FC = () => {
                   <h3 className="text-lg font-bold">Todos os Candidatos ({requests.length})</h3>
               </div>
               <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-widest">
-                          <tr>
-                              <th className="px-6 py-4">Nome</th>
-                              <th className="px-6 py-4">CPF</th>
-                              <th className="px-6 py-4">Categoria</th>
-                              <th className="px-6 py-4">Status</th>
-                              <th className="px-6 py-4">Resultado</th>
-                          </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                          {requests.map(req => (
-                              <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                                  <td className="px-6 py-4 font-bold text-gray-800 uppercase">{req.studentName}</td>
-                                  <td className="px-6 py-4 text-gray-500">{req.cpf}</td>
-                                  <td className="px-6 py-4 font-mono font-bold text-blue-600">{req.intendedCategory}</td>
-                                  <td className="px-6 py-4">
-                                      <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">
-                                          {STATUS_TRANSLATION[req.status] || req.status}
-                                      </span>
-                                  </td>
-                                  <td className="px-6 py-4">
-                                      {req.result ? (
-                                          <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                              req.result === 'APTO' ? 'bg-green-100 text-green-700' : 
-                                              req.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                          }`}>
-                                              {req.result}
-                                          </span>
-                                      ) : <span className="text-gray-400">-</span>}
-                                  </td>
-                              </tr>
-                          ))}
-                          {requests.length === 0 && (
-                              <tr><td colSpan={5} className="p-10 text-center text-gray-400">Nenhum candidato encontrado.</td></tr>
-                          )}
-                      </tbody>
-                  </table>
+                  {Object.keys(groupedRequests).length === 0 ? (
+                      <div className="p-10 text-center text-gray-400">Nenhum candidato encontrado.</div>
+                  ) : (
+                      Object.entries(groupedRequests).map(([status, categories]) => (
+                          <div key={status} className="border-b last:border-b-0">
+                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                                  {STATUS_TRANSLATION[status] || status} ({Object.values(categories).flat().length})
+                              </div>
+                              
+                              {Object.entries(categories).map(([category, reqs]) => (
+                                  <div key={`${status}-${category}`}>
+                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                                          Categoria {category} ({reqs.length})
+                                      </div>
+                                      <table className="w-full text-sm text-left">
+                                          <tbody className="divide-y divide-gray-100">
+                                              {reqs.map(req => (
+                                                  <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14">{req.studentName}</td>
+                                                      <td className="px-6 py-3 text-gray-500">{req.cpf}</td>
+                                                      <td className="px-6 py-3">
+                                                          {req.result ? (
+                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                                  req.result === 'APTO' ? 'bg-green-100 text-green-700' : 
+                                                                  req.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                                              }`}>
+                                                                  {req.result}
+                                                              </span>
+                                                          ) : <span className="text-gray-400">-</span>}
+                                                      </td>
+                                                  </tr>
+                                              ))}
+                                          </tbody>
+                                      </table>
+                                  </div>
+                              ))}
+                          </div>
+                      ))
+                  )}
               </div>
           </div>
       )}
@@ -364,9 +387,9 @@ const Reports: React.FC = () => {
                           <tr>
                               <th className="px-6 py-4">Data</th>
                               <th className="px-6 py-4">Horário</th>
-                              <th className="px-6 py-4">Tipo</th>
                               <th className="px-6 py-4">Status</th>
                               <th className="px-6 py-4">Examinadores</th>
+                              <th className="px-6 py-4">Nº Vagas utilizadas</th>
                               <th className="px-6 py-4">Vagas (A/B)</th>
                           </tr>
                       </thead>
@@ -375,7 +398,6 @@ const Reports: React.FC = () => {
                               <tr key={sch.id} className="hover:bg-gray-50 transition-colors">
                                   <td className="px-6 py-4 font-bold text-gray-800">{new Date(sch.date).toLocaleDateString()}</td>
                                   <td className="px-6 py-4 text-gray-500">{sch.time}</td>
-                                  <td className="px-6 py-4 text-gray-500">{EXAM_TYPE_TRANSLATION[sch.type] || sch.type}</td>
                                   <td className="px-6 py-4">
                                       <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                                           sch.status === 'OPEN' ? 'bg-green-100 text-green-700' : 
@@ -386,6 +408,7 @@ const Reports: React.FC = () => {
                                       </span>
                                   </td>
                                   <td className="px-6 py-4 text-gray-500">{sch.examinerIds.length}</td>
+                                  <td className="px-6 py-4 text-gray-500">{requests.filter(r => r.scheduleId === sch.id).length}</td>
                                   <td className="px-6 py-4 text-gray-500">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
                               </tr>
                           ))}
