@@ -220,7 +220,7 @@ const Reports: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">
             Relatórios - {reportType?.toUpperCase()}
@@ -250,7 +250,7 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex flex-wrap gap-2 border-b pb-1">
+      <div className="flex flex-wrap gap-2 border-b pb-1 print:hidden">
           <button 
             onClick={() => setActiveView('approval-stats')}
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'approval-stats' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
@@ -338,7 +338,7 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Lista de Candidatos */}
       {activeView === 'candidates-list' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <h3 className="text-lg font-bold">Todos os Candidatos</h3>
                   
@@ -414,42 +414,44 @@ const Reports: React.FC = () => {
                       <div className="p-10 text-center text-gray-400">Nenhum candidato encontrado.</div>
                   ) : (
                       Object.entries(groupedRequests).map(([status, categories]) => (
-                          <div key={status} className="border-b last:border-b-0">
-                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+                          <div key={status} className="border-b last:border-b-0 print:border-black">
+                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b-2 print:border-black print:mt-4">
+                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
                                   {STATUS_TRANSLATION[status] || status} ({Object.values(categories).flat().length})
                               </div>
                               
                               {Object.entries(categories).map(([category, reqs]) => (
                                   <div key={`${status}-${category}`}>
-                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
                                           Categoria {category} ({reqs.length})
                                       </div>
                                       <table className="w-full text-sm text-left">
                                           <thead>
-                                              <tr className="text-xs text-gray-400 border-b">
-                                                  <th className="px-6 py-2 pl-14 font-medium">Nome</th>
+                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
+                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-6">Nome</th>
                                                   <th className="px-6 py-2 font-medium">CPF</th>
                                                   <th className="px-6 py-2 font-medium">Tentativa</th>
                                                   <th className="px-6 py-2 font-medium">Resultado</th>
                                               </tr>
                                           </thead>
-                                          <tbody className="divide-y divide-gray-100">
+                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
                                               {reqs.map(req => (
-                                                  <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14">{req.studentName}</td>
-                                                      <td className="px-6 py-3 text-gray-500">{req.cpf}</td>
-                                                      <td className="px-6 py-3 text-gray-500 font-medium">{(req.examHistory?.length || 0) + 1}ª</td>
+                                                  <tr key={req.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-6 print:text-black">{req.studentName}</td>
+                                                      <td className="px-6 py-3 text-gray-500 print:text-black">{req.cpf}</td>
+                                                      <td className="px-6 py-3 text-gray-500 font-medium print:text-black">
+                                                          {req.examHistory?.filter(h => h.result === 'INAPTO').length ? `${req.examHistory.filter(h => h.result === 'INAPTO').length}x` : ''}
+                                                      </td>
                                                       <td className="px-6 py-3">
                                                           {req.result ? (
                                                               <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                                                                   req.result === 'APTO' ? 'bg-green-100 text-green-700' : 
                                                                   req.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                                              }`}>
+                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold`}>
                                                                   {req.result}
                                                               </span>
-                                                          ) : <span className="text-gray-400">-</span>}
+                                                          ) : <span className="text-gray-400 print:text-black">-</span>}
                                                       </td>
                                                   </tr>
                                               ))}
