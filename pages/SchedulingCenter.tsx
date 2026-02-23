@@ -27,7 +27,8 @@ import {
   Square,
   CheckSquare,
   Bike,
-  Car
+  Car,
+  AlertOctagon
 } from 'lucide-react';
 
 const formatDateDisplay = (dateString: string) => {
@@ -66,6 +67,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   
   const [selectedSchedule, setSelectedSchedule] = useState<ExamSchedule | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorField, setErrorField] = useState<string | null>(null);
   
   // States for Add Student Modal
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
@@ -296,15 +300,21 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
     // Validação de campos obrigatórios
     if (!scheduleForm.date) {
-        alert("O campo Data da Prova é obrigatório.");
+        setErrorMessage("O campo Data da Prova é obrigatório.");
+        setErrorField('scheduleDate');
+        setIsErrorModalOpen(true);
         return;
     }
     if (!scheduleForm.time) {
-        alert("O campo Horário Início é obrigatório.");
+        setErrorMessage("O campo Horário Início é obrigatório.");
+        setErrorField('scheduleTime');
+        setIsErrorModalOpen(true);
         return;
     }
     if (scheduleForm.examinerIds.length === 0) {
-        alert("É obrigatório escalar pelo menos um examinador.");
+        setErrorMessage("É obrigatório escalar pelo menos um examinador.");
+        setErrorField('examinersList');
+        setIsErrorModalOpen(true);
         return;
     }
 
@@ -696,16 +706,16 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                       <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Data da Prova <span className="text-red-500">*</span></label>
-                            <input required type="date" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
+                            <input id="scheduleDate" required type="date" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Horário Início <span className="text-red-500">*</span></label>
-                            <input required type="time" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
+                            <input id="scheduleTime" required type="time" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
                           </div>
                       </div>
                       <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Escalar Examinadores (Máx 3) <span className="text-red-500">*</span></label>
-                          <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-gray-50">
+                          <div id="examinersList" className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-gray-50" tabIndex={0}>
                               {examiners.map(ex => (
                                   <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-2 rounded-md transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}`}>
                                       <input type="checkbox" className="hidden" checked={scheduleForm.examinerIds.includes(ex.id)} onChange={(e) => {
@@ -859,6 +869,39 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
                       >
                           Confirmar Agendamento ({Object.keys(selectedCandidates).length})
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+      {/* Error Modal */}
+      {isErrorModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative">
+                  <div className="flex flex-col items-center text-center">
+                      <div className="mb-4 p-3 rounded-full bg-red-50">
+                          <AlertOctagon className="h-10 w-10 text-red-500" />
+                      </div>
+                      
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Atenção</h3>
+                      <p className="text-gray-600 mb-6">{errorMessage}</p>
+                      
+                      <button 
+                          onClick={() => {
+                              setIsErrorModalOpen(false);
+                              if (errorField) {
+                                  setTimeout(() => {
+                                      const element = document.getElementById(errorField);
+                                      if (element) {
+                                          element.focus();
+                                          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                      }
+                                  }, 100);
+                              }
+                          }}
+                          className="w-full py-2.5 px-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                          Entendi
                       </button>
                   </div>
               </div>
