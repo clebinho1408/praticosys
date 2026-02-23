@@ -136,10 +136,57 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateCPF(formData.cpf)) {
+    // Validação de Campos Obrigatórios
+    const requiredFields = [
+        { field: 'cpf', label: 'CPF' },
+        { field: 'studentName', label: 'Nome Completo' },
+        { field: 'phone', label: 'Telefone' },
+        { field: 'intendedCategory', label: 'Categoria Pretendida' }
+    ];
+
+    for (const req of requiredFields) {
+        if (!formData[req.field as keyof ExamRequest]) {
+            setErrorMessage(`O campo ${req.label} é obrigatório.`);
+            setIsErrorModalOpen(true);
+            return;
+        }
+    }
+
+    if (!validateCPF(formData.cpf || '')) {
         setErrorMessage('CPF inválido! Por favor, verifique o número digitado.');
         setIsErrorModalOpen(true);
         return;
+    }
+
+    // Validação específica por categoria
+    if (formData.intendedCategory === 'A' || formData.intendedCategory === 'AB') {
+        const motoInstr = formData.intendedCategory === 'AB' 
+            ? formData.instructor?.split(' / ')[0]?.replace('Moto: ', '') 
+            : formData.instructor;
+        const motoPlate = formData.intendedCategory === 'AB'
+            ? formData.vehiclePlate?.split(' / ')[0]?.replace('Moto: ', '')
+            : formData.vehiclePlate;
+
+        if (!motoInstr || !motoPlate) {
+            setErrorMessage('Para Categoria A, Instrutor e Veículo (Moto) são obrigatórios.');
+            setIsErrorModalOpen(true);
+            return;
+        }
+    }
+
+    if (formData.intendedCategory === 'B' || formData.intendedCategory === 'AB') {
+        const carInstr = formData.intendedCategory === 'AB' 
+            ? formData.instructor?.split(' / ')[1]?.replace('Carro: ', '') 
+            : formData.instructor;
+        const carPlate = formData.intendedCategory === 'AB'
+            ? formData.vehiclePlate?.split(' / ')[1]?.replace('Carro: ', '')
+            : formData.vehiclePlate;
+
+        if (!carInstr || !carPlate) {
+            setErrorMessage('Para Categoria B, Instrutor e Veículo (Carro) são obrigatórios.');
+            setIsErrorModalOpen(true);
+            return;
+        }
     }
 
     try {
@@ -341,7 +388,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
             </h4>
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor {categoryCode === 'A' ? 'Moto' : 'Carro'}</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor {categoryCode === 'A' ? 'Moto' : 'Carro'} <span className="text-red-500">*</span></label>
                     <select 
                         className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                         value={currentInstructorName}
@@ -377,7 +424,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Veículo/Placa</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Veículo/Placa <span className="text-red-500">*</span></label>
                     <select 
                         className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                         value={currentPlate}
@@ -710,7 +757,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                             <div className="space-y-4 animate-fadeIn">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">CPF <span className="text-red-500">*</span></label>
                                         <input 
                                             required 
                                             className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
@@ -724,7 +771,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                         />
                                     </div>
                                     <div className="col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo <span className="text-red-500">*</span></label>
                                         <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.studentName || ''} onChange={e => setFormData({...formData, studentName: e.target.value})} />
                                     </div>
                                     <div className="col-span-2">
@@ -732,7 +779,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                         <input className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.socialName || ''} onChange={e => setFormData({...formData, socialName: e.target.value})} />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefone <span className="text-red-500">*</span></label>
                                         <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} />
                                     </div>
                                     {!typeFilter && (
@@ -752,7 +799,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                             <div className="space-y-6 animate-fadeIn">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoria Pretendida</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Categoria Pretendida <span className="text-red-500">*</span></label>
                                         <select required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || ''} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
                                             <option value="">Selecione...</option>
                                             <option value="A">A (Moto)</option>
