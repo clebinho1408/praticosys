@@ -73,6 +73,7 @@ const Reports: React.FC = () => {
   // Filters for Candidates List
   const [candidateStatusFilter, setCandidateStatusFilter] = useState<string>('ALL');
   const [candidateCategoryFilter, setCandidateCategoryFilter] = useState<string>('ALL');
+  const [candidateSearch, setCandidateSearch] = useState<string>('');
   const [candidateDateStart, setCandidateDateStart] = useState<string>(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
@@ -204,6 +205,14 @@ const Reports: React.FC = () => {
         filtered = filtered.filter(r => new Date(r.createdAt) <= new Date(candidateDateEnd));
     }
 
+    if (candidateSearch) {
+        const searchLower = candidateSearch.toLowerCase();
+        filtered = filtered.filter(r => 
+            r.studentName.toLowerCase().includes(searchLower) || 
+            r.cpf.includes(searchLower)
+        );
+    }
+
     // Sort requests by name first
     const sortedRequests = [...filtered].sort((a, b) => a.studentName.localeCompare(b.studentName));
 
@@ -218,7 +227,7 @@ const Reports: React.FC = () => {
     });
     
     return groups;
-  }, [requests, candidateStatusFilter, candidateCategoryFilter, candidateDateStart, candidateDateEnd]);
+  }, [requests, candidateStatusFilter, candidateCategoryFilter, candidateDateStart, candidateDateEnd, candidateSearch]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -344,7 +353,15 @@ const Reports: React.FC = () => {
       {activeView === 'candidates-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <h3 className="text-lg font-bold">Todos os Candidatos</h3>
+                  <div className="flex-1 max-w-md">
+                      <input 
+                          type="text" 
+                          placeholder="Buscar por Nome ou CPF..." 
+                          className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={candidateSearch}
+                          onChange={e => setCandidateSearch(e.target.value)}
+                      />
+                  </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
                       <select 
