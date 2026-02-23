@@ -481,8 +481,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     <h3 className="text-xl font-bold text-gray-900 mb-1">{formatDateDisplay(s.date)}</h3>
                     <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
                         <Clock className="h-4 w-4" /> {s.time}
-                        <span className="mx-1 text-gray-300">•</span>
-                        <span className="text-[10px] font-medium text-gray-400 uppercase">{s.type === ExamType.PCD ? 'PCD' : 'Geral'}</span>
                     </div>
                     <div className="space-y-2 border-t pt-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
