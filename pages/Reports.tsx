@@ -144,6 +144,29 @@ const Reports: React.FC = () => {
       return { total, open, concluded, cancelled, closed, pieData };
   }, [schedules]);
 
+  // 4. Índice de Ocupação de Vagas (Novo)
+  const slotUsageStats = useMemo(() => {
+      const monthlyData: Record<string, { name: string, total: number, used: number }> = {};
+      
+      // Sort schedules by date
+      const sortedSchedules = [...schedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      sortedSchedules.forEach(sch => {
+          const date = new Date(sch.date);
+          const month = date.toLocaleString('pt-BR', { month: 'short' });
+          
+          if (!monthlyData[month]) monthlyData[month] = { name: month, total: 0, used: 0 };
+          
+          const totalSlots = (sch.maxSlotsA || 0) + (sch.maxSlotsB || 0);
+          const usedSlots = requests.filter(r => r.scheduleId === sch.id).length;
+          
+          monthlyData[month].total += totalSlots;
+          monthlyData[month].used += usedSlots;
+      });
+      
+      return Object.values(monthlyData);
+  }, [schedules, requests]);
+
   // Grouping logic for Candidates List
   const groupedRequests = useMemo(() => {
     const groups: Record<string, Record<string, ExamRequest[]>> = {};
@@ -346,30 +369,50 @@ const Reports: React.FC = () => {
                   <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
               </div>
 
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-                  <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                      <Filter className="h-5 w-5 text-blue-600" /> Status das Bancas
-                  </h3>
-                  <div className="flex-1 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                              <Pie
-                                  data={scheduleStats.pieData}
-                                  cx="50%"
-                                  cy="50%"
-                                  innerRadius={70}
-                                  outerRadius={90}
-                                  paddingAngle={8}
-                                  dataKey="value"
-                              >
-                                  {scheduleStats.pieData.map((_, index) => (
-                                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
-                                  ))}
-                              </Pie>
-                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                              <Legend verticalAlign="bottom" iconType="circle" />
-                          </PieChart>
-                      </ResponsiveContainer>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+                      <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                          <Filter className="h-5 w-5 text-blue-600" /> Status das Bancas
+                      </h3>
+                      <div className="flex-1 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                              <PieChart>
+                                  <Pie
+                                      data={scheduleStats.pieData}
+                                      cx="50%"
+                                      cy="50%"
+                                      innerRadius={70}
+                                      outerRadius={90}
+                                      paddingAngle={8}
+                                      dataKey="value"
+                                  >
+                                      {scheduleStats.pieData.map((_, index) => (
+                                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                                      ))}
+                                  </Pie>
+                                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                  <Legend verticalAlign="bottom" iconType="circle" />
+                              </PieChart>
+                          </ResponsiveContainer>
+                      </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+                      <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                          <Users className="h-5 w-5 text-blue-600" /> Ocupação de Vagas
+                      </h3>
+                      <div className="flex-1 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                              <BarChart data={slotUsageStats}>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                  <Bar dataKey="total" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="Vagas Totais" />
+                                  <Bar dataKey="used" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Vagas Utilizadas" />
+                              </BarChart>
+                          </ResponsiveContainer>
+                      </div>
                   </div>
               </div>
           </div>
