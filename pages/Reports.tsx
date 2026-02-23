@@ -81,6 +81,17 @@ const Reports: React.FC = () => {
   });
   const [candidateDateEnd, setCandidateDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
+  // Filters for Schedules List
+  const [scheduleStatusFilter, setScheduleStatusFilter] = useState<string>('ALL');
+  const [scheduleTypeFilter, setScheduleTypeFilter] = useState<string>('ALL');
+  const [scheduleSearch, setScheduleSearch] = useState<string>('');
+  const [scheduleDateStart, setScheduleDateStart] = useState<string>(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
+  });
+  const [scheduleDateEnd, setScheduleDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
+
   useEffect(() => {
     const fetchData = async () => {
         setLoading(true);
@@ -228,6 +239,53 @@ const Reports: React.FC = () => {
     
     return groups;
   }, [requests, candidateStatusFilter, candidateCategoryFilter, candidateDateStart, candidateDateEnd, candidateSearch]);
+
+  // Grouping logic for Schedules List
+  const groupedSchedules = useMemo(() => {
+    const groups: Record<string, Record<string, ExamSchedule[]>> = {};
+    
+    // Apply Filters
+    let filtered = schedules;
+
+    if (scheduleStatusFilter !== 'ALL') {
+        filtered = filtered.filter(s => s.status === scheduleStatusFilter);
+    }
+
+    if (scheduleTypeFilter !== 'ALL') {
+        filtered = filtered.filter(s => s.type === scheduleTypeFilter);
+    }
+
+    if (scheduleDateStart) {
+        filtered = filtered.filter(s => new Date(s.date) >= new Date(scheduleDateStart));
+    }
+
+    if (scheduleDateEnd) {
+        filtered = filtered.filter(s => new Date(s.date) <= new Date(scheduleDateEnd));
+    }
+
+    if (scheduleSearch) {
+        const searchLower = scheduleSearch.toLowerCase();
+        filtered = filtered.filter(s => 
+            new Date(s.date).toLocaleDateString().includes(searchLower) || 
+            s.time.includes(searchLower)
+        );
+    }
+
+    // Sort schedules by date
+    const sortedSchedules = [...filtered].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    sortedSchedules.forEach(sch => {
+        const status = sch.status;
+        const type = sch.type;
+
+        if (!groups[status]) groups[status] = {};
+        if (!groups[status][type]) groups[status][type] = [];
+        
+        groups[status][type].push(sch);
+    });
+    
+    return groups;
+  }, [schedules, scheduleStatusFilter, scheduleTypeFilter, scheduleDateStart, scheduleDateEnd, scheduleSearch]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -553,46 +611,134 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Lista de Bancas */}
       {activeView === 'schedules-list' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                  <h3 className="text-lg font-bold">Todas as Bancas ({schedules.length})</h3>
-              </div>
-              <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-[10px] tracking-widest">
-                          <tr>
-                              <th className="px-6 py-4">Data</th>
-                              <th className="px-6 py-4">Horário</th>
-                              <th className="px-6 py-4">Status</th>
-                              <th className="px-6 py-4">Examinadores</th>
-                              <th className="px-6 py-4">Nº Vagas utilizadas</th>
-                              <th className="px-6 py-4">Vagas (A/B)</th>
-                          </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                          {schedules.map(sch => (
-                              <tr key={sch.id} className="hover:bg-gray-50 transition-colors">
-                                  <td className="px-6 py-4 font-bold text-gray-800">{new Date(sch.date).toLocaleDateString()}</td>
-                                  <td className="px-6 py-4 text-gray-500">{sch.time}</td>
-                                  <td className="px-6 py-4">
-                                      <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                          sch.status === 'OPEN' ? 'bg-green-100 text-green-700' : 
-                                          sch.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 
-                                          sch.status === 'CONCLUDED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
-                                      }`}>
-                                          {SCHEDULE_STATUS_TRANSLATION[sch.status] || sch.status}
-                                      </span>
-                                  </td>
-                                  <td className="px-6 py-4 text-gray-500">{sch.examinerIds.length}</td>
-                                  <td className="px-6 py-4 text-gray-500">{requests.filter(r => r.scheduleId === sch.id).length}</td>
-                                  <td className="px-6 py-4 text-gray-500">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
-                              </tr>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
+              <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+                  <div className="flex-1 max-w-md">
+                      <input 
+                          type="text" 
+                          placeholder="Buscar por Data ou Horário..." 
+                          className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={scheduleSearch}
+                          onChange={e => setScheduleSearch(e.target.value)}
+                      />
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                      <select 
+                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={scheduleStatusFilter}
+                          onChange={e => setScheduleStatusFilter(e.target.value)}
+                      >
+                          <option value="ALL">Todos Status</option>
+                          {Object.entries(SCHEDULE_STATUS_TRANSLATION).map(([key, label]) => (
+                              <option key={key} value={key}>{label}</option>
                           ))}
-                          {schedules.length === 0 && (
-                              <tr><td colSpan={6} className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</td></tr>
-                          )}
-                      </tbody>
-                  </table>
+                      </select>
+
+                      <select 
+                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={scheduleTypeFilter}
+                          onChange={e => setScheduleTypeFilter(e.target.value)}
+                      >
+                          <option value="ALL">Todos Tipos</option>
+                          {Object.entries(EXAM_TYPE_TRANSLATION).map(([key, label]) => (
+                              <option key={key} value={key}>{label}</option>
+                          ))}
+                      </select>
+
+                      <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                          <input 
+                              type="date" 
+                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                              value={scheduleDateStart}
+                              onChange={e => setScheduleDateStart(e.target.value)}
+                          />
+                          <span className="text-gray-400">-</span>
+                          <input 
+                              type="date" 
+                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                              value={scheduleDateEnd}
+                              onChange={e => setScheduleDateEnd(e.target.value)}
+                          />
+                      </div>
+
+                      <button 
+                          onClick={() => window.print()} 
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                      >
+                          <Printer className="h-4 w-4" /> Imprimir
+                      </button>
+                  </div>
+              </div>
+
+              {/* Print Header (Visible only in print) */}
+              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+                      {settings?.logoUrl ? (
+                          <img src={settings.logoUrl} className="h-16 w-auto" />
+                      ) : (
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                      )}
+                      <div>
+                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO DE BANCAS</h2>
+                      </div>
+                  </div>
+                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                      <span>Data: {new Date(scheduleDateStart).toLocaleDateString()} até {new Date(scheduleDateEnd).toLocaleDateString()}</span>
+                  </div>
+              </div>
+
+              <div className="overflow-x-auto print:overflow-visible">
+                  {Object.keys(groupedSchedules).length === 0 ? (
+                      <div className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</div>
+                  ) : (
+                      Object.entries(groupedSchedules).map(([status, types]) => (
+                          <div key={status} className="border-b last:border-b-0 print:border-black">
+                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
+                                  {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
+                              </div>
+                              
+                              {Object.entries(types).map(([type, scheds]) => (
+                                  <div key={`${status}-${type}`}>
+                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
+                                          {EXAM_TYPE_TRANSLATION[type] || type} ({scheds.length})
+                                      </div>
+                                      <table className="w-full text-sm text-left">
+                                          <thead>
+                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
+                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px]">Data</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horário</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Examinadores</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Utilizadas</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Totais</th>
+                                              </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                              {scheds.map(sch => (
+                                                  <tr key={sch.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                      <td className="px-6 py-3 font-bold text-gray-800 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{new Date(sch.date).toLocaleDateString()}</td>
+                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.time}</td>
+                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.examinerIds.length}</td>
+                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{requests.filter(r => r.scheduleId === sch.id).length}</td>
+                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
+                                                  </tr>
+                                              ))}
+                                          </tbody>
+                                      </table>
+                                  </div>
+                              ))}
+                          </div>
+                      ))
+                  )}
+              </div>
+
+              {/* Print Footer (Visible only in print) */}
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                  <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
       )}
