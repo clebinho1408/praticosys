@@ -293,6 +293,21 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validação de campos obrigatórios
+    if (!scheduleForm.date) {
+        alert("O campo Data da Prova é obrigatório.");
+        return;
+    }
+    if (!scheduleForm.time) {
+        alert("O campo Horário Início é obrigatório.");
+        return;
+    }
+    if (scheduleForm.examinerIds.length === 0) {
+        alert("É obrigatório escalar pelo menos um examinador.");
+        return;
+    }
+
     try {
       if (editingSchedule) {
         await api.updateSchedule(editingSchedule.id, scheduleForm);
@@ -680,16 +695,16 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                   <form onSubmit={handleSaveSchedule} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Data da Prova</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Data da Prova <span className="text-red-500">*</span></label>
                             <input required type="date" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Horário Início</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Horário Início <span className="text-red-500">*</span></label>
                             <input required type="time" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
                           </div>
                       </div>
                       <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Escalar Examinadores (Máx 3)</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Escalar Examinadores (Máx 3) <span className="text-red-500">*</span></label>
                           <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-gray-50">
                               {examiners.map(ex => (
                                   <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-2 rounded-md transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}`}>
