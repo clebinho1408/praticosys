@@ -5,6 +5,23 @@ import { api } from '../services/mockData';
 import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult, Instructor, Examiner, ExamSchedule } from '../types';
 import { Plus, Search, Edit, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter, Trash2 } from 'lucide-react';
 
+const validateCPF = (cpf: string) => {
+    cpf = cpf.replace(/[^\d]+/g, '');
+    if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false;
+    let soma = 0;
+    let resto;
+    for (let i = 1; i <= 9; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (11 - i);
+    resto = (soma * 10) % 11;
+    if ((resto === 10) || (resto === 11)) resto = 0;
+    if (resto !== parseInt(cpf.substring(9, 10))) return false;
+    soma = 0;
+    for (let i = 1; i <= 10; i++) soma = soma + parseInt(cpf.substring(i - 1, i)) * (12 - i);
+    resto = (soma * 10) % 11;
+    if ((resto === 10) || (resto === 11)) resto = 0;
+    if (resto !== parseInt(cpf.substring(10, 11))) return false;
+    return true;
+};
+
 const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({ result, status }) => {
   if (status === ExamStatus.WAITING_RESULT) return <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Aguardando</span>;
   if (!result) return null;
@@ -116,6 +133,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateCPF(formData.cpf)) {
+        alert('CPF inválido! Por favor, verifique o número digitado.');
+        return;
+    }
+
     try {
       if (editingRequest) {
         await api.updateRequest(editingRequest.id, formData);
@@ -685,7 +708,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">CPF</label>
-                                        <input required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.cpf || ''} onChange={e => setFormData({...formData, cpf: e.target.value})} />
+                                        <input 
+                                            required 
+                                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                            value={formData.cpf || ''} 
+                                            onChange={e => {
+                                                const onlyNums = e.target.value.replace(/\D/g, '');
+                                                setFormData({...formData, cpf: onlyNums});
+                                            }} 
+                                            maxLength={11}
+                                            placeholder="Somente números"
+                                        />
                                     </div>
                                     <div className="col-span-2">
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
