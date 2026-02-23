@@ -73,8 +73,12 @@ const Reports: React.FC = () => {
   // Filters for Candidates List
   const [candidateStatusFilter, setCandidateStatusFilter] = useState<string>('ALL');
   const [candidateCategoryFilter, setCandidateCategoryFilter] = useState<string>('ALL');
-  const [candidateDateStart, setCandidateDateStart] = useState<string>('');
-  const [candidateDateEnd, setCandidateDateEnd] = useState<string>('');
+  const [candidateDateStart, setCandidateDateStart] = useState<string>(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
+  });
+  const [candidateDateEnd, setCandidateDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -391,8 +395,8 @@ const Reports: React.FC = () => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block p-6 border-b-2 border-black mb-4">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-3">
+              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto" />
                       ) : (
@@ -403,9 +407,8 @@ const Reports: React.FC = () => {
                           <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO DE CANDIDATOS</h2>
                       </div>
                   </div>
-                  <div className="flex justify-between text-xs font-bold uppercase text-black">
-                      <span>DATA: {new Date().toLocaleDateString()}</span>
-                      <span>FILTROS: {candidateStatusFilter !== 'ALL' ? STATUS_TRANSLATION[candidateStatusFilter] : 'TODOS'} | {candidateCategoryFilter !== 'ALL' ? `CAT ${candidateCategoryFilter}` : 'TODAS CAT'}</span>
+                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                      <span>Data: {new Date(candidateDateStart).toLocaleDateString()} até {new Date(candidateDateEnd).toLocaleDateString()}</span>
                   </div>
               </div>
 
@@ -415,14 +418,14 @@ const Reports: React.FC = () => {
                   ) : (
                       Object.entries(groupedRequests).map(([status, categories]) => (
                           <div key={status} className="border-b last:border-b-0 print:border-black">
-                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b-2 print:border-black print:mt-4">
+                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
                                   <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
                                   {STATUS_TRANSLATION[status] || status} ({Object.values(categories).flat().length})
                               </div>
                               
                               {Object.entries(categories).map(([category, reqs]) => (
                                   <div key={`${status}-${category}`}>
-                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6">
+                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
                                           Categoria {category} ({reqs.length})
                                       </div>
