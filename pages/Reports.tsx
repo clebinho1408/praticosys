@@ -429,26 +429,26 @@ const Reports: React.FC = () => {
                                       <table className="w-full text-sm text-left">
                                           <thead>
                                               <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-6">Nome</th>
-                                                  <th className="px-6 py-2 font-medium">CPF</th>
-                                                  <th className="px-6 py-2 font-medium">Tentativa</th>
-                                                  <th className="px-6 py-2 font-medium">Resultado</th>
+                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[55%]">Nome</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">CPF</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Tentativa</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Resultado</th>
                                               </tr>
                                           </thead>
                                           <tbody className="divide-y divide-gray-100 print:divide-gray-200">
                                               {reqs.map(req => (
                                                   <tr key={req.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-6 print:text-black">{req.studentName}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:text-black">{req.cpf}</td>
-                                                      <td className="px-6 py-3 text-gray-500 font-medium print:text-black">
+                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{req.studentName}</td>
+                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{req.cpf}</td>
+                                                      <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
                                                           {req.examHistory?.filter(h => h.result === 'INAPTO').length ? `${req.examHistory.filter(h => h.result === 'INAPTO').length}x` : ''}
                                                       </td>
-                                                      <td className="px-6 py-3">
+                                                      <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
                                                           {req.result ? (
                                                               <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
                                                                   req.result === 'APTO' ? 'bg-green-100 text-green-700' : 
                                                                   req.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold`}>
+                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
                                                                   {req.result}
                                                               </span>
                                                           ) : <span className="text-gray-400 print:text-black">-</span>}
