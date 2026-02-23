@@ -62,6 +62,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [isChangeResultModalOpen, setIsChangeResultModalOpen] = useState(false);
   const [changeResultData, setChangeResultData] = useState<{ requestId: string, historyId: string, currentResult: string } | null>(null);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [editingRequest, setEditingRequest] = useState<ExamRequest | null>(null);
 
   // Form State
@@ -135,7 +137,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
     e.preventDefault();
     
     if (!validateCPF(formData.cpf)) {
-        alert('CPF inválido! Por favor, verifique o número digitado.');
+        setErrorMessage('CPF inválido! Por favor, verifique o número digitado.');
+        setIsErrorModalOpen(true);
         return;
     }
 
@@ -962,6 +965,30 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                </div>
            </div>
        )}
+        {/* Error Modal */}
+        {isErrorModalOpen && (
+            <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 animate-fadeIn">
+                <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative">
+                    <div className="flex flex-col items-center text-center">
+                        <div className="mb-4 p-3 rounded-full bg-red-50">
+                            <AlertOctagon className="h-10 w-10 text-red-500" />
+                        </div>
+                        
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Atenção</h3>
+                        <div className="text-gray-600 mb-6">
+                            {errorMessage}
+                        </div>
+                        
+                        <button 
+                            onClick={() => setIsErrorModalOpen(false)}
+                            className="w-full py-2.5 px-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                            Entendi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 };
