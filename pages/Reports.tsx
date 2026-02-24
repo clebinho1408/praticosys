@@ -130,6 +130,7 @@ const Reports: React.FC = () => {
 
   // Filters for Exam History
   const [examHistorySearch, setExamHistorySearch] = useState<string>('');
+  const [examHistoryResultFilter, setExamHistoryResultFilter] = useState<string>('ALL');
   const [examHistoryDateStart, setExamHistoryDateStart] = useState<string>(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
@@ -431,6 +432,9 @@ const Reports: React.FC = () => {
           const lower = examHistorySearch.toLowerCase();
           filtered = filtered.filter(i => i.studentName.toLowerCase().includes(lower) || i.cpf.includes(lower));
       }
+      if (examHistoryResultFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.result === examHistoryResultFilter);
+      }
 
       // Sort by Date DESC
       filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -446,7 +450,7 @@ const Reports: React.FC = () => {
       });
 
       return groups;
-  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch]);
+  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch, examHistoryResultFilter]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -711,7 +715,7 @@ const Reports: React.FC = () => {
       {activeView === 'exam-history' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <div className="flex-1 max-w-md">
+                  <div className="flex-1 max-w-md flex gap-2">
                       <input 
                           type="text" 
                           placeholder="Buscar por Nome ou CPF..." 
@@ -719,6 +723,16 @@ const Reports: React.FC = () => {
                           value={examHistorySearch}
                           onChange={e => setExamHistorySearch(e.target.value)}
                       />
+                      <select 
+                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={examHistoryResultFilter}
+                          onChange={e => setExamHistoryResultFilter(e.target.value)}
+                      >
+                          <option value="ALL">Todos Resultados</option>
+                          <option value="APTO">Apto</option>
+                          <option value="INAPTO">Inapto</option>
+                          <option value="FALTOU">Faltou</option>
+                      </select>
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
