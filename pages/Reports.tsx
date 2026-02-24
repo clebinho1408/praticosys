@@ -52,15 +52,15 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
 
   return (
     <div 
-      className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 print:p-4 print:shadow-none print:border-black print:border relative overflow-hidden"
+      className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 print:p-2 print:shadow-none print:border-black print:border relative overflow-hidden"
       style={{ ['--print-bg' as any]: printBgColor }}
     >
       <div className="print:bg-[var(--print-bg)] absolute inset-0 hidden print:block -z-10"></div>
       <div className="flex justify-between items-start relative z-10">
         <div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[8px] print:text-black">{title}</p>
-          <h3 className="text-2xl font-black text-gray-900 print:text-lg print:text-black">{value}</h3>
-          {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[8px] print:text-black">{subtitle}</p>}
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[7px] print:mb-0 print:text-black">{title}</p>
+          <h3 className="text-2xl font-black text-gray-900 print:text-sm print:text-black">{value}</h3>
+          {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[7px] print:mt-0 print:text-black">{subtitle}</p>}
         </div>
         <div className={`p-3 rounded-lg ${color} bg-opacity-10 print:hidden`}>
           <Icon className={`h-6 w-6 ${color.replace('bg-', 'text-')}`} />
@@ -71,19 +71,19 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
 };
 
 const PrintStatsTable: React.FC<{ title: string; data: { label: string; value: string | number; color?: string }[] }> = ({ title, data }) => (
-    <div className="hidden print:block mt-4 border border-black rounded-lg overflow-hidden">
-        <div className="bg-gray-100 px-4 py-2 font-bold text-[10px] uppercase border-b border-black text-black">{title}</div>
-        <table className="w-full text-[10px] text-left">
+    <div className="hidden print:block mt-2 border border-black rounded-lg overflow-hidden">
+        <div className="bg-gray-100 px-2 py-1 font-bold text-[9px] uppercase border-b border-black text-black">{title}</div>
+        <table className="w-full text-[9px] text-left">
             <tbody className="divide-y divide-black">
                 {data.map((item, idx) => (
                     <tr key={idx} style={item.color ? { backgroundColor: `${item.color}15` } : undefined}>
-                        <td className="px-4 py-1 font-bold uppercase text-black w-2/3">
-                            <div className="flex items-center gap-2">
-                                {item.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>}
+                        <td className="px-2 py-0.5 font-bold uppercase text-black w-2/3">
+                            <div className="flex items-center gap-1">
+                                {item.color && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }}></div>}
                                 {item.label}
                             </div>
                         </td>
-                        <td className="px-4 py-1 text-black text-right font-bold">{item.value}</td>
+                        <td className="px-2 py-0.5 text-black text-right font-bold">{item.value}</td>
                     </tr>
                 ))}
             </tbody>
@@ -451,25 +451,25 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Print Header (Visible only in print) */}
-            <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
-                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+            <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-1">
+                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-1 print:mb-1 print:gap-4">
                     {settings?.logoUrl ? (
-                        <img src={settings.logoUrl} className="h-16 w-auto" />
+                        <img src={settings.logoUrl} className="h-16 w-auto print:h-10" />
                     ) : (
-                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-10 print:w-10 print:text-[8px]">LOGO</div>
                     )}
                     <div>
-                        <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO GERAL DE ÍNDICES</h2>
+                        <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-sm">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                        <h2 className="text-2xl font-black uppercase text-black print:text-lg">RELATÓRIO GERAL DE ÍNDICES</h2>
                     </div>
                 </div>
-                <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                <div className="text-center text-xs font-bold uppercase text-black print:text-[8px]">
                     <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
 
-            <div className="space-y-4">
-                <h3 className="text-lg font-bold print:text-sm print:mb-2">Estatísticas de Aprovação</h3>
+            <div className="space-y-4 print:space-y-2">
+                <h3 className="text-lg font-bold print:text-sm print:mb-1">Estatísticas de Aprovação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
                     <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
                     <SummaryCard title="Taxa de Aprovação" value={`${approvalStats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos" />
@@ -477,12 +477,12 @@ const Reports: React.FC = () => {
                     <SummaryCard title="Faltas" value={approvalStats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Não compareceram" />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-2 print:h-auto">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-2 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                         </h3>
-                        <div className="flex-1 w-full print:h-[200px]">
+                        <div className="flex-1 w-full print:h-[120px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ bottom: 20 }}>
                                     <Pie
@@ -515,11 +515,11 @@ const Reports: React.FC = () => {
                         />
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-2 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
                         </h3>
-                        <div className="flex-1 w-full print:h-[200px]">
+                        <div className="flex-1 w-full print:h-[120px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={approvalStats.chartData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -539,8 +539,8 @@ const Reports: React.FC = () => {
                 </div>
             </div>
 
-            <div className="border-t pt-6 mt-10 print:mt-6 print:border-black print:break-before-page">
-                <h3 className="text-lg font-bold mb-4 print:text-sm print:mb-2">Estatísticas de Bancas</h3>
+            <div className="border-t pt-6 mt-10 print:mt-2 print:pt-2 print:border-black">
+                <h3 className="text-lg font-bold mb-4 print:text-sm print:mb-1">Estatísticas de Bancas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
                     <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
                     <SummaryCard title="Realizadas" value={scheduleStats.concluded} icon={Trophy} color="bg-green-600" />
@@ -548,12 +548,12 @@ const Reports: React.FC = () => {
                     <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:grid-cols-2 print:gap-2 print:mt-2 print:h-auto">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-2 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
                         </h3>
-                        <div className="flex-1 w-full print:h-[200px]">
+                        <div className="flex-1 w-full print:h-[120px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ bottom: 20 }}>
                                     <Pie
@@ -586,11 +586,11 @@ const Reports: React.FC = () => {
                         />
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-2 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
                         </h3>
-                        <div className="flex-1 w-full print:h-[200px]">
+                        <div className="flex-1 w-full print:h-[120px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={slotUsageStats}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />

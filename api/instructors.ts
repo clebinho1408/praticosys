@@ -13,9 +13,9 @@ export default async function handler(req: any, res: any) {
       const allVehicles = await db.select().from(vehicles);
       
       // Agrupa veículos por instrutor
-      const data = allInstructors.map(inst => ({
+      const data = allInstructors.map((inst: any) => ({
           ...inst,
-          vehicles: allVehicles.filter(v => v.instructorId === inst.id)
+          vehicles: allVehicles.filter((v: any) => v.instructorId === inst.id)
       }));
       
       return res.status(200).json(data);
