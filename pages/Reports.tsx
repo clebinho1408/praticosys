@@ -17,7 +17,6 @@ import {
   Download,
   Users,
   Layout,
-  List,
   Printer
 } from 'lucide-react';
 
@@ -106,6 +105,14 @@ const Reports: React.FC = () => {
       return date.toISOString().split('T')[0];
   });
 
+  // Filters for Approval Stats
+  const [approvalDateStart, setApprovalDateStart] = useState<string>(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
+  });
+  const [approvalDateEnd, setApprovalDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
+
   useEffect(() => {
     const fetchData = async () => {
         setLoading(true);
@@ -141,11 +148,20 @@ const Reports: React.FC = () => {
 
   // 1. Índice de Reprovação e Aprovação
   const approvalStats = useMemo(() => {
-    const finishedRequests = requests.filter(r => r.status === ExamStatus.DONE);
-    const total = finishedRequests.length;
-    const apto = finishedRequests.filter(r => r.result === 'APTO').length;
-    const inapto = finishedRequests.filter(r => r.result === 'INAPTO').length;
-    const faltou = finishedRequests.filter(r => r.result === 'FALTOU').length;
+    let filtered = requests.filter(r => r.status === ExamStatus.DONE);
+
+    if (approvalDateStart) {
+        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) >= new Date(approvalDateStart));
+    }
+
+    if (approvalDateEnd) {
+        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) <= new Date(approvalDateEnd));
+    }
+
+    const total = filtered.length;
+    const apto = filtered.filter(r => r.result === 'APTO').length;
+    const inapto = filtered.filter(r => r.result === 'INAPTO').length;
+    const faltou = filtered.filter(r => r.result === 'FALTOU').length;
     const rate = total > 0 ? ((apto / total) * 100).toFixed(1) : '0';
 
     const pieData = [
@@ -155,7 +171,7 @@ const Reports: React.FC = () => {
     ];
 
     const monthlyData: Record<string, any> = {};
-    finishedRequests.forEach(r => {
+    filtered.forEach(r => {
       const date = new Date(r.updatedAt || r.createdAt);
       const month = date.toLocaleString('pt-BR', { month: 'short' });
       if (!monthlyData[month]) monthlyData[month] = { name: month, apto: 0, inapto: 0 };
@@ -164,7 +180,7 @@ const Reports: React.FC = () => {
     });
 
     return { total, apto, inapto, faltou, rate, pieData, chartData: Object.values(monthlyData) };
-  }, [requests]);
+  }, [requests, approvalDateStart, approvalDateEnd]);
 
   // 3. Índice de Bancas
   const scheduleStats = useMemo(() => {
@@ -372,18 +388,63 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Índice de Reprovação e Aprovação */}
       {activeView === 'approval-stats' && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="space-y-6 animate-fadeIn print:space-y-4">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+                <h3 className="text-lg font-bold">Estatísticas de Aprovação</h3>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                        <input 
+                            type="date" 
+                            className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                            value={approvalDateStart}
+                            onChange={e => setApprovalDateStart(e.target.value)}
+                        />
+                        <span className="text-gray-400">-</span>
+                        <input 
+                            type="date" 
+                            className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                            value={approvalDateEnd}
+                            onChange={e => setApprovalDateEnd(e.target.value)}
+                        />
+                    </div>
+                    <button 
+                        onClick={() => window.print()} 
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                    >
+                        <Printer className="h-4 w-4" /> Imprimir
+                    </button>
+                </div>
+            </div>
+
+            {/* Print Header (Visible only in print) */}
+            <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
+                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+                    {settings?.logoUrl ? (
+                        <img src={settings.logoUrl} className="h-16 w-auto" />
+                    ) : (
+                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                    )}
+                    <div>
+                        <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                        <h2 className="text-2xl font-black uppercase text-black">ÍNDICE DE APROVAÇÃO</h2>
+                    </div>
+                </div>
+                <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                    <span>Data: {new Date(approvalDateStart).toLocaleDateString()} até {new Date(approvalDateEnd).toLocaleDateString()}</span>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
                 <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
                 <SummaryCard title="Taxa de Aprovação" value={`${approvalStats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos" />
                 <SummaryCard title="Reprovações" value={approvalStats.inapto} icon={XCircle} color="bg-red-600" subtitle="Candidatos Inaptos" />
                 <SummaryCard title="Faltas" value={approvalStats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Não compareceram" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                        <Filter className="h-5 w-5 text-blue-600" /> Distribuição de Resultados
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[400px]">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                        <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                     </h3>
                     <div className="flex-1 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -391,9 +452,9 @@ const Reports: React.FC = () => {
                                 <Pie
                                     data={approvalStats.pieData}
                                     cx="50%"
-                                    cy="50%"
-                                    innerRadius={70}
-                                    outerRadius={90}
+                                    cy="40%"
+                                    innerRadius={60}
+                                    outerRadius={80}
                                     paddingAngle={8}
                                     dataKey="value"
                                 >
@@ -408,9 +469,9 @@ const Reports: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                        <Calendar className="h-5 w-5 text-blue-600" /> Evolução Mensal
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
+                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                        <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
                     </h3>
                     <div className="flex-1 w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -425,6 +486,12 @@ const Reports: React.FC = () => {
                         </ResponsiveContainer>
                     </div>
                 </div>
+            </div>
+
+            {/* Print Footer (Visible only in print) */}
+            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
           </div>
       )}
@@ -638,9 +705,9 @@ const Reports: React.FC = () => {
                                   <Pie
                                       data={scheduleStats.pieData}
                                       cx="50%"
-                                      cy="50%"
-                                      innerRadius={70}
-                                      outerRadius={90}
+                                      cy="40%"
+                                      innerRadius={60}
+                                      outerRadius={80}
                                       paddingAngle={8}
                                       dataKey="value"
                                   >
