@@ -58,21 +58,41 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
   </div>
 );
 
-const PrintStatsTable: React.FC<{ title: string; data: { label: string; value: string | number }[] }> = ({ title, data }) => (
+const PrintStatsTable: React.FC<{ title: string; data: { label: string; value: string | number; color?: string }[] }> = ({ title, data }) => (
     <div className="hidden print:block mt-4 border border-black rounded-lg overflow-hidden">
         <div className="bg-gray-100 px-4 py-2 font-bold text-[10px] uppercase border-b border-black text-black">{title}</div>
         <table className="w-full text-[10px] text-left">
             <tbody className="divide-y divide-black">
                 {data.map((item, idx) => (
-                    <tr key={idx}>
-                        <td className="px-4 py-1 font-bold uppercase text-black w-2/3">{item.label}</td>
-                        <td className="px-4 py-1 text-black text-right">{item.value}</td>
+                    <tr key={idx} style={item.color ? { backgroundColor: `${item.color}15` } : undefined}>
+                        <td className="px-4 py-1 font-bold uppercase text-black w-2/3">
+                            <div className="flex items-center gap-2">
+                                {item.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>}
+                                {item.label}
+                            </div>
+                        </td>
+                        <td className="px-4 py-1 text-black text-right font-bold">{item.value}</td>
                     </tr>
                 ))}
             </tbody>
         </table>
     </div>
 );
+
+const CustomLegend = (props: any) => {
+    const { payload } = props;
+    if (!payload) return null;
+    return (
+        <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-4 print:hidden">
+            {payload.map((entry: any, index: number) => (
+                <li key={`item-${index}`} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: entry.color }}>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                    {entry.value}
+                </li>
+            ))}
+        </ul>
+    );
+};
 
 type ReportView = 'approval-stats' | 'candidates-list' | 'schedule-stats' | 'schedules-list';
 
@@ -479,13 +499,13 @@ const Reports: React.FC = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px', bottom: 0 }} />
+                                <Legend content={<CustomLegend />} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                     <PrintStatsTable 
                         title="Dados de Distribuição" 
-                        data={approvalStats.pieData.map(d => ({ label: d.name, value: d.value }))} 
+                        data={approvalStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
                     />
                 </div>
 
@@ -740,13 +760,13 @@ const Reports: React.FC = () => {
                                       ))}
                                   </Pie>
                                   <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                  <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px', bottom: 0 }} />
+                                  <Legend content={<CustomLegend />} />
                               </PieChart>
                           </ResponsiveContainer>
                       </div>
                       <PrintStatsTable 
                         title="Dados de Status" 
-                        data={scheduleStats.pieData.map(d => ({ label: d.name, value: d.value }))} 
+                        data={scheduleStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
                       />
                   </div>
 
