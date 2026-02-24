@@ -452,24 +452,24 @@ const Reports: React.FC = () => {
 
             {/* Print Header (Visible only in print) */}
             <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-1">
-                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-1 print:mb-1 print:gap-2">
+                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-1 print:mb-1 print:gap-4">
                     {settings?.logoUrl ? (
-                        <img src={settings.logoUrl} className="h-16 w-auto print:h-8" />
+                        <img src={settings.logoUrl} className="h-16 w-auto print:h-10" />
                     ) : (
-                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-8 print:w-8 print:text-[6px]">LOGO</div>
+                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-10 print:w-10 print:text-[8px]">LOGO</div>
                     )}
                     <div>
-                        <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xs">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-black uppercase text-black print:text-sm">RELATÓRIO GERAL DE ÍNDICES</h2>
+                        <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-sm">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                        <h2 className="text-2xl font-black uppercase text-black print:text-lg">RELATÓRIO GERAL DE ÍNDICES</h2>
                     </div>
                 </div>
-                <div className="text-center text-xs font-bold uppercase text-black print:text-[8px]">
+                <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
                     <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
 
-            <div className="space-y-4 print:space-y-1">
-                <h3 className="text-lg font-bold print:text-xs print:mb-0.5">Estatísticas de Aprovação</h3>
+            <div className="space-y-4 print:space-y-2">
+                <h3 className="text-lg font-bold print:text-sm print:mb-1">Estatísticas de Aprovação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
                     <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
                     <SummaryCard title="Taxa de Aprovação" value={`${approvalStats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos" />
@@ -479,7 +479,7 @@ const Reports: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1 print:h-auto">
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-[10px] print:mb-0.5">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                         </h3>
                         <div className="flex-1 w-full print:h-[90px]">
@@ -516,7 +516,7 @@ const Reports: React.FC = () => {
                     </div>
 
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-[10px] print:mb-0.5">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
                         </h3>
                         <div className="flex-1 w-full print:h-[90px]">
@@ -540,7 +540,7 @@ const Reports: React.FC = () => {
             </div>
 
             <div className="border-t pt-6 mt-10 print:mt-1 print:pt-1 print:border-black">
-                <h3 className="text-lg font-bold mb-4 print:text-xs print:mb-0.5">Estatísticas de Bancas</h3>
+                <h3 className="text-lg font-bold mb-4 print:text-sm print:mb-1">Estatísticas de Bancas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
                     <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
                     <SummaryCard title="Realizadas" value={scheduleStats.concluded} icon={Trophy} color="bg-green-600" />
@@ -550,7 +550,7 @@ const Reports: React.FC = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:grid-cols-2 print:gap-1 print:mt-1 print:h-auto">
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-[10px] print:mb-0.5">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
                         </h3>
                         <div className="flex-1 w-full print:h-[90px]">
@@ -587,7 +587,7 @@ const Reports: React.FC = () => {
                     </div>
 
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-[10px] print:mb-0.5">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
                         </h3>
                         <div className="flex-1 w-full print:h-[90px]">
