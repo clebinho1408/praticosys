@@ -452,9 +452,9 @@ const Reports: React.FC = () => {
                                 <Pie
                                     data={approvalStats.pieData}
                                     cx="50%"
-                                    cy="40%"
-                                    innerRadius={60}
-                                    outerRadius={80}
+                                    cy="35%"
+                                    innerRadius={50}
+                                    outerRadius={70}
                                     paddingAngle={8}
                                     dataKey="value"
                                 >
@@ -463,7 +463,7 @@ const Reports: React.FC = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Legend verticalAlign="bottom" iconType="circle" />
+                                <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -705,9 +705,9 @@ const Reports: React.FC = () => {
                                   <Pie
                                       data={scheduleStats.pieData}
                                       cx="50%"
-                                      cy="40%"
-                                      innerRadius={60}
-                                      outerRadius={80}
+                                      cy="35%"
+                                      innerRadius={50}
+                                      outerRadius={70}
                                       paddingAngle={8}
                                       dataKey="value"
                                   >
@@ -716,7 +716,7 @@ const Reports: React.FC = () => {
                                       ))}
                                   </Pie>
                                   <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                  <Legend verticalAlign="bottom" iconType="circle" />
+                                  <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
                               </PieChart>
                           </ResponsiveContainer>
                       </div>
