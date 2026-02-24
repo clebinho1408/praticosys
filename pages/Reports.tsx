@@ -106,7 +106,7 @@ const CustomLegend = (props: any) => {
     );
 };
 
-type ReportView = 'general-stats' | 'candidates-list' | 'schedules-list';
+type ReportView = 'general-stats' | 'candidates-list' | 'schedules-list' | 'exam-history';
 
 const Reports: React.FC = () => {
   const { reportType } = useParams<{ reportType: string }>();
@@ -127,6 +127,15 @@ const Reports: React.FC = () => {
       return date.toISOString().split('T')[0];
   });
   const [candidateDateEnd, setCandidateDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
+
+  // Filters for Exam History
+  const [examHistorySearch, setExamHistorySearch] = useState<string>('');
+  const [examHistoryDateStart, setExamHistoryDateStart] = useState<string>(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
+  });
+  const [examHistoryDateEnd, setExamHistoryDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   // Filters for Schedules List
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState<string>('ALL');
@@ -365,6 +374,80 @@ const Reports: React.FC = () => {
     return groups;
   }, [schedules, scheduleStatusFilter, scheduleDateStart, scheduleDateEnd]);
 
+  // Logic for Exam History
+  const examHistoryList = useMemo(() => {
+      const list: any[] = [];
+      requests.forEach(req => {
+          // 1. Add past history
+          if (req.examHistory && Array.isArray(req.examHistory)) {
+              req.examHistory.forEach((h: any) => {
+                  list.push({
+                      id: `${req.id}-${h.date}-${h.time}`,
+                      studentName: req.studentName,
+                      cpf: req.cpf,
+                      date: h.date,
+                      time: h.time || '00:00',
+                      result: h.result,
+                      category: h.category || req.intendedCategory || 'N/A',
+                      type: 'HISTORY'
+                  });
+              });
+          }
+
+          // 2. Add current exam if finished
+          if (req.status === 'DONE' && req.result) {
+               const date = req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]);
+               // Avoid duplicates if history already contains this date
+               const isDuplicate = req.examHistory?.some((h: any) => h.date === date);
+               if (!isDuplicate) {
+                   list.push({
+                       id: req.id,
+                       studentName: req.studentName,
+                       cpf: req.cpf,
+                       date: date,
+                       time: req.scheduledTime || '00:00',
+                       result: req.result,
+                       category: req.scheduledCategory || req.intendedCategory || 'N/A',
+                       type: 'CURRENT'
+                   });
+               }
+          }
+      });
+      return list;
+  }, [requests]);
+
+  const groupedExamHistory = useMemo(() => {
+      const groups: Record<string, Record<string, any[]>> = {};
+      
+      let filtered = examHistoryList;
+
+      if (examHistoryDateStart) {
+          filtered = filtered.filter(i => new Date(i.date) >= new Date(examHistoryDateStart));
+      }
+      if (examHistoryDateEnd) {
+          filtered = filtered.filter(i => new Date(i.date) <= new Date(examHistoryDateEnd));
+      }
+      if (examHistorySearch) {
+          const lower = examHistorySearch.toLowerCase();
+          filtered = filtered.filter(i => i.studentName.toLowerCase().includes(lower) || i.cpf.includes(lower));
+      }
+
+      // Sort by Date DESC
+      filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      filtered.forEach(item => {
+          const date = item.date;
+          const category = item.category;
+
+          if (!groups[date]) groups[date] = {};
+          if (!groups[date][category]) groups[date][category] = [];
+          
+          groups[date][category].push(item);
+      });
+
+      return groups;
+  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch]);
+
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
   return (
@@ -411,6 +494,12 @@ const Reports: React.FC = () => {
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'candidates-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
               Lista de Candidatos
+          </button>
+          <button 
+            onClick={() => setActiveView('exam-history')}
+            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'exam-history' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+              Histórico de Provas
           </button>
           <button 
             onClick={() => setActiveView('schedules-list')}
@@ -615,6 +704,127 @@ const Reports: React.FC = () => {
                 <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                 <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
+          </div>
+      )}
+
+      {/* VIEW: Histórico de Provas */}
+      {activeView === 'exam-history' && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
+              <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+                  <div className="flex-1 max-w-md">
+                      <input 
+                          type="text" 
+                          placeholder="Buscar por Nome ou CPF..." 
+                          className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={examHistorySearch}
+                          onChange={e => setExamHistorySearch(e.target.value)}
+                      />
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                          <input 
+                              type="date" 
+                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                              value={examHistoryDateStart}
+                              onChange={e => setExamHistoryDateStart(e.target.value)}
+                          />
+                          <span className="text-gray-400">-</span>
+                          <input 
+                              type="date" 
+                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                              value={examHistoryDateEnd}
+                              onChange={e => setExamHistoryDateEnd(e.target.value)}
+                          />
+                      </div>
+
+                      <button 
+                          onClick={() => window.print()} 
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                      >
+                          <Printer className="h-4 w-4" /> Imprimir
+                      </button>
+                  </div>
+              </div>
+
+              {/* Print Header (Visible only in print) */}
+              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+                      {settings?.logoUrl ? (
+                          <img src={settings.logoUrl} className="h-16 w-auto" />
+                      ) : (
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                      )}
+                      <div>
+                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-black uppercase text-black">HISTÓRICO DE PROVAS</h2>
+                      </div>
+                  </div>
+                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                      <span>Data: {new Date(examHistoryDateStart).toLocaleDateString()} até {new Date(examHistoryDateEnd).toLocaleDateString()}</span>
+                  </div>
+              </div>
+
+              <div className="overflow-x-auto print:overflow-visible">
+                  {Object.keys(groupedExamHistory).length === 0 ? (
+                      <div className="p-10 text-center text-gray-400">Nenhum histórico encontrado.</div>
+                  ) : (
+                      Object.entries(groupedExamHistory).map(([date, categories]) => (
+                          <div key={date} className="border-b last:border-b-0 print:border-black">
+                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
+                                  Data: {new Date(date).toLocaleDateString()} ({Object.values(categories).flat().length})
+                              </div>
+                              
+                              {Object.entries(categories).map(([category, items]) => (
+                                  <div key={`${date}-${category}`}>
+                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
+                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
+                                          Categoria {category} ({items.length})
+                                      </div>
+                                      <table className="w-full text-sm text-left">
+                                          <thead>
+                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
+                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[40%]">Nome</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">CPF</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Hora</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Resultado</th>
+                                              </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                              {items.map((item: any) => (
+                                                  <tr key={item.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
+                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
+                                                      <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                          {item.time}
+                                                      </td>
+                                                      <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
+                                                          {item.result ? (
+                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                                  item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
+                                                                  item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
+                                                                  {item.result}
+                                                              </span>
+                                                          ) : <span className="text-gray-400 print:text-black">-</span>}
+                                                      </td>
+                                                  </tr>
+                                              ))}
+                                          </tbody>
+                                      </table>
+                                  </div>
+                              ))}
+                          </div>
+                      ))
+                  )}
+              </div>
+
+              {/* Print Footer (Visible only in print) */}
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                  <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
+              </div>
           </div>
       )}
 
