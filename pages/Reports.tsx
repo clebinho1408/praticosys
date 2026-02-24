@@ -83,14 +83,28 @@ const Reports: React.FC = () => {
 
   // Filters for Schedules List
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState<string>('ALL');
-  const [scheduleTypeFilter, setScheduleTypeFilter] = useState<string>('ALL');
-  const [scheduleSearch, setScheduleSearch] = useState<string>('');
   const [scheduleDateStart, setScheduleDateStart] = useState<string>(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
       return date.toISOString().split('T')[0];
   });
-  const [scheduleDateEnd, setScheduleDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [scheduleDateEnd, setScheduleDateEnd] = useState<string>(() => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30);
+      return date.toISOString().split('T')[0];
+  });
+
+  // Filters for Schedule Stats
+  const [statsDateStart, setStatsDateStart] = useState<string>(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
+  });
+  const [statsDateEnd, setStatsDateEnd] = useState<string>(() => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30);
+      return date.toISOString().split('T')[0];
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -154,11 +168,21 @@ const Reports: React.FC = () => {
 
   // 3. Índice de Bancas
   const scheduleStats = useMemo(() => {
-      const total = schedules.length;
-      const open = schedules.filter(s => s.status === 'OPEN').length;
-      const concluded = schedules.filter(s => s.status === 'CONCLUDED').length;
-      const cancelled = schedules.filter(s => s.status === 'CANCELLED').length;
-      const closed = schedules.filter(s => s.status === 'CLOSED').length;
+      let filteredSchedules = schedules;
+
+      if (statsDateStart) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(statsDateStart));
+      }
+
+      if (statsDateEnd) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(statsDateEnd));
+      }
+
+      const total = filteredSchedules.length;
+      const open = filteredSchedules.filter(s => s.status === 'OPEN').length;
+      const concluded = filteredSchedules.filter(s => s.status === 'CONCLUDED').length;
+      const cancelled = filteredSchedules.filter(s => s.status === 'CANCELLED').length;
+      const closed = filteredSchedules.filter(s => s.status === 'CLOSED').length;
 
       const pieData = [
           { name: 'Abertas', value: open },
@@ -168,14 +192,24 @@ const Reports: React.FC = () => {
       ];
 
       return { total, open, concluded, cancelled, closed, pieData };
-  }, [schedules]);
+  }, [schedules, statsDateStart, statsDateEnd]);
 
   // 4. Índice de Ocupação de Vagas (Novo)
   const slotUsageStats = useMemo(() => {
       const monthlyData: Record<string, { name: string, total: number, used: number }> = {};
       
+      let filteredSchedules = schedules;
+
+      if (statsDateStart) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(statsDateStart));
+      }
+
+      if (statsDateEnd) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(statsDateEnd));
+      }
+
       // Sort schedules by date
-      const sortedSchedules = [...schedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const sortedSchedules = [...filteredSchedules].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       sortedSchedules.forEach(sch => {
           const date = new Date(sch.date);
@@ -191,7 +225,7 @@ const Reports: React.FC = () => {
       });
       
       return Object.values(monthlyData);
-  }, [schedules, requests]);
+  }, [schedules, requests, statsDateStart, statsDateEnd]);
 
   // Grouping logic for Candidates List
   const groupedRequests = useMemo(() => {
@@ -251,24 +285,12 @@ const Reports: React.FC = () => {
         filtered = filtered.filter(s => s.status === scheduleStatusFilter);
     }
 
-    if (scheduleTypeFilter !== 'ALL') {
-        filtered = filtered.filter(s => s.type === scheduleTypeFilter);
-    }
-
     if (scheduleDateStart) {
         filtered = filtered.filter(s => new Date(s.date) >= new Date(scheduleDateStart));
     }
 
     if (scheduleDateEnd) {
         filtered = filtered.filter(s => new Date(s.date) <= new Date(scheduleDateEnd));
-    }
-
-    if (scheduleSearch) {
-        const searchLower = scheduleSearch.toLowerCase();
-        filtered = filtered.filter(s => 
-            new Date(s.date).toLocaleDateString().includes(searchLower) || 
-            s.time.includes(searchLower)
-        );
     }
 
     // Sort schedules by date
@@ -285,7 +307,7 @@ const Reports: React.FC = () => {
     });
     
     return groups;
-  }, [schedules, scheduleStatusFilter, scheduleTypeFilter, scheduleDateStart, scheduleDateEnd, scheduleSearch]);
+  }, [schedules, scheduleStatusFilter, scheduleDateStart, scheduleDateEnd]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -294,7 +316,7 @@ const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">
-            Relatórios - {reportType?.toUpperCase()}
+            {reportType === 'cnh' ? 'DADOS CNH DO BRASIL' : `Relatórios - ${reportType?.toUpperCase()}`}
           </h2>
           <p className="text-sm text-gray-500 font-medium">Selecione o tipo de relatório abaixo.</p>
         </div>
@@ -552,18 +574,63 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Índice de Bancas */}
       {activeView === 'schedule-stats' && (
-          <div className="space-y-6 animate-fadeIn">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="space-y-6 animate-fadeIn print:space-y-4">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+                  <h3 className="text-lg font-bold">Estatísticas de Bancas</h3>
+                  <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                          <input 
+                              type="date" 
+                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                              value={statsDateStart}
+                              onChange={e => setStatsDateStart(e.target.value)}
+                          />
+                          <span className="text-gray-400">-</span>
+                          <input 
+                              type="date" 
+                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                              value={statsDateEnd}
+                              onChange={e => setStatsDateEnd(e.target.value)}
+                          />
+                      </div>
+                      <button 
+                          onClick={() => window.print()} 
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                      >
+                          <Printer className="h-4 w-4" /> Imprimir
+                      </button>
+                  </div>
+              </div>
+
+              {/* Print Header (Visible only in print) */}
+              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+                      {settings?.logoUrl ? (
+                          <img src={settings.logoUrl} className="h-16 w-auto" />
+                      ) : (
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                      )}
+                      <div>
+                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-black uppercase text-black">ÍNDICE DE BANCAS</h2>
+                      </div>
+                  </div>
+                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                      <span>Data: {new Date(statsDateStart).toLocaleDateString()} até {new Date(statsDateEnd).toLocaleDateString()}</span>
+                  </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
                   <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
                   <SummaryCard title="Realizadas" value={scheduleStats.concluded} icon={Trophy} color="bg-green-600" />
                   <SummaryCard title="Canceladas" value={scheduleStats.cancelled} icon={XCircle} color="bg-red-600" />
                   <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-                      <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                          <Filter className="h-5 w-5 text-blue-600" /> Status das Bancas
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[400px]">
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
+                      <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                          <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
                       </h3>
                       <div className="flex-1 w-full">
                           <ResponsiveContainer width="100%" height="100%">
@@ -588,9 +655,9 @@ const Reports: React.FC = () => {
                       </div>
                   </div>
 
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-                      <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
-                          <Users className="h-5 w-5 text-blue-600" /> Ocupação de Vagas
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
+                      <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                          <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
                       </h3>
                       <div className="flex-1 w-full">
                           <ResponsiveContainer width="100%" height="100%">
@@ -606,6 +673,12 @@ const Reports: React.FC = () => {
                       </div>
                   </div>
               </div>
+
+              {/* Print Footer (Visible only in print) */}
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                  <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
+              </div>
           </div>
       )}
 
@@ -613,15 +686,7 @@ const Reports: React.FC = () => {
       {activeView === 'schedules-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <div className="flex-1 max-w-md">
-                      <input 
-                          type="text" 
-                          placeholder="Buscar por Data ou Horário..." 
-                          className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={scheduleSearch}
-                          onChange={e => setScheduleSearch(e.target.value)}
-                      />
-                  </div>
+                  <h3 className="text-lg font-bold">Todas as Bancas</h3>
                   
                   <div className="flex flex-wrap items-center gap-2">
                       <select 
@@ -631,17 +696,6 @@ const Reports: React.FC = () => {
                       >
                           <option value="ALL">Todos Status</option>
                           {Object.entries(SCHEDULE_STATUS_TRANSLATION).map(([key, label]) => (
-                              <option key={key} value={key}>{label}</option>
-                          ))}
-                      </select>
-
-                      <select 
-                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={scheduleTypeFilter}
-                          onChange={e => setScheduleTypeFilter(e.target.value)}
-                      >
-                          <option value="ALL">Todos Tipos</option>
-                          {Object.entries(EXAM_TYPE_TRANSLATION).map(([key, label]) => (
                               <option key={key} value={key}>{label}</option>
                           ))}
                       </select>
