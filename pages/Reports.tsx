@@ -43,20 +43,32 @@ const EXAM_TYPE_TRANSLATION: Record<string, string> = {
   'PCD': 'PCD'
 };
 
-const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; color: string; subtitle?: string }> = ({ title, value, icon: Icon, color, subtitle }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 print:p-4 print:shadow-none print:border-black print:border">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[8px] print:text-black">{title}</p>
-        <h3 className="text-2xl font-black text-gray-900 print:text-lg print:text-black">{value}</h3>
-        {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[8px] print:text-black">{subtitle}</p>}
-      </div>
-      <div className={`p-3 rounded-lg ${color} bg-opacity-10 print:hidden`}>
-        <Icon className={`h-6 w-6 ${color.replace('bg-', 'text-')}`} />
+const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; color: string; subtitle?: string }> = ({ title, value, icon: Icon, color, subtitle }) => {
+  const printBgColor = color.includes('blue') ? '#eff6ff' : 
+                       color.includes('green') ? '#f0fdf4' : 
+                       color.includes('red') ? '#fef2f2' : 
+                       color.includes('yellow') ? '#fffbeb' : 
+                       color.includes('gray') ? '#f9fafb' : '#ffffff';
+
+  return (
+    <div 
+      className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 print:p-4 print:shadow-none print:border-black print:border relative overflow-hidden"
+      style={{ ['--print-bg' as any]: printBgColor }}
+    >
+      <div className="print:bg-[var(--print-bg)] absolute inset-0 hidden print:block -z-10"></div>
+      <div className="flex justify-between items-start relative z-10">
+        <div>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[8px] print:text-black">{title}</p>
+          <h3 className="text-2xl font-black text-gray-900 print:text-lg print:text-black">{value}</h3>
+          {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[8px] print:text-black">{subtitle}</p>}
+        </div>
+        <div className={`p-3 rounded-lg ${color} bg-opacity-10 print:hidden`}>
+          <Icon className={`h-6 w-6 ${color.replace('bg-', 'text-')}`} />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const PrintStatsTable: React.FC<{ title: string; data: { label: string; value: string | number; color?: string }[] }> = ({ title, data }) => (
     <div className="hidden print:block mt-4 border border-black rounded-lg overflow-hidden">
@@ -478,7 +490,7 @@ const Reports: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
                         <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                     </h3>
@@ -509,7 +521,7 @@ const Reports: React.FC = () => {
                     />
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
                         <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
                     </h3>
@@ -527,7 +539,7 @@ const Reports: React.FC = () => {
                     </div>
                     <PrintStatsTable 
                         title="Dados Mensais" 
-                        data={approvalStats.chartData.map(d => ({ label: d.name, value: `Aptos: ${d.apto} | Inaptos: ${d.inapto}` }))} 
+                        data={approvalStats.chartData.map(d => ({ label: d.name, value: `Aptos: ${d.apto} | Inaptos: ${d.inapto}`, color: '#3B82F6' }))} 
                     />
                 </div>
             </div>
@@ -739,7 +751,7 @@ const Reports: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
                       <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
                           <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
                       </h3>
@@ -756,7 +768,13 @@ const Reports: React.FC = () => {
                                       dataKey="value"
                                   >
                                       {scheduleStats.pieData.map((_, index) => (
-                                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                                          <Cell 
+                                            key={`cell-${index}`} 
+                                            fill={COLORS[index % COLORS.length]} 
+                                            fillOpacity={0.8}
+                                            stroke={COLORS[index % COLORS.length]}
+                                            strokeWidth={1}
+                                          />
                                       ))}
                                   </Pie>
                                   <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
@@ -770,7 +788,7 @@ const Reports: React.FC = () => {
                       />
                   </div>
 
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
                       <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
                           <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
                       </h3>
@@ -788,7 +806,7 @@ const Reports: React.FC = () => {
                       </div>
                       <PrintStatsTable 
                         title="Dados de Ocupação" 
-                        data={slotUsageStats.map(d => ({ label: d.name, value: `Total: ${d.total} | Uso: ${d.used}` }))} 
+                        data={slotUsageStats.map(d => ({ label: d.name, value: `Total: ${d.total} | Uso: ${d.used}`, color: '#3B82F6' }))} 
                       />
                   </div>
               </div>
