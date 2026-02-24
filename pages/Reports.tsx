@@ -44,18 +44,34 @@ const EXAM_TYPE_TRANSLATION: Record<string, string> = {
 };
 
 const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; color: string; subtitle?: string }> = ({ title, value, icon: Icon, color, subtitle }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 print:p-4 print:shadow-none print:border-black print:border">
     <div className="flex justify-between items-start">
       <div>
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{title}</p>
-        <h3 className="text-2xl font-black text-gray-900">{value}</h3>
-        {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[8px] print:text-black">{title}</p>
+        <h3 className="text-2xl font-black text-gray-900 print:text-lg print:text-black">{value}</h3>
+        {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[8px] print:text-black">{subtitle}</p>}
       </div>
-      <div className={`p-3 rounded-lg ${color} bg-opacity-10`}>
+      <div className={`p-3 rounded-lg ${color} bg-opacity-10 print:hidden`}>
         <Icon className={`h-6 w-6 ${color.replace('bg-', 'text-')}`} />
       </div>
     </div>
   </div>
+);
+
+const PrintStatsTable: React.FC<{ title: string; data: { label: string; value: string | number }[] }> = ({ title, data }) => (
+    <div className="hidden print:block mt-4 border border-black rounded-lg overflow-hidden">
+        <div className="bg-gray-100 px-4 py-2 font-bold text-[10px] uppercase border-b border-black text-black">{title}</div>
+        <table className="w-full text-[10px] text-left">
+            <tbody className="divide-y divide-black">
+                {data.map((item, idx) => (
+                    <tr key={idx}>
+                        <td className="px-4 py-1 font-bold uppercase text-black w-2/3">{item.label}</td>
+                        <td className="px-4 py-1 text-black text-right">{item.value}</td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+    </div>
 );
 
 type ReportView = 'approval-stats' | 'candidates-list' | 'schedule-stats' | 'schedules-list';
@@ -441,18 +457,18 @@ const Reports: React.FC = () => {
                 <SummaryCard title="Faltas" value={approvalStats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Não compareceram" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[400px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
                         <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                     </h3>
-                    <div className="flex-1 w-full">
+                    <div className="flex-1 w-full print:h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart margin={{ bottom: 20 }}>
                                 <Pie
                                     data={approvalStats.pieData}
                                     cx="50%"
-                                    cy="30%"
+                                    cy="40%"
                                     innerRadius={45}
                                     outerRadius={65}
                                     paddingAngle={8}
@@ -463,28 +479,36 @@ const Reports: React.FC = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px', bottom: 10 }} />
+                                <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px', bottom: 0 }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
+                    <PrintStatsTable 
+                        title="Dados de Distribuição" 
+                        data={approvalStats.pieData.map(d => ({ label: d.name, value: d.value }))} 
+                    />
                 </div>
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
                         <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
                     </h3>
-                    <div className="flex-1 w-full">
+                    <div className="flex-1 w-full print:h-[200px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={approvalStats.chartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
                                 <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                                 <Bar dataKey="apto" fill="#10B981" radius={[4, 4, 0, 0]} name="Aptos" />
                                 <Bar dataKey="inapto" fill="#EF4444" radius={[4, 4, 0, 0]} name="Inaptos" />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
+                    <PrintStatsTable 
+                        title="Dados Mensais" 
+                        data={approvalStats.chartData.map(d => ({ label: d.name, value: `Aptos: ${d.apto} | Inaptos: ${d.inapto}` }))} 
+                    />
                 </div>
             </div>
 
@@ -694,18 +718,18 @@ const Reports: React.FC = () => {
                   <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[400px]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
                   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
                       <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
                           <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
                       </h3>
-                      <div className="flex-1 w-full">
+                      <div className="flex-1 w-full print:h-[200px]">
                           <ResponsiveContainer width="100%" height="100%">
                               <PieChart margin={{ bottom: 20 }}>
                                   <Pie
                                       data={scheduleStats.pieData}
                                       cx="50%"
-                                      cy="30%"
+                                      cy="40%"
                                       innerRadius={45}
                                       outerRadius={65}
                                       paddingAngle={8}
@@ -716,28 +740,36 @@ const Reports: React.FC = () => {
                                       ))}
                                   </Pie>
                                   <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                  <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px', bottom: 10 }} />
+                                  <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px', bottom: 0 }} />
                               </PieChart>
                           </ResponsiveContainer>
                       </div>
+                      <PrintStatsTable 
+                        title="Dados de Status" 
+                        data={scheduleStats.pieData.map(d => ({ label: d.name, value: d.value }))} 
+                      />
                   </div>
 
                   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border">
                       <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
                           <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
                       </h3>
-                      <div className="flex-1 w-full">
+                      <div className="flex-1 w-full print:h-[200px]">
                           <ResponsiveContainer width="100%" height="100%">
                               <BarChart data={slotUsageStats}>
                                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
-                                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
                                   <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
                                   <Bar dataKey="total" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="Vagas Totais" />
                                   <Bar dataKey="used" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Vagas Utilizadas" />
                               </BarChart>
                           </ResponsiveContainer>
                       </div>
+                      <PrintStatsTable 
+                        title="Dados de Ocupação" 
+                        data={slotUsageStats.map(d => ({ label: d.name, value: `Total: ${d.total} | Uso: ${d.used}` }))} 
+                      />
                   </div>
               </div>
 
