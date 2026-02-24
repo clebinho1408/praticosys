@@ -106,11 +106,11 @@ const CustomLegend = (props: any) => {
     );
 };
 
-type ReportView = 'approval-stats' | 'candidates-list' | 'schedule-stats' | 'schedules-list';
+type ReportView = 'general-stats' | 'candidates-list' | 'schedules-list';
 
 const Reports: React.FC = () => {
   const { reportType } = useParams<{ reportType: string }>();
-  const [activeView, setActiveView] = useState<ReportView>('approval-stats');
+  const [activeView, setActiveView] = useState<ReportView>('general-stats');
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -141,25 +141,17 @@ const Reports: React.FC = () => {
       return date.toISOString().split('T')[0];
   });
 
-  // Filters for Schedule Stats
-  const [statsDateStart, setStatsDateStart] = useState<string>(() => {
+  // Filters for General Stats (Unified)
+  const [generalDateStart, setGeneralDateStart] = useState<string>(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
       return date.toISOString().split('T')[0];
   });
-  const [statsDateEnd, setStatsDateEnd] = useState<string>(() => {
+  const [generalDateEnd, setGeneralDateEnd] = useState<string>(() => {
       const date = new Date();
       date.setDate(date.getDate() + 30);
       return date.toISOString().split('T')[0];
   });
-
-  // Filters for Approval Stats
-  const [approvalDateStart, setApprovalDateStart] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() - 30);
-      return date.toISOString().split('T')[0];
-  });
-  const [approvalDateEnd, setApprovalDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -198,12 +190,12 @@ const Reports: React.FC = () => {
   const approvalStats = useMemo(() => {
     let filtered = requests.filter(r => r.status === ExamStatus.DONE);
 
-    if (approvalDateStart) {
-        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) >= new Date(approvalDateStart));
+    if (generalDateStart) {
+        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) >= new Date(generalDateStart));
     }
 
-    if (approvalDateEnd) {
-        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) <= new Date(approvalDateEnd));
+    if (generalDateEnd) {
+        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) <= new Date(generalDateEnd));
     }
 
     const total = filtered.length;
@@ -228,18 +220,18 @@ const Reports: React.FC = () => {
     });
 
     return { total, apto, inapto, faltou, rate, pieData, chartData: Object.values(monthlyData) };
-  }, [requests, approvalDateStart, approvalDateEnd]);
+  }, [requests, generalDateStart, generalDateEnd]);
 
   // 3. Índice de Bancas
   const scheduleStats = useMemo(() => {
       let filteredSchedules = schedules;
 
-      if (statsDateStart) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(statsDateStart));
+      if (generalDateStart) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
       }
 
-      if (statsDateEnd) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(statsDateEnd));
+      if (generalDateEnd) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
       }
 
       const total = filteredSchedules.length;
@@ -256,7 +248,7 @@ const Reports: React.FC = () => {
       ];
 
       return { total, open, concluded, cancelled, closed, pieData };
-  }, [schedules, statsDateStart, statsDateEnd]);
+  }, [schedules, generalDateStart, generalDateEnd]);
 
   // 4. Índice de Ocupação de Vagas (Novo)
   const slotUsageStats = useMemo(() => {
@@ -409,22 +401,16 @@ const Reports: React.FC = () => {
       {/* Navigation Tabs */}
       <div className="flex flex-wrap gap-2 border-b pb-1 print:hidden">
           <button 
-            onClick={() => setActiveView('approval-stats')}
-            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'approval-stats' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+            onClick={() => setActiveView('general-stats')}
+            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'general-stats' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-              Índice de Aprovação
+              Índice Geral
           </button>
           <button 
             onClick={() => setActiveView('candidates-list')}
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'candidates-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
               Lista de Candidatos
-          </button>
-          <button 
-            onClick={() => setActiveView('schedule-stats')}
-            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'schedule-stats' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-              Índice de Bancas
           </button>
           <button 
             onClick={() => setActiveView('schedules-list')}
@@ -434,25 +420,25 @@ const Reports: React.FC = () => {
           </button>
       </div>
 
-      {/* VIEW: Índice de Reprovação e Aprovação */}
-      {activeView === 'approval-stats' && (
+      {/* VIEW: Índice Geral (Unificado) */}
+      {activeView === 'general-stats' && (
           <div className="space-y-6 animate-fadeIn print:space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                <h3 className="text-lg font-bold">Estatísticas de Aprovação</h3>
+                <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
                         <input 
                             type="date" 
                             className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                            value={approvalDateStart}
-                            onChange={e => setApprovalDateStart(e.target.value)}
+                            value={generalDateStart}
+                            onChange={e => setGeneralDateStart(e.target.value)}
                         />
                         <span className="text-gray-400">-</span>
                         <input 
                             type="date" 
                             className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                            value={approvalDateEnd}
-                            onChange={e => setApprovalDateEnd(e.target.value)}
+                            value={generalDateEnd}
+                            onChange={e => setGeneralDateEnd(e.target.value)}
                         />
                     </div>
                     <button 
@@ -474,11 +460,11 @@ const Reports: React.FC = () => {
                     )}
                     <div>
                         <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-black uppercase text-black">ÍNDICE DE APROVAÇÃO</h2>
+                        <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO GERAL DE ÍNDICES</h2>
                     </div>
                 </div>
                 <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
-                    <span>Data: {new Date(approvalDateStart).toLocaleDateString()} até {new Date(approvalDateEnd).toLocaleDateString()}</span>
+                    <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
 
@@ -541,6 +527,77 @@ const Reports: React.FC = () => {
                         title="Dados Mensais" 
                         data={approvalStats.chartData.map(d => ({ label: d.name, value: `Aptos: ${d.apto} | Inaptos: ${d.inapto}`, color: '#3B82F6' }))} 
                     />
+                </div>
+            </div>
+
+            <div className="border-t pt-6 mt-10 print:mt-6 print:border-black">
+                <h3 className="text-lg font-bold mb-4 print:text-sm print:mb-2">Estatísticas de Bancas</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
+                    <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
+                    <SummaryCard title="Realizadas" value={scheduleStats.concluded} icon={Trophy} color="bg-green-600" />
+                    <SummaryCard title="Canceladas" value={scheduleStats.cancelled} icon={XCircle} color="bg-red-600" />
+                    <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                            <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
+                        </h3>
+                        <div className="flex-1 w-full print:h-[200px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart margin={{ bottom: 20 }}>
+                                    <Pie
+                                        data={scheduleStats.pieData}
+                                        cx="50%"
+                                        cy="40%"
+                                        innerRadius={45}
+                                        outerRadius={65}
+                                        paddingAngle={8}
+                                        dataKey="value"
+                                    >
+                                        {scheduleStats.pieData.map((_, index) => (
+                                            <Cell 
+                                                key={`cell-${index}`} 
+                                                fill={COLORS[index % COLORS.length]} 
+                                                fillOpacity={0.8}
+                                                stroke={COLORS[index % COLORS.length]}
+                                                strokeWidth={1}
+                                            />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                    <Legend content={<CustomLegend />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <PrintStatsTable 
+                            title="Dados de Status" 
+                            data={scheduleStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
+                        />
+                    </div>
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                            <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
+                        </h3>
+                        <div className="flex-1 w-full print:h-[200px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={slotUsageStats}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                    <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                    <Bar dataKey="total" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="Vagas Totais" />
+                                    <Bar dataKey="used" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Vagas Utilizadas" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <PrintStatsTable 
+                            title="Dados de Ocupação" 
+                            data={slotUsageStats.map(d => ({ label: d.name, value: `Total: ${d.total} | Uso: ${d.used}`, color: '#3B82F6' }))} 
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -695,131 +752,7 @@ const Reports: React.FC = () => {
           </div>
       )}
 
-      {/* VIEW: Índice de Bancas */}
-      {activeView === 'schedule-stats' && (
-          <div className="space-y-6 animate-fadeIn print:space-y-4">
-              <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <h3 className="text-lg font-bold">Estatísticas de Bancas</h3>
-                  <div className="flex items-center gap-2">
-                      <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                          <input 
-                              type="date" 
-                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                              value={statsDateStart}
-                              onChange={e => setStatsDateStart(e.target.value)}
-                          />
-                          <span className="text-gray-400">-</span>
-                          <input 
-                              type="date" 
-                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                              value={statsDateEnd}
-                              onChange={e => setStatsDateEnd(e.target.value)}
-                          />
-                      </div>
-                      <button 
-                          onClick={() => window.print()} 
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
-                      >
-                          <Printer className="h-4 w-4" /> Imprimir
-                      </button>
-                  </div>
-              </div>
-
-              {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
-                      {settings?.logoUrl ? (
-                          <img src={settings.logoUrl} className="h-16 w-auto" />
-                      ) : (
-                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
-                      )}
-                      <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">ÍNDICE DE BANCAS</h2>
-                      </div>
-                  </div>
-                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
-                      <span>Data: {new Date(statsDateStart).toLocaleDateString()} até {new Date(statsDateEnd).toLocaleDateString()}</span>
-                  </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
-                  <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
-                  <SummaryCard title="Realizadas" value={scheduleStats.concluded} icon={Trophy} color="bg-green-600" />
-                  <SummaryCard title="Canceladas" value={scheduleStats.cancelled} icon={XCircle} color="bg-red-600" />
-                  <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                      <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
-                          <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
-                      </h3>
-                      <div className="flex-1 w-full print:h-[200px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                              <PieChart margin={{ bottom: 20 }}>
-                                  <Pie
-                                      data={scheduleStats.pieData}
-                                      cx="50%"
-                                      cy="40%"
-                                      innerRadius={45}
-                                      outerRadius={65}
-                                      paddingAngle={8}
-                                      dataKey="value"
-                                  >
-                                      {scheduleStats.pieData.map((_, index) => (
-                                          <Cell 
-                                            key={`cell-${index}`} 
-                                            fill={COLORS[index % COLORS.length]} 
-                                            fillOpacity={0.8}
-                                            stroke={COLORS[index % COLORS.length]}
-                                            strokeWidth={1}
-                                          />
-                                      ))}
-                                  </Pie>
-                                  <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                  <Legend content={<CustomLegend />} />
-                              </PieChart>
-                          </ResponsiveContainer>
-                      </div>
-                      <PrintStatsTable 
-                        title="Dados de Status" 
-                        data={scheduleStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
-                      />
-                  </div>
-
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                      <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
-                          <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
-                      </h3>
-                      <div className="flex-1 w-full print:h-[200px]">
-                          <ResponsiveContainer width="100%" height="100%">
-                              <BarChart data={slotUsageStats}>
-                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
-                                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
-                                  <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                  <Bar dataKey="total" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="Vagas Totais" />
-                                  <Bar dataKey="used" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Vagas Utilizadas" />
-                              </BarChart>
-                          </ResponsiveContainer>
-                      </div>
-                      <PrintStatsTable 
-                        title="Dados de Ocupação" 
-                        data={slotUsageStats.map(d => ({ label: d.name, value: `Total: ${d.total} | Uso: ${d.used}`, color: '#3B82F6' }))} 
-                      />
-                  </div>
-              </div>
-
-              {/* Print Footer (Visible only in print) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
-                  <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                  <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
-              </div>
-          </div>
-      )}
-
-      {/* VIEW: Lista de Bancas */}
+      {/* VIEW: Lista de Candidatos */}
       {activeView === 'schedules-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
