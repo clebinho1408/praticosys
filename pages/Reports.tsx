@@ -256,12 +256,12 @@ const Reports: React.FC = () => {
       
       let filteredSchedules = schedules;
 
-      if (statsDateStart) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(statsDateStart));
+      if (generalDateStart) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
       }
 
-      if (statsDateEnd) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(statsDateEnd));
+      if (generalDateEnd) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
       }
 
       // Sort schedules by date
@@ -281,7 +281,7 @@ const Reports: React.FC = () => {
       });
       
       return Object.values(monthlyData);
-  }, [schedules, requests, statsDateStart, statsDateEnd]);
+  }, [schedules, requests, generalDateStart, generalDateEnd]);
 
   // Grouping logic for Candidates List
   const groupedRequests = useMemo(() => {
@@ -468,69 +468,78 @@ const Reports: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
-                <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
-                <SummaryCard title="Taxa de Aprovação" value={`${approvalStats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos" />
-                <SummaryCard title="Reprovações" value={approvalStats.inapto} icon={XCircle} color="bg-red-600" subtitle="Candidatos Inaptos" />
-                <SummaryCard title="Faltas" value={approvalStats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Não compareceram" />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
-                        <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
-                    </h3>
-                    <div className="flex-1 w-full print:h-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart margin={{ bottom: 20 }}>
-                                <Pie
-                                    data={approvalStats.pieData}
-                                    cx="50%"
-                                    cy="40%"
-                                    innerRadius={45}
-                                    outerRadius={65}
-                                    paddingAngle={8}
-                                    dataKey="value"
-                                >
-                                    {approvalStats.pieData.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
-                                    ))}
-                                </Pie>
-                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Legend content={<CustomLegend />} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <PrintStatsTable 
-                        title="Dados de Distribuição" 
-                        data={approvalStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
-                    />
+            <div className="space-y-4">
+                <h3 className="text-lg font-bold print:text-sm print:mb-2">Estatísticas de Aprovação</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
+                    <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
+                    <SummaryCard title="Taxa de Aprovação" value={`${approvalStats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos" />
+                    <SummaryCard title="Reprovações" value={approvalStats.inapto} icon={XCircle} color="bg-red-600" subtitle="Candidatos Inaptos" />
+                    <SummaryCard title="Faltas" value={approvalStats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Não compareceram" />
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                    <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
-                        <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
-                    </h3>
-                    <div className="flex-1 w-full print:h-[200px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={approvalStats.chartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
-                                <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
-                                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Bar dataKey="apto" fill="#10B981" radius={[4, 4, 0, 0]} name="Aptos" />
-                                <Bar dataKey="inapto" fill="#EF4444" radius={[4, 4, 0, 0]} name="Inaptos" />
-                            </BarChart>
-                        </ResponsiveContainer>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:h-[350px]">
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                            <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
+                        </h3>
+                        <div className="flex-1 w-full print:h-[200px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart margin={{ bottom: 20 }}>
+                                    <Pie
+                                        data={approvalStats.pieData}
+                                        cx="50%"
+                                        cy="40%"
+                                        innerRadius={45}
+                                        outerRadius={65}
+                                        paddingAngle={8}
+                                        dataKey="value"
+                                    >
+                                        {approvalStats.pieData.map((_, index) => (
+                                            <Cell 
+                                                key={`cell-${index}`} 
+                                                fill={COLORS[index % COLORS.length]} 
+                                                fillOpacity={0.8}
+                                                stroke={COLORS[index % COLORS.length]}
+                                                strokeWidth={1}
+                                            />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                    <Legend content={<CustomLegend />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <PrintStatsTable 
+                            title="Dados de Distribuição" 
+                            data={approvalStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
+                        />
                     </div>
-                    <PrintStatsTable 
-                        title="Dados Mensais" 
-                        data={approvalStats.chartData.map(d => ({ label: d.name, value: `Aptos: ${d.apto} | Inaptos: ${d.inapto}`, color: '#3B82F6' }))} 
-                    />
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-full print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-2">
+                            <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
+                        </h3>
+                        <div className="flex-1 w-full print:h-[200px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={approvalStats.chartData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                    <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                    <Bar dataKey="apto" fill="#10B981" radius={[4, 4, 0, 0]} name="Aptos" />
+                                    <Bar dataKey="inapto" fill="#EF4444" radius={[4, 4, 0, 0]} name="Inaptos" />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <PrintStatsTable 
+                            title="Dados Mensais" 
+                            data={approvalStats.chartData.map(d => ({ label: d.name, value: `Aptos: ${d.apto} | Inaptos: ${d.inapto}`, color: '#3B82F6' }))} 
+                        />
+                    </div>
                 </div>
             </div>
 
-            <div className="border-t pt-6 mt-10 print:mt-6 print:border-black">
+            <div className="border-t pt-6 mt-10 print:mt-6 print:border-black print:break-before-page">
                 <h3 className="text-lg font-bold mb-4 print:text-sm print:mb-2">Estatísticas de Bancas</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
                     <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
