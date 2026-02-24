@@ -448,13 +448,13 @@ const Reports: React.FC = () => {
                     </h3>
                     <div className="flex-1 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
+                            <PieChart margin={{ bottom: 20 }}>
                                 <Pie
                                     data={approvalStats.pieData}
                                     cx="50%"
-                                    cy="35%"
-                                    innerRadius={50}
-                                    outerRadius={70}
+                                    cy="30%"
+                                    innerRadius={45}
+                                    outerRadius={65}
                                     paddingAngle={8}
                                     dataKey="value"
                                 >
@@ -463,7 +463,7 @@ const Reports: React.FC = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                                <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px', bottom: 10 }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -701,13 +701,13 @@ const Reports: React.FC = () => {
                       </h3>
                       <div className="flex-1 w-full">
                           <ResponsiveContainer width="100%" height="100%">
-                              <PieChart>
+                              <PieChart margin={{ bottom: 20 }}>
                                   <Pie
                                       data={scheduleStats.pieData}
                                       cx="50%"
-                                      cy="35%"
-                                      innerRadius={50}
-                                      outerRadius={70}
+                                      cy="30%"
+                                      innerRadius={45}
+                                      outerRadius={65}
                                       paddingAngle={8}
                                       dataKey="value"
                                   >
@@ -716,7 +716,7 @@ const Reports: React.FC = () => {
                                       ))}
                                   </Pie>
                                   <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                  <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                                  <Legend verticalAlign="bottom" align="center" iconType="circle" wrapperStyle={{ fontSize: '9px', bottom: 10 }} />
                               </PieChart>
                           </ResponsiveContainer>
                       </div>
