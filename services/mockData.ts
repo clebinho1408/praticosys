@@ -15,7 +15,63 @@ const MEMORY_STORE = {
     schools: [] as any[],
     examiners: [] as any[],
     instructors: [] as any[],
-    schedules: [] as any[],
+    schedules: [
+        {
+            id: 'sch_1',
+            code: 'B1001',
+            date: new Date(Date.now() + 86400000).toISOString().split('T')[0], // Tomorrow
+            time: '08:00',
+            examinerIds: [],
+            maxSlotsA: 10,
+            maxSlotsB: 10,
+            type: 'COMMON',
+            status: 'OPEN'
+        },
+        {
+            id: 'sch_2',
+            code: 'B1002',
+            date: new Date(Date.now() + 172800000).toISOString().split('T')[0], // Day after tomorrow
+            time: '09:00',
+            examinerIds: [],
+            maxSlotsA: 15,
+            maxSlotsB: 15,
+            type: 'COMMON',
+            status: 'OPEN'
+        },
+        {
+            id: 'sch_3',
+            code: 'B1003',
+            date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
+            time: '10:00',
+            examinerIds: [],
+            maxSlotsA: 10,
+            maxSlotsB: 10,
+            type: 'COMMON',
+            status: 'CONCLUDED'
+        },
+        {
+            id: 'sch_4',
+            code: 'B1004',
+            date: new Date(Date.now() + 259200000).toISOString().split('T')[0], // 3 days later
+            time: '13:30',
+            examinerIds: [],
+            maxSlotsA: 12,
+            maxSlotsB: 12,
+            type: 'COMMON',
+            status: 'OPEN'
+        },
+        {
+            id: 'sch_5',
+            code: 'B1005',
+            date: new Date(Date.now() + 345600000).toISOString().split('T')[0], // 4 days later
+            time: '14:00',
+            examinerIds: [],
+            maxSlotsA: 20,
+            maxSlotsB: 20,
+            type: 'COMMON',
+            status: 'OPEN'
+        }
+    ] as any[],
     requests: [] as any[],
     settings: {
         agencyName: 'Detran de Balneário Camboriú', 
