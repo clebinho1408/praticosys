@@ -1,4 +1,4 @@
-import { ExamRequest, ExamSchedule, Examiner, Instructor, School, SystemSettings, User } from '../types';
+import { ExamRequest, ExamSchedule, Examiner, Instructor, DrivingSchool, SystemSettings, User } from '../types';
 
 const API_BASE = '/api';
 
@@ -25,7 +25,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   // --- AUTH ---
-  login: (login: string, password?: string) => request<User>('/auth/login', { method: 'POST', body: JSON.stringify({ login, password }) }),
+  login: (login: string, password?: string) => request<User>('/auth', { method: 'POST', body: JSON.stringify({ login, password }) }),
   
   // --- USERS ---
   getUsers: () => request<User[]>('/users'),
@@ -45,14 +45,16 @@ export const api = {
 
   // --- INSTRUCTORS ---
   getInstructors: () => request<Instructor[]>('/instructors'),
+  getInstructorsAsync: () => request<Instructor[]>('/instructors'),
   createInstructor: (data: Partial<Instructor>) => request<Instructor>('/instructors', { method: 'POST', body: JSON.stringify(data) }),
   updateInstructor: (id: string, data: Partial<Instructor>) => request<Instructor>('/instructors', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteInstructor: (id: string) => request<void>(`/instructors?id=${id}`, { method: 'DELETE' }),
 
   // --- SCHOOLS ---
-  getSchools: () => request<School[]>('/schools'),
-  createSchool: (data: Partial<School>) => request<School>('/schools', { method: 'POST', body: JSON.stringify(data) }),
-  updateSchool: (id: string, data: Partial<School>) => request<School>('/schools', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  getSchools: () => request<DrivingSchool[]>('/schools'),
+  getSchoolsAsync: () => request<DrivingSchool[]>('/schools'),
+  createSchool: (data: Partial<DrivingSchool>) => request<DrivingSchool>('/schools', { method: 'POST', body: JSON.stringify(data) }),
+  updateSchool: (id: string, data: Partial<DrivingSchool>) => request<DrivingSchool>('/schools', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteSchool: (id: string) => request<void>(`/schools?id=${id}`, { method: 'DELETE' }),
 
   // --- SCHEDULES ---
