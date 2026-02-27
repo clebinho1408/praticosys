@@ -2,7 +2,7 @@
 // Mock Data Service
 import { 
   User, UserRole, DrivingSchool, Examiner, Instructor, ExamSchedule, ExamRequest, 
-  SystemSettings, ExamStatus, ExamType, RequestSource
+  SystemSettings, ExamStatus
 } from '../types';
 
 // ============================================================================

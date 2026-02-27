@@ -135,17 +135,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
     type: type || ExamType.COMMON
   });
 
-  const handleDeleteSchedule = async (id: string) => {
-    if (user.role !== UserRole.ADMIN) {
-        alert("Somente administradores podem excluir bancas.");
-        return;
-    }
-    if (window.confirm("Tem certeza que deseja EXCLUIR permanentemente esta banca? Esta ação não pode ser desfeita.")) {
-        await api.deleteSchedule(id);
-        refreshData();
-    }
-  };
-
   const refreshData = async () => {
     setLoading(true);
     try {
@@ -394,7 +383,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
   const filteredSchedules = schedules.filter(s => {
     const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
-    const matchesSearch = s.date.includes(searchTerm) || s.examinerIds.some(id => getExaminerName(id).toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = s.date.includes(searchTerm) || 
+                          s.examinerIds.some(id => getExaminerName(id).toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (s.code && s.code.toLowerCase().includes(searchTerm.toLowerCase()));
     
     // Date Range Filter
     let matchesDate = true;

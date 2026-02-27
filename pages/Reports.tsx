@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../services/mockData';
-import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings } from '../types';
+import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend
@@ -17,30 +17,17 @@ import {
   Download,
   Users,
   Layout,
-  Printer
+  Printer,
+  Search
 } from 'lucide-react';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
-
-const STATUS_TRANSLATION: Record<string, string> = {
-  'WAITING_SCHEDULING': 'Aguardando Agendamento',
-  'SCHEDULED': 'Agendado',
-  'WAITING_RESULT': 'Aguardando Resultado',
-  'DONE': 'Realizado',
-  'CANCELLED': 'Cancelado',
-  'RETEST': 'Reteste'
-};
 
 const SCHEDULE_STATUS_TRANSLATION: Record<string, string> = {
   'OPEN': 'Aberta',
   'CLOSED': 'Fechada',
   'CONCLUDED': 'Concluída',
   'CANCELLED': 'Cancelada'
-};
-
-const EXAM_TYPE_TRANSLATION: Record<string, string> = {
-  'COMMON': '1ª Habilitação',
-  'PCD': 'PCD'
 };
 
 const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; color: string; subtitle?: string }> = ({ title, value, icon: Icon, color, subtitle }) => {
@@ -106,27 +93,20 @@ const CustomLegend = (props: any) => {
     );
 };
 
-type ReportView = 'general-stats' | 'candidates-list' | 'schedules-list' | 'exam-history';
+type ReportView = 'general-stats' | 'schedules-list' | 'instructors-list' | 'exam-history';
 
 const Reports: React.FC = () => {
   const { reportType } = useParams<{ reportType: string }>();
   const [activeView, setActiveView] = useState<ReportView>('general-stats');
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
-  // Filters for Candidates List
-  const [candidateStatusFilter, setCandidateStatusFilter] = useState<string>('ALL');
-  const [candidateCategoryFilter, setCandidateCategoryFilter] = useState<string>('ALL');
-  const [candidateSearch, setCandidateSearch] = useState<string>('');
-  const [candidateDateStart, setCandidateDateStart] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() - 30);
-      return date.toISOString().split('T')[0];
-  });
-  const [candidateDateEnd, setCandidateDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  // Filters for Instructors List
+  const [instructorSearch, setInstructorSearch] = useState<string>('');
 
   // Filters for Exam History
   const [examHistorySearch, setExamHistorySearch] = useState<string>('');
@@ -167,9 +147,10 @@ const Reports: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [reqs, scheds, sysSettings] = await Promise.all([
+            const [reqs, scheds, instrs, sysSettings] = await Promise.all([
                 api.getRequests(),
                 api.getSchedules(),
+                api.getInstructorsAsync(),
                 api.getSettings()
             ]);
 
@@ -186,6 +167,7 @@ const Reports: React.FC = () => {
 
             setRequests(filteredReqs);
             setSchedules(filteredScheds);
+            setInstructors(instrs);
             setSettings(sysSettings);
         } catch (error) {
             console.error("Error fetching report data", error);
@@ -293,52 +275,21 @@ const Reports: React.FC = () => {
       return Object.values(monthlyData);
   }, [schedules, requests, generalDateStart, generalDateEnd]);
 
-  // Grouping logic for Candidates List
-  const groupedRequests = useMemo(() => {
-    const groups: Record<string, Record<string, ExamRequest[]>> = {};
-    
-    // Apply Filters
-    let filtered = requests;
+  // Logic for Instructors List
+  const filteredInstructors = useMemo(() => {
+    let filtered = instructors;
 
-    if (candidateStatusFilter !== 'ALL') {
-        filtered = filtered.filter(r => r.status === candidateStatusFilter);
-    }
-
-    if (candidateCategoryFilter !== 'ALL') {
-        filtered = filtered.filter(r => r.intendedCategory === candidateCategoryFilter);
-    }
-
-    if (candidateDateStart) {
-        filtered = filtered.filter(r => new Date(r.createdAt) >= new Date(candidateDateStart));
-    }
-
-    if (candidateDateEnd) {
-        filtered = filtered.filter(r => new Date(r.createdAt) <= new Date(candidateDateEnd));
-    }
-
-    if (candidateSearch) {
-        const searchLower = candidateSearch.toLowerCase();
-        filtered = filtered.filter(r => 
-            r.studentName.toLowerCase().includes(searchLower) || 
-            r.cpf.includes(searchLower)
+    if (instructorSearch) {
+        const searchLower = instructorSearch.toLowerCase();
+        filtered = filtered.filter(i => 
+            i.name.toLowerCase().includes(searchLower) || 
+            i.cpf.includes(searchLower)
         );
     }
 
-    // Sort requests by name first
-    const sortedRequests = [...filtered].sort((a, b) => a.studentName.localeCompare(b.studentName));
-
-    sortedRequests.forEach(req => {
-        const status = req.status;
-        const category = req.intendedCategory || 'N/A';
-
-        if (!groups[status]) groups[status] = {};
-        if (!groups[status][category]) groups[status][category] = [];
-        
-        groups[status][category].push(req);
-    });
-    
-    return groups;
-  }, [requests, candidateStatusFilter, candidateCategoryFilter, candidateDateStart, candidateDateEnd, candidateSearch]);
+    // Sort by name
+    return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+  }, [instructors, instructorSearch]);
 
   // Grouping logic for Schedules List
   const groupedSchedules = useMemo(() => {
@@ -364,12 +315,12 @@ const Reports: React.FC = () => {
 
     sortedSchedules.forEach(sch => {
         const status = sch.status;
-        const type = sch.type;
+        const code = sch.code ? `#${sch.code}` : 'Sem Código';
 
         if (!groups[status]) groups[status] = {};
-        if (!groups[status][type]) groups[status][type] = [];
+        if (!groups[status][code]) groups[status][code] = [];
         
-        groups[status][type].push(sch);
+        groups[status][code].push(sch);
     });
     
     return groups;
@@ -390,6 +341,7 @@ const Reports: React.FC = () => {
                       time: h.time || '00:00',
                       result: h.result,
                       category: h.category || req.intendedCategory || 'N/A',
+                      scheduleCode: h.scheduleCode || 'Sem Banca',
                       type: 'HISTORY'
                   });
               });
@@ -401,6 +353,7 @@ const Reports: React.FC = () => {
                // Avoid duplicates if history already contains this date
                const isDuplicate = req.examHistory?.some((h: any) => h.date === date);
                if (!isDuplicate) {
+                   const schedule = schedules.find(s => s.id === req.scheduleId);
                    list.push({
                        id: req.id,
                        studentName: req.studentName,
@@ -409,13 +362,14 @@ const Reports: React.FC = () => {
                        time: req.scheduledTime || '00:00',
                        result: req.result,
                        category: req.scheduledCategory || req.intendedCategory || 'N/A',
+                       scheduleCode: schedule?.code ? `#${schedule.code}` : 'Sem Banca',
                        type: 'CURRENT'
                    });
                }
           }
       });
       return list;
-  }, [requests]);
+  }, [requests, schedules]);
 
   const groupedExamHistory = useMemo(() => {
       const groups: Record<string, Record<string, any[]>> = {};
@@ -440,13 +394,13 @@ const Reports: React.FC = () => {
       filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       filtered.forEach(item => {
-          const date = item.date;
+          const code = item.scheduleCode;
           const category = item.category;
 
-          if (!groups[date]) groups[date] = {};
-          if (!groups[date][category]) groups[date][category] = [];
+          if (!groups[code]) groups[code] = {};
+          if (!groups[code][category]) groups[code][category] = [];
           
-          groups[date][category].push(item);
+          groups[code][category].push(item);
       });
 
       return groups;
@@ -494,12 +448,6 @@ const Reports: React.FC = () => {
               Índice Geral
           </button>
           <button 
-            onClick={() => setActiveView('candidates-list')}
-            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'candidates-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
-          >
-              Lista de Candidatos
-          </button>
-          <button 
             onClick={() => setActiveView('exam-history')}
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'exam-history' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
@@ -510,6 +458,12 @@ const Reports: React.FC = () => {
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'schedules-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
               Lista de Bancas
+          </button>
+          <button 
+            onClick={() => setActiveView('instructors-list')}
+            className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'instructors-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+              Lista de Instrutores
           </button>
       </div>
 
@@ -783,15 +737,15 @@ const Reports: React.FC = () => {
                   {Object.keys(groupedExamHistory).length === 0 ? (
                       <div className="p-10 text-center text-gray-400">Nenhum histórico encontrado.</div>
                   ) : (
-                      Object.entries(groupedExamHistory).map(([date, categories]) => (
-                          <div key={date} className="border-b last:border-b-0 print:border-black">
+                      Object.entries(groupedExamHistory).map(([code, categories]) => (
+                          <div key={code} className="border-b last:border-b-0 print:border-black">
                               <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
                                   <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
-                                  Data: {new Date(date).toLocaleDateString()} ({Object.values(categories).flat().length})
+                                  Banca: {code} ({Object.values(categories).flat().length})
                               </div>
                               
                               {Object.entries(categories).map(([category, items]) => (
-                                  <div key={`${date}-${category}`}>
+                                  <div key={`${code}-${category}`}>
                                       <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
                                           Categoria {category} ({items.length})
@@ -801,7 +755,7 @@ const Reports: React.FC = () => {
                                               <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
                                                   <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[40%]">Nome</th>
                                                   <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">CPF</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Hora</th>
+                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Data/Hora</th>
                                                   <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Resultado</th>
                                               </tr>
                                           </thead>
@@ -811,7 +765,7 @@ const Reports: React.FC = () => {
                                                       <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
                                                       <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
                                                       <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
-                                                          {item.time}
+                                                          {new Date(item.date).toLocaleDateString()} às {item.time}
                                                       </td>
                                                       <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
                                                           {item.result ? (
@@ -842,59 +796,24 @@ const Reports: React.FC = () => {
           </div>
       )}
 
-      {/* VIEW: Lista de Candidatos */}
-      {activeView === 'candidates-list' && (
+      {/* VIEW: Lista de Instrutores */}
+      {activeView === 'instructors-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md">
-                      <input 
-                          type="text" 
-                          placeholder="Buscar por Nome ou CPF..." 
-                          className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={candidateSearch}
-                          onChange={e => setCandidateSearch(e.target.value)}
-                      />
+                      <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input 
+                              type="text" 
+                              placeholder="Buscar Instrutor por Nome ou CPF..." 
+                              className="w-full border rounded-md pl-10 pr-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={instructorSearch}
+                              onChange={e => setInstructorSearch(e.target.value)}
+                          />
+                      </div>
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
-                      <select 
-                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={candidateStatusFilter}
-                          onChange={e => setCandidateStatusFilter(e.target.value)}
-                      >
-                          <option value="ALL">Todos Status</option>
-                          {Object.entries(STATUS_TRANSLATION).map(([key, label]) => (
-                              <option key={key} value={key}>{label}</option>
-                          ))}
-                      </select>
-
-                      <select 
-                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={candidateCategoryFilter}
-                          onChange={e => setCandidateCategoryFilter(e.target.value)}
-                      >
-                          <option value="ALL">Todas Categorias</option>
-                          <option value="A">Categoria A</option>
-                          <option value="B">Categoria B</option>
-                          <option value="AB">Categoria AB</option>
-                      </select>
-
-                      <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                          <input 
-                              type="date" 
-                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                              value={candidateDateStart}
-                              onChange={e => setCandidateDateStart(e.target.value)}
-                          />
-                          <span className="text-gray-400">-</span>
-                          <input 
-                              type="date" 
-                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                              value={candidateDateEnd}
-                              onChange={e => setCandidateDateEnd(e.target.value)}
-                          />
-                      </div>
-
                       <button 
                           onClick={() => window.print()} 
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
@@ -914,66 +833,56 @@ const Reports: React.FC = () => {
                       )}
                       <div>
                           <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO DE CANDIDATOS</h2>
+                          <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO DE INSTRUTORES</h2>
                       </div>
                   </div>
                   <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
-                      <span>Data: {new Date(candidateDateStart).toLocaleDateString()} até {new Date(candidateDateEnd).toLocaleDateString()}</span>
+                      <span>Data de Emissão: {new Date().toLocaleDateString()}</span>
                   </div>
               </div>
 
               <div className="overflow-x-auto print:overflow-visible">
-                  {Object.keys(groupedRequests).length === 0 ? (
-                      <div className="p-10 text-center text-gray-400">Nenhum candidato encontrado.</div>
+                  {filteredInstructors.length === 0 ? (
+                      <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
                   ) : (
-                      Object.entries(groupedRequests).map(([status, categories]) => (
-                          <div key={status} className="border-b last:border-b-0 print:border-black">
-                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
-                                  {STATUS_TRANSLATION[status] || status} ({Object.values(categories).flat().length})
-                              </div>
-                              
-                              {Object.entries(categories).map(([category, reqs]) => (
-                                  <div key={`${status}-${category}`}>
-                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
-                                          Categoria {category} ({reqs.length})
-                                      </div>
-                                      <table className="w-full text-sm text-left">
-                                          <thead>
-                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[55%]">Nome</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">CPF</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Tentativa</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Resultado</th>
-                                              </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                                              {reqs.map(req => (
-                                                  <tr key={req.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{req.studentName}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{req.cpf}</td>
-                                                      <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
-                                                          {req.examHistory?.filter(h => h.result === 'INAPTO').length ? `${req.examHistory.filter(h => h.result === 'INAPTO').length}x` : ''}
-                                                      </td>
-                                                      <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
-                                                          {req.result ? (
-                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                                  req.result === 'APTO' ? 'bg-green-100 text-green-700' : 
-                                                                  req.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
-                                                                  {req.result}
-                                                              </span>
-                                                          ) : <span className="text-gray-400 print:text-black">-</span>}
-                                                      </td>
-                                                  </tr>
-                                              ))}
-                                          </tbody>
-                                      </table>
-                                  </div>
+                      <table className="w-full text-sm text-left">
+                          <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
+                              <tr>
+                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
+                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">CPF</th>
+                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Telefone</th>
+                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
+                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Veículos</th>
+                              </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                              {filteredInstructors.map(inst => (
+                                  <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                      <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{inst.name}</td>
+                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.cpf}</td>
+                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.phone}</td>
+                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0">
+                                              {inst.category || 'N/A'}
+                                          </span>
+                                      </td>
+                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                          {inst.vehicles && inst.vehicles.length > 0 ? (
+                                              <div className="flex flex-col gap-1">
+                                                  {inst.vehicles.filter(v => v.active).map(v => (
+                                                      <span key={v.id} className="text-xs">
+                                                          {v.type === 'CAR' ? '🚗' : '🏍️'} {v.model} ({v.plate})
+                                                      </span>
+                                                  ))}
+                                              </div>
+                                          ) : (
+                                              <span className="text-gray-400 print:text-black">-</span>
+                                          )}
+                                      </td>
+                                  </tr>
                               ))}
-                          </div>
-                      ))
+                          </tbody>
+                      </table>
                   )}
               </div>
 
@@ -1057,11 +966,11 @@ const Reports: React.FC = () => {
                                   {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
                               </div>
                               
-                              {Object.entries(types).map(([type, scheds]) => (
-                                  <div key={`${status}-${type}`}>
+                              {Object.entries(types).map(([code, scheds]) => (
+                                  <div key={`${status}-${code}`}>
                                       <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
                                           <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
-                                          {EXAM_TYPE_TRANSLATION[type] || type} ({scheds.length})
+                                          {code}
                                       </div>
                                       <table className="w-full text-sm text-left">
                                           <thead>

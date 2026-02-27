@@ -289,7 +289,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       result: resultData.result,
       category: editingRequest.scheduledCategory || editingRequest.intendedCategory,
       examiners: examinerNames,
-      observation: resultData.observation
+      observation: resultData.observation,
+      scheduleCode: schedule?.code
     };
 
     const updatedHistory = [...(editingRequest.examHistory || []), newHistoryEntry];
@@ -673,7 +674,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                                    </span>
                                                </td>
                                                <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                                                   {(req.examHistory?.length || 0)} tentativas
+                                                   {(req.examHistory?.filter(h => h.result === 'INAPTO').length || 0)} tentativas
                                                </td>
                                                <td className="px-6 py-4 align-middle text-right">
                                                     <div className="flex justify-end items-center space-x-2">
