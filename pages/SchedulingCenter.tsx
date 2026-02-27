@@ -53,6 +53,47 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
+const ClosingCountdown: React.FC<{ date: string; time: string }> = ({ date, time }) => {
+    const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+    useEffect(() => {
+        const calculateTime = () => {
+            if (!date || !time) return;
+            
+            const examDate = new Date(`${date.split('T')[0]}T${time}`);
+            // Regra de fechamento: 24h antes da prova
+            const closingDate = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
+            const now = new Date();
+            
+            const diff = closingDate.getTime() - now.getTime();
+            
+            // Mostrar apenas se faltar menos de 48h e ainda não fechou
+            const hours48 = 48 * 60 * 60 * 1000;
+            
+            if (diff > 0 && diff <= hours48) {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                setTimeLeft(`${hours}h ${minutes}m`);
+            } else {
+                setTimeLeft(null);
+            }
+        };
+
+        calculateTime();
+        const interval = setInterval(calculateTime, 60000); // Atualiza a cada minuto
+        return () => clearInterval(interval);
+    }, [date, time]);
+
+    if (!timeLeft) return null;
+
+    return (
+        <div className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 mt-2 w-fit">
+            <Clock className="h-3 w-3" />
+            <span>Fecha em {timeLeft}</span>
+        </div>
+    );
+};
+
 interface SchedulingCenterProps {
   type?: ExamType;
   user: User;
@@ -478,10 +519,14 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         </div>
                         <StatusBadge status={s.status} />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{formatDateDisplay(s.date)}</h3>
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        {s.code && <span className="text-gray-500 mr-2 text-lg font-mono">#{s.code}</span>}
+                        {formatDateDisplay(s.date)}
+                    </h3>
                     <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
                         <Clock className="h-4 w-4" /> {s.time}
                     </div>
+                    {s.status === 'OPEN' && <ClosingCountdown date={s.date} time={s.time} />}
                     <div className="space-y-2 border-t pt-4">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                             <UserIcon className="h-4 w-4 opacity-50" />
@@ -523,9 +568,11 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     <ChevronRight className="h-4 w-4 rotate-180" /> Voltar para a lista
                 </button>
                 <div className="flex gap-2">
-                    <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 bg-white shadow-sm text-sm font-bold">
-                        <Printer className="h-4 w-4" /> Imprimir Lista
-                    </button>
+                    {selectedSchedule.status !== 'CONCLUDED' && (
+                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 bg-white shadow-sm text-sm font-bold">
+                            <Printer className="h-4 w-4" /> Imprimir Lista
+                        </button>
+                    )}
                     {selectedSchedule.status === 'OPEN' && (
                         <button onClick={handleOpenAddStudent} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-md text-sm font-bold">
                             <Plus className="h-4 w-4" /> Agendar Candidato
@@ -545,7 +592,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         )}
                         <div>
                             <h1 className="text-xl font-black uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                            <h2 className="text-2xl font-black uppercase print:!text-black">LISTA DE CHAMADA - {selectedSchedule.type === ExamType.PCD ? 'PCD' : '1ª HABILITAÇÃO'}</h2>
+                            <h2 className="text-2xl font-black uppercase print:!text-black">
+                                LISTA DE CHAMADA - {selectedSchedule.type === ExamType.PCD ? 'PCD' : '1ª HABILITAÇÃO'}
+                                {selectedSchedule.code && <span className="ml-3 text-gray-600 print:text-black">({selectedSchedule.code})</span>}
+                            </h2>
                         </div>
                     </div>
 
@@ -559,7 +609,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
                     <div className="print:hidden">
                         <div className="flex items-center gap-3 mb-2">
-                            <h2 className="text-2xl font-bold text-gray-900">{formatDateDisplay(selectedSchedule.date)}</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">
+                                {selectedSchedule.code && <span className="text-gray-500 mr-2 font-mono">#{selectedSchedule.code}</span>}
+                                {formatDateDisplay(selectedSchedule.date)}
+                            </h2>
                             <StatusBadge status={selectedSchedule.status} />
                         </div>
                         <div className="flex flex-wrap gap-6 text-sm text-gray-500 font-medium">
@@ -602,40 +655,50 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         <span>{req.cpf}</span>
                                                         <span className="text-gray-300">|</span>
                                                         <span>Instrutor: {req.instructor || '-'}</span>
+                                                        {selectedSchedule.status === 'CONCLUDED' && req.result && (
+                                                            <>
+                                                                <span className="text-gray-300">|</span>
+                                                                <span className={`font-bold ${req.result === 'APTO' ? 'text-green-600' : req.result === 'INAPTO' ? 'text-red-600' : 'text-orange-600'}`}>
+                                                                    {req.result}
+                                                                </span>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                {/* Botão Confirmação */}
-                                                <button 
-                                                    onClick={() => toggleAttendance(req)}
-                                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium text-xs transition-all ${req.attendanceConfirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                                                    title="Confirmar Presença/Agendamento"
-                                                >
-                                                    {req.attendanceConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                                                    {req.attendanceConfirmed ? 'Confirmado' : 'Confirmar'}
-                                                </button>
+                                            {selectedSchedule.status !== 'CONCLUDED' && selectedSchedule.status !== 'CLOSED' && (
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    {/* Botão Confirmação */}
+                                                    <button 
+                                                        onClick={() => toggleAttendance(req)}
+                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium text-xs transition-all ${req.attendanceConfirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                                        title="Confirmar Presença/Agendamento"
+                                                    >
+                                                        {req.attendanceConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                                                        {req.attendanceConfirmed ? 'Confirmado' : 'Confirmar'}
+                                                    </button>
 
-                                                {/* Botão WhatsApp */}
-                                                <button 
-                                                    onClick={() => handleWhatsApp(req)}
-                                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-all"
-                                                    title="Enviar mensagem WhatsApp"
-                                                >
-                                                    <MessageCircle className="h-4 w-4" />
-                                                </button>
+                                                    {/* Botão WhatsApp */}
+                                                    <button 
+                                                        onClick={() => handleWhatsApp(req)}
+                                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-all"
+                                                        title="Enviar mensagem WhatsApp"
+                                                    >
+                                                        <MessageCircle className="h-4 w-4" />
+                                                    </button>
 
-                                                <div className="w-px h-4 bg-gray-200 mx-1"></div>
+                                                    <div className="w-px h-4 bg-gray-200 mx-1"></div>
 
-                                                <button 
-                                                    onClick={() => handleRemoveStudent(req.id)}
-                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
-                                                    title="Remover da Banca"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
+                                                    <button 
+                                                        onClick={() => handleRemoveStudent(req.id)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
+                                                        title="Remover da Banca"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                     {students.length === 0 && (

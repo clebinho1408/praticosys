@@ -2,7 +2,7 @@
 // Schedules API Handler
 import { db } from '../db/index.js';
 import { examSchedules, examRequests } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import crypto from 'node:crypto';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -70,8 +70,25 @@ export default async function handler(req: any, res: any) {
       // Calcula o status inicial baseado na data inserida
       const initialStatus = calculateStatus(cleanDate, body.time, 'OPEN');
 
+      // Generate Unique Code (e.g., B6324)
+      const lastSchedule = await db.select({ code: examSchedules.code })
+          .from(examSchedules)
+          .where(isNotNull(examSchedules.code)) // Ensure we only look at records with codes
+          .orderBy(desc(examSchedules.createdAt))
+          .limit(1);
+
+      let nextCode = 'B1000';
+      if (lastSchedule.length > 0 && lastSchedule[0].code) {
+          const lastCode = lastSchedule[0].code;
+          const numberPart = parseInt(lastCode.replace('B', ''), 10);
+          if (!isNaN(numberPart)) {
+              nextCode = `B${numberPart + 1}`;
+          }
+      }
+
       const newItem = await db.insert(examSchedules).values({
         id: crypto.randomUUID(),
+        code: nextCode,
         status: initialStatus,
         ...body,
         date: cleanDate // Salva apenas a data limpa

@@ -57,6 +57,7 @@ export const vehicles = pgTable('vehicles', {
 // Tabela de Bancas (Agendas)
 export const examSchedules = pgTable('exam_schedules', {
   id: text('id').primaryKey(),
+  code: text('code').unique(), // New: Unique code (e.g., B6324)
   date: text('date').notNull(), // YYYY-MM-DD
   time: text('time').notNull(), // HH:mm
   examinerIds: jsonb('examiner_ids').$type<string[]>().default([]), // Array de IDs

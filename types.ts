@@ -72,6 +72,7 @@ export interface Instructor {
 
 export interface ExamSchedule {
   id: string;
+  code?: string; // New: Unique code (e.g., B6324)
   date: string;
   time: string;
   examinerIds: string[]; // Changed to array to support up to 3 examiners

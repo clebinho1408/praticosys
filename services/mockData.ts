@@ -212,7 +212,16 @@ export const api = {
   }),
   createSchedule: async (data: any): Promise<ExamSchedule> => fetchOrMock('schedules', { method: 'POST', body: JSON.stringify(data) }, () => {
       const cleanDate = data.date ? data.date.split('T')[0] : new Date().toISOString().split('T')[0];
-      const novo = { ...data, id: genId(), status: 'OPEN', examinerIds: data.examinerIds || [], date: cleanDate };
+      
+      // Mock code generation
+      let nextCode = 'B1000';
+      const lastSchedule = MEMORY_STORE.schedules[MEMORY_STORE.schedules.length - 1];
+      if (lastSchedule && lastSchedule.code) {
+          const num = parseInt(lastSchedule.code.replace('B', ''), 10);
+          if (!isNaN(num)) nextCode = `B${num + 1}`;
+      }
+
+      const novo = { ...data, id: genId(), code: nextCode, status: 'OPEN', examinerIds: data.examinerIds || [], date: cleanDate };
       MEMORY_STORE.schedules.push(novo);
       return novo;
   }),
