@@ -1,7 +1,7 @@
 
 // Request Manager Page
 import React, { useState, useEffect } from 'react';
-import { api } from '../services/mockData';
+import { api } from '../services/api';
 import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult, Instructor, Examiner, ExamSchedule } from '../types';
 import { Plus, Search, Edit, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter, Trash2 } from 'lucide-react';
 

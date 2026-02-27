@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { api } from '../services/mockData';
+import { api } from '../services/api';
 import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 

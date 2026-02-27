@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { api } from '../services/mockData';
+import { api } from '../services/api';
 import { ExamRequest, ExamStatus } from '../types';
 import { Search, User, Calendar, History, ChevronRight, X, ShieldCheck, MapPin, Phone } from 'lucide-react';
 

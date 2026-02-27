@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { api } from '../services/mockData';
+import { api } from '../services/api';
 import { ExamRequest, UserRole, User, ExamStatus, ExamSchedule } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Users, FileCheck, AlertTriangle, Calendar } from 'lucide-react';

@@ -1,7 +1,7 @@
 
 // Scheduling Center Page
 import React, { useEffect, useState } from 'react';
-import { api } from '../services/mockData';
+import { api } from '../services/api';
 import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole } from '../types';
 import { 
   Calendar, 

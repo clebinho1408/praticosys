@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { api } from '../services/mockData';
+import { api } from '../services/api';
 import { SystemSettings } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
