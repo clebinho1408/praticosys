@@ -119,8 +119,8 @@ export default async function handler(req: any, res: any) {
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS observation text`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS exam_history jsonb DEFAULT '[]'::jsonb`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now()`,
-      
-      // Garantir colunas extras em users
+      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS examiner_id text`,
+      sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS code text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`,
 
