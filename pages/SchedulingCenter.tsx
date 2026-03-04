@@ -667,13 +667,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             <h1 className="text-xl font-black uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
                             <h2 className="text-2xl font-black uppercase print:!text-black">
                                 LISTA DE CHAMADA - {selectedSchedule.type === ExamType.PCD ? 'PCD' : '1ª HABILITAÇÃO'}
-                                {selectedSchedule.code && <span className="ml-3 text-gray-600 print:text-black">({selectedSchedule.code})</span>}
                             </h2>
                         </div>
                     </div>
 
                     <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-2 print:!text-black">
                         <div className="flex gap-8">
+                            {selectedSchedule.code && <span className="text-sm uppercase font-bold">BANCA: <span className="font-normal">{selectedSchedule.code}</span></span>}
                             <span className="text-sm uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
                             <span className="text-sm uppercase font-bold">HORA: <span className="font-normal">{selectedSchedule.time}</span></span>
                         </div>
@@ -823,7 +823,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 </div>
 
                 {/* Assinatura do Examinador (Print Only) */}
-                <div className="hidden print:flex flex-col items-center mt-10 mb-20 break-inside-avoid">
+                <div className="hidden print:flex flex-col items-center mt-24 mb-20 break-inside-avoid">
                     <div className="w-96 border-b-2 border-black mb-2"></div>
                     <span className="text-sm font-black uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
