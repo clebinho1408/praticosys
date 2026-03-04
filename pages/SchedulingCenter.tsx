@@ -646,13 +646,22 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         <span>{req.cpf}</span>
                                                         <span className="text-gray-300">|</span>
                                                         <span>Instrutor: {req.instructor || '-'}</span>
-                                                        {selectedSchedule.status === 'CONCLUDED' && req.result && (
-                                                            <>
-                                                                <span className="text-gray-300">|</span>
-                                                                <span className={`font-bold ${req.result === 'APTO' ? 'text-green-600' : req.result === 'INAPTO' ? 'text-red-600' : 'text-orange-600'}`}>
-                                                                    {req.result}
-                                                                </span>
-                                                            </>
+                                                        {selectedSchedule.status === 'CONCLUDED' && (
+                                                            req.status === 'WAITING_RESULT' ? (
+                                                                <>
+                                                                    <span className="text-gray-300">|</span>
+                                                                    <span className="text-gray-400 italic text-[10px] uppercase">Aguardando Lançamento</span>
+                                                                </>
+                                                            ) : (
+                                                                req.result && (
+                                                                    <>
+                                                                        <span className="text-gray-300">|</span>
+                                                                        <span className={`font-bold ${req.result === 'APTO' ? 'text-green-600' : req.result === 'INAPTO' ? 'text-red-600' : 'text-orange-600'}`}>
+                                                                            {req.result}
+                                                                        </span>
+                                                                    </>
+                                                                )
+                                                            )
                                                         )}
                                                     </div>
                                                 </div>
