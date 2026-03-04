@@ -118,6 +118,19 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [selectedCandidates, setSelectedCandidates] = useState<Record<string, 'A' | 'B'>>({});
   const [expandedCategories, setExpandedCategories] = useState<{A: boolean, B: boolean}>({ A: false, B: false });
 
+  // Remove Confirmation Modal State
+  const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
+  const [candidateToRemove, setCandidateToRemove] = useState<ExamRequest | null>(null);
+
+  // Schedule Cancel Modal State
+  const [isCancelScheduleOpen, setIsCancelScheduleOpen] = useState(false);
+  const [scheduleToCancel, setScheduleToCancel] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+
+  // Schedule Delete Modal State
+  const [isDeleteScheduleOpen, setIsDeleteScheduleOpen] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null);
+
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -362,21 +375,58 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     }
   };
 
-  const handleCancelSchedule = async (id: string) => {
+  const handleCancelSchedule = (id: string) => {
     if (user.role !== UserRole.ADMIN) {
         alert("Somente administradores podem cancelar bancas.");
         return;
     }
-    const reason = prompt("Informe o motivo do cancelamento:");
-    if (reason) {
-      await api.cancelSchedule(id, reason);
+    setScheduleToCancel(id);
+    setCancelReason('');
+    setIsCancelScheduleOpen(true);
+  };
+
+  const confirmCancelSchedule = async () => {
+    if (scheduleToCancel && cancelReason.trim()) {
+      await api.cancelSchedule(scheduleToCancel, cancelReason);
+      setIsCancelScheduleOpen(false);
+      setScheduleToCancel(null);
+      setCancelReason('');
       refreshData();
+    } else {
+        alert("Informe o motivo do cancelamento.");
     }
   };
 
-  const handleRemoveStudent = async (requestId: string) => {
-    await api.removeStudentFromSchedule(requestId);
-    refreshData();
+  const handleDeleteSchedule = (id: string) => {
+    if (user.role !== UserRole.ADMIN) {
+        alert("Somente administradores podem excluir bancas.");
+        return;
+    }
+    setScheduleToDelete(id);
+    setIsDeleteScheduleOpen(true);
+  };
+
+  const confirmDeleteSchedule = async () => {
+    if (scheduleToDelete) {
+        await api.deleteSchedule(scheduleToDelete);
+        setIsDeleteScheduleOpen(false);
+        setScheduleToDelete(null);
+        refreshData();
+    }
+  };
+
+  const handleRemoveStudent = (request: ExamRequest) => {
+    setCandidateToRemove(request);
+    setIsRemoveConfirmOpen(true);
+  };
+
+  const confirmRemoveStudent = async () => {
+    if (candidateToRemove) {
+        await api.removeStudentFromSchedule(candidateToRemove.id);
+        setIsRemoveConfirmOpen(false);
+        setCandidateToRemove(null);
+        refreshData();
+    }
   };
 
   const getExaminerName = (id: string) => examiners.find(e => e.id === id)?.name || 'Desconhecido';
@@ -566,10 +616,15 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             <Edit2 className="h-4 w-4" />
                          </button>
                          {s.status !== 'CANCELLED' && (
-                             <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded">
+                             <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Cancelar Banca">
                                 <Ban className="h-4 w-4" />
                              </button>
                          )}
+                         {user.role === UserRole.ADMIN && (
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(s.id); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Excluir Banca">
+                                <Trash2 className="h-4 w-4" />
+                            </button>
+                         ) }
                       </div>
                   </div>
                 </div>
@@ -718,7 +773,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     <div className="w-px h-4 bg-gray-200 mx-1"></div>
 
                                                     <button 
-                                                        onClick={() => handleRemoveStudent(req.id)}
+                                                        onClick={() => handleRemoveStudent(req)}
                                                         className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
                                                         title="Remover da Banca"
                                                     >
@@ -995,6 +1050,121 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
               </div>
           </div>
       )}
+      {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO */}
+      {isRemoveConfirmOpen && candidateToRemove && (
+          <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn">
+                  <div className="p-6 text-center">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+                          <Trash2 className="h-8 w-8 text-red-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Remover Candidato?</h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                          Tem certeza que deseja remover <span className="font-bold text-gray-800">{candidateToRemove.studentName}</span> desta banca?
+                          <br/><br/>
+                          O candidato voltará para a lista de "Aguardando Agendamento".
+                      </p>
+                      
+                      <div className="flex gap-3 justify-center">
+                          <button 
+                              onClick={() => setIsRemoveConfirmOpen(false)}
+                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                          >
+                              Cancelar
+                          </button>
+                          <button 
+                              onClick={confirmRemoveStudent}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-md transition-colors flex items-center gap-2"
+                          >
+                              Sim, Remover
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* MODAL DE CANCELAMENTO DE BANCA */}
+      {isCancelScheduleOpen && scheduleToCancel && (
+          <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn">
+                  <div className="p-6">
+                      <div className="text-center mb-6">
+                          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+                              <Ban className="h-8 w-8 text-red-600" />
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-2">Cancelar Banca?</h3>
+                          <p className="text-sm text-gray-500">
+                              Esta ação irá cancelar a banca e liberar todos os candidatos agendados.
+                          </p>
+                      </div>
+                      
+                      <div className="mb-6">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Motivo do Cancelamento <span className="text-red-500">*</span></label>
+                          <textarea 
+                              className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
+                              rows={3}
+                              placeholder="Informe o motivo..."
+                              value={cancelReason}
+                              onChange={e => setCancelReason(e.target.value)}
+                          />
+                      </div>
+
+                      <div className="flex gap-3 justify-center">
+                          <button 
+                              onClick={() => setIsCancelScheduleOpen(false)}
+                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                          >
+                              Voltar
+                          </button>
+                          <button 
+                              onClick={confirmCancelSchedule}
+                              disabled={!cancelReason.trim()}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                              Confirmar Cancelamento
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* MODAL DE EXCLUSÃO DE BANCA */}
+      {isDeleteScheduleOpen && scheduleToDelete && (
+          <div className="fixed inset-0 bg-black/50 z-[90] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn border-2 border-red-100">
+                  <div className="p-6 text-center">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+                          <Trash2 className="h-8 w-8 text-red-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Excluir Banca Permanentemente?</h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                          Esta ação é <span className="font-bold text-red-600">IRREVERSÍVEL</span>. 
+                          <br/>
+                          Todos os dados da banca serão perdidos e os candidatos serão desvinculados.
+                      </p>
+                      
+                      <div className="flex gap-3 justify-center">
+                          <button 
+                              onClick={() => setIsDeleteScheduleOpen(false)}
+                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                          >
+                              Cancelar
+                          </button>
+                          <button 
+                              onClick={confirmDeleteSchedule}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-md transition-colors flex items-center gap-2"
+                          >
+                              <Trash2 className="h-4 w-4" />
+                              Sim, Excluir
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
     </div>
   );
 };
