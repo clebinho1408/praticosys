@@ -944,7 +944,16 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                               </div>
                                               <div className="flex-1">
                                                   <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
-                                                  <div className="text-xs text-gray-500">Cadastro: {new Date(cand.createdAt).toLocaleDateString()} • {cand.cpf}</div>
+                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
+                                                      <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
+                                                      <span>•</span>
+                                                      <span>{cand.cpf}</span>
+                                                      {cand.cnhRestriction && (
+                                                          <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold">
+                                                              Restrição: {cand.cnhRestriction}
+                                                          </span>
+                                                      )}
+                                                  </div>
                                               </div>
                                           </label>
                                       );
@@ -992,7 +1001,16 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                               </div>
                                               <div className="flex-1">
                                                   <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
-                                                  <div className="text-xs text-gray-500">Cadastro: {new Date(cand.createdAt).toLocaleDateString()} • {cand.cpf}</div>
+                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
+                                                      <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
+                                                      <span>•</span>
+                                                      <span>{cand.cpf}</span>
+                                                      {cand.cnhRestriction && (
+                                                          <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold">
+                                                              Restrição: {cand.cnhRestriction}
+                                                          </span>
+                                                      )}
+                                                  </div>
                                               </div>
                                           </label>
                                       );
