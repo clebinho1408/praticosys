@@ -290,7 +290,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
       category: editingRequest.scheduledCategory || editingRequest.intendedCategory,
       examiners: examinerNames,
       observation: resultData.observation,
-      scheduleCode: schedule?.code
+      scheduleCode: schedule?.code,
+      scheduleId: schedule?.id // New: Link to schedule
     };
 
     const updatedHistory = [...(editingRequest.examHistory || []), newHistoryEntry];
@@ -308,9 +309,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
     // Se voltou para aguardando agendamento, limpa os dados do agendamento anterior
     if (nextStatus === ExamStatus.WAITING_SCHEDULING) {
-      updates.scheduleId = null;
-      updates.scheduledDate = null;
-      updates.scheduledTime = null;
+      // MANTÉM o scheduleId para histórico na banca concluída
+      // updates.scheduleId = null; 
+      // updates.scheduledDate = null;
+      // updates.scheduledTime = null;
       updates.attendanceConfirmed = false;
     }
 

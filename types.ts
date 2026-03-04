@@ -93,6 +93,7 @@ export interface ExamResultEntry {
   examiners?: string; // Names of examiners
   observation?: string;
   scheduleCode?: string; // New: Code of the schedule (e.g., B6324)
+  scheduleId?: string; // New: ID of the schedule
 }
 
 export interface ExamRequest {

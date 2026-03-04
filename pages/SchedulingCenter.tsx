@@ -398,7 +398,34 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     return matchesStatus && matchesSearch && matchesDate;
   });
 
-  const scheduledStudents = allRequests.filter(r => r.scheduleId === selectedSchedule?.id);
+  const scheduledStudents = allRequests.filter(r => {
+    // 1. Currently scheduled
+    if (r.scheduleId === selectedSchedule?.id) return true;
+    
+    // 2. Historically scheduled (for concluded schedules)
+    if (selectedSchedule?.status === 'CONCLUDED' || selectedSchedule?.status === 'CLOSED') {
+        return r.examHistory?.some(h => h.scheduleId === selectedSchedule.id);
+    }
+    
+    return false;
+  }).map(r => {
+    // If historically scheduled but not currently, we need to "fake" the display properties
+    // using the historical data entry for this schedule
+    if (r.scheduleId !== selectedSchedule?.id) {
+        const historyEntry = r.examHistory?.find(h => h.scheduleId === selectedSchedule?.id);
+        if (historyEntry) {
+            return {
+                ...r,
+                scheduledCategory: historyEntry.category,
+                // We need to cast result because historyEntry.result is ExamResult but r.result is optional ExamResult
+                result: historyEntry.result,
+                // Ensure it looks like it belongs here
+                scheduleId: selectedSchedule?.id 
+            };
+        }
+    }
+    return r;
+  });
   
   // Logic for Available Students (Modal)
   const availableRequests = allRequests
