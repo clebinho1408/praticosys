@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ExamType, RequestSource, ExamRequest, ExamStatus } from '../types';
-import { api } from '../services/mockData';
-import { ArrowRight, CheckCircle, AlertCircle, User, FileCheck, Send, ChevronRight, ChevronLeft } from 'lucide-react';
+import { api } from '../services/api';
+import { CheckCircle, AlertCircle, User, FileCheck, Send, ChevronRight, ChevronLeft } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
   return (

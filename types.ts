@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   SUPERVISOR = 'SUPERVISOR',
@@ -49,16 +50,29 @@ export interface Examiner {
   canExamPCD: boolean;
 }
 
+export interface Vehicle {
+  id: string;
+  instructorId: string;
+  type: 'CAR' | 'MOTO';
+  brand: string;
+  model: string;
+  plate: string;
+  active: boolean;
+}
+
 export interface Instructor {
   id: string;
   name: string;
   cpf: string;
   phone: string;
-  plate: string;
+  category?: string; // New: A, B, AB
+  plate: string; // Legacy/Default plate
+  vehicles?: Vehicle[]; // New: List of vehicles
 }
 
 export interface ExamSchedule {
   id: string;
+  code?: string; // New: Unique code (e.g., B6324)
   date: string;
   time: string;
   examinerIds: string[]; // Changed to array to support up to 3 examiners
@@ -76,7 +90,10 @@ export interface ExamResultEntry {
   result: ExamResult;
   category?: string; // New: A, B, etc.
   examinerId?: string;
+  examiners?: string; // Names of examiners
   observation?: string;
+  scheduleCode?: string; // New: Code of the schedule (e.g., B6324)
+  scheduleId?: string; // New: ID of the schedule
 }
 
 export interface ExamRequest {
@@ -126,6 +143,11 @@ export interface ExamRequest {
   updatedAt: string;
 }
 
+export interface Restriction {
+  code: string;
+  description: string;
+}
+
 export interface SystemSettings {
   agencyName: string; // Renamed from systemName
   agencyAddress?: string; // New: Address for reports
@@ -142,6 +164,7 @@ export interface SystemSettings {
   whatsappMessageTemplate: string;
   defaultExamAddress: string; // New: Default physical address
   defaultExamAddressLink: string; // New: Google Maps Link
+  restrictions: Restriction[]; // New: List of CNH restrictions
 }
 
 export interface AuthState {

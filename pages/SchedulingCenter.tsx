@@ -1,1100 +1,1189 @@
-import React, { useEffect, useState } from 'react';
-import { api } from '../services/mockData';
-import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings } from '../types';
-import { Calendar, Clock, User, Plus, Search, ChevronRight, FileText, X, CheckSquare, Printer, Trash2, Layers, Edit2, Loader2, AlertTriangle, MessageCircle, CheckCircle, Circle, Filter, RotateCcw, Ban, Info } from 'lucide-react';
 
-const SchedulingCenter: React.FC = () => {
+// Scheduling Center Page
+import React, { useEffect, useState } from 'react';
+import { api } from '../services/api';
+import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole } from '../types';
+import { 
+  Calendar, 
+  Clock, 
+  User as UserIcon, 
+  Plus, 
+  Search, 
+  ChevronRight, 
+  X, 
+  Printer, 
+  Trash2, 
+  Edit2, 
+  Ban, 
+  Users,
+  Loader2,
+  Layers,
+  MessageCircle,
+  CheckCircle2,
+  CheckCircle,
+  Filter,
+  ChevronDown,
+  ChevronUp,
+  Square,
+  CheckSquare,
+  Bike,
+  Car,
+  AlertOctagon
+} from 'lucide-react';
+
+const formatDateDisplay = (dateString: string) => {
+  if (!dateString) return '-';
+  const cleanDate = dateString.split('T')[0];
+  const parts = cleanDate.split('-');
+  return parts.length !== 3 ? cleanDate : `${parts[2]}/${parts[1]}/${parts[0]}`;
+};
+
+const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+  const configs: Record<string, { label: string, classes: string }> = {
+    'OPEN': { label: 'Aberta', classes: 'bg-green-100 text-green-700 border-green-200' },
+    'CLOSED': { label: 'Fechada', classes: 'bg-orange-100 text-orange-700 border-orange-200' },
+    'CONCLUDED': { label: 'Concluída', classes: 'bg-blue-100 text-blue-700 border-blue-200' },
+    'CANCELLED': { label: 'Cancelada', classes: 'bg-red-100 text-red-700 border-red-200' },
+  };
+  const config = configs[status] || { label: status, classes: 'bg-gray-100 text-gray-700 border-gray-200' };
+  return (
+    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${config.classes} uppercase tracking-wider`}>
+      {config.label}
+    </span>
+  );
+};
+
+const ClosingCountdown: React.FC<{ date: string; time: string }> = ({ date, time }) => {
+    const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+    useEffect(() => {
+        const calculateTime = () => {
+            if (!date || !time) return;
+            
+            const examDate = new Date(`${date.split('T')[0]}T${time}`);
+            // Regra de fechamento: 24h antes da prova
+            const closingDate = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
+            const now = new Date();
+            
+            const diff = closingDate.getTime() - now.getTime();
+            
+            // Mostrar apenas se faltar menos de 48h e ainda não fechou
+            const hours48 = 48 * 60 * 60 * 1000;
+            
+            if (diff > 0 && diff <= hours48) {
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                setTimeLeft(`${hours}h ${minutes}m`);
+            } else {
+                setTimeLeft(null);
+            }
+        };
+
+        calculateTime();
+        const interval = setInterval(calculateTime, 60000); // Atualiza a cada minuto
+        return () => clearInterval(interval);
+    }, [date, time]);
+
+    if (!timeLeft) return null;
+
+    return (
+        <div className="flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-md border border-orange-100 mt-2 w-fit">
+            <Clock className="h-3 w-3" />
+            <span>Fecha em {timeLeft}</span>
+        </div>
+    );
+};
+
+interface SchedulingCenterProps {
+  type?: ExamType;
+  user: User;
+}
+
+const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const [allRequests, setAllRequests] = useState<ExamRequest[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Filters
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'CLOSED' | 'CONCLUDED' | 'CANCELLED'>('ALL');
-  const [dateStartFilter, setDateStartFilter] = useState('');
-  const [dateEndFilter, setDateEndFilter] = useState('');
-
-  // Modal Create/Edit
+  
+  const [selectedSchedule, setSelectedSchedule] = useState<ExamSchedule | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'CREATE' | 'EDIT'>('CREATE');
-  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [errorField, setErrorField] = useState<string | null>(null);
+  
+  // States for Add Student Modal
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [studentSearch, setSearchTermInput] = useState('');
+  const [selectedCandidates, setSelectedCandidates] = useState<Record<string, 'A' | 'B'>>({});
+  const [expandedCategories, setExpandedCategories] = useState<{A: boolean, B: boolean}>({ A: false, B: false });
+
+  // Remove Confirmation Modal State
+  const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
+  const [candidateToRemove, setCandidateToRemove] = useState<ExamRequest | null>(null);
+
+  // Schedule Cancel Modal State
+  const [isCancelScheduleOpen, setIsCancelScheduleOpen] = useState(false);
+  const [scheduleToCancel, setScheduleToCancel] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+
+  // Schedule Delete Modal State
+  const [isDeleteScheduleOpen, setIsDeleteScheduleOpen] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null);
+
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  // Date Filters
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
   const [scheduleForm, setScheduleForm] = useState({ 
     date: '', 
     time: '', 
-    examiner1: '', 
-    examiner2: '', 
-    examiner3: '', 
-    maxSlotsA: 10,
-    maxSlotsB: 10
+    examinerIds: [] as string[], 
+    maxSlotsA: 10, 
+    maxSlotsB: 10,
+    type: type || ExamType.COMMON
   });
 
-  // Cancel Modal
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState('');
-  const [scheduleToCancel, setScheduleToCancel] = useState<ExamSchedule | null>(null);
-
-  // Manage View (Selected Schedule)
-  const [selectedSchedule, setSelectedSchedule] = useState<ExamSchedule | null>(null);
-  const [scheduledStudents, setScheduledStudents] = useState<ExamRequest[]>([]);
-  const [processingStudentId, setProcessingStudentId] = useState<string | null>(null);
-
-  // Delete Confirmation Modal State
-  const [studentToRemove, setStudentToRemove] = useState<string | null>(null);
-
-  // Add Students Modal
-  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
-  const [availableStudents, setAvailableStudents] = useState<ExamRequest[]>([]);
-  
-  // State for selecting students
-  const [selectedStudentsMap, setSelectedStudentsMap] = useState<Record<string, string>>({});
-  const [studentFilter, setStudentFilter] = useState('');
-
   const refreshData = async () => {
-    const [scheds, exams, sysSettings] = await Promise.all([
+    setLoading(true);
+    try {
+      const [scheds, exams, sysSettings, requests] = await Promise.all([
         api.getSchedules(), 
-        api.getExaminersAsync(),
-        api.getSettings()
-    ]);
-    // Sort schedules by date desc
-    scheds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    setSchedules(scheds);
-    setExaminers(exams);
-    setSettings(sysSettings);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    refreshData();
-  }, []);
-
-  // Update lists when a schedule is selected
-  useEffect(() => {
-    if (selectedSchedule) {
-      // Refresh current schedule object from state to get latest status
-      const updatedSel = schedules.find(s => s.id === selectedSchedule.id);
-      if (updatedSel) {
-          if (updatedSel.status !== selectedSchedule.status) {
-              setSelectedSchedule(updatedSel);
-          }
-          updateStudentLists(updatedSel.id);
-      }
+        api.getExaminersAsync(), 
+        api.getSettings(), 
+        api.getRequests()
+      ]);
+      let filteredScheds = scheds;
+      if (type) filteredScheds = filteredScheds.filter(s => s.type === type);
+      setSchedules(filteredScheds.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setExaminers(exams);
+      setSettings(sysSettings);
+      setAllRequests(requests);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
-  }, [selectedSchedule, schedules]);
-
-  const updateStudentLists = async (scheduleId: string) => {
-    const allRequests = await api.getRequests();
-    
-    // Students currently in this schedule
-    const inSchedule = allRequests.filter(r => r.scheduleId === scheduleId);
-    setScheduledStudents(inSchedule);
-
-    // Students eligible for this schedule
-    // Filter: Common exam type, not scheduled yet, strict status 'WAITING_SCHEDULING'
-    // Sort: CreatedAt Ascending (Oldest first)
-    const eligible = allRequests.filter(r => 
-      r.examType === ExamType.COMMON && 
-      !r.scheduleId && 
-      r.status === ExamStatus.WAITING_SCHEDULING
-    ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-    
-    setAvailableStudents(eligible);
   };
 
-  const handleOpenCreate = () => {
-    setModalMode('CREATE');
-    setEditingScheduleId(null);
-    setScheduleForm({ 
-        date: '', 
-        time: '', 
-        examiner1: '', 
-        examiner2: '', 
-        examiner3: '', 
-        maxSlotsA: settings?.defaultMaxSlotsA || 10, 
-        maxSlotsB: settings?.defaultMaxSlotsB || 10 
+  useEffect(() => { refreshData(); }, [type]);
+
+  const injectEmojis = (text: string) => {
+    const emojiMap: Record<string, string> = {
+      '[WAVE]': '\uD83D\uDC4B',       // 👋
+      '[SMILE]': '\uD83D\uDE04',      // 😄
+      '[CAR]': '\uD83D\uDE97',        // 🚗
+      '[CALENDAR]': '\uD83D\uDCC5',   // 📅
+      '[CLOCK]': '\u23F0',            // ⏰
+      '[MAP]': '\uD83D\uDCCD',        // 📍
+      '[WARNING]': '\u26A0\uFE0F',    // ⚠️
+      '[ID]': '\uD83E\uDEAA',         // 🪪 
+      '[CAR_FRONT]': '\uD83D\uDE98',  // 🚘
+      '[CHECK]': '\u2705',            // ✅
+      '[HOURGLASS]': '\u23F3',        // ⏳
+      '[PHONE]': '\uD83D\uDCF1',      // 📱
+      '[EMAIL]': '\uD83D\uDCE7'       // 📧
+    };
+
+    if (!text) return '';
+    let result = String(text);
+    
+    result = result.replace(/\uFFFD/g, '').replace(/\uAAAA/g, '').replace(/ꪪ/g, '');
+
+    Object.entries(emojiMap).forEach(([tag, emoji]) => {
+      result = result.split(tag).join(emoji);
     });
-    setIsModalOpen(true);
+
+    return result;
   };
 
-  const handleOpenEdit = (schedule: ExamSchedule) => {
-    setModalMode('EDIT');
-    setEditingScheduleId(schedule.id);
-    setScheduleForm({ 
-        date: schedule.date, 
-        time: schedule.time, 
-        examiner1: schedule.examinerIds[0] || '', 
-        examiner2: schedule.examinerIds[1] || '', 
-        examiner3: schedule.examinerIds[2] || '', 
-        maxSlotsA: schedule.maxSlotsA || 10,
-        maxSlotsB: schedule.maxSlotsB || 10
+  const handleWhatsApp = (req: ExamRequest) => {
+    if (!selectedSchedule) return;
+
+    const safeSettings = settings || {
+        whatsappMessageTemplate: '',
+        agencyName: 'Detran',
+        defaultExamAddress: '',
+        defaultExamAddressLink: ''
+    };
+    
+    let currentTemplate = safeSettings.whatsappMessageTemplate || '';
+
+    if (!currentTemplate.trim()) {
+        currentTemplate = `Olá, *{CANDIDATO}*! [WAVE][SMILE]
+
+Aqui é do {AGENCIA} – Setor CNH.
+Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [CAR], marcada para:
+
+[CALENDAR] *{DATA}*
+[CLOCK] *{HORA}*
+[MAP] *{ENDERECO}*
+
+[WARNING] Não esqueça:
+[ID] _*Documento com foto (válido)*_
+[CAR_FRONT] _*Veículo ou moto em condições para a prova*_
+
+[CHECK] *Posso confirmar sua presença?*
+
+[HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
+    }
+    
+    const replacements: Record<string, string> = {
+      '{CANDIDATO}': req.socialName || req.studentName || '',
+      '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
+      '{DATA}': formatDateDisplay(selectedSchedule.date),
+      '{HORA}': selectedSchedule.time,
+      '{ENDERECO}': safeSettings.defaultExamAddress || '',
+      '{LOCALIZACAO}': safeSettings.defaultExamAddressLink || '',
+      '{AGENCIA}': safeSettings.agencyName || 'Detran'
+    };
+
+    let finalMessage = currentTemplate;
+    
+    Object.entries(replacements).forEach(([tag, value]) => {
+      finalMessage = finalMessage.split(tag).join(value || '');
     });
-    setIsModalOpen(true);
-  };
-
-  const handleSubmitSchedule = async (e: React.FormEvent) => {
-    e.preventDefault();
     
-    // Combine examiners into array, filtering empty ones
-    const ids = [scheduleForm.examiner1, scheduleForm.examiner2, scheduleForm.examiner3].filter(Boolean);
+    finalMessage = injectEmojis(finalMessage);
     
-    if (ids.length === 0) {
-        alert("Selecione pelo menos um examinador.");
+    const rawPhone = req.phone || '';
+    const phoneDigits = rawPhone.replace(/\D/g, '');
+    
+    if (!phoneDigits) {
+        alert('Este candidato não possui um número de telefone válido cadastrado.');
         return;
     }
 
-    if (modalMode === 'CREATE') {
-        await api.createSchedule({
-          date: scheduleForm.date,
-          time: scheduleForm.time,
-          examinerIds: ids,
-          maxSlotsA: scheduleForm.maxSlotsA,
-          maxSlotsB: scheduleForm.maxSlotsB,
-          type: ExamType.COMMON
-        });
-    } else if (modalMode === 'EDIT' && editingScheduleId) {
-        const updated = await api.updateSchedule(editingScheduleId, {
-          date: scheduleForm.date,
-          time: scheduleForm.time,
-          examinerIds: ids,
-          maxSlotsA: scheduleForm.maxSlotsA,
-          maxSlotsB: scheduleForm.maxSlotsB
-        });
-        
-        // Update local view if editing currently selected schedule
-        if (selectedSchedule && selectedSchedule.id === editingScheduleId) {
-            setSelectedSchedule(updated);
-        }
+    const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
+    
+    let encodedMessage = '';
+    try {
+        encodedMessage = encodeURIComponent(finalMessage);
+    } catch (e) {
+        const sanitized = finalMessage.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '');
+        encodedMessage = encodeURIComponent(sanitized);
     }
+    
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${finalPhone}&text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
 
-    setIsModalOpen(false);
+  const toggleAttendance = async (req: ExamRequest) => {
+    await api.updateRequest(req.id, { attendanceConfirmed: !req.attendanceConfirmed });
     refreshData();
   };
 
-  const handleOpenCancelModal = (schedule: ExamSchedule) => {
-      setScheduleToCancel(schedule);
-      setCancelReason('');
-      setIsCancelModalOpen(true);
+  const handleOpenModal = (sched?: ExamSchedule) => {
+    if (sched) {
+      setEditingSchedule(sched);
+      setScheduleForm({
+        date: sched.date,
+        time: sched.time,
+        examinerIds: sched.examinerIds || [],
+        maxSlotsA: sched.maxSlotsA,
+        maxSlotsB: sched.maxSlotsB,
+        type: sched.type
+      });
+    } else {
+      setEditingSchedule(null);
+      setScheduleForm({
+        date: '',
+        time: '',
+        examinerIds: [],
+        maxSlotsA: settings?.defaultMaxSlotsA || 10,
+        maxSlotsB: settings?.defaultMaxSlotsB || 10,
+        type: type || ExamType.COMMON
+      });
+    }
+    setIsModalOpen(true);
   };
 
-  const handleConfirmCancel = async () => {
-      if (!scheduleToCancel || !cancelReason) return;
-      
-      await api.cancelSchedule(scheduleToCancel.id, cancelReason);
-      setIsCancelModalOpen(false);
-      setScheduleToCancel(null);
-      refreshData();
-      
-      // If we were viewing the schedule, refresh lists (students should be gone)
-      if (selectedSchedule && selectedSchedule.id === scheduleToCancel.id) {
-          updateStudentLists(scheduleToCancel.id);
-      }
+  const handleOpenAddStudent = () => {
+      setSearchTermInput('');
+      setSelectedCandidates({});
+      setExpandedCategories({ A: false, B: false });
+      setIsAddStudentOpen(true);
   };
 
-  const handleToggleStudentSelection = (req: ExamRequest, isChecked: boolean) => {
-      setSelectedStudentsMap(prev => {
-          const next = { ...prev };
-          if (isChecked) {
-              const cat = req.intendedCategory === 'A' ? 'A' : 'B';
-              next[req.id] = cat;
+  const toggleCandidateSelection = (id: string, category: 'A' | 'B') => {
+      setSelectedCandidates(prev => {
+          const newState = { ...prev };
+          if (newState[id]) {
+              delete newState[id];
           } else {
-              delete next[req.id];
+              newState[id] = category;
           }
-          return next;
+          return newState;
       });
   };
 
-  const handleAddStudents = async () => {
-    const entries = Object.entries(selectedStudentsMap);
-    for (const [reqId, category] of entries) {
-      await api.assignStudentToSchedule(reqId, selectedSchedule!.id, category as string);
-    }
-    setIsAddStudentOpen(false);
-    setSelectedStudentsMap({});
-    updateStudentLists(selectedSchedule!.id);
-    refreshData();
+  const handleConfirmBatchSchedule = async () => {
+      if (!selectedSchedule) return;
+      setLoading(true);
+      try {
+          const updates = Object.entries(selectedCandidates).map(([id, cat]) => 
+              api.assignStudentToSchedule(id, selectedSchedule.id, cat)
+          );
+          await Promise.all(updates);
+          setIsAddStudentOpen(false);
+          refreshData();
+      } catch (err) {
+          alert('Erro ao agendar candidatos.');
+      } finally {
+          setLoading(false);
+      }
   };
 
-  const handleRemoveClick = (e: React.MouseEvent, reqId: string) => {
+  const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
-    e.stopPropagation();
-    setStudentToRemove(reqId);
+
+    // Validação de campos obrigatórios
+    if (!scheduleForm.date) {
+        setErrorMessage("O campo Data da Prova é obrigatório.");
+        setErrorField('scheduleDate');
+        setIsErrorModalOpen(true);
+        return;
+    }
+    if (!scheduleForm.time) {
+        setErrorMessage("O campo Horário Início é obrigatório.");
+        setErrorField('scheduleTime');
+        setIsErrorModalOpen(true);
+        return;
+    }
+    if (scheduleForm.examinerIds.length === 0) {
+        setErrorMessage("É obrigatório escalar pelo menos um examinador.");
+        setErrorField('examinersList');
+        setIsErrorModalOpen(true);
+        return;
+    }
+
+    try {
+      if (editingSchedule) {
+        await api.updateSchedule(editingSchedule.id, scheduleForm);
+      } else {
+        await api.createSchedule({ ...scheduleForm, status: 'OPEN' });
+      }
+      setIsModalOpen(false);
+      refreshData();
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao salvar banca.");
+    }
+  };
+
+  const handleCancelSchedule = (id: string) => {
+    if (user.role !== UserRole.ADMIN) {
+        alert("Somente administradores podem cancelar bancas.");
+        return;
+    }
+    setScheduleToCancel(id);
+    setCancelReason('');
+    setIsCancelScheduleOpen(true);
+  };
+
+  const confirmCancelSchedule = async () => {
+    if (scheduleToCancel && cancelReason.trim()) {
+      await api.cancelSchedule(scheduleToCancel, cancelReason);
+      setIsCancelScheduleOpen(false);
+      setScheduleToCancel(null);
+      setCancelReason('');
+      refreshData();
+    } else {
+        alert("Informe o motivo do cancelamento.");
+    }
+  };
+
+  const handleDeleteSchedule = (id: string) => {
+    if (user.role !== UserRole.ADMIN) {
+        alert("Somente administradores podem excluir bancas.");
+        return;
+    }
+    setScheduleToDelete(id);
+    setIsDeleteScheduleOpen(true);
+  };
+
+  const confirmDeleteSchedule = async () => {
+    if (scheduleToDelete) {
+        await api.deleteSchedule(scheduleToDelete);
+        setIsDeleteScheduleOpen(false);
+        setScheduleToDelete(null);
+        refreshData();
+    }
+  };
+
+  const handleRemoveStudent = (request: ExamRequest) => {
+    setCandidateToRemove(request);
+    setIsRemoveConfirmOpen(true);
   };
 
   const confirmRemoveStudent = async () => {
-    if (!studentToRemove) return;
-    
-    const reqId = studentToRemove;
-    setProcessingStudentId(reqId);
-    
-    try {
-      // Optimistic UI update
-      setScheduledStudents(prev => prev.filter(s => s.id !== reqId));
-
-      await api.removeStudentFromSchedule(reqId);
-      
-      await refreshData();
-      if (selectedSchedule) {
-            await updateStudentLists(selectedSchedule.id);
-      }
-    } catch (error) {
-      console.error("Error removing student:", error);
-      alert("Erro ao remover candidato. Tente novamente.");
-      if (selectedSchedule) updateStudentLists(selectedSchedule.id);
-    } finally {
-      setProcessingStudentId(null);
-      setStudentToRemove(null);
+    if (candidateToRemove) {
+        await api.removeStudentFromSchedule(candidateToRemove.id);
+        setIsRemoveConfirmOpen(false);
+        setCandidateToRemove(null);
+        refreshData();
     }
   };
 
-  const generateMessage = (req: ExamRequest) => {
-    if (!settings) return "";
-    
-    let message = settings.whatsappMessageTemplate || "Olá {CANDIDATO}, seu exame está marcado.";
-      
-    // Prepare address string
-    let fullAddress = settings.defaultExamAddress || '';
-    if (settings.defaultExamAddressLink) {
-        fullAddress += ` ${settings.defaultExamAddressLink}`;
-    }
-    if (!fullAddress) fullAddress = 'Local a definir';
-
-    // Se tiver nome social, usa ele
-    const displayName = req.socialName || req.studentName;
-
-    // Use global replacement for variables
-    message = message
-        .replace(/{CANDIDATO}/g, displayName)
-        .replace(/{ALUNO}/g, displayName)
-        .replace(/{DATA}/g, new Date(req.scheduledDate!).toLocaleDateString())
-        .replace(/{HORA}/g, req.scheduledTime!)
-        .replace(/{CATEGORIA}/g, req.scheduledCategory || req.intendedCategory || 'B')
-        .replace(/{ENDERECO}/g, fullAddress);
-    
-    return message;
-  }
-
-  const handleSendWhatsapp = (e: React.MouseEvent, req: ExamRequest) => {
-      e.stopPropagation();
-      e.preventDefault();
-      
-      const phone = "55" + req.phone.replace(/\D/g, '');
-      const message = generateMessage(req);
-
-      // Using api.whatsapp.com/send instead of wa.me to better handle emoji encoding
-      const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
-
-      window.open(whatsappUrl, '_blank');
-  };
-
-  const handleToggleConfirmation = async (e: React.MouseEvent, req: ExamRequest) => {
-      e.stopPropagation();
-      e.preventDefault();
-
-      const newStatus = !req.attendanceConfirmed;
-      
-      // Optimistic update
-      setScheduledStudents(prev => prev.map(s => s.id === req.id ? {...s, attendanceConfirmed: newStatus} : s));
-
-      try {
-          await api.updateRequest(req.id, { attendanceConfirmed: newStatus });
-          // No need to full refresh, optimistic update handles UI
-      } catch (err) {
-          console.error("Error toggling confirmation", err);
-          // Revert on error
-          setScheduledStudents(prev => prev.map(s => s.id === req.id ? {...s, attendanceConfirmed: !newStatus} : s));
-      }
-  };
-
-  const handlePrint = (e: React.MouseEvent) => {
-    e.preventDefault();
-    window.print();
-  };
-
-  const handleClearFilters = () => {
-      setStatusFilter('ALL');
-      setDateStartFilter('');
-      setDateEndFilter('');
-  };
-
-  const getExaminerName = (id?: string) => {
-      if (!id) return null;
-      return examiners.find(e => e.id === id)?.name || 'Desconhecido';
-  }
-
-  const getStatusBadge = (status: string) => {
-      switch(status) {
-          case 'OPEN': return <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase">Aberta</span>;
-          case 'CLOSED': return <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded uppercase">Fechada</span>;
-          case 'CONCLUDED': return <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded uppercase">Concluída</span>;
-          case 'CANCELLED': return <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded uppercase">Cancelada</span>;
-          default: return null;
-      }
-  }
-
-  // Helper to count slots
-  const getSlotCounts = (schedule: ExamSchedule, students: ExamRequest[]) => {
-      const countA = students.filter(s => s.scheduledCategory === 'A').length;
-      const countB = students.filter(s => s.scheduledCategory === 'B').length;
-      return { 
-          A: { current: countA, max: schedule.maxSlotsA || 10 },
-          B: { current: countB, max: schedule.maxSlotsB || 10 }
-      };
-  }
-
-  if (loading) return <div className="p-8 text-center text-gray-500">Carregando Central de Agendamentos...</div>;
-
-  const currentCounts = selectedSchedule ? getSlotCounts(selectedSchedule, scheduledStudents) : null;
+  const getExaminerName = (id: string) => examiners.find(e => e.id === id)?.name || 'Desconhecido';
 
   const filteredSchedules = schedules.filter(s => {
-      // Must be Common Type
-      if (s.type !== ExamType.COMMON) return false;
+    const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
+    const matchesSearch = s.date.includes(searchTerm) || 
+                          s.examinerIds.some(id => getExaminerName(id).toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (s.code && s.code.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    // Date Range Filter
+    let matchesDate = true;
+    if (startDate || endDate) {
+        const schedTime = new Date(s.date).getTime();
+        if (startDate && schedTime < new Date(startDate).getTime()) matchesDate = false;
+        if (endDate && schedTime > new Date(endDate).getTime()) matchesDate = false;
+    }
 
-      // Status Filter
-      if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
-
-      // Date Filter
-      if (dateStartFilter && s.date < dateStartFilter) return false;
-      if (dateEndFilter && s.date > dateEndFilter) return false;
-
-      return true;
+    return matchesStatus && matchesSearch && matchesDate;
   });
 
-  // Permission Logic
-  const canEdit = selectedSchedule?.status === 'OPEN';
-  const canAddStudent = selectedSchedule?.status === 'OPEN';
-  const canCancel = selectedSchedule?.status === 'OPEN' || selectedSchedule?.status === 'CLOSED';
-  // Note: CLOSED allows cancel, CONCLUDED allows nothing.
+  const scheduledStudents = allRequests.filter(r => {
+    // 1. Currently scheduled
+    if (r.scheduleId === selectedSchedule?.id) return true;
+    
+    // 2. Historically scheduled (for concluded schedules)
+    if (selectedSchedule?.status === 'CONCLUDED' || selectedSchedule?.status === 'CLOSED') {
+        return r.examHistory?.some(h => h.scheduleId === selectedSchedule.id);
+    }
+    
+    return false;
+  }).map(r => {
+    // If historically scheduled but not currently, we need to "fake" the display properties
+    // using the historical data entry for this schedule
+    if (r.scheduleId !== selectedSchedule?.id) {
+        const historyEntry = r.examHistory?.find(h => h.scheduleId === selectedSchedule?.id);
+        if (historyEntry) {
+            return {
+                ...r,
+                scheduledCategory: historyEntry.category,
+                // We need to cast result because historyEntry.result is ExamResult but r.result is optional ExamResult
+                result: historyEntry.result,
+                // Ensure it looks like it belongs here
+                scheduleId: selectedSchedule?.id 
+            };
+        }
+    }
+    return r;
+  });
   
-  // Print validation: All students must be confirmed
-  const hasUnconfirmed = scheduledStudents.some(s => !s.attendanceConfirmed);
+  // Logic for Available Students (Modal)
+  const availableRequests = allRequests
+    .filter(r => 
+        r.status === ExamStatus.WAITING_SCHEDULING && 
+        r.examType === selectedSchedule?.type &&
+        (r.studentName.toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch))
+    )
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
+
+  // Split into categories
+  const candidatesA = availableRequests.filter(r => r.intendedCategory === 'A' || r.intendedCategory === 'AB');
+  const candidatesB = availableRequests.filter(r => r.intendedCategory === 'B' || r.intendedCategory === 'AB');
+
+  // Counts for selection limits
+  const currentCountA = scheduledStudents.filter(s => s.scheduledCategory === 'A').length;
+  const currentCountB = scheduledStudents.filter(s => s.scheduledCategory === 'B').length;
+  
+  const selectedCountA = Object.values(selectedCandidates).filter(c => c === 'A').length;
+  const selectedCountB = Object.values(selectedCandidates).filter(c => c === 'B').length;
+
+  const remainingA = (selectedSchedule?.maxSlotsA || 0) - currentCountA - selectedCountA;
+  const remainingB = (selectedSchedule?.maxSlotsB || 0) - currentCountB - selectedCountB;
+
+  if (loading) return <div className="p-10 text-center text-gray-500 flex flex-col items-center gap-4">
+    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+    Carregando Central de Bancas...
+  </div>;
 
   return (
-    <>
-      {selectedSchedule ? (
-        // --- VIEW: DETAIL (Call List) ---
-        <div className="space-y-6">
-          <div className="print:hidden flex items-center gap-2 text-sm text-gray-500 mb-4 cursor-pointer hover:text-blue-600" onClick={() => setSelectedSchedule(null)}>
-            <ChevronRight className="h-4 w-4 rotate-180" /> Voltar para Bancas
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden print:shadow-none print:border-none">
-            {/* Header */}
-            <div className="p-6 border-b border-gray-100 bg-gray-50 print:bg-white print:border-b-2 print:border-black print:p-0 print:pb-2 print:mb-4">
-              
-              {/* PRINT HEADER */}
-              <div className="hidden print:flex items-center gap-4 mb-2 pb-2">
-                  {/* Logo Esquerda */}
-                  <div className="flex items-center">
-                      {settings?.logoUrl && (
-                          <img src={settings.logoUrl} alt="Logo Agência" className="h-14 w-auto object-contain max-w-[80px]" />
-                      )}
-                  </div>
-                  {/* Texto Esquerda/Centro */}
-                  <div className="text-left">
-                      <h1 className="text-sm font-bold text-black uppercase">{settings?.agencyName || 'DETRAN'}</h1>
-                      <p className="text-lg font-black text-black uppercase">Lista de Chamada - 1ª Habilitação</p>
-                  </div>
-              </div>
-
-              {/* CANCELLED NOTICE */}
-              {selectedSchedule.status === 'CANCELLED' && (
-                  <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 print:border-black print:bg-white print:border">
-                      <div className="flex items-center gap-2 text-red-800 print:text-black">
-                          <Ban className="h-5 w-5" />
-                          <span className="font-bold">BANCA CANCELADA</span>
-                      </div>
-                      <p className="text-sm text-red-700 mt-1 print:text-black">Motivo: {selectedSchedule.cancellationReason}</p>
-                  </div>
-              )}
-
-              {/* CONCLUDED NOTICE */}
-              {selectedSchedule.status === 'CONCLUDED' && (
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-4 print:hidden">
-                      <div className="flex items-center gap-2 text-blue-800">
-                          <CheckCircle className="h-5 w-5" />
-                          <span className="font-bold">BANCA CONCLUÍDA</span>
-                      </div>
-                      <p className="text-sm text-blue-700 mt-1">Os exames foram finalizados e os candidatos atualizados para "Aguardando Resultado".</p>
-                  </div>
-              )}
-
-              <div className="flex justify-between items-start print:hidden">
-                  <div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <h2 className="text-2xl font-bold text-gray-900">Lista de Chamada - 1ª Habilitação</h2>
-                        {getStatusBadge(selectedSchedule.status)}
-                    </div>
-                    
-                    <div className="flex flex-wrap gap-6 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="font-medium">{new Date(selectedSchedule.date).toLocaleDateString()}</span >
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span className="font-medium">{selectedSchedule.time}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-500" />
-                        <span className="font-medium">Banca: {selectedSchedule.examinerIds.map(id => getExaminerName(id)).filter(Boolean).join(', ')}</span>
-                      </div>
-                      <div className="flex items-center gap-4 print:hidden">
-                        <div className={`flex items-center gap-1 font-medium ${currentCounts!.A.current >= currentCounts!.A.max ? 'text-red-600' : 'text-gray-600'}`}>
-                          <CheckSquare className="h-4 w-4" /> Moto: {currentCounts!.A.current} / {currentCounts!.A.max}
-                        </div>
-                        <div className={`flex items-center gap-1 font-medium ${currentCounts!.B.current >= currentCounts!.B.max ? 'text-red-600' : 'text-gray-600'}`}>
-                          <CheckSquare className="h-4 w-4" /> Carro: {currentCounts!.B.current} / {currentCounts!.B.max}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {/* EDIT Button - Only if OPEN */}
-                    {canEdit && (
-                        <button 
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenEdit(selectedSchedule);
-                        }}
-                        className="flex items-center gap-2 px-3 py-2 border border-blue-200 text-blue-600 rounded-md hover:bg-blue-50 bg-white shadow-sm"
-                        title="Editar Banca"
-                        >
-                        <Edit2 className="h-4 w-4" /> Editar
-                        </button>
-                    )}
-
-                    {/* CANCEL Button - OPEN or CLOSED */}
-                    {canCancel && (
-                        <button 
-                            type="button"
-                            onClick={() => handleOpenCancelModal(selectedSchedule)}
-                            className="flex items-center gap-2 px-3 py-2 border border-red-200 text-red-600 rounded-md hover:bg-red-50 bg-white shadow-sm"
-                            title="Cancelar Banca"
-                        >
-                            <Ban className="h-4 w-4" /> Cancelar
-                        </button>
-                    )}
-
-                    <button 
-                      type="button"
-                      onClick={handlePrint}
-                      disabled={hasUnconfirmed}
-                      className={`flex items-center gap-2 px-4 py-2 border rounded-md shadow-sm transition-colors ${
-                          hasUnconfirmed 
-                            ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed' 
-                            : 'border-gray-300 text-gray-700 hover:bg-gray-50 bg-white'
-                      }`}
-                      title={hasUnconfirmed ? "Confirme a presença de todos os candidatos para imprimir" : "Imprimir Lista"}
-                    >
-                      <Printer className="h-4 w-4" /> Imprimir
-                    </button>
-
-                    {/* ADD STUDENTS - Only if OPEN */}
-                    {canAddStudent && (
-                        <button 
-                        type="button"
-                        onClick={() => setIsAddStudentOpen(true)}
-                        disabled={(currentCounts!.A.current >= currentCounts!.A.max) && (currentCounts!.B.current >= currentCounts!.B.max)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                        >
-                        <Plus className="h-4 w-4" /> Adicionar Candidatos
-                        </button>
-                    )}
-                  </div>
-              </div>
-              
-              {/* PRINT INFO SUB-HEADER */}
-              <div className="hidden print:block text-xs mt-1 mb-2">
-                  <div className="flex justify-between">
-                      <p><strong>Data:</strong> {new Date(selectedSchedule.date).toLocaleDateString()} - <strong>Hora:</strong> {selectedSchedule.time}</p>
-                      <p><strong>Examinadores:</strong> {selectedSchedule.examinerIds.map(id => getExaminerName(id)).filter(Boolean).join(', ')}</p>
-                  </div>
-              </div>
-            </div>
-
-            {/* Student List Tables */}
-            <div className="p-0 print:p-0">
-               {/* Categoria A Table */}
-               <div className="mb-8 print:mb-6 break-inside-avoid">
-                  <h3 className="text-lg font-bold text-gray-800 mb-3 px-6 pt-4 border-l-4 border-blue-600 flex items-center gap-2 print:border-none print:px-0 print:pt-4 print:mb-2 print:text-sm">
-                      <Layers className="h-5 w-5 print:h-4 print:w-4" /> Categoria A (Moto)
-                  </h3>
-                  <table className="w-full text-sm text-left border-collapse print:text-xs">
-                      <thead className="bg-gray-50 text-gray-600 border-b border-gray-200 print:bg-white print:border-black print:border-b">
-                      <tr>
-                          <th className="px-6 py-3 w-10 print:border print:border-black print:px-2 print:py-1">#</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-[90px]">CPF</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-auto">Nome do Candidato</th>
-                          <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24 print:py-1">Restrição</th>
-                          <th className="px-6 py-3 print:hidden">Autoescola</th>
-                          
-                          {/* Screen Actions */}
-                          <th className="px-6 py-3 print:hidden text-right">Ações</th>
-                          
-                          {/* Print Manual Fill Columns */}
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Faltou</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Apto</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black print:border-r-2 w-12 text-[10px] print:py-1">Inapto</th>
-                      </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                      {scheduledStudents.filter(s => s.scheduledCategory === 'A').map((req, idx) => (
-                          <tr key={req.id} className="hover:bg-gray-50 print:hover:bg-transparent">
-                          <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-0.5">{idx + 1}</td>
-                          <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-0.5 print:text-black">{req.cpf}</td>
-                          <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-0.5 print:text-black">
-                              {/* Display Social Name if exists */}
-                              {req.socialName ? req.socialName : req.studentName}
-                          </td>
-                          <td className="hidden print:table-cell print:border print:border-black print:px-2 print:py-0.5 text-center">{req.cnhRestriction || '-'}</td>
-                          <td className="px-6 py-4 text-gray-600 print:hidden">
-                              {req.schoolId ? api.getSchools().find(s => s.id === req.schoolId)?.name : 'Particular'}
-                          </td>
-                          
-                          {/* Screen Actions */}
-                          <td className="px-6 py-4 text-right print:hidden flex justify-end gap-2">
-                              {canEdit ? (
-                                  <>
-                                    <button 
-                                        type="button"
-                                        onClick={(e) => handleSendWhatsapp(e, req)}
-                                        className="text-green-600 hover:text-green-800 bg-green-50 p-2 rounded-md transition-colors border border-green-100 inline-flex items-center justify-center w-8 h-8"
-                                        title="Enviar WhatsApp"
-                                    >
-                                        <MessageCircle className="h-4 w-4" />
-                                    </button>
-
-                                    <button 
-                                        type="button"
-                                        onClick={(e) => handleToggleConfirmation(e, req)}
-                                        className={`p-2 rounded-md transition-colors border inline-flex items-center justify-center w-8 h-8 ${req.attendanceConfirmed ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' : 'text-gray-400 hover:text-blue-600 bg-gray-50 border-gray-200 hover:bg-white'}`}
-                                        title={req.attendanceConfirmed ? "Presença Confirmada (Clique para desfazer)" : "Confirmar Presença"}
-                                    >
-                                        {req.attendanceConfirmed ? <CheckCircle className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-                                    </button>
-
-                                    <button 
-                                        type="button"
-                                        onClick={(e) => handleRemoveClick(e, req.id)} 
-                                        disabled={processingStudentId === req.id}
-                                        className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-md transition-colors border border-red-100 disabled:opacity-50 inline-flex items-center justify-center w-8 h-8"
-                                        title="Remover da Banca"
-                                    >
-                                        {processingStudentId === req.id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Trash2 className="h-4 w-4" />
-                                        )}
-                                    </button>
-                                  </>
-                              ) : (
-                                  <span className="text-gray-400 text-xs italic">Bloqueado</span>
-                              )}
-                          </td>
-
-                          {/* Print Manual Columns */}
-                          <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                          <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                          <td className="hidden print:table-cell print:border print:border-black print:border-r-2 text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                          </tr>
-                      ))}
-                      {scheduledStudents.filter(s => s.scheduledCategory === 'A').length === 0 && (
-                          <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic print:border print:border-black print:py-2">Nenhum candidato de Moto agendado.</td></tr>
-                      )}
-                      </tbody>
-                  </table>
-               </div>
-
-               {/* Categoria B Table */}
-               <div className="mb-8 print:mb-2 break-inside-avoid">
-                  <h3 className="text-lg font-bold text-gray-800 mb-3 px-6 pt-4 border-l-4 border-blue-600 flex items-center gap-2 print:border-none print:px-0 print:pt-0 print:mb-1 print:text-sm">
-                      <Layers className="h-5 w-5 print:h-4 print:w-4" /> Categoria B (Carro)
-                  </h3>
-                  <table className="w-full text-sm text-left border-collapse print:text-xs">
-                      <thead className="bg-gray-50 text-gray-600 border-b border-gray-200 print:bg-white print:border-black print:border-b">
-                      <tr>
-                          <th className="px-6 py-3 w-10 print:border print:border-black print:px-2 print:py-1">#</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-[90px]">CPF</th>
-                          <th className="px-6 py-3 print:border print:border-black print:px-2 print:py-1 print:w-auto">Nome do Candidato</th>
-                          <th className="hidden print:table-cell px-2 py-3 print:border print:border-black w-24 print:py-1">Restrição</th>
-                          <th className="px-6 py-3 print:hidden">Autoescola</th>
-                          
-                          {/* Screen Actions */}
-                          <th className="px-6 py-3 print:hidden text-right">Ações</th>
-                          
-                          {/* Print Manual Fill Columns */}
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Faltou</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black w-12 text-[10px] print:py-1">Apto</th>
-                          <th className="hidden print:table-cell px-1 py-3 text-center print:border print:border-black print:border-r-2 w-12 text-[10px] print:py-1">Inapto</th>
-                      </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                      {scheduledStudents.filter(s => s.scheduledCategory === 'B' || !s.scheduledCategory).map((req, idx) => (
-                          <tr key={req.id} className="hover:bg-gray-50 print:hover:bg-transparent">
-                          <td className="px-6 py-4 font-medium text-gray-500 print:border print:border-black print:px-2 print:py-0.5">{idx + 1}</td>
-                          <td className="px-6 py-4 text-gray-600 print:border print:border-black print:px-2 print:py-0.5 print:text-black">{req.cpf}</td>
-                          <td className="px-6 py-4 font-medium text-gray-900 uppercase print:border print:border-black print:px-2 print:py-0.5 print:text-black">
-                              {/* Display Social Name if exists */}
-                              {req.socialName ? req.socialName : req.studentName}
-                          </td>
-                          <td className="hidden print:table-cell print:border print:border-black print:px-2 print:py-0.5 text-center">{req.cnhRestriction || '-'}</td>
-                          <td className="px-6 py-4 text-gray-600 print:hidden">
-                              {req.schoolId ? api.getSchools().find(s => s.id === req.schoolId)?.name : 'Particular'}
-                          </td>
-                          
-                          {/* Screen Actions */}
-                          <td className="px-6 py-4 text-right print:hidden flex justify-end gap-2">
-                              {canEdit ? (
-                                  <>
-                                    <button 
-                                        type="button"
-                                        onClick={(e) => handleSendWhatsapp(e, req)}
-                                        className="text-green-600 hover:text-green-800 bg-green-50 p-2 rounded-md transition-colors border border-green-100 inline-flex items-center justify-center w-8 h-8"
-                                        title="Enviar WhatsApp"
-                                    >
-                                        <MessageCircle className="h-4 w-4" />
-                                    </button>
-
-                                    <button 
-                                        type="button"
-                                        onClick={(e) => handleToggleConfirmation(e, req)}
-                                        className={`p-2 rounded-md transition-colors border inline-flex items-center justify-center w-8 h-8 ${req.attendanceConfirmed ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700' : 'text-gray-400 hover:text-blue-600 bg-gray-50 border-gray-200 hover:bg-white'}`}
-                                        title={req.attendanceConfirmed ? "Presença Confirmada (Clique para desfazer)" : "Confirmar Presença"}
-                                    >
-                                        {req.attendanceConfirmed ? <CheckCircle className="h-4 w-4" /> : <Circle className="h-4 w-4" />}
-                                    </button>
-
-                                    <button 
-                                        type="button"
-                                        onClick={(e) => handleRemoveClick(e, req.id)} 
-                                        disabled={processingStudentId === req.id}
-                                        className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-md transition-colors border border-red-100 disabled:opacity-50 inline-flex items-center justify-center w-8 h-8"
-                                        title="Remover da Banca"
-                                    >
-                                        {processingStudentId === req.id ? (
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                            <Trash2 className="h-4 w-4" />
-                                        )}
-                                    </button>
-                                  </>
-                              ) : (
-                                <span className="text-gray-400 text-xs italic">Bloqueado</span>
-                              )}
-                          </td>
-                          
-                          {/* Print Manual Columns */}
-                          <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                          <td className="hidden print:table-cell print:border print:border-black text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                          <td className="hidden print:table-cell print:border print:border-black print:border-r-2 text-center"><span className="inline-block w-4 h-4 border border-black"></span></td>
-                          </tr>
-                      ))}
-                      {scheduledStudents.filter(s => s.scheduledCategory === 'B' || !s.scheduledCategory).length === 0 && (
-                          <tr><td colSpan={7} className="px-6 py-8 text-center text-gray-400 italic print:border print:border-black print:py-2">Nenhum candidato de Carro agendado.</td></tr>
-                      )}
-                      </tbody>
-                  </table>
-               </div>
-            </div>
-            
-            {/* Signature Block (Moved up) */}
-            <div className="hidden print:block mt-12 text-center">
-                 <div className="inline-block border-t border-black px-12 pt-1 text-sm">
-                    Assinatura do Presidente da Banca
-                 </div>
-            </div>
-
-            {/* Footer (Fixed Bottom) */}
-            <div className="hidden print:block fixed bottom-0 left-0 w-full bg-white">
-               <div className="border-t border-black pt-1 pb-2 flex flex-col items-center text-[10px] w-full text-center">
-                  {settings?.agencyAddress && (
-                      <span className="font-bold uppercase">{settings.agencyAddress}</span>
-                  )}
-                  <span>Data de Impressão: {new Date().toLocaleDateString()}</span>
-               </div>
-            </div>
-          </div>
-
-          {/* Modal: Add Students */}
-          {isAddStudentOpen && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full flex flex-col max-h-[90vh]">
-                <div className="p-4 border-b flex justify-between items-center">
-                  <h3 className="font-bold text-lg">Adicionar Candidatos à Banca</h3>
-                  <button onClick={() => setIsAddStudentOpen(false)}><X className="h-5 w-5 text-gray-500" /></button>
-                </div>
-                
-                <div className="p-4 border-b bg-gray-50">
-                  <div className="relative">
+    <div className="space-y-6">
+      {!selectedSchedule ? (
+        <>
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+             {/* Left Side Filters */}
+             <div className="flex gap-3 w-full md:w-auto items-center flex-wrap">
+                <div className="relative w-full md:w-48">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input 
-                      type="text" 
-                      placeholder="Filtrar por nome ou CPF..." 
-                      className="w-full pl-10 pr-4 py-2 border rounded-md bg-white text-gray-900"
-                      value={studentFilter}
-                      onChange={(e) => setStudentFilter(e.target.value)}
+                        type="text" 
+                        placeholder="Buscar..." 
+                        className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
                     />
-                  </div>
-                  <div className="mt-2 text-xs flex gap-3">
-                      <span className={`${currentCounts!.A.current >= currentCounts!.A.max ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-                          Vagas Moto (A): {currentCounts!.A.max - currentCounts!.A.current} disponíveis
-                      </span>
-                      <span className={`${currentCounts!.B.current >= currentCounts!.B.max ? 'text-red-600 font-bold' : 'text-gray-500'}`}>
-                          Vagas Carro (B): {currentCounts!.B.max - currentCounts!.B.current} disponíveis
-                      </span>
-                  </div>
+                </div>
+                
+                <div className="relative w-full md:w-40">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Filter className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <select 
+                        className="w-full pl-10 pr-8 py-2 border rounded-md text-sm bg-white text-gray-900 appearance-none focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer"
+                        value={statusFilter}
+                        onChange={e => setStatusFilter(e.target.value)}
+                    >
+                        <option value="ALL">Status</option>
+                        <option value="OPEN">Abertas</option>
+                        <option value="CLOSED">Fechadas</option>
+                        <option value="CONCLUDED">Concluídas</option>
+                        <option value="CANCELLED">Canceladas</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                    </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-2">
-                  <table className="w-full text-sm text-left">
-                    <thead className="text-gray-500 bg-gray-50 sticky top-0">
-                      <tr>
-                        <th className="px-4 py-2 w-10">
-                           #
-                        </th>
-                        <th className="px-4 py-2">Data Cadastro</th>
-                        <th className="px-4 py-2">Candidato</th>
-                        <th className="px-4 py-2">Categoria</th>
-                        <th className="px-4 py-2">Histórico</th>
-                        <th className="px-4 py-2">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {availableStudents
-                        .filter(s => (s.socialName || s.studentName).toLowerCase().includes(studentFilter.toLowerCase()) || s.cpf.includes(studentFilter))
-                        .map(s => {
-                          const isSelected = !!selectedStudentsMap[s.id];
-                          const historyCount = s.examHistory ? s.examHistory.length : 0;
-                          
-                          // Check specific capacity availability including current selection
-                          const cat = s.intendedCategory === 'A' ? 'A' : 'B';
-                          const selectedCountForCat = Object.values(selectedStudentsMap).filter(c => c === cat).length;
-                          const currentTotalForCat = currentCounts![cat].current;
-                          const maxForCat = currentCounts![cat].max;
-                          
-                          const isFull = !isSelected && (currentTotalForCat + selectedCountForCat >= maxForCat);
-
-                          return (
-                              <tr key={s.id} className={`hover:bg-blue-50 ${isSelected ? 'bg-blue-50' : ''} ${isFull ? 'opacity-50 bg-gray-50' : ''}`}>
-                                  <td className="px-4 py-3">
-                                  <input 
-                                      type="checkbox" 
-                                      checked={isSelected}
-                                      disabled={isFull}
-                                      onChange={(e) => handleToggleStudentSelection(s, e.target.checked)}
-                                  />
-                                  </td>
-                                  <td className="px-4 py-3 text-gray-600">
-                                      {new Date(s.createdAt).toLocaleDateString()}
-                                  </td>
-                                  <td className="px-4 py-3">
-                                  <div className="font-medium">{s.socialName || s.studentName}</div>
-                                  <div className="text-xs text-gray-500">{s.cpf}</div>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                      <span className={`font-bold px-2 py-1 rounded text-xs ${isSelected ? 'bg-blue-100 text-blue-800' : 'bg-gray-100'}`}>
-                                          {s.intendedCategory || 'B'}
-                                      </span>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                      <span className="text-xs text-gray-600">
-                                          {historyCount > 0 ? `${historyCount} tentativa(s)` : '1ª Tentativa'}
-                                      </span>
-                                  </td>
-                                  <td className="px-4 py-3">
-                                      {isFull ? (
-                                           <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">Lotado</span>
-                                      ) : (
-                                           <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Aguardando</span>
-                                      )}
-                                  </td>
-                              </tr>
-                          );
-                      })}
-                      {availableStudents.length === 0 && (
-                          <tr><td colSpan={6} className="p-4 text-center text-gray-500">Nenhum candidato aguardando agendamento.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="flex items-center gap-2">
+                    <input 
+                        type="date" 
+                        className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                    />
+                    <span className="text-gray-400">-</span>
+                    <input 
+                        type="date" 
+                        className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                    />
                 </div>
+             </div>
 
-                <div className="p-4 border-t flex justify-between items-center bg-gray-50">
-                  <span className="text-sm text-gray-600">{Object.keys(selectedStudentsMap).length} candidatos selecionados</span>
-                  <div className="flex gap-2">
-                     <button onClick={() => setIsAddStudentOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded">Cancelar</button>
-                     <button onClick={handleAddStudents} disabled={Object.keys(selectedStudentsMap).length === 0} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
-                       Confirmar Inclusão
-                     </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        // --- VIEW: MAIN (List of Schedules) ---
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-               <h2 className="text-2xl font-bold text-gray-800">Central de Agendamentos</h2>
-               <p className="text-gray-500 text-sm">Gerencie bancas e listas de chamada para 1ª Habilitação</p>
-            </div>
-            <button 
-              onClick={handleOpenCreate}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors shadow-sm"
-            >
-              <Plus className="h-5 w-5" /> Nova Banca
-            </button>
-          </div>
-          
-          {/* FILTERS */}
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1 flex items-center gap-1">
-                      <Filter className="h-3 w-3" /> Status da Banca
-                  </label>
-                  <select 
-                      className="w-full border border-gray-300 rounded-md p-2 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value as any)}
-                  >
-                      <option value="ALL">Todas</option>
-                      <option value="OPEN">Abertas</option>
-                      <option value="CLOSED">Fechadas</option>
-                      <option value="CONCLUDED">Concluídas</option>
-                      <option value="CANCELLED">Canceladas</option>
-                  </select>
-              </div>
-              
-              <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">De (Data)</label>
-                  <input 
-                      type="date" 
-                      className="w-full border border-gray-300 rounded-md p-2 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={dateStartFilter}
-                      onChange={(e) => setDateStartFilter(e.target.value)}
-                  />
-              </div>
-
-              <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">Até (Data)</label>
-                  <input 
-                      type="date" 
-                      className="w-full border border-gray-300 rounded-md p-2 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      value={dateEndFilter}
-                      onChange={(e) => setDateEndFilter(e.target.value)}
-                  />
-              </div>
-
-              <div>
-                  <button 
-                    onClick={handleClearFilters}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium"
-                  >
-                      <RotateCcw className="h-4 w-4" /> Limpar Filtros
-                  </button>
-              </div>
+             {/* Right Side Action */}
+             <div className="w-full md:w-auto flex justify-end">
+                <button 
+                  onClick={() => handleOpenModal()}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold transition-colors"
+                >
+                  <Plus className="h-4 w-4" /> Nova Banca
+                </button>
+             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSchedules.map(schedule => {
-               // Show names of first 2 examiners + count
-               const mainExaminer = schedule.examinerIds[0] ? getExaminerName(schedule.examinerIds[0]) : 'Não atribuído';
-               const count = schedule.examinerIds.length;
-               const extra = count > 1 ? `+${count - 1}` : '';
-               const allReqs = scheduledStudents.length > 0 ? scheduledStudents : []; // Needs update logic for main view, doing quick fetch simulation below
-               
-               // Note: In main view we don't have all requests pre-fetched for every schedule to count accurately without api call
-               // Simplified: We will just show the Capacity Max info since actual count requires filtering all requests
-               
-               return (
+            {filteredSchedules.map(s => {
+              const studentsCount = allRequests.filter(r => r.scheduleId === s.id).length;
+              return (
                 <div 
-                  key={schedule.id} 
-                  onClick={() => setSelectedSchedule(schedule)}
-                  className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer group"
+                  key={s.id} 
+                  className={`bg-white rounded-xl border-2 transition-all hover:shadow-lg cursor-pointer group relative flex flex-col ${s.status === 'CANCELLED' ? 'border-red-100 opacity-75' : 'border-transparent shadow-sm'}`}
+                  onClick={() => setSelectedSchedule(s)}
                 >
-                  <div className="p-5">
+                  <div className="p-5 flex-1">
                     <div className="flex justify-between items-start mb-4">
-                       <div className="bg-blue-50 text-blue-700 p-2 rounded-lg group-hover:bg-blue-100 transition-colors">
-                          <Calendar className="h-6 w-6" />
-                       </div>
-                       {getStatusBadge(schedule.status)}
+                        <div className={`p-2 rounded-lg ${s.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                            <Calendar className="h-6 w-6" />
+                        </div>
+                        <StatusBadge status={s.status} />
                     </div>
-                    
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">
-                      {new Date(schedule.date).toLocaleDateString()}
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        {s.code && <span className="text-gray-500 mr-2 text-lg font-mono">#{s.code}</span>}
+                        {formatDateDisplay(s.date)}
                     </h3>
-                    <div className="flex items-center gap-2 text-gray-500 mb-4">
-                      <Clock className="h-4 w-4" /> {schedule.time}
+                    <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
+                        <Clock className="h-4 w-4" /> {s.time}
                     </div>
-                    
-                    <div className="border-t border-gray-100 pt-3 mt-2">
-                       <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                          <User className="h-4 w-4" /> {mainExaminer} {extra}
-                       </div>
-                       <div className="flex gap-3 text-xs text-gray-400 mt-2">
-                          <span title="Vagas Moto">A: {schedule.maxSlotsA || 10} vagas</span>
-                          <span title="Vagas Carro">B: {schedule.maxSlotsB || 10} vagas</span>
-                       </div>
-                       {schedule.status === 'CANCELLED' && (
-                           <div className="mt-2 text-xs text-red-600 font-medium">Motivo: {schedule.cancellationReason}</div>
-                       )}
+                    {s.status === 'OPEN' && <ClosingCountdown date={s.date} time={s.time} />}
+                    <div className="space-y-2 border-t pt-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <UserIcon className="h-4 w-4 opacity-50" />
+                            <span className="truncate">{s.examinerIds.length > 0 ? s.examinerIds.map(id => getExaminerName(id)).join(', ') : 'Sem examinador'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Users className="h-4 w-4 opacity-50" />
+                            <span>{studentsCount} candidatos agendados</span>
+                        </div>
                     </div>
                   </div>
+                  <div className="bg-gray-50 px-5 py-3 border-t flex justify-between items-center rounded-b-xl">
+                      <div className="flex gap-4 text-[10px] font-black uppercase text-gray-400">
+                          <span>Moto: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A').length}/{s.maxSlotsA}</span>
+                          <span>Carro: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length}/{s.maxSlotsB}</span>
+                      </div>
+                      <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                         <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
+                            <Edit2 className="h-4 w-4" />
+                         </button>
+                         {s.status !== 'CANCELLED' && (
+                             <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Cancelar Banca">
+                                <Ban className="h-4 w-4" />
+                             </button>
+                         )}
+                         {user.role === UserRole.ADMIN && (
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(s.id); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Excluir Banca">
+                                <Trash2 className="h-4 w-4" />
+                            </button>
+                         ) }
+                      </div>
+                  </div>
                 </div>
-               );
+              );
             })}
-            
-            {filteredSchedules.length === 0 && (
-               <div className="col-span-full py-12 text-center bg-white rounded-xl border border-dashed border-gray-300">
-                 <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                 <h3 className="text-lg font-medium text-gray-900">Nenhuma banca encontrada</h3>
-                 <p className="text-gray-500">Ajuste os filtros ou crie uma nova banca.</p>
-               </div>
-            )}
           </div>
+        </>
+      ) : (
+        /* VISUALIZAÇÃO DA BANCA SELECIONADA */
+        <div className="space-y-6 animate-fadeIn">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between print:hidden">
+                <button onClick={() => setSelectedSchedule(null)} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors">
+                    <ChevronRight className="h-4 w-4 rotate-180" /> Voltar para a lista
+                </button>
+                <div className="flex gap-2">
+                    {selectedSchedule.status !== 'CONCLUDED' && (
+                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 bg-white shadow-sm text-sm font-bold">
+                            <Printer className="h-4 w-4" /> Imprimir Lista
+                        </button>
+                    )}
+                    {selectedSchedule.status === 'OPEN' && (
+                        <button onClick={handleOpenAddStudent} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-md text-sm font-bold">
+                            <Plus className="h-4 w-4" /> Agendar Candidato
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
+                {/* Cabeçalho de Impressão e UI */}
+                <div className="p-6 bg-white border-b print:p-0 print:border-none">
+                    <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-4 mb-3">
+                        {settings?.logoUrl ? (
+                            <img src={settings.logoUrl} className="h-16 w-auto" />
+                        ) : (
+                            <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-black text-xs print:!text-black">DETRAN</div>
+                        )}
+                        <div>
+                            <h1 className="text-xl font-black uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                            <h2 className="text-2xl font-black uppercase print:!text-black">
+                                LISTA DE CHAMADA - {selectedSchedule.type === ExamType.PCD ? 'PCD' : '1ª HABILITAÇÃO'}
+                            </h2>
+                        </div>
+                    </div>
+
+                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-2 print:!text-black">
+                        <div className="flex gap-8">
+                            {selectedSchedule.code && <span className="text-sm uppercase font-bold">BANCA: <span className="font-normal">{selectedSchedule.code}</span></span>}
+                            <span className="text-sm uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
+                            <span className="text-sm uppercase font-bold">HORA: <span className="font-normal">{selectedSchedule.time}</span></span>
+                        </div>
+                        <span className="text-sm uppercase font-bold">EXAMINADORES: <span className="font-normal">{selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span></span>
+                    </div>
+
+                    <div className="print:hidden">
+                        <div className="flex items-center gap-3 mb-2">
+                            <h2 className="text-2xl font-bold text-gray-900">
+                                {selectedSchedule.code && <span className="text-gray-500 mr-2 font-mono">#{selectedSchedule.code}</span>}
+                                {formatDateDisplay(selectedSchedule.date)}
+                            </h2>
+                            <StatusBadge status={selectedSchedule.status} />
+                        </div>
+                        <div className="flex flex-wrap gap-6 text-sm text-gray-500 font-medium">
+                            <span className="flex items-center gap-2"><Clock className="h-4 w-4" /> {selectedSchedule.time}</span>
+                            <span className="flex items-center gap-2"><UserIcon className="h-4 w-4" /> {selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-6 space-y-8 print:p-0">
+                    {['A', 'B'].map(cat => {
+                        const students = scheduledStudents.filter(s => s.scheduledCategory === cat);
+                        if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
+                        
+                        return (
+                            <div key={cat} className="break-inside-avoid print:mb-2 mb-4">
+                                <div className="flex items-center gap-3 border-b pb-2 mb-4 print:border-black print:!text-black">
+                                    <div className="bg-blue-50 text-blue-600 p-2 rounded-md print:hidden">
+                                        <Layers className="h-5 w-5" />
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-800 print:text-sm print:font-black">Categoria {cat}</h3>
+                                    <span className="text-sm text-gray-500 ml-auto print:hidden">
+                                        {students.length} candidatos agendados
+                                    </span>
+                                </div>
+
+                                {/* LISTA CLEAN (Apenas Web - SEM as colunas de marcação) */}
+                                <div className="space-y-2 print:hidden">
+                                    {students.map((req, idx) => (
+                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-3 rounded-md border transition-all hover:border-blue-200 bg-white ${req.attendanceConfirmed ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                                            <div className="flex items-center gap-4 flex-1 w-full">
+                                                <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 text-sm shrink-0">
+                                                    {idx + 1}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="text-sm font-bold text-gray-900 uppercase truncate">
+                                                        {req.socialName || req.studentName}
+                                                    </div>
+                                                    <div className="flex gap-2 text-xs text-gray-500">
+                                                        <span>{req.cpf}</span>
+                                                        <span className="text-gray-300">|</span>
+                                                        <span>Instrutor: {req.instructor || '-'}</span>
+                                                        {selectedSchedule.status === 'CONCLUDED' && (
+                                                            req.status === 'WAITING_RESULT' ? (
+                                                                <>
+                                                                    <span className="text-gray-300">|</span>
+                                                                    <span className="text-gray-400 italic text-[10px] uppercase">Aguardando Lançamento</span>
+                                                                </>
+                                                            ) : (
+                                                                req.result && (
+                                                                    <>
+                                                                        <span className="text-gray-300">|</span>
+                                                                        <span className={`font-bold ${req.result === 'APTO' ? 'text-green-600' : req.result === 'INAPTO' ? 'text-red-600' : 'text-orange-600'}`}>
+                                                                            {req.result}
+                                                                        </span>
+                                                                    </>
+                                                                )
+                                                            )
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {selectedSchedule.status !== 'CONCLUDED' && selectedSchedule.status !== 'CLOSED' && (
+                                                <div className="flex items-center gap-2 shrink-0">
+                                                    {/* Botão Confirmação */}
+                                                    <button 
+                                                        onClick={() => toggleAttendance(req)}
+                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium text-xs transition-all ${req.attendanceConfirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                                                        title="Confirmar Presença/Agendamento"
+                                                    >
+                                                        {req.attendanceConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                                                        {req.attendanceConfirmed ? 'Confirmado' : 'Confirmar'}
+                                                    </button>
+
+                                                    {/* Botão WhatsApp */}
+                                                    <button 
+                                                        onClick={() => handleWhatsApp(req)}
+                                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-all"
+                                                        title="Enviar mensagem WhatsApp"
+                                                    >
+                                                        <MessageCircle className="h-4 w-4" />
+                                                    </button>
+
+                                                    <div className="w-px h-4 bg-gray-200 mx-1"></div>
+
+                                                    <button 
+                                                        onClick={() => handleRemoveStudent(req)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
+                                                        title="Remover da Banca"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                    {students.length === 0 && (
+                                        <div className="text-center py-6 bg-gray-50 rounded-md border border-dashed border-gray-200 text-gray-500 text-sm">
+                                            Nenhum candidato nesta categoria.
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* TABELA ORIGINAL (Apenas Impressão - COM as colunas de marcação) */}
+                                <table className="hidden print:table w-full text-left border-collapse border-2 border-black">
+                                    <thead>
+                                        <tr className="bg-white text-black font-black border-b-2 border-black text-[9px]">
+                                            <th className="px-2 py-1 w-10 text-center border-r border-black uppercase">#</th>
+                                            <th className="px-3 py-1 w-32 border-r border-black uppercase">CPF</th>
+                                            <th className="px-3 py-1 border-r border-black uppercase">Nome do Candidato</th>
+                                            <th className="px-3 py-1 w-20 text-center border-r border-black uppercase">Restr.</th>
+                                            <th className="px-2 py-1 w-14 text-center border-r border-black uppercase">Faltou</th>
+                                            <th className="px-2 py-1 w-14 text-center border-r border-black uppercase">Apto</th>
+                                            <th className="px-2 py-1 w-14 text-center uppercase">Inapto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y-2 divide-black">
+                                        {students.map((req, idx) => (
+                                            <tr key={req.id} className="border-b-2 border-black print:!text-black">
+                                                <td className="px-2 py-1 text-center font-black border-r border-black text-[11px]">{idx + 1}</td>
+                                                <td className="px-3 py-1 font-black text-[12px] border-r border-black">{req.cpf}</td>
+                                                <td className="px-3 py-1 font-black uppercase text-[12px] border-r border-black truncate">{req.socialName || req.studentName}</td>
+                                                <td className="px-3 py-1 text-center font-bold text-[10px] border-r border-black">{req.cnhRestriction || '-'}</td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-2 py-1"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Assinatura do Examinador (Print Only) */}
+                <div className="hidden print:flex flex-col items-center mt-24 mb-20 break-inside-avoid">
+                    <div className="w-96 border-b-2 border-black mb-2"></div>
+                    <span className="text-sm font-black uppercase tracking-widest text-black">Assinatura do Examinador</span>
+                </div>
+
+                {/* Rodapé Institucional (Print Only) */}
+                <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+                    <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                    <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
+                </div>
+            </div>
         </div>
       )}
 
-      {/* CONFIRM DELETE (REMOVE STUDENT) MODAL */}
-      {studentToRemove && (
-          <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 animate-fadeIn">
-              <div className="flex flex-col items-center text-center">
-                 <div className="h-12 w-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                    <AlertTriangle className="h-6 w-6 text-red-600" />
-                 </div>
-                 <h3 className="text-lg font-bold text-gray-900 mb-2">Remover Candidato?</h3>
-                 <p className="text-sm text-gray-500 mb-6">
-                    O candidato será removido desta banca e retornará para a lista de espera ("Aguardando Agendamento").
-                 </p>
-                 <div className="flex gap-3 w-full">
-                    <button 
-                        onClick={() => setStudentToRemove(null)} 
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={confirmRemoveStudent} 
-                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                    >
-                        Remover
-                    </button>
-                 </div>
+      {/* MODAL: NOVA BANCA */}
+      {isModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-bold text-gray-900">{editingSchedule ? 'Editar Banca' : 'Nova Banca'}</h3>
+                      <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors"><X className="h-6 w-6" /></button>
+                  </div>
+                  <form onSubmit={handleSaveSchedule} className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Data da Prova <span className="text-red-500">*</span></label>
+                            <input id="scheduleDate" required type="date" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Horário Início <span className="text-red-500">*</span></label>
+                            <input id="scheduleTime" required type="time" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
+                          </div>
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Escalar Examinadores (Máx 3) <span className="text-red-500">*</span></label>
+                          <div id="examinersList" className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-gray-50" tabIndex={0}>
+                              {examiners.map(ex => (
+                                  <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-2 rounded-md transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}`}>
+                                      <input type="checkbox" className="hidden" checked={scheduleForm.examinerIds.includes(ex.id)} onChange={(e) => {
+                                            const ids = e.target.checked ? [...scheduleForm.examinerIds, ex.id].slice(0, 3) : scheduleForm.examinerIds.filter(id => id !== ex.id);
+                                            setScheduleForm({...scheduleForm, examinerIds: ids});
+                                      }} />
+                                      <div className={`h-4 w-4 rounded border flex items-center justify-center ${scheduleForm.examinerIds.includes(ex.id) ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'}`}>
+                                          {scheduleForm.examinerIds.includes(ex.id) && <CheckCircle2 className="h-3 w-3" />}
+                                      </div>
+                                      <span className="text-sm font-medium">{ex.name}</span>
+                                  </label>
+                              ))}
+                          </div>
+                      </div>
+                      <div className="flex justify-end gap-3 pt-4">
+                          <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-50 font-medium">Cancelar</button>
+                          <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 shadow-sm transition-all">Salvar Banca</button>
+                      </div>
+                  </form>
               </div>
-            </div>
           </div>
       )}
 
-      {/* CANCEL SCHEDULE MODAL */}
-      {isCancelModalOpen && (
-          <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fadeIn">
-               <div className="flex flex-col">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-                     <Ban className="h-6 w-6 text-red-600" /> Cancelar Banca
-                  </h3>
-                  <div className="bg-red-50 p-3 rounded-md border border-red-100 text-sm text-red-800 mb-4">
-                     <strong>Atenção:</strong> Ao cancelar esta banca, todos os candidatos agendados serão removidos automaticamente e voltarão para a fila "Aguardando Agendamento".
+      {/* MODAL: ADICIONAR ESTUDANTE (REDESIGNED) */}
+      {isAddStudentOpen && selectedSchedule && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+                  <div className="flex justify-between items-center p-5 border-b">
+                      <h3 className="text-lg font-bold text-gray-800">Agendar Candidatos</h3>
+                      <button onClick={() => setIsAddStudentOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="h-6 w-6" /></button>
                   </div>
                   
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Motivo do Cancelamento (Obrigatório)</label>
-                  <textarea 
-                     required
-                     className="w-full border border-gray-300 rounded-md p-3 bg-white text-gray-900 focus:ring-2 focus:ring-red-500 focus:border-red-500"
-                     rows={3}
-                     placeholder="Ex: Chuva forte, Examinador doente..."
-                     value={cancelReason}
-                     onChange={(e) => setCancelReason(e.target.value)}
-                  ></textarea>
-
-                  <div className="flex gap-3 w-full mt-6">
-                     <button 
-                         onClick={() => setIsCancelModalOpen(false)} 
-                         className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                     >
-                         Voltar
-                     </button>
-                     <button 
-                         disabled={!cancelReason.trim()}
-                         onClick={handleConfirmCancel} 
-                         className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
-                     >
-                         Confirmar Cancelamento
-                     </button>
+                  <div className="p-5 border-b bg-gray-50">
+                      <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <input 
+                            type="text" 
+                            placeholder="Buscar nome ou CPF..." 
+                            className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={studentSearch} 
+                            onChange={e => setSearchTermInput(e.target.value)} 
+                          />
+                      </div>
                   </div>
-               </div>
-            </div>
+
+                  <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                      
+                      {/* CARD: CATEGORIA A */}
+                      <div className={`border rounded-lg overflow-hidden transition-all ${expandedCategories.A ? 'ring-1 ring-blue-200' : ''}`}>
+                          <button 
+                            onClick={() => setExpandedCategories(prev => ({ ...prev, A: !prev.A }))}
+                            className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+                          >
+                              <div className="flex items-center gap-3">
+                                  <div className="bg-blue-100 text-blue-700 p-2 rounded-lg"><Bike className="h-5 w-5" /></div>
+                                  <div className="text-left">
+                                      <h4 className="font-bold text-gray-800">Categoria A (Moto)</h4>
+                                      <span className="text-xs text-gray-500 font-medium">
+                                          {selectedCountA} selecionados / {remainingA} vagas restantes
+                                      </span>
+                                  </div>
+                              </div>
+                              {expandedCategories.A ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                          </button>
+                          
+                          {expandedCategories.A && (
+                              <div className="border-t bg-gray-50/50 p-2 max-h-60 overflow-y-auto space-y-1">
+                                  {candidatesA.map(cand => {
+                                      const isSelected = selectedCandidates[cand.id] === 'A';
+                                      const isDisabled = !isSelected && (remainingA <= 0 || selectedCandidates[cand.id] === 'B');
+                                      
+                                      return (
+                                          <label key={cand.id} className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors border ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white border-transparent hover:border-gray-200'} ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
+                                              <input 
+                                                type="checkbox" 
+                                                className="hidden"
+                                                disabled={isDisabled}
+                                                checked={isSelected}
+                                                onChange={() => toggleCandidateSelection(cand.id, 'A')}
+                                              />
+                                              <div className={isSelected ? 'text-blue-600' : 'text-gray-400'}>
+                                                  {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+                                              </div>
+                                              <div className="flex-1">
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
+                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
+                                                      <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
+                                                      <span>•</span>
+                                                      <span>{cand.cpf}</span>
+                                                      {cand.cnhRestriction && (
+                                                          <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold">
+                                                              Restrição: {cand.cnhRestriction}
+                                                          </span>
+                                                      )}
+                                                  </div>
+                                              </div>
+                                          </label>
+                                      );
+                                  })}
+                                  {candidatesA.length === 0 && <div className="p-4 text-center text-xs text-gray-400">Nenhum candidato disponível.</div>}
+                              </div>
+                          )}
+                      </div>
+
+                      {/* CARD: CATEGORIA B */}
+                      <div className={`border rounded-lg overflow-hidden transition-all ${expandedCategories.B ? 'ring-1 ring-blue-200' : ''}`}>
+                          <button 
+                            onClick={() => setExpandedCategories(prev => ({ ...prev, B: !prev.B }))}
+                            className="w-full flex items-center justify-between p-4 bg-white hover:bg-gray-50 transition-colors"
+                          >
+                              <div className="flex items-center gap-3">
+                                  <div className="bg-green-100 text-green-700 p-2 rounded-lg"><Car className="h-5 w-5" /></div>
+                                  <div className="text-left">
+                                      <h4 className="font-bold text-gray-800">Categoria B (Carro)</h4>
+                                      <span className="text-xs text-gray-500 font-medium">
+                                          {selectedCountB} selecionados / {remainingB} vagas restantes
+                                      </span>
+                                  </div>
+                              </div>
+                              {expandedCategories.B ? <ChevronUp className="h-5 w-5 text-gray-400" /> : <ChevronDown className="h-5 w-5 text-gray-400" />}
+                          </button>
+                          
+                          {expandedCategories.B && (
+                              <div className="border-t bg-gray-50/50 p-2 max-h-60 overflow-y-auto space-y-1">
+                                  {candidatesB.map(cand => {
+                                      const isSelected = selectedCandidates[cand.id] === 'B';
+                                      const isDisabled = !isSelected && (remainingB <= 0 || selectedCandidates[cand.id] === 'A');
+                                      
+                                      return (
+                                          <label key={cand.id} className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors border ${isSelected ? 'bg-green-50 border-green-200' : 'bg-white border-transparent hover:border-gray-200'} ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
+                                              <input 
+                                                type="checkbox" 
+                                                className="hidden"
+                                                disabled={isDisabled}
+                                                checked={isSelected}
+                                                onChange={() => toggleCandidateSelection(cand.id, 'B')}
+                                              />
+                                              <div className={isSelected ? 'text-green-600' : 'text-gray-400'}>
+                                                  {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+                                              </div>
+                                              <div className="flex-1">
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
+                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
+                                                      <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
+                                                      <span>•</span>
+                                                      <span>{cand.cpf}</span>
+                                                      {cand.cnhRestriction && (
+                                                          <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold">
+                                                              Restrição: {cand.cnhRestriction}
+                                                          </span>
+                                                      )}
+                                                  </div>
+                                              </div>
+                                          </label>
+                                      );
+                                  })}
+                                  {candidatesB.length === 0 && <div className="p-4 text-center text-xs text-gray-400">Nenhum candidato disponível.</div>}
+                              </div>
+                          )}
+                      </div>
+
+                  </div>
+
+                  <div className="p-5 border-t bg-gray-50 flex justify-end gap-3">
+                      <button onClick={() => setIsAddStudentOpen(false)} className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 font-medium">Cancelar</button>
+                      <button 
+                        onClick={handleConfirmBatchSchedule}
+                        disabled={Object.keys(selectedCandidates).length === 0}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
+                      >
+                          Confirmar Agendamento ({Object.keys(selectedCandidates).length})
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+      {/* Error Modal */}
+      {isErrorModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative">
+                  <div className="flex flex-col items-center text-center">
+                      <div className="mb-4 p-3 rounded-full bg-red-50">
+                          <AlertOctagon className="h-10 w-10 text-red-500" />
+                      </div>
+                      
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Atenção</h3>
+                      <p className="text-gray-600 mb-6">{errorMessage}</p>
+                      
+                      <button 
+                          onClick={() => {
+                              setIsErrorModalOpen(false);
+                              if (errorField) {
+                                  setTimeout(() => {
+                                      const element = document.getElementById(errorField);
+                                      if (element) {
+                                          element.focus();
+                                          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                      }
+                                  }, 100);
+                              }
+                          }}
+                          className="w-full py-2.5 px-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                          Entendi
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+      {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO */}
+      {isRemoveConfirmOpen && candidateToRemove && (
+          <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn">
+                  <div className="p-6 text-center">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+                          <Trash2 className="h-8 w-8 text-red-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Remover Candidato?</h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                          Tem certeza que deseja remover <span className="font-bold text-gray-800">{candidateToRemove.studentName}</span> desta banca?
+                          <br/><br/>
+                          O candidato voltará para a lista de "Aguardando Agendamento".
+                      </p>
+                      
+                      <div className="flex gap-3 justify-center">
+                          <button 
+                              onClick={() => setIsRemoveConfirmOpen(false)}
+                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                          >
+                              Cancelar
+                          </button>
+                          <button 
+                              onClick={confirmRemoveStudent}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-md transition-colors flex items-center gap-2"
+                          >
+                              Sim, Remover
+                          </button>
+                      </div>
+                  </div>
+              </div>
           </div>
       )}
 
-      {/* GLOBAL MODALS: Create/Edit Schedule */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-fadeIn">
-            <div className="flex justify-between items-center mb-4">
-               <h3 className="text-lg font-bold">{modalMode === 'CREATE' ? 'Nova Banca de Exame' : 'Editar Banca'}</h3>
-               <button onClick={() => setIsModalOpen(false)}><X className="h-5 w-5 text-gray-400" /></button>
-            </div>
-            
-            <form onSubmit={handleSubmitSchedule} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Data</label>
-                <input required type="date" className="w-full border rounded p-2 mt-1 bg-white text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
-              </div>
-              <div>
-                  <label className="block text-sm font-medium text-gray-700">Horário</label>
-                  <input required type="time" className="w-full border rounded p-2 mt-1 bg-white text-gray-900" value={scheduleForm.time} onChange={e => setScheduleForm({...scheduleForm, time: e.target.value})} />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vagas Moto (A)</label>
-                  <input required type="number" min="0" className="w-full border rounded p-2 mt-1 bg-white text-gray-900" value={scheduleForm.maxSlotsA} onChange={e => setScheduleForm({...scheduleForm, maxSlotsA: parseInt(e.target.value)})} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Vagas Carro (B)</label>
-                  <input required type="number" min="0" className="w-full border rounded p-2 mt-1 bg-white text-gray-900" value={scheduleForm.maxSlotsB} onChange={e => setScheduleForm({...scheduleForm, maxSlotsB: parseInt(e.target.value)})} />
-                </div>
-              </div>
-              
-              <div className="space-y-3 pt-2">
-                <label className="block text-sm font-medium text-gray-700">Examinadores (Até 3)</label>
-                
-                <select required className="w-full border rounded p-2 bg-white text-gray-900" value={scheduleForm.examiner1} onChange={e => setScheduleForm({...scheduleForm, examiner1: e.target.value})}>
-                  <option value="">Examinador Principal (Obrigatório)</option>
-                  {examiners.filter(e => e.canExamCommon).map(e => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
-                  ))}
-                </select>
+      {/* MODAL DE CANCELAMENTO DE BANCA */}
+      {isCancelScheduleOpen && scheduleToCancel && (
+          <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn">
+                  <div className="p-6">
+                      <div className="text-center mb-6">
+                          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+                              <Ban className="h-8 w-8 text-red-600" />
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-2">Cancelar Banca?</h3>
+                          <p className="text-sm text-gray-500">
+                              Esta ação irá cancelar a banca e liberar todos os candidatos agendados.
+                          </p>
+                      </div>
+                      
+                      <div className="mb-6">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Motivo do Cancelamento <span className="text-red-500">*</span></label>
+                          <textarea 
+                              className="w-full border rounded-md p-2 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
+                              rows={3}
+                              placeholder="Informe o motivo..."
+                              value={cancelReason}
+                              onChange={e => setCancelReason(e.target.value)}
+                          />
+                      </div>
 
-                <select className="w-full border rounded p-2 bg-white text-gray-900" value={scheduleForm.examiner2} onChange={e => setScheduleForm({...scheduleForm, examiner2: e.target.value})}>
-                  <option value="">2º Examinador (Opcional)</option>
-                  {examiners.filter(e => e.canExamCommon && e.id !== scheduleForm.examiner1 && e.id !== scheduleForm.examiner3).map(e => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
-                  ))}
-                </select>
-
-                <select className="w-full border rounded p-2 bg-white text-gray-900" value={scheduleForm.examiner3} onChange={e => setScheduleForm({...scheduleForm, examiner3: e.target.value})}>
-                  <option value="">3º Examinador (Opcional)</option>
-                  {examiners.filter(e => e.canExamCommon && e.id !== scheduleForm.examiner1 && e.id !== scheduleForm.examiner2).map(e => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
-                  ))}
-                </select>
+                      <div className="flex gap-3 justify-center">
+                          <button 
+                              onClick={() => setIsCancelScheduleOpen(false)}
+                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                          >
+                              Voltar
+                          </button>
+                          <button 
+                              onClick={confirmCancelSchedule}
+                              disabled={!cancelReason.trim()}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                              Confirmar Cancelamento
+                          </button>
+                      </div>
+                  </div>
               </div>
-
-              <div className="mt-6 flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                    {modalMode === 'CREATE' ? 'Criar Banca' : 'Salvar Alterações'}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
       )}
-    </>
+
+      {/* MODAL DE EXCLUSÃO DE BANCA */}
+      {isDeleteScheduleOpen && scheduleToDelete && (
+          <div className="fixed inset-0 bg-black/50 z-[90] flex items-center justify-center p-4 animate-fadeIn">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn border-2 border-red-100">
+                  <div className="p-6 text-center">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+                          <Trash2 className="h-8 w-8 text-red-600" />
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Excluir Banca Permanentemente?</h3>
+                      <p className="text-sm text-gray-500 mb-6">
+                          Esta ação é <span className="font-bold text-red-600">IRREVERSÍVEL</span>. 
+                          <br/>
+                          Todos os dados da banca serão perdidos e os candidatos serão desvinculados.
+                      </p>
+                      
+                      <div className="flex gap-3 justify-center">
+                          <button 
+                              onClick={() => setIsDeleteScheduleOpen(false)}
+                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                          >
+                              Cancelar
+                          </button>
+                          <button 
+                              onClick={confirmDeleteSchedule}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-md transition-colors flex items-center gap-2"
+                          >
+                              <Trash2 className="h-4 w-4" />
+                              Sim, Excluir
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
+
+    </div>
   );
 };
 

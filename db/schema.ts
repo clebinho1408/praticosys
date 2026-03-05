@@ -1,3 +1,4 @@
+
 import { pgTable, text, boolean, integer, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';
 
 // Tabela de Usuários (Admin, Operadores, Escolas)
@@ -36,13 +37,27 @@ export const instructors = pgTable('instructors', {
   name: text('name').notNull(),
   cpf: text('cpf').notNull(),
   phone: text('phone'),
-  plate: text('plate'),
+  category: text('category'), // New: A, B, AB
+  plate: text('plate'), // Mantido como referência principal ou legacy
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Tabela de Veículos
+export const vehicles = pgTable('vehicles', {
+  id: text('id').primaryKey(),
+  instructorId: text('instructor_id').notNull(),
+  type: text('type').notNull(), // CAR, MOTO
+  brand: text('brand').notNull(),
+  model: text('model').notNull(),
+  plate: text('plate').notNull(),
+  active: boolean('active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Tabela de Bancas (Agendas)
 export const examSchedules = pgTable('exam_schedules', {
   id: text('id').primaryKey(),
+  code: text('code').unique(), // New: Unique code (e.g., B6324)
   date: text('date').notNull(), // YYYY-MM-DD
   time: text('time').notNull(), // HH:mm
   examinerIds: jsonb('examiner_ids').$type<string[]>().default([]), // Array de IDs

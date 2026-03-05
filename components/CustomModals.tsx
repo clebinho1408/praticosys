@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, AlertCircle, CheckCircle, HelpCircle, AlertTriangle } from 'lucide-react';
+import { AlertCircle, CheckCircle, HelpCircle, AlertTriangle } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -83,6 +83,65 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
               className={`flex-1 py-2.5 px-4 text-white font-medium rounded-lg transition-colors shadow-sm ${
                 isDestructive ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
               }`}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface PromptModalProps extends ModalProps {
+  onConfirm: (value: string) => void;
+  defaultValue?: string;
+  placeholder?: string;
+  confirmText?: string;
+  cancelText?: string;
+}
+
+export const PromptModal: React.FC<PromptModalProps> = ({
+  isOpen, onClose, onConfirm, title, message, defaultValue = '', placeholder = '', confirmText = 'Confirmar', cancelText = 'Cancelar'
+}) => {
+  const [value, setValue] = React.useState(defaultValue);
+
+  React.useEffect(() => {
+    if (isOpen) setValue(defaultValue);
+  }, [isOpen, defaultValue]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative">
+        <div className="flex flex-col items-center">
+          <div className="mb-4 p-3 rounded-full bg-blue-50">
+            <HelpCircle className="h-10 w-10 text-blue-500" />
+          </div>
+          
+          <h3 className="text-xl font-bold text-gray-900 mb-2 text-center">{title}</h3>
+          <div className="text-gray-500 mb-4 text-center">{message}</div>
+          
+          <input
+            type="text"
+            className="w-full border rounded-md p-2 mb-6 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={placeholder}
+            autoFocus
+          />
+          
+          <div className="flex gap-3 w-full">
+            <button 
+              onClick={onClose}
+              className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              {cancelText}
+            </button>
+            <button 
+              onClick={() => { onConfirm(value); onClose(); }}
+              className="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-sm"
             >
               {confirmText}
             </button>

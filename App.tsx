@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthState, ExamType, User } from './types';
@@ -10,6 +11,8 @@ import RequestManager from './pages/RequestManager';
 import RegistryManagement from './pages/RegistryManagement';
 import Settings from './pages/Settings';
 import SchedulingCenter from './pages/SchedulingCenter';
+import Reports from './pages/Reports';
+import StudentDatabase from './pages/StudentDatabase';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>({
@@ -26,7 +29,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Redirect Root to Login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
@@ -44,12 +47,18 @@ const App: React.FC = () => {
                   <Route path="/" element={<AdminDashboard user={auth.user} />} />
                   
                   {/* Common Routes for specific filters */}
-                  <Route path="requests" element={<RequestManager user={auth.user} />} /> {/* For Schools mostly */}
+                  <Route path="requests" element={<RequestManager user={auth.user} />} /> 
                   <Route path="requests/common" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
                   <Route path="requests/pcd" element={<RequestManager user={auth.user} typeFilter={ExamType.PCD} />} />
+                  <Route path="requests/cfc" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
                   
                   {/* Scheduling Center */}
-                  <Route path="scheduling/common" element={<SchedulingCenter />} />
+                  <Route path="scheduling/common" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
+                  <Route path="scheduling/cfc" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
+                  <Route path="scheduling/pcd" element={<SchedulingCenter user={auth.user} type={ExamType.PCD} />} />
+
+                  {/* Reports */}
+                  <Route path="reports/:reportType" element={<Reports />} />
 
                   {/* Registries */}
                   <Route path="users" element={<RegistryManagement />} />
@@ -57,8 +66,8 @@ const App: React.FC = () => {
                   {/* Settings */}
                   <Route path="settings" element={<Settings />} />
                   
-                  {/* Placeholders */}
-                  <Route path="students" element={<div className="p-4 bg-white rounded shadow">Base de Candidatos (Em desenvolvimento)</div>} />
+                  {/* Student Database */}
+                  <Route path="students" element={<StudentDatabase />} />
                 </Routes>
               </Layout>
             ) : (

@@ -1,29 +1,41 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { api } from '../services/mockData';
-import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, Bell, Calendar, Shield, AlertTriangle, CheckCircle, MessageCircle, MapPin, Image as ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare } from 'lucide-react';
 
-type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
+import React, { useEffect, useState, useRef } from 'react';
+import { api } from '../services/api';
+import { SystemSettings } from '../types';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
+import { AlertModal } from '../components/CustomModals';
+
+type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION' | 'RESTRICTIONS';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const [newRestriction, setNewRestriction] = useState({ code: '', description: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; title: string; message: string; type?: 'error' | 'success' | 'info' }>({
+    isOpen: false,
+    title: '',
+    message: '',
+  });
+
   useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = () => {
     api.getSettings().then(data => {
       setSettings(data);
       setLoading(false);
     });
-  }, []);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!settings) return;
     const { name, value, type } = e.target;
-    // Handle checkbox separately since HTMLTextAreaElement doesn't have 'checked' property
     const checked = (e.target as HTMLInputElement).checked;
 
     setSettings({
@@ -35,42 +47,51 @@ const Settings: React.FC = () => {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file && settings) {
-          // Limit file size to 2MB to prevent localStorage issues
           if (file.size > 2 * 1024 * 1024) {
-              alert("A imagem é muito grande. Por favor, escolha uma imagem menor que 2MB.");
+              setAlertConfig({
+                isOpen: true,
+                title: 'Arquivo muito grande',
+                message: 'A imagem selecionada excede o limite de 2MB. Por favor, escolha uma imagem menor.',
+                type: 'error'
+              });
               return;
           }
-
           const reader = new FileReader();
           reader.onloadend = () => {
-              setSettings({
-                  ...settings,
-                  logoUrl: reader.result as string
-              });
+              setSettings({ ...settings, logoUrl: reader.result as string });
           };
           reader.readAsDataURL(file);
-      }
-  };
-
-  const handleRemoveLogo = () => {
-      if (settings) {
-          setSettings({ ...settings, logoUrl: '' });
-          if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-          }
       }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!settings) return;
-    
     setSaving(true);
     await api.updateSettings(settings);
     setSaving(false);
-    
     setSuccessMsg('Configurações salvas com sucesso!');
     setTimeout(() => setSuccessMsg(''), 3000);
+  };
+
+  const addRestriction = () => {
+    if (!settings || !/^[A-Z]$/.test(newRestriction.code)) {
+        alert("O campo 'Restrição' deve conter apenas uma letra maiúscula.");
+        return;
+    }
+    setSettings({
+        ...settings,
+        restrictions: [...(settings.restrictions || []), newRestriction]
+    });
+    setNewRestriction({ code: '', description: '' });
+  };
+
+  const removeRestriction = (code: string) => {
+    if (!settings) return;
+    setSettings({
+        ...settings,
+        restrictions: settings.restrictions.filter(r => r.code !== code)
+    });
   };
 
   if (loading || !settings) {
@@ -79,7 +100,7 @@ const Settings: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <SettingsIcon className="h-6 w-6 text-gray-600" />
           Configurações do Sistema
@@ -94,132 +115,34 @@ const Settings: React.FC = () => {
       )}
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        
-        {/* TABS */}
-        <div className="flex border-b border-gray-100 bg-gray-50">
-           <button 
-             type="button"
-             onClick={() => setActiveTab('GENERAL')}
-             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
-           >
-              <Layout className="h-4 w-4" /> Geral
-           </button>
-           <button 
-             type="button"
-             onClick={() => setActiveTab('RULES')}
-             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
-           >
-              <Sliders className="h-4 w-4" /> Regras de Agendamento
-           </button>
-           <button 
-             type="button"
-             onClick={() => setActiveTab('COMMUNICATION')}
-             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${activeTab === 'COMMUNICATION' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
-           >
-              <MessageSquare className="h-4 w-4" /> Comunicação
-           </button>
+        <div className="flex border-b border-gray-100 bg-gray-50 flex-wrap">
+           <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
+           <button type="button" onClick={() => setActiveTab('RULES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Sliders className="h-4 w-4" /> REGRAS</button>
+           <button type="button" onClick={() => setActiveTab('RESTRICTIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RESTRICTIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> RESTRIÇÕES</button>
+           <button type="button" onClick={() => setActiveTab('COMMUNICATION')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'COMMUNICATION' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MessageSquare className="h-4 w-4" /> COMUNICAÇÃO</button>
         </div>
 
-        {/* CONTENT */}
         <div className="p-8">
-            {/* --- TAB: GENERAL --- */}
             {activeTab === 'GENERAL' && (
                 <div className="space-y-8 animate-fadeIn">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">Nome da Agência (Título do Relatório)</label>
-                            <input
-                                type="text"
-                                name="agencyName"
-                                value={settings.agencyName}
-                                onChange={handleChange}
-                                placeholder="Ex: DETRAN - CIRETRAN 01"
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white text-gray-900"
-                            />
+                            <label className="block text-sm font-medium text-gray-700">Nome da Agência</label>
+                            <input type="text" name="agencyName" value={settings.agencyName} onChange={handleChange} className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" />
                         </div>
-
-                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">Endereço da Agência (Rodapé do Relatório)</label>
-                            <input
-                                type="text"
-                                name="agencyAddress"
-                                value={settings.agencyAddress || ''}
-                                onChange={handleChange}
-                                placeholder="Ex: Av. Governador Roberto Silveira, 123 - Centro"
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white text-gray-900"
-                            />
-                        </div>
-                        
                         <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 flex items-center gap-2 mb-2">
-                                <ImageIcon className="h-4 w-4" /> Logo da Agência
-                            </label>
-                            
+                            <label className="block text-sm font-medium text-gray-700">Endereço da Agência (Rodapé Relatórios)</label>
+                            <input type="text" name="agencyAddress" value={settings.agencyAddress || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 flex items-center gap-2 mb-2"><ImageIcon className="h-4 w-4" /> Logo</label>
                             <div className="flex items-start gap-6">
-                                <div className="h-32 w-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden relative group">
-                                    {settings.logoUrl ? (
-                                        <img src={settings.logoUrl} alt="Logo Preview" className="h-full w-full object-contain p-2" />
-                                    ) : (
-                                        <span className="text-gray-400 text-xs text-center px-2">Sem Logo</span>
-                                    )}
-                                </div>
-
+                                <div className="h-32 w-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">{settings.logoUrl ? <img src={settings.logoUrl} className="h-full w-full object-contain p-2" /> : <span className="text-gray-400 text-xs">Sem Logo</span>}</div>
                                 <div className="flex-1 space-y-3">
                                     <div className="flex gap-3">
-                                        <label className="cursor-pointer bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-                                            <Upload className="h-4 w-4" />
-                                            Carregar Imagem
-                                            <input 
-                                                ref={fileInputRef}
-                                                type="file" 
-                                                className="hidden" 
-                                                accept="image/*"
-                                                onChange={handleLogoUpload}
-                                            />
-                                        </label>
-                                        
-                                        {settings.logoUrl && (
-                                            <button 
-                                                type="button" 
-                                                onClick={handleRemoveLogo}
-                                                className="py-2 px-4 border border-red-200 rounded-md shadow-sm text-sm font-medium text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                            >
-                                                <Trash2 className="h-4 w-4" /> Remover
-                                            </button>
-                                        )}
+                                        <label className="cursor-pointer bg-white py-2 px-4 border rounded-md shadow-sm text-sm font-medium flex items-center gap-2"><Upload className="h-4 w-4" /> Carregar <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} /></label>
+                                        {settings.logoUrl && <button type="button" onClick={() => setSettings({...settings, logoUrl: ''})} className="py-2 px-4 border border-red-200 rounded-md text-red-600 flex items-center gap-2"><Trash2 className="h-4 w-4" /> Remover</button>}
                                     </div>
-                                    <p className="text-xs text-gray-500">
-                                        Recomendado: PNG ou JPG transparente. Tamanho máx: 2MB.<br/>
-                                        Essa imagem aparecerá no cabeçalho das listas de chamada e relatórios impressos.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="col-span-2 border-t pt-6 mt-2">
-                            <h3 className="font-semibold text-gray-700 flex items-center gap-2 mb-4"><MapPin className="h-5 w-5 text-red-500" /> Local de Prova Padrão (Para envio ao candidato)</h3>
-                            <div className="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Endereço do Local de Prova</label>
-                                    <input
-                                        type="text"
-                                        name="defaultExamAddress"
-                                        placeholder="Ex: Pátio do DETRAN - Rua X, 123"
-                                        value={settings.defaultExamAddress || ''}
-                                        onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white text-gray-900"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Link do Google Maps (Opcional)</label>
-                                    <input
-                                        type="text"
-                                        name="defaultExamAddressLink"
-                                        placeholder="https://maps.google.com/..."
-                                        value={settings.defaultExamAddressLink || ''}
-                                        onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white text-gray-900"
-                                    />
                                 </div>
                             </div>
                         </div>
@@ -227,92 +150,120 @@ const Settings: React.FC = () => {
                 </div>
             )}
 
-            {/* --- TAB: RULES --- */}
             {activeTab === 'RULES' && (
                 <div className="space-y-6 animate-fadeIn">
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-6">
-                        <p className="text-sm text-blue-800">Defina aqui os padrões para criação de novas bancas. Esses valores virão pré-preenchidos.</p>
-                    </div>
-
-                    <h4 className="text-sm font-bold text-gray-800">Padrão de Vagas por Banca</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Vagas Moto (Categoria A)</label>
-                            <input
-                                type="number"
-                                name="defaultMaxSlotsA"
-                                value={settings.defaultMaxSlotsA}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white text-gray-900"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Vagas Carro (Categoria B)</label>
-                            <input
-                                type="number"
-                                name="defaultMaxSlotsB"
-                                value={settings.defaultMaxSlotsB}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white text-gray-900"
-                            />
-                        </div>
-                    </div>
-                    
-                    <div className="border-t pt-6 mt-6">
-                        <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-100">
-                            <div>
-                                <label className="font-bold text-red-900">Modo de Manutenção</label>
-                                <p className="text-sm text-red-700">Bloqueia o acesso ao sistema para manutenção.</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" name="maintenanceMode" checked={settings.maintenanceMode} onChange={handleChange} className="sr-only peer" />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-                            </label>
-                        </div>
+                    <div className="grid grid-cols-2 gap-6 text-gray-900">
+                        <div><label className="block text-sm font-medium">Vagas Moto Padrão (Cat. A)</label><input type="number" name="defaultMaxSlotsA" value={settings.defaultMaxSlotsA} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
+                        <div><label className="block text-sm font-medium">Vagas Carro Padrão (Cat. B)</label><input type="number" name="defaultMaxSlotsB" value={settings.defaultMaxSlotsB} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
                     </div>
                 </div>
             )}
 
-            {/* --- TAB: COMMUNICATION --- */}
-            {activeTab === 'COMMUNICATION' && (
+            {activeTab === 'RESTRICTIONS' && (
                 <div className="space-y-6 animate-fadeIn">
-                     <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <MessageCircle className="h-4 w-4 text-green-600" />
-                            <label className="font-medium text-gray-700">Modelo de Mensagem (WhatsApp)</label>
+                    <div className="flex gap-4">
+                        <input type="text" maxLength={1} placeholder="Restrição (ex: A)" value={newRestriction.code} onChange={e => setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} className="w-20 rounded-md border p-2 bg-white text-gray-900 uppercase" />
+                        <input type="text" placeholder="Descrição" value={newRestriction.description} onChange={e => setNewRestriction({...newRestriction, description: e.target.value})} className="flex-1 rounded-md border p-2 bg-white text-gray-900" />
+                        <button type="button" onClick={addRestriction} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Adicionar</button>
+                    </div>
+                    <div className="space-y-2">
+                        {settings.restrictions?.map(r => (
+                            <div key={r.code} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
+                                <span className="font-bold">{r.code}</span>
+                                <span className="text-sm">{r.description}</span>
+                                <button type="button" onClick={() => removeRestriction(r.code)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+            {activeTab === 'COMMUNICATION' && (
+                <div className="space-y-8 animate-fadeIn">
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                            <MapPin className="h-4 w-4 text-blue-600" /> Endereço Padrão do Exame
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Endereço Completo</label>
+                                <input 
+                                    type="text" 
+                                    name="defaultExamAddress" 
+                                    value={settings.defaultExamAddress || ''} 
+                                    onChange={handleChange} 
+                                    placeholder="Ex: Av. Principal, 123 - Centro"
+                                    className="w-full border p-2 rounded bg-white text-gray-900" 
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1">Localização (Link Google Maps)</label>
+                                <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <input 
+                                        type="text" 
+                                        name="defaultExamAddressLink" 
+                                        value={settings.defaultExamAddressLink || ''} 
+                                        onChange={handleChange} 
+                                        placeholder="Ex: https://maps.app.goo.gl/..."
+                                        className="w-full border p-2 pl-10 rounded bg-white text-gray-900" 
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <textarea 
-                            name="whatsappMessageTemplate"
-                            rows={4}
-                            value={settings.whatsappMessageTemplate}
-                            onChange={handleChange}
-                            placeholder="Olá {CANDIDATO}, sua prova está marcada..."
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 bg-white text-gray-900"
-                        />
-                        <p className="text-xs text-gray-500 mt-2">
-                            Variáveis disponíveis: 
-                            <span className="font-mono bg-gray-100 px-1 mx-1 text-blue-600">{`{CANDIDATO}`}</span> 
-                            <span className="font-mono bg-gray-100 px-1 mx-1 text-blue-600">{`{DATA}`}</span> 
-                            <span className="font-mono bg-gray-100 px-1 mx-1 text-blue-600">{`{HORA}`}</span> 
-                            <span className="font-mono bg-gray-100 px-1 mx-1 text-blue-600">{`{CATEGORIA}`}</span> 
-                            <span className="font-mono bg-gray-100 px-1 mx-1 text-blue-600">{`{ENDERECO}`}</span>
-                        </p>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp
+                            </h3>
+                        </div>
+                        <div>
+                            <textarea 
+                                name="whatsappMessageTemplate" 
+                                rows={8} 
+                                value={settings.whatsappMessageTemplate} 
+                                onChange={handleChange} 
+                                className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
+                            />
+                            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {[
+                                        { tag: '{CANDIDATO}', desc: 'Nome' },
+                                        { tag: '{CATEGORIA}', desc: 'Categoria' },
+                                        { tag: '{DATA}', desc: 'Data' },
+                                        { tag: '{HORA}', desc: 'Hora' },
+                                        { tag: '{AGENCIA}', desc: 'Agência' },
+                                        { tag: '{ENDERECO}', desc: 'Local' },
+                                        { tag: '{LOCALIZACAO}', desc: 'Link Maps' }
+                                    ].map(item => (
+                                        <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
+                                            <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
+                                            <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
         </div>
 
-        {/* FOOTER */}
-        <div className="bg-gray-50 p-6 border-t border-gray-100 flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium shadow-sm disabled:opacity-50"
-          >
-            {saving ? 'Salvando...' : 'Salvar Alterações'} <Save className="w-4 h-4 ml-2" />
+        <div className="bg-gray-50 p-6 border-t flex justify-end">
+          <button type="submit" disabled={saving} className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold disabled:opacity-50 shadow-md transition-all">
+            {saving ? 'Salvando...' : 'Salvar Configurações'} <Save className="w-4 h-4 ml-2" />
           </button>
         </div>
       </form>
+
+      <AlertModal 
+        isOpen={alertConfig.isOpen}
+        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+      />
     </div>
   );
 };
