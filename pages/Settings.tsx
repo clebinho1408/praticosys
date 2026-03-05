@@ -1,3 +1,12 @@
+<<<<<<< HEAD
+=======
+
+import React, { useEffect, useState, useRef } from 'react';
+import { api } from '../services/api';
+import { SystemSettings } from '../types';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon } from 'lucide-react';
+import { AlertModal } from '../components/CustomModals';
+>>>>>>> bebed05ede9cd940f00836c73398f92f9aa9889c
 
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
@@ -118,7 +127,10 @@ const Settings: React.FC = () => {
         <div className="flex border-b border-gray-100 bg-gray-50 flex-wrap">
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('RULES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Sliders className="h-4 w-4" /> REGRAS</button>
+<<<<<<< HEAD
            <button type="button" onClick={() => setActiveTab('RESTRICTIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RESTRICTIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> RESTRIÇÕES</button>
+=======
+>>>>>>> bebed05ede9cd940f00836c73398f92f9aa9889c
            <button type="button" onClick={() => setActiveTab('COMMUNICATION')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'COMMUNICATION' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MessageSquare className="h-4 w-4" /> COMUNICAÇÃO</button>
         </div>
 
@@ -159,6 +171,7 @@ const Settings: React.FC = () => {
                 </div>
             )}
 
+<<<<<<< HEAD
             {activeTab === 'RESTRICTIONS' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex gap-4">
@@ -177,6 +190,8 @@ const Settings: React.FC = () => {
                     </div>
                 </div>
             )}
+=======
+>>>>>>> bebed05ede9cd940f00836c73398f92f9aa9889c
             {activeTab === 'COMMUNICATION' && (
                 <div className="space-y-8 animate-fadeIn">
                     <div className="space-y-4">
