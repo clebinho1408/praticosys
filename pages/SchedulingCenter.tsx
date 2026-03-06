@@ -249,7 +249,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
           
           if (found.length === 0) return '';
           
-          return `\n\nEstas são as restrições que você tem em sua CNH:\n${found.map(r => `${r!.code} - ${r!.description}`).join('\n')}`;
+          return `\nEstas são as restrições que você tem em sua CNH:\n${found.map(r => `${r!.code} - ${r!.description}`).join('\n')}`;
       })()
     };
 
