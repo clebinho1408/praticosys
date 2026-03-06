@@ -143,6 +143,11 @@ export interface ExamRequest {
   updatedAt: string;
 }
 
+export interface Restriction {
+  code: string;
+  description: string;
+}
+
 export interface SystemSettings {
   agencyName: string; // Renamed from systemName
   agencyAddress?: string; // New: Address for reports
@@ -159,6 +164,7 @@ export interface SystemSettings {
   whatsappMessageTemplate: string;
   defaultExamAddress: string; // New: Default physical address
   defaultExamAddressLink: string; // New: Google Maps Link
+  restrictions: Restriction[]; // New: List of CNH restrictions
 }
 
 export interface AuthState {

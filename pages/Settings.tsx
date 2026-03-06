@@ -2,13 +2,14 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
 import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
-type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION';
+type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION' | 'RESTRICTIONS';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const [newRestriction, setNewRestriction] = useState({ code: '', description: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -73,6 +74,26 @@ const Settings: React.FC = () => {
     setTimeout(() => setSuccessMsg(''), 3000);
   };
 
+  const addRestriction = () => {
+    if (!settings || !/^[A-Z]$/.test(newRestriction.code)) {
+        alert("O campo 'Restrição' deve conter apenas uma letra maiúscula.");
+        return;
+    }
+    setSettings({
+        ...settings,
+        restrictions: [...(settings.restrictions || []), newRestriction]
+    });
+    setNewRestriction({ code: '', description: '' });
+  };
+
+  const removeRestriction = (code: string) => {
+    if (!settings) return;
+    setSettings({
+        ...settings,
+        restrictions: settings.restrictions.filter(r => r.code !== code)
+    });
+  };
+
   if (loading || !settings) {
     return <div className="p-8 text-center text-gray-500">Carregando configurações...</div>;
   }
@@ -97,6 +118,7 @@ const Settings: React.FC = () => {
         <div className="flex border-b border-gray-100 bg-gray-50 flex-wrap">
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('RULES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Sliders className="h-4 w-4" /> REGRAS</button>
+           <button type="button" onClick={() => setActiveTab('RESTRICTIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RESTRICTIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> RESTRIÇÕES</button>
            <button type="button" onClick={() => setActiveTab('COMMUNICATION')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'COMMUNICATION' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MessageSquare className="h-4 w-4" /> COMUNICAÇÃO</button>
         </div>
 
@@ -137,6 +159,24 @@ const Settings: React.FC = () => {
                 </div>
             )}
 
+            {activeTab === 'RESTRICTIONS' && (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="flex gap-4">
+                        <input type="text" maxLength={1} placeholder="Restrição (ex: A)" value={newRestriction.code} onChange={e => setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} className="w-20 rounded-md border p-2 bg-white text-gray-900 uppercase" />
+                        <input type="text" placeholder="Descrição" value={newRestriction.description} onChange={e => setNewRestriction({...newRestriction, description: e.target.value})} className="flex-1 rounded-md border p-2 bg-white text-gray-900" />
+                        <button type="button" onClick={addRestriction} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Adicionar</button>
+                    </div>
+                    <div className="space-y-2">
+                        {settings.restrictions?.map(r => (
+                            <div key={r.code} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
+                                <span className="font-bold">{r.code}</span>
+                                <span className="text-sm">{r.description}</span>
+                                <button type="button" onClick={() => removeRestriction(r.code)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
             {activeTab === 'COMMUNICATION' && (
                 <div className="space-y-8 animate-fadeIn">
                     <div className="space-y-4">
