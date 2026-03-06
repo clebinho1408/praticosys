@@ -10,6 +10,7 @@ type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION' | 'RESTRICTIONS';
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [newRestriction, setNewRestriction] = useState({ code: '', description: '' });
+  const [editingRestriction, setEditingRestriction] = useState<{ code: string, description: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -74,15 +75,31 @@ const Settings: React.FC = () => {
   };
 
   const addRestriction = () => {
-    if (!settings || !/^[A-Z]$/.test(newRestriction.code)) {
-        alert("O campo 'Restrição' deve conter apenas uma letra maiúscula.");
-        return;
+    if (!settings) return;
+    
+    if (editingRestriction) {
+        // Update existing
+        setSettings({
+            ...settings,
+            restrictions: settings.restrictions.map(r => r.code === editingRestriction.code ? editingRestriction : r)
+        });
+        setEditingRestriction(null);
+    } else {
+        // Add new
+        if (!/^[A-Z]$/.test(newRestriction.code)) {
+            alert("O campo 'Restrição' deve conter apenas uma letra maiúscula.");
+            return;
+        }
+        setSettings({
+            ...settings,
+            restrictions: [...(settings.restrictions || []), newRestriction]
+        });
+        setNewRestriction({ code: '', description: '' });
     }
-    setSettings({
-        ...settings,
-        restrictions: [...(settings.restrictions || []), newRestriction]
-    });
-    setNewRestriction({ code: '', description: '' });
+  };
+
+  const startEditRestriction = (r: { code: string, description: string }) => {
+    setEditingRestriction(r);
   };
 
   const removeRestriction = (code: string) => {
@@ -161,16 +178,20 @@ const Settings: React.FC = () => {
             {activeTab === 'RESTRICTIONS' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex gap-4">
-                        <input type="text" maxLength={1} placeholder="Restrição (ex: A)" value={newRestriction.code} onChange={e => setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} className="w-20 rounded-md border p-2 bg-white text-gray-900 uppercase" />
-                        <input type="text" placeholder="Descrição" value={newRestriction.description} onChange={e => setNewRestriction({...newRestriction, description: e.target.value})} className="flex-1 rounded-md border p-2 bg-white text-gray-900" />
-                        <button type="button" onClick={addRestriction} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Adicionar</button>
+                        <input type="text" maxLength={1} placeholder="Restrição (ex: A)" value={editingRestriction ? editingRestriction.code : newRestriction.code} onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, code: e.target.value.toUpperCase()}) : setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} className="w-20 rounded-md border p-2 bg-white text-gray-900 uppercase" disabled={!!editingRestriction} />
+                        <input type="text" placeholder="Descrição" value={editingRestriction ? editingRestriction.description : newRestriction.description} onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, description: e.target.value}) : setNewRestriction({...newRestriction, description: e.target.value})} className="flex-1 rounded-md border p-2 bg-white text-gray-900" />
+                        <button type="button" onClick={addRestriction} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">{editingRestriction ? 'Atualizar' : 'Adicionar'}</button>
+                        {editingRestriction && <button type="button" onClick={() => setEditingRestriction(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>}
                     </div>
                     <div className="space-y-2">
                         {settings.restrictions?.map(r => (
                             <div key={r.code} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
                                 <span className="font-bold">{r.code}</span>
                                 <span className="text-sm">{r.description}</span>
-                                <button type="button" onClick={() => removeRestriction(r.code)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => startEditRestriction(r)} className="text-blue-500 hover:text-blue-700">Editar</button>
+                                    <button type="button" onClick={() => removeRestriction(r.code)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -234,7 +255,8 @@ const Settings: React.FC = () => {
                                         { tag: '{HORA}', desc: 'Hora' },
                                         { tag: '{AGENCIA}', desc: 'Agência' },
                                         { tag: '{ENDERECO}', desc: 'Local' },
-                                        { tag: '{LOCALIZACAO}', desc: 'Link Maps' }
+                                        { tag: '{LOCALIZACAO}', desc: 'Link Maps' },
+                                        { tag: '{RESTRICOES}', desc: 'Restrições CNH' }
                                     ].map(item => (
                                         <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>

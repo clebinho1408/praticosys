@@ -239,7 +239,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       '{HORA}': selectedSchedule.time,
       '{ENDERECO}': safeSettings.defaultExamAddress || '',
       '{LOCALIZACAO}': safeSettings.defaultExamAddressLink || '',
-      '{AGENCIA}': safeSettings.agencyName || 'Detran'
+      '{AGENCIA}': safeSettings.agencyName || 'Detran',
+      '{RESTRICOES}': (() => {
+          if (!req.cnhRestriction) return '';
+          const codes = req.cnhRestriction.split(',').map(c => c.trim());
+          const found = codes
+            .map(code => safeSettings.restrictions?.find(r => r.code === code))
+            .filter(r => r !== undefined);
+          
+          if (found.length === 0) return '';
+          
+          return `\n\nEstas são as restrições que você tem em sua CNH:\n${found.map(r => `${r!.code} - ${r!.description}`).join('\n')}`;
+      })()
     };
 
     let finalMessage = currentTemplate;
