@@ -163,18 +163,54 @@ const Reports: React.FC = () => {
     fetchData();
   }, [reportType]);
 
+  // 0. Flattened Exam History (Source of Truth for Results)
+  const allExamResults = useMemo(() => {
+      const list: any[] = [];
+      requests.forEach(req => {
+          // 1. Add past history
+          if (req.examHistory && Array.isArray(req.examHistory)) {
+              req.examHistory.forEach((h: any) => {
+                  list.push({
+                      id: `${req.id}-${h.date}-${h.time}`,
+                      studentName: req.studentName,
+                      date: h.date,
+                      result: h.result,
+                      category: h.category || req.intendedCategory,
+                      scheduleId: h.scheduleId
+                  });
+              });
+          }
+
+          // 2. Add current exam if finished
+          if (req.status === ExamStatus.DONE && req.result) {
+               const date = req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]);
+               // Avoid duplicates if history already contains this date
+               const isDuplicate = req.examHistory?.some((h: any) => h.date === date);
+               if (!isDuplicate) {
+                   list.push({
+                       id: req.id,
+                       studentName: req.studentName,
+                       date: date,
+                       result: req.result,
+                       category: req.scheduledCategory || req.intendedCategory,
+                       scheduleId: req.scheduleId
+                   });
+               }
+          }
+      });
+      return list;
+  }, [requests]);
+
   // 1. Índice de Reprovação e Aprovação
   const approvalStats = useMemo(() => {
-    let filtered = requests.filter(r => r.status === ExamStatus.DONE);
+    let filtered = allExamResults;
 
     if (dateRange.start) {
-        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) >= new Date(dateRange.start));
+        filtered = filtered.filter(r => new Date(r.date) >= new Date(dateRange.start));
     }
 
     if (dateRange.end) {
-        const endDate = new Date(dateRange.end);
-        endDate.setHours(23, 59, 59, 999); // Include the end day
-        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) <= endDate);
+        filtered = filtered.filter(r => new Date(r.date) <= new Date(dateRange.end));
     }
 
     const total = filtered.length;
@@ -193,10 +229,17 @@ const Reports: React.FC = () => {
     const monthlyData: Record<string, { name: string, sortKey: string, apto: number, inapto: number }> = {};
     
     filtered.forEach(r => {
-      const date = new Date(r.updatedAt || r.createdAt);
-      const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthName = date.toLocaleString('pt-BR', { month: 'short' });
-      const label = `${monthName}/${date.getFullYear().toString().substr(2)}`;
+      const date = new Date(r.date);
+      // Adjust for timezone issues by using the string date directly if possible, 
+      // but new Date(r.date) usually works if r.date is YYYY-MM-DD.
+      // To be safe with timezones, let's use the substring from the ISO string or r.date if it's already YYYY-MM-DD
+      const dateStr = r.date.split('T')[0];
+      const [year, month] = dateStr.split('-');
+      
+      const sortKey = `${year}-${month}`;
+      const monthIndex = parseInt(month) - 1;
+      const monthName = new Date(parseInt(year), monthIndex, 1).toLocaleString('pt-BR', { month: 'short' });
+      const label = `${monthName}/${year.substr(2)}`;
 
       if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, apto: 0, inapto: 0 };
       if (r.result === 'APTO') monthlyData[sortKey].apto++;
@@ -206,7 +249,7 @@ const Reports: React.FC = () => {
     const chartData = Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     return { total, apto, inapto, faltou, rate, pieData, chartData };
-  }, [requests, dateRange.start, dateRange.end]);
+  }, [allExamResults, dateRange.start, dateRange.end]);
 
   // 3. Índice de Bancas
   const scheduleStats = useMemo(() => {
