@@ -110,7 +110,11 @@ const Reports: React.FC = () => {
       date.setDate(date.getDate() - 30);
       return date.toISOString().split('T')[0];
   });
-  const [generalDateEnd, setGeneralDateEnd] = useState(() => new Date().toISOString().split('T')[0]);
+  const [generalDateEnd, setGeneralDateEnd] = useState(() => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30); // Show future schedules by default
+      return date.toISOString().split('T')[0];
+  });
 
   // Filters for Instructors List
   const [instructorSearch, setInstructorSearch] = useState<string>('');
@@ -132,7 +136,11 @@ const Reports: React.FC = () => {
       date.setDate(date.getDate() - 30);
       return date.toISOString().split('T')[0];
   });
-  const [scheduleDateEnd, setScheduleDateEnd] = useState(() => new Date().toISOString().split('T')[0]);
+  const [scheduleDateEnd, setScheduleDateEnd] = useState(() => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30); // Show future schedules by default
+      return date.toISOString().split('T')[0];
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -212,11 +220,11 @@ const Reports: React.FC = () => {
     let filtered = allExamResults;
 
     if (generalDateStart) {
-        filtered = filtered.filter(r => new Date(r.date) >= new Date(generalDateStart));
+        filtered = filtered.filter(r => r.date >= generalDateStart);
     }
 
     if (generalDateEnd) {
-        filtered = filtered.filter(r => new Date(r.date) <= new Date(generalDateEnd));
+        filtered = filtered.filter(r => r.date <= generalDateEnd);
     }
 
     const total = filtered.length;
@@ -281,11 +289,11 @@ const Reports: React.FC = () => {
       let filteredSchedules = schedules;
 
       if (generalDateStart) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
+          filteredSchedules = filteredSchedules.filter(s => s.date >= generalDateStart);
       }
 
       if (generalDateEnd) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
+          filteredSchedules = filteredSchedules.filter(s => s.date <= generalDateEnd);
       }
 
       const total = filteredSchedules.length;
@@ -311,11 +319,11 @@ const Reports: React.FC = () => {
       let filteredSchedules = schedules;
 
       if (generalDateStart) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
+          filteredSchedules = filteredSchedules.filter(s => s.date >= generalDateStart);
       }
 
       if (generalDateEnd) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
+          filteredSchedules = filteredSchedules.filter(s => s.date <= generalDateEnd);
       }
 
       // Sort schedules by date
