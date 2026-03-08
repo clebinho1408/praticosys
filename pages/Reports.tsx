@@ -405,15 +405,16 @@ const Reports: React.FC = () => {
           // 1. Add past history
           if (req.examHistory && Array.isArray(req.examHistory)) {
               req.examHistory.forEach((h: any) => {
+                  const schedule = schedules.find(s => s.id === h.scheduleId);
                   list.push({
                       id: `${req.id}-${h.date}-${h.time}`,
                       studentName: req.studentName,
                       cpf: req.cpf,
-                      date: h.date,
-                      time: h.time || '00:00',
+                      date: schedule ? schedule.date : h.date,
+                      time: schedule ? schedule.time : (h.time || '00:00'),
                       result: h.result,
                       category: h.category || req.intendedCategory || 'N/A',
-                      scheduleCode: h.scheduleCode || 'Sem Banca',
+                      scheduleCode: h.scheduleCode || (schedule?.code ? `#${schedule.code}` : 'Sem Banca'),
                       type: 'HISTORY'
                   });
               });
@@ -421,17 +422,18 @@ const Reports: React.FC = () => {
 
           // 2. Add current exam if finished
           if (req.status === 'DONE' && req.result) {
-               const date = req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]);
+               const schedule = schedules.find(s => s.id === req.scheduleId);
+               const date = schedule ? schedule.date : (req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]));
+               
                // Avoid duplicates if history already contains this date
                const isDuplicate = req.examHistory?.some((h: any) => h.date === date);
                if (!isDuplicate) {
-                   const schedule = schedules.find(s => s.id === req.scheduleId);
                    list.push({
                        id: req.id,
                        studentName: req.studentName,
                        cpf: req.cpf,
                        date: date,
-                       time: req.scheduledTime || '00:00',
+                       time: schedule ? schedule.time : (req.scheduledTime || '00:00'),
                        result: req.result,
                        category: req.scheduledCategory || req.intendedCategory || 'N/A',
                        scheduleCode: schedule?.code ? `#${schedule.code}` : 'Sem Banca',
@@ -725,7 +727,7 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Histórico de Provas */}
       {activeView === 'exam-history' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md flex gap-2">
                       <input 
