@@ -458,7 +458,11 @@ const Reports: React.FC = () => {
       }
       if (examHistorySearch) {
           const lower = examHistorySearch.toLowerCase();
-          filtered = filtered.filter(i => i.studentName.toLowerCase().includes(lower) || i.cpf.includes(lower));
+          filtered = filtered.filter(i => 
+              i.studentName.toLowerCase().includes(lower) || 
+              i.cpf.includes(lower) || 
+              i.scheduleCode.toLowerCase().includes(lower)
+          );
       }
       if (examHistoryResultFilter !== 'ALL') {
           filtered = filtered.filter(i => i.result === examHistoryResultFilter);
@@ -487,15 +491,9 @@ const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">
-            {reportType === 'cnh' ? 'DADOS CNH DO BRASIL' : `Relatórios - ${reportType?.toUpperCase()}`}
+            RELATÓRIOS - {reportType?.toUpperCase()}
           </h2>
-          <p className="text-sm text-gray-500 font-medium">Selecione o tipo de relatório abaixo.</p>
-        </div>
-        
-        <div className="flex items-center gap-2 print:hidden">
-            <button className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-colors">
-                <Download className="h-4 w-4" />
-            </button>
+          <p className="text-lg text-gray-500 font-medium">Selecione o tipo de relatório abaixo.</p>
         </div>
       </div>
 
@@ -732,7 +730,7 @@ const Reports: React.FC = () => {
                   <div className="flex-1 max-w-md flex gap-2">
                       <input 
                           type="text" 
-                          placeholder="Buscar por Nome ou CPF..." 
+                          placeholder="Buscar por Nome, CPF ou Banca..." 
                           className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                           value={examHistorySearch}
                           onChange={e => setExamHistorySearch(e.target.value)}
@@ -792,7 +790,7 @@ const Reports: React.FC = () => {
                   </div>
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible">
+              <div className="overflow-x-auto print:overflow-visible print:pb-28">
                   {Object.keys(groupedExamHistory).length === 0 ? (
                       <div className="p-10 text-center text-gray-400">Nenhum histórico encontrado.</div>
                   ) : (
@@ -847,6 +845,9 @@ const Reports: React.FC = () => {
                   )}
               </div>
 
+              {/* Spacer to prevent footer overlap */}
+              <div className="hidden print:block h-24"></div>
+
               {/* Print Footer (Visible only in print) */}
               <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
                   <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
@@ -857,7 +858,7 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Lista de Instrutores */}
       {activeView === 'instructors-list' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md">
                       <div className="relative">
@@ -900,7 +901,7 @@ const Reports: React.FC = () => {
                   </div>
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible">
+              <div className="overflow-x-auto print:overflow-visible print:pb-28">
                   {filteredInstructors.length === 0 ? (
                       <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
                   ) : (
@@ -945,6 +946,9 @@ const Reports: React.FC = () => {
                   )}
               </div>
 
+              {/* Spacer to prevent footer overlap */}
+              <div className="hidden print:block h-24"></div>
+
               {/* Print Footer (Visible only in print) */}
               <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
                   <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
@@ -955,7 +959,7 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Lista de Candidatos */}
       {activeView === 'schedules-list' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <h3 className="text-lg font-bold">Todas as Bancas</h3>
                   
@@ -1014,7 +1018,7 @@ const Reports: React.FC = () => {
                   </div>
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible">
+              <div className="overflow-x-auto print:overflow-visible print:pb-28">
                   {Object.keys(groupedSchedules).length === 0 ? (
                       <div className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</div>
                   ) : (
@@ -1059,6 +1063,9 @@ const Reports: React.FC = () => {
                       ))
                   )}
               </div>
+
+              {/* Spacer to prevent footer overlap */}
+              <div className="hidden print:block h-24"></div>
 
               {/* Print Footer (Visible only in print) */}
               <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
