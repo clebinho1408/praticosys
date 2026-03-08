@@ -229,16 +229,35 @@ const Reports: React.FC = () => {
     const monthlyData: Record<string, { name: string, sortKey: string, apto: number, inapto: number }> = {};
     
     filtered.forEach(r => {
-      const date = new Date(r.date);
-      // Adjust for timezone issues by using the string date directly if possible, 
-      // but new Date(r.date) usually works if r.date is YYYY-MM-DD.
-      // To be safe with timezones, let's use the substring from the ISO string or r.date if it's already YYYY-MM-DD
-      const dateStr = r.date.split('T')[0];
-      const [year, month] = dateStr.split('-');
+      if (!r.date) return;
+
+      let dateStr = '';
+      try {
+          // Ensure r.date is a string
+          const rawDate = String(r.date);
+          dateStr = rawDate.split('T')[0];
+      } catch (e) {
+          return;
+      }
+
+      const parts = dateStr.split('-');
+      if (parts.length < 2) return; // Invalid format
+
+      const year = parts[0];
+      const month = parts[1];
       
       const sortKey = `${year}-${month}`;
       const monthIndex = parseInt(month) - 1;
-      const monthName = new Date(parseInt(year), monthIndex, 1).toLocaleString('pt-BR', { month: 'short' });
+      
+      if (isNaN(monthIndex)) return;
+
+      let monthName = '';
+      try {
+        monthName = new Date(parseInt(year), monthIndex, 1).toLocaleString('pt-BR', { month: 'short' });
+      } catch (e) {
+        monthName = `${month}/${year}`;
+      }
+      
       const label = `${monthName}/${year.substr(2)}`;
 
       if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, apto: 0, inapto: 0 };
