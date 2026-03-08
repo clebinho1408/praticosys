@@ -727,7 +727,7 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Histórico de Provas */}
       {activeView === 'exam-history' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md flex gap-2">
                       <input 
