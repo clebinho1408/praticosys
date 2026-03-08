@@ -103,7 +103,14 @@ const Reports: React.FC = () => {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [dateRange, setDateRange] = useState({ 
+      start: (() => {
+          const date = new Date();
+          date.setDate(date.getDate() - 30);
+          return date.toISOString().split('T')[0];
+      })(), 
+      end: (() => new Date().toISOString().split('T')[0])()
+  });
 
   // Filters for Instructors List
   const [instructorSearch, setInstructorSearch] = useState<string>('');
@@ -111,37 +118,15 @@ const Reports: React.FC = () => {
   // Filters for Exam History
   const [examHistorySearch, setExamHistorySearch] = useState<string>('');
   const [examHistoryResultFilter, setExamHistoryResultFilter] = useState<string>('ALL');
-  const [examHistoryDateStart, setExamHistoryDateStart] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() - 30);
-      return date.toISOString().split('T')[0];
-  });
-  const [examHistoryDateEnd, setExamHistoryDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
-
+  // Removed separate date states for exam history to use global dateRange if desired, 
+  // but keeping them if the user wants independent filtering per tab. 
+  // However, the request implies synchronization. 
+  // For now, I will link the General Stats to dateRange.
+  
   // Filters for Schedules List
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState<string>('ALL');
-  const [scheduleDateStart, setScheduleDateStart] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() - 30);
-      return date.toISOString().split('T')[0];
-  });
-  const [scheduleDateEnd, setScheduleDateEnd] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() + 30);
-      return date.toISOString().split('T')[0];
-  });
 
-  // Filters for General Stats (Unified)
-  const [generalDateStart, setGeneralDateStart] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() - 30);
-      return date.toISOString().split('T')[0];
-  });
-  const [generalDateEnd, setGeneralDateEnd] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() + 30);
-      return date.toISOString().split('T')[0];
-  });
+  // Removed separate generalDateStart/End
 
   useEffect(() => {
     const fetchData = async () => {
@@ -182,12 +167,14 @@ const Reports: React.FC = () => {
   const approvalStats = useMemo(() => {
     let filtered = requests.filter(r => r.status === ExamStatus.DONE);
 
-    if (generalDateStart) {
-        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) >= new Date(generalDateStart));
+    if (dateRange.start) {
+        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) >= new Date(dateRange.start));
     }
 
-    if (generalDateEnd) {
-        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) <= new Date(generalDateEnd));
+    if (dateRange.end) {
+        const endDate = new Date(dateRange.end);
+        endDate.setHours(23, 59, 59, 999); // Include the end day
+        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) <= endDate);
     }
 
     const total = filtered.length;
@@ -202,28 +189,35 @@ const Reports: React.FC = () => {
       { name: 'Faltou', value: faltou }
     ];
 
-    const monthlyData: Record<string, any> = {};
+    // Improved Grouping Logic (YYYY-MM sortable)
+    const monthlyData: Record<string, { name: string, sortKey: string, apto: number, inapto: number }> = {};
+    
     filtered.forEach(r => {
       const date = new Date(r.updatedAt || r.createdAt);
-      const month = date.toLocaleString('pt-BR', { month: 'short' });
-      if (!monthlyData[month]) monthlyData[month] = { name: month, apto: 0, inapto: 0 };
-      if (r.result === 'APTO') monthlyData[month].apto++;
-      if (r.result === 'INAPTO') monthlyData[month].inapto++;
+      const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthName = date.toLocaleString('pt-BR', { month: 'short' });
+      const label = `${monthName}/${date.getFullYear().toString().substr(2)}`;
+
+      if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, apto: 0, inapto: 0 };
+      if (r.result === 'APTO') monthlyData[sortKey].apto++;
+      if (r.result === 'INAPTO') monthlyData[sortKey].inapto++;
     });
 
-    return { total, apto, inapto, faltou, rate, pieData, chartData: Object.values(monthlyData) };
-  }, [requests, generalDateStart, generalDateEnd]);
+    const chartData = Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+    return { total, apto, inapto, faltou, rate, pieData, chartData };
+  }, [requests, dateRange.start, dateRange.end]);
 
   // 3. Índice de Bancas
   const scheduleStats = useMemo(() => {
       let filteredSchedules = schedules;
 
-      if (generalDateStart) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
+      if (dateRange.start) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(dateRange.start));
       }
 
-      if (generalDateEnd) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
+      if (dateRange.end) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(dateRange.end));
       }
 
       const total = filteredSchedules.length;
@@ -240,20 +234,20 @@ const Reports: React.FC = () => {
       ];
 
       return { total, open, concluded, cancelled, closed, pieData };
-  }, [schedules, generalDateStart, generalDateEnd]);
+  }, [schedules, dateRange.start, dateRange.end]);
 
   // 4. Índice de Ocupação de Vagas (Novo)
   const slotUsageStats = useMemo(() => {
-      const monthlyData: Record<string, { name: string, total: number, used: number }> = {};
+      const monthlyData: Record<string, { name: string, sortKey: string, total: number, used: number }> = {};
       
       let filteredSchedules = schedules;
 
-      if (generalDateStart) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
+      if (dateRange.start) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(dateRange.start));
       }
 
-      if (generalDateEnd) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
+      if (dateRange.end) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(dateRange.end));
       }
 
       // Sort schedules by date
@@ -261,19 +255,21 @@ const Reports: React.FC = () => {
 
       sortedSchedules.forEach(sch => {
           const date = new Date(sch.date);
-          const month = date.toLocaleString('pt-BR', { month: 'short' });
+          const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          const monthName = date.toLocaleString('pt-BR', { month: 'short' });
+          const label = `${monthName}/${date.getFullYear().toString().substr(2)}`;
           
-          if (!monthlyData[month]) monthlyData[month] = { name: month, total: 0, used: 0 };
+          if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, total: 0, used: 0 };
           
           const totalSlots = (sch.maxSlotsA || 0) + (sch.maxSlotsB || 0);
           const usedSlots = requests.filter(r => r.scheduleId === sch.id).length;
           
-          monthlyData[month].total += totalSlots;
-          monthlyData[month].used += usedSlots;
+          monthlyData[sortKey].total += totalSlots;
+          monthlyData[sortKey].used += usedSlots;
       });
       
-      return Object.values(monthlyData);
-  }, [schedules, requests, generalDateStart, generalDateEnd]);
+      return Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }, [schedules, requests, dateRange.start, dateRange.end]);
 
   // Logic for Instructors List
   const filteredInstructors = useMemo(() => {
@@ -473,21 +469,6 @@ const Reports: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                        <input 
-                            type="date" 
-                            className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                            value={generalDateStart}
-                            onChange={e => setGeneralDateStart(e.target.value)}
-                        />
-                        <span className="text-gray-400">-</span>
-                        <input 
-                            type="date" 
-                            className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                            value={generalDateEnd}
-                            onChange={e => setGeneralDateEnd(e.target.value)}
-                        />
-                    </div>
                     <button 
                         onClick={() => window.print()} 
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
@@ -511,7 +492,7 @@ const Reports: React.FC = () => {
                     </div>
                 </div>
                 <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
-                    <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
+                    <span>Data: {new Date(dateRange.start).toLocaleDateString()} até {new Date(dateRange.end).toLocaleDateString()}</span>
                 </div>
             </div>
 
