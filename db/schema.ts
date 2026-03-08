@@ -131,4 +131,5 @@ export const systemSettings = pgTable('system_settings', {
   whatsappMessageTemplate: text('whatsapp_template'),
   defaultExamAddress: text('default_exam_address'),
   defaultExamAddressLink: text('default_exam_address_link'),
+  restrictions: jsonb('restrictions').default([]),
 });

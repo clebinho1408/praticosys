@@ -50,12 +50,16 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'PUT') {
       const updates = parseBody(req);
+      
+      // Filter out fields that don't exist in the database table
+      const { enableEmailNotifications, enableSmsNotifications, ...validUpdates } = updates;
+      
       const existing = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
       let result;
       if (existing.length === 0) {
-        result = await db.insert(systemSettings).values({ id: 1, ...updates }).returning();
+        result = await db.insert(systemSettings).values({ id: 1, ...validUpdates }).returning();
       } else {
-        result = await db.update(systemSettings).set(updates).where(eq(systemSettings.id, 1)).returning();
+        result = await db.update(systemSettings).set(validUpdates).where(eq(systemSettings.id, 1)).returning();
       }
       return res.status(200).json(result[0]);
     }

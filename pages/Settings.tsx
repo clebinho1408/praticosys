@@ -1,27 +1,16 @@
-<<<<<<< HEAD
-=======
 
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
 import { SystemSettings } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
->>>>>>> bebed05ede9cd940f00836c73398f92f9aa9889c
 
-<<<<<<< HEAD
-=======
-import React, { useEffect, useState, useRef } from 'react';
-import { api } from '../services/api';
-import { SystemSettings } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
-import { AlertModal } from '../components/CustomModals';
-
->>>>>>> d48c634c8f589df5f8b11a0ff4871545f124c33a
 type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION' | 'RESTRICTIONS';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [newRestriction, setNewRestriction] = useState({ code: '', description: '' });
+  const [editingRestriction, setEditingRestriction] = useState<{ code: string, description: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -47,12 +36,11 @@ const Settings: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!settings) return;
-    const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-
+    const { name, value } = e.target;
+    
     setSettings({
       ...settings,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     });
   };
 
@@ -87,15 +75,31 @@ const Settings: React.FC = () => {
   };
 
   const addRestriction = () => {
-    if (!settings || !/^[A-Z]$/.test(newRestriction.code)) {
-        alert("O campo 'Restrição' deve conter apenas uma letra maiúscula.");
-        return;
+    if (!settings) return;
+    
+    if (editingRestriction) {
+        // Update existing
+        setSettings({
+            ...settings,
+            restrictions: settings.restrictions.map(r => r.code === editingRestriction.code ? editingRestriction : r)
+        });
+        setEditingRestriction(null);
+    } else {
+        // Add new
+        if (!/^[A-Z]$/.test(newRestriction.code)) {
+            alert("O campo 'Restrição' deve conter apenas uma letra maiúscula.");
+            return;
+        }
+        setSettings({
+            ...settings,
+            restrictions: [...(settings.restrictions || []), newRestriction]
+        });
+        setNewRestriction({ code: '', description: '' });
     }
-    setSettings({
-        ...settings,
-        restrictions: [...(settings.restrictions || []), newRestriction]
-    });
-    setNewRestriction({ code: '', description: '' });
+  };
+
+  const startEditRestriction = (r: { code: string, description: string }) => {
+    setEditingRestriction(r);
   };
 
   const removeRestriction = (code: string) => {
@@ -130,14 +134,7 @@ const Settings: React.FC = () => {
         <div className="flex border-b border-gray-100 bg-gray-50 flex-wrap">
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('RULES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Sliders className="h-4 w-4" /> REGRAS</button>
-<<<<<<< HEAD
            <button type="button" onClick={() => setActiveTab('RESTRICTIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RESTRICTIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> RESTRIÇÕES</button>
-=======
-<<<<<<< HEAD
-           <button type="button" onClick={() => setActiveTab('RESTRICTIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RESTRICTIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> RESTRIÇÕES</button>
-=======
->>>>>>> bebed05ede9cd940f00836c73398f92f9aa9889c
->>>>>>> d48c634c8f589df5f8b11a0ff4871545f124c33a
            <button type="button" onClick={() => setActiveTab('COMMUNICATION')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'COMMUNICATION' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MessageSquare className="h-4 w-4" /> COMUNICAÇÃO</button>
         </div>
 
@@ -178,33 +175,28 @@ const Settings: React.FC = () => {
                 </div>
             )}
 
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> d48c634c8f589df5f8b11a0ff4871545f124c33a
             {activeTab === 'RESTRICTIONS' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex gap-4">
-                        <input type="text" maxLength={1} placeholder="Restrição (ex: A)" value={newRestriction.code} onChange={e => setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} className="w-20 rounded-md border p-2 bg-white text-gray-900 uppercase" />
-                        <input type="text" placeholder="Descrição" value={newRestriction.description} onChange={e => setNewRestriction({...newRestriction, description: e.target.value})} className="flex-1 rounded-md border p-2 bg-white text-gray-900" />
-                        <button type="button" onClick={addRestriction} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Adicionar</button>
+                        <input type="text" maxLength={1} placeholder="Restrição (ex: A)" value={editingRestriction ? editingRestriction.code : newRestriction.code} onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, code: e.target.value.toUpperCase()}) : setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} className="w-20 rounded-md border p-2 bg-white text-gray-900 uppercase" disabled={!!editingRestriction} />
+                        <input type="text" placeholder="Descrição" value={editingRestriction ? editingRestriction.description : newRestriction.description} onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, description: e.target.value}) : setNewRestriction({...newRestriction, description: e.target.value})} className="flex-1 rounded-md border p-2 bg-white text-gray-900" />
+                        <button type="button" onClick={addRestriction} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">{editingRestriction ? 'Atualizar' : 'Adicionar'}</button>
+                        {editingRestriction && <button type="button" onClick={() => setEditingRestriction(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>}
                     </div>
                     <div className="space-y-2">
                         {settings.restrictions?.map(r => (
-                            <div key={r.code} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
-                                <span className="font-bold">{r.code}</span>
-                                <span className="text-sm">{r.description}</span>
-                                <button type="button" onClick={() => removeRestriction(r.code)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                            <div key={r.code} className="flex items-center p-3 bg-gray-50 rounded-md border gap-4">
+                                <span className="font-bold w-8 text-center shrink-0">{r.code}</span>
+                                <span className="text-sm flex-1">{r.description}</span>
+                                <div className="flex gap-2 shrink-0">
+                                    <button type="button" onClick={() => startEditRestriction(r)} className="text-blue-500 hover:text-blue-700">Editar</button>
+                                    <button type="button" onClick={() => removeRestriction(r.code)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
-<<<<<<< HEAD
-=======
-=======
->>>>>>> bebed05ede9cd940f00836c73398f92f9aa9889c
->>>>>>> d48c634c8f589df5f8b11a0ff4871545f124c33a
             {activeTab === 'COMMUNICATION' && (
                 <div className="space-y-8 animate-fadeIn">
                     <div className="space-y-4">
@@ -263,7 +255,8 @@ const Settings: React.FC = () => {
                                         { tag: '{HORA}', desc: 'Hora' },
                                         { tag: '{AGENCIA}', desc: 'Agência' },
                                         { tag: '{ENDERECO}', desc: 'Local' },
-                                        { tag: '{LOCALIZACAO}', desc: 'Link Maps' }
+                                        { tag: '{LOCALIZACAO}', desc: 'Link Maps' },
+                                        { tag: '{RESTRICOES}', desc: 'Restrições CNH' }
                                     ].map(item => (
                                         <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
                                             <code className="text-[10px] font-black text-blue-600">{item.tag}</code>

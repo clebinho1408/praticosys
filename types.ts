@@ -158,8 +158,6 @@ export interface SystemSettings {
   maxDailySlots: number; // Global cap (legacy)
   defaultMaxSlotsA: number; // New: Default slots for Moto
   defaultMaxSlotsB: number; // New: Default slots for Car
-  enableEmailNotifications: boolean;
-  enableSmsNotifications: boolean;
   
   whatsappMessageTemplate: string;
   defaultExamAddress: string; // New: Default physical address
