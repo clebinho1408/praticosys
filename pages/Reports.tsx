@@ -103,14 +103,14 @@ const Reports: React.FC = () => {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({ 
-      start: (() => {
-          const date = new Date();
-          date.setDate(date.getDate() - 30);
-          return date.toISOString().split('T')[0];
-      })(), 
-      end: (() => new Date().toISOString().split('T')[0])()
+  
+  // Date states for General Stats
+  const [generalDateStart, setGeneralDateStart] = useState(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
   });
+  const [generalDateEnd, setGeneralDateEnd] = useState(() => new Date().toISOString().split('T')[0]);
 
   // Filters for Instructors List
   const [instructorSearch, setInstructorSearch] = useState<string>('');
@@ -118,15 +118,21 @@ const Reports: React.FC = () => {
   // Filters for Exam History
   const [examHistorySearch, setExamHistorySearch] = useState<string>('');
   const [examHistoryResultFilter, setExamHistoryResultFilter] = useState<string>('ALL');
-  // Removed separate date states for exam history to use global dateRange if desired, 
-  // but keeping them if the user wants independent filtering per tab. 
-  // However, the request implies synchronization. 
-  // For now, I will link the General Stats to dateRange.
+  const [examHistoryDateStart, setExamHistoryDateStart] = useState(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
+  });
+  const [examHistoryDateEnd, setExamHistoryDateEnd] = useState(() => new Date().toISOString().split('T')[0]);
   
   // Filters for Schedules List
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState<string>('ALL');
-
-  // Removed separate generalDateStart/End
+  const [scheduleDateStart, setScheduleDateStart] = useState(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
+  });
+  const [scheduleDateEnd, setScheduleDateEnd] = useState(() => new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -205,12 +211,12 @@ const Reports: React.FC = () => {
   const approvalStats = useMemo(() => {
     let filtered = allExamResults;
 
-    if (dateRange.start) {
-        filtered = filtered.filter(r => new Date(r.date) >= new Date(dateRange.start));
+    if (generalDateStart) {
+        filtered = filtered.filter(r => new Date(r.date) >= new Date(generalDateStart));
     }
 
-    if (dateRange.end) {
-        filtered = filtered.filter(r => new Date(r.date) <= new Date(dateRange.end));
+    if (generalDateEnd) {
+        filtered = filtered.filter(r => new Date(r.date) <= new Date(generalDateEnd));
     }
 
     const total = filtered.length;
@@ -268,18 +274,18 @@ const Reports: React.FC = () => {
     const chartData = Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
 
     return { total, apto, inapto, faltou, rate, pieData, chartData };
-  }, [allExamResults, dateRange.start, dateRange.end]);
+  }, [allExamResults, generalDateStart, generalDateEnd]);
 
   // 3. Índice de Bancas
   const scheduleStats = useMemo(() => {
       let filteredSchedules = schedules;
 
-      if (dateRange.start) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(dateRange.start));
+      if (generalDateStart) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
       }
 
-      if (dateRange.end) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(dateRange.end));
+      if (generalDateEnd) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
       }
 
       const total = filteredSchedules.length;
@@ -296,7 +302,7 @@ const Reports: React.FC = () => {
       ];
 
       return { total, open, concluded, cancelled, closed, pieData };
-  }, [schedules, dateRange.start, dateRange.end]);
+  }, [schedules, generalDateStart, generalDateEnd]);
 
   // 4. Índice de Ocupação de Vagas (Novo)
   const slotUsageStats = useMemo(() => {
@@ -304,12 +310,12 @@ const Reports: React.FC = () => {
       
       let filteredSchedules = schedules;
 
-      if (dateRange.start) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(dateRange.start));
+      if (generalDateStart) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
       }
 
-      if (dateRange.end) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(dateRange.end));
+      if (generalDateEnd) {
+          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
       }
 
       // Sort schedules by date
@@ -331,7 +337,7 @@ const Reports: React.FC = () => {
       });
       
       return Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-  }, [schedules, requests, dateRange.start, dateRange.end]);
+  }, [schedules, requests, generalDateStart, generalDateEnd]);
 
   // Logic for Instructors List
   const filteredInstructors = useMemo(() => {
@@ -477,20 +483,6 @@ const Reports: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2 print:hidden">
-            <div className="flex bg-white border rounded-lg overflow-hidden shadow-sm">
-                <input 
-                    type="date" 
-                    className="px-3 py-2 text-xs border-r focus:outline-none bg-white text-gray-900" 
-                    value={dateRange.start}
-                    onChange={e => setDateRange({...dateRange, start: e.target.value})}
-                />
-                <input 
-                    type="date" 
-                    className="px-3 py-2 text-xs focus:outline-none bg-white text-gray-900" 
-                    value={dateRange.end}
-                    onChange={e => setDateRange({...dateRange, end: e.target.value})}
-                />
-            </div>
             <button className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-colors">
                 <Download className="h-4 w-4" />
             </button>
@@ -531,6 +523,21 @@ const Reports: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                        <input 
+                            type="date" 
+                            className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                            value={generalDateStart}
+                            onChange={e => setGeneralDateStart(e.target.value)}
+                        />
+                        <span className="text-gray-400">-</span>
+                        <input 
+                            type="date" 
+                            className="py-2 text-sm bg-transparent outline-none text-gray-900"
+                            value={generalDateEnd}
+                            onChange={e => setGeneralDateEnd(e.target.value)}
+                        />
+                    </div>
                     <button 
                         onClick={() => window.print()} 
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
@@ -554,7 +561,7 @@ const Reports: React.FC = () => {
                     </div>
                 </div>
                 <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
-                    <span>Data: {new Date(dateRange.start).toLocaleDateString()} até {new Date(dateRange.end).toLocaleDateString()}</span>
+                    <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
 
@@ -748,7 +755,6 @@ const Reports: React.FC = () => {
                               onChange={e => setExamHistoryDateEnd(e.target.value)}
                           />
                       </div>
-
                       <button 
                           onClick={() => window.print()} 
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
