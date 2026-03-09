@@ -184,11 +184,12 @@ const Settings: React.FC = () => {
                         {editingRestriction && <button type="button" onClick={() => setEditingRestriction(null)} className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Cancelar</button>}
                     </div>
                     <div className="space-y-2">
+                        {/* Listagem de restrições */}
                         {settings.restrictions?.map(r => (
-                            <div key={r.code} className="flex items-center justify-between p-3 bg-gray-50 rounded-md border">
-                                <span className="font-bold">{r.code}</span>
-                                <span className="text-sm">{r.description}</span>
-                                <div className="flex gap-2">
+                            <div key={r.code} className="flex items-center p-3 bg-gray-50 rounded-md border gap-4">
+                                <span className="font-bold w-8 text-center shrink-0">{r.code}</span>
+                                <span className="text-sm flex-1">{r.description}</span>
+                                <div className="flex gap-2 shrink-0">
                                     <button type="button" onClick={() => startEditRestriction(r)} className="text-blue-500 hover:text-blue-700">Editar</button>
                                     <button type="button" onClick={() => removeRestriction(r.code)} className="text-red-500 hover:text-red-700"><Trash2 className="h-4 w-4" /></button>
                                 </div>

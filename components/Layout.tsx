@@ -217,7 +217,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row print:bg-white h-screen overflow-hidden">
+    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row print:bg-white h-screen overflow-hidden print:h-auto print:overflow-visible">
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex w-64 bg-slate-900 border-r border-slate-800 flex-col flex-shrink-0 print:hidden z-20">
         <SidebarContent />
@@ -232,7 +232,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-50">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-50 print:h-auto print:overflow-visible">
         <header className="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-4 md:px-8 print:hidden shadow-sm z-10 shrink-0">
             <div className="flex items-center gap-4">
                 <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-slate-500 p-2 hover:bg-slate-50 rounded-xl transition-colors">
@@ -271,7 +271,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-gray-50/50 p-4 md:p-8 print:p-0 print:bg-white relative custom-scrollbar">
+        <main className="flex-1 overflow-y-auto bg-gray-50/50 p-4 md:p-8 print:p-0 print:bg-white relative custom-scrollbar print:overflow-visible print:h-auto">
           <div className="absolute top-0 left-0 w-full h-48 bg-gradient-to-b from-blue-100/20 to-transparent -z-10 pointer-events-none"></div>
           <div className="max-w-7xl mx-auto print:max-w-none">
             {children}

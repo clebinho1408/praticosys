@@ -134,9 +134,17 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Date Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Date Filters - Default to 30 days ago and 30 days ahead
+  const [startDate, setStartDate] = useState(() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      return d.toISOString().split('T')[0];
+  });
 
   const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
   const [scheduleForm, setScheduleForm] = useState({ 
@@ -493,13 +501,34 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     .filter(r => 
         r.status === ExamStatus.WAITING_SCHEDULING && 
         r.examType === selectedSchedule?.type &&
-        (r.studentName.toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch))
+        ((r.socialName || r.studentName).toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch))
     )
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
 
+  const isValidForCategory = (r: ExamRequest, category: 'A' | 'B') => {
+      if (!r.instructor || !r.vehiclePlate) return false;
+      
+      if (r.intendedCategory === 'AB') {
+          const instrParts = r.instructor.split(' / ');
+          const plateParts = r.vehiclePlate.split(' / ');
+          
+          if (category === 'A') {
+              const motoInstr = instrParts[0]?.replace('Moto: ', '');
+              const motoPlate = plateParts[0]?.replace('Moto: ', '');
+              return motoInstr !== 'A DEFINIR' && motoPlate !== 'A DEFINIR';
+          } else {
+              const carInstr = instrParts[1]?.replace('Carro: ', '');
+              const carPlate = plateParts[1]?.replace('Carro: ', '');
+              return carInstr !== 'A DEFINIR' && carPlate !== 'A DEFINIR';
+          }
+      } else {
+          return r.instructor !== 'A DEFINIR' && r.vehiclePlate !== 'A DEFINIR';
+      }
+  };
+
   // Split into categories
-  const candidatesA = availableRequests.filter(r => r.intendedCategory === 'A' || r.intendedCategory === 'AB');
-  const candidatesB = availableRequests.filter(r => r.intendedCategory === 'B' || r.intendedCategory === 'AB');
+  const candidatesA = availableRequests.filter(r => (r.intendedCategory === 'A' || r.intendedCategory === 'AB') && isValidForCategory(r, 'A'));
+  const candidatesB = availableRequests.filter(r => (r.intendedCategory === 'B' || r.intendedCategory === 'AB') && isValidForCategory(r, 'B'));
 
   // Counts for selection limits
   const currentCountA = scheduledStudents.filter(s => s.scheduledCategory === 'A').length;
@@ -623,19 +652,21 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           <span>Carro: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length}/{s.maxSlotsB}</span>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
-                            <Edit2 className="h-4 w-4" />
-                         </button>
-                         {s.status !== 'CANCELLED' && (
-                             <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Cancelar Banca">
-                                <Ban className="h-4 w-4" />
-                             </button>
+                         {s.status !== 'CONCLUDED' && s.status !== 'CANCELLED' && (
+                             <>
+                                 <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
+                                    <Edit2 className="h-4 w-4" />
+                                 </button>
+                                 <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Cancelar Banca">
+                                    <Ban className="h-4 w-4" />
+                                 </button>
+                                 {user.role === UserRole.ADMIN && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(s.id); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Excluir Banca">
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                 )}
+                             </>
                          )}
-                         {user.role === UserRole.ADMIN && (
-                            <button onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(s.id); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Excluir Banca">
-                                <Trash2 className="h-4 w-4" />
-                            </button>
-                         ) }
                       </div>
                   </div>
                 </div>
@@ -737,6 +768,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     </div>
                                                     <div className="flex gap-2 text-xs text-gray-500">
                                                         <span>{req.cpf}</span>
+                                                        <span className="text-gray-300">|</span>
+                                                        <span>Restrição: {req.cnhRestriction || '-'}</span>
                                                         <span className="text-gray-300">|</span>
                                                         <span>Instrutor: {req.instructor || '-'}</span>
                                                         {selectedSchedule.status === 'CONCLUDED' && (
@@ -954,7 +987,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                                               </div>
                                               <div className="flex-1">
-                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
                                                   <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
                                                       <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
                                                       <span>•</span>
@@ -1011,7 +1044,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                                               </div>
                                               <div className="flex-1">
-                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
                                                   <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
                                                       <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
                                                       <span>•</span>
@@ -1089,7 +1122,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Remover Candidato?</h3>
                       <p className="text-sm text-gray-500 mb-6">
-                          Tem certeza que deseja remover <span className="font-bold text-gray-800">{candidateToRemove.studentName}</span> desta banca?
+                          Tem certeza que deseja remover <span className="font-bold text-gray-800">{candidateToRemove.socialName || candidateToRemove.studentName}</span> desta banca?
                           <br/><br/>
                           O candidato voltará para a lista de "Aguardando Agendamento".
                       </p>

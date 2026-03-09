@@ -103,7 +103,18 @@ const Reports: React.FC = () => {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  
+  // Date states for General Stats
+  const [generalDateStart, setGeneralDateStart] = useState(() => {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      return date.toISOString().split('T')[0];
+  });
+  const [generalDateEnd, setGeneralDateEnd] = useState(() => {
+      const date = new Date();
+      date.setDate(date.getDate() + 30); // Show future schedules by default
+      return date.toISOString().split('T')[0];
+  });
 
   // Filters for Instructors List
   const [instructorSearch, setInstructorSearch] = useState<string>('');
@@ -111,35 +122,23 @@ const Reports: React.FC = () => {
   // Filters for Exam History
   const [examHistorySearch, setExamHistorySearch] = useState<string>('');
   const [examHistoryResultFilter, setExamHistoryResultFilter] = useState<string>('ALL');
-  const [examHistoryDateStart, setExamHistoryDateStart] = useState<string>(() => {
+  const [examHistoryDateStart, setExamHistoryDateStart] = useState(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
       return date.toISOString().split('T')[0];
   });
-  const [examHistoryDateEnd, setExamHistoryDateEnd] = useState<string>(() => new Date().toISOString().split('T')[0]);
-
+  const [examHistoryDateEnd, setExamHistoryDateEnd] = useState(() => new Date().toISOString().split('T')[0]);
+  
   // Filters for Schedules List
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState<string>('ALL');
-  const [scheduleDateStart, setScheduleDateStart] = useState<string>(() => {
+  const [scheduleDateStart, setScheduleDateStart] = useState(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
       return date.toISOString().split('T')[0];
   });
-  const [scheduleDateEnd, setScheduleDateEnd] = useState<string>(() => {
+  const [scheduleDateEnd, setScheduleDateEnd] = useState(() => {
       const date = new Date();
-      date.setDate(date.getDate() + 30);
-      return date.toISOString().split('T')[0];
-  });
-
-  // Filters for General Stats (Unified)
-  const [generalDateStart, setGeneralDateStart] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() - 30);
-      return date.toISOString().split('T')[0];
-  });
-  const [generalDateEnd, setGeneralDateEnd] = useState<string>(() => {
-      const date = new Date();
-      date.setDate(date.getDate() + 30);
+      date.setDate(date.getDate() + 30); // Show future schedules by default
       return date.toISOString().split('T')[0];
   });
 
@@ -178,16 +177,59 @@ const Reports: React.FC = () => {
     fetchData();
   }, [reportType]);
 
+  // 0. Flattened Exam History (Source of Truth for Results)
+  const allExamResults = useMemo(() => {
+      const list: any[] = [];
+      requests.forEach(req => {
+          // 1. Add past history
+          if (req.examHistory && Array.isArray(req.examHistory)) {
+              req.examHistory.forEach((h: any) => {
+                  const schedule = schedules.find(s => s.id === h.scheduleId);
+                  list.push({
+                      id: `${req.id}-${h.date}-${h.time}`,
+                      studentName: req.socialName || req.studentName,
+                      date: schedule ? schedule.date : h.date,
+                      result: h.result,
+                      category: h.category || req.intendedCategory,
+                      scheduleId: h.scheduleId
+                  });
+              });
+          }
+
+          // 2. Add current exam if finished
+          if (req.status === ExamStatus.DONE && req.result) {
+               const date = req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]);
+               // Avoid duplicates if history already contains this date
+               const isDuplicate = req.examHistory?.some((h: any) => {
+                   const schedule = schedules.find(s => s.id === h.scheduleId);
+                   const hDate = schedule ? schedule.date : h.date;
+                   return hDate === date;
+               });
+               if (!isDuplicate) {
+                   list.push({
+                       id: req.id,
+                       studentName: req.socialName || req.studentName,
+                       date: date,
+                       result: req.result,
+                       category: req.scheduledCategory || req.intendedCategory,
+                       scheduleId: req.scheduleId
+                   });
+               }
+          }
+      });
+      return list;
+  }, [requests]);
+
   // 1. Índice de Reprovação e Aprovação
   const approvalStats = useMemo(() => {
-    let filtered = requests.filter(r => r.status === ExamStatus.DONE);
+    let filtered = allExamResults;
 
     if (generalDateStart) {
-        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) >= new Date(generalDateStart));
+        filtered = filtered.filter(r => r.date >= generalDateStart);
     }
 
     if (generalDateEnd) {
-        filtered = filtered.filter(r => new Date(r.updatedAt || r.createdAt) <= new Date(generalDateEnd));
+        filtered = filtered.filter(r => r.date <= generalDateEnd);
     }
 
     const total = filtered.length;
@@ -202,28 +244,61 @@ const Reports: React.FC = () => {
       { name: 'Faltou', value: faltou }
     ];
 
-    const monthlyData: Record<string, any> = {};
+    // Improved Grouping Logic (YYYY-MM sortable)
+    const monthlyData: Record<string, { name: string, sortKey: string, apto: number, inapto: number }> = {};
+    
     filtered.forEach(r => {
-      const date = new Date(r.updatedAt || r.createdAt);
-      const month = date.toLocaleString('pt-BR', { month: 'short' });
-      if (!monthlyData[month]) monthlyData[month] = { name: month, apto: 0, inapto: 0 };
-      if (r.result === 'APTO') monthlyData[month].apto++;
-      if (r.result === 'INAPTO') monthlyData[month].inapto++;
+      if (!r.date) return;
+
+      let dateStr = '';
+      try {
+          // Ensure r.date is a string
+          const rawDate = String(r.date);
+          dateStr = rawDate.split('T')[0];
+      } catch (e) {
+          return;
+      }
+
+      const parts = dateStr.split('-');
+      if (parts.length < 2) return; // Invalid format
+
+      const year = parts[0];
+      const month = parts[1];
+      
+      const sortKey = `${year}-${month}`;
+      const monthIndex = parseInt(month) - 1;
+      
+      if (isNaN(monthIndex)) return;
+
+      let monthName = '';
+      try {
+        monthName = new Date(parseInt(year), monthIndex, 1).toLocaleString('pt-BR', { month: 'short' });
+      } catch (e) {
+        monthName = `${month}/${year}`;
+      }
+      
+      const label = `${monthName}/${year.substr(2)}`;
+
+      if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, apto: 0, inapto: 0 };
+      if (r.result === 'APTO') monthlyData[sortKey].apto++;
+      if (r.result === 'INAPTO') monthlyData[sortKey].inapto++;
     });
 
-    return { total, apto, inapto, faltou, rate, pieData, chartData: Object.values(monthlyData) };
-  }, [requests, generalDateStart, generalDateEnd]);
+    const chartData = Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+    return { total, apto, inapto, faltou, rate, pieData, chartData };
+  }, [allExamResults, generalDateStart, generalDateEnd]);
 
   // 3. Índice de Bancas
   const scheduleStats = useMemo(() => {
       let filteredSchedules = schedules;
 
       if (generalDateStart) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
+          filteredSchedules = filteredSchedules.filter(s => s.date >= generalDateStart);
       }
 
       if (generalDateEnd) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
+          filteredSchedules = filteredSchedules.filter(s => s.date <= generalDateEnd);
       }
 
       const total = filteredSchedules.length;
@@ -244,16 +319,16 @@ const Reports: React.FC = () => {
 
   // 4. Índice de Ocupação de Vagas (Novo)
   const slotUsageStats = useMemo(() => {
-      const monthlyData: Record<string, { name: string, total: number, used: number }> = {};
+      const monthlyData: Record<string, { name: string, sortKey: string, total: number, used: number }> = {};
       
       let filteredSchedules = schedules;
 
       if (generalDateStart) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) >= new Date(generalDateStart));
+          filteredSchedules = filteredSchedules.filter(s => s.date >= generalDateStart);
       }
 
       if (generalDateEnd) {
-          filteredSchedules = filteredSchedules.filter(s => new Date(s.date) <= new Date(generalDateEnd));
+          filteredSchedules = filteredSchedules.filter(s => s.date <= generalDateEnd);
       }
 
       // Sort schedules by date
@@ -261,18 +336,20 @@ const Reports: React.FC = () => {
 
       sortedSchedules.forEach(sch => {
           const date = new Date(sch.date);
-          const month = date.toLocaleString('pt-BR', { month: 'short' });
+          const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          const monthName = date.toLocaleString('pt-BR', { month: 'short' });
+          const label = `${monthName}/${date.getFullYear().toString().substr(2)}`;
           
-          if (!monthlyData[month]) monthlyData[month] = { name: month, total: 0, used: 0 };
+          if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, total: 0, used: 0 };
           
           const totalSlots = (sch.maxSlotsA || 0) + (sch.maxSlotsB || 0);
           const usedSlots = requests.filter(r => r.scheduleId === sch.id).length;
           
-          monthlyData[month].total += totalSlots;
-          monthlyData[month].used += usedSlots;
+          monthlyData[sortKey].total += totalSlots;
+          monthlyData[sortKey].used += usedSlots;
       });
       
-      return Object.values(monthlyData);
+      return Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [schedules, requests, generalDateStart, generalDateEnd]);
 
   // Logic for Instructors List
@@ -333,15 +410,16 @@ const Reports: React.FC = () => {
           // 1. Add past history
           if (req.examHistory && Array.isArray(req.examHistory)) {
               req.examHistory.forEach((h: any) => {
+                  const schedule = schedules.find(s => s.id === h.scheduleId);
                   list.push({
                       id: `${req.id}-${h.date}-${h.time}`,
-                      studentName: req.studentName,
+                      studentName: req.socialName || req.studentName,
                       cpf: req.cpf,
-                      date: h.date,
-                      time: h.time || '00:00',
+                      date: schedule ? schedule.date : h.date,
+                      time: schedule ? schedule.time : (h.time || '00:00'),
                       result: h.result,
                       category: h.category || req.intendedCategory || 'N/A',
-                      scheduleCode: h.scheduleCode || 'Sem Banca',
+                      scheduleCode: h.scheduleCode || (schedule?.code ? `#${schedule.code}` : 'Sem Banca'),
                       type: 'HISTORY'
                   });
               });
@@ -349,17 +427,22 @@ const Reports: React.FC = () => {
 
           // 2. Add current exam if finished
           if (req.status === 'DONE' && req.result) {
-               const date = req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]);
+               const schedule = schedules.find(s => s.id === req.scheduleId);
+               const date = schedule ? schedule.date : (req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]));
+               
                // Avoid duplicates if history already contains this date
-               const isDuplicate = req.examHistory?.some((h: any) => h.date === date);
+               const isDuplicate = req.examHistory?.some((h: any) => {
+                   const schedule = schedules.find(s => s.id === h.scheduleId);
+                   const hDate = schedule ? schedule.date : h.date;
+                   return hDate === date;
+               });
                if (!isDuplicate) {
-                   const schedule = schedules.find(s => s.id === req.scheduleId);
                    list.push({
                        id: req.id,
-                       studentName: req.studentName,
+                       studentName: req.socialName || req.studentName,
                        cpf: req.cpf,
                        date: date,
-                       time: req.scheduledTime || '00:00',
+                       time: schedule ? schedule.time : (req.scheduledTime || '00:00'),
                        result: req.result,
                        category: req.scheduledCategory || req.intendedCategory || 'N/A',
                        scheduleCode: schedule?.code ? `#${schedule.code}` : 'Sem Banca',
@@ -384,7 +467,11 @@ const Reports: React.FC = () => {
       }
       if (examHistorySearch) {
           const lower = examHistorySearch.toLowerCase();
-          filtered = filtered.filter(i => i.studentName.toLowerCase().includes(lower) || i.cpf.includes(lower));
+          filtered = filtered.filter(i => 
+              i.studentName.toLowerCase().includes(lower) || 
+              i.cpf.includes(lower) || 
+              i.scheduleCode.toLowerCase().includes(lower)
+          );
       }
       if (examHistoryResultFilter !== 'ALL') {
           filtered = filtered.filter(i => i.result === examHistoryResultFilter);
@@ -413,29 +500,9 @@ const Reports: React.FC = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">
-            {reportType === 'cnh' ? 'DADOS CNH DO BRASIL' : `Relatórios - ${reportType?.toUpperCase()}`}
+            RELATÓRIOS - {reportType?.toUpperCase()}
           </h2>
-          <p className="text-sm text-gray-500 font-medium">Selecione o tipo de relatório abaixo.</p>
-        </div>
-        
-        <div className="flex items-center gap-2 print:hidden">
-            <div className="flex bg-white border rounded-lg overflow-hidden shadow-sm">
-                <input 
-                    type="date" 
-                    className="px-3 py-2 text-xs border-r focus:outline-none bg-white text-gray-900" 
-                    value={dateRange.start}
-                    onChange={e => setDateRange({...dateRange, start: e.target.value})}
-                />
-                <input 
-                    type="date" 
-                    className="px-3 py-2 text-xs focus:outline-none bg-white text-gray-900" 
-                    value={dateRange.end}
-                    onChange={e => setDateRange({...dateRange, end: e.target.value})}
-                />
-            </div>
-            <button className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-colors">
-                <Download className="h-4 w-4" />
-            </button>
+          <p className="text-lg text-gray-500 font-medium">Selecione o tipo de relatório abaixo.</p>
         </div>
       </div>
 
@@ -498,19 +565,19 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Print Header (Visible only in print) */}
-            <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-1">
-                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-1 print:mb-1 print:gap-4">
+            <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-6">
+                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-4 print:mb-2 print:gap-6">
                     {settings?.logoUrl ? (
-                        <img src={settings.logoUrl} className="h-16 w-auto print:h-10" />
+                        <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                     ) : (
-                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-10 print:w-10 print:text-[8px]">LOGO</div>
+                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
                     )}
                     <div>
-                        <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-sm">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-black uppercase text-black print:text-lg">RELATÓRIO GERAL DE ÍNDICES</h2>
+                        <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                        <h2 className="text-2xl font-black uppercase text-black print:text-2xl">RELATÓRIO GERAL DE ÍNDICES</h2>
                     </div>
                 </div>
-                <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                <div className="text-center text-xs font-bold uppercase text-black print:text-sm">
                     <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
@@ -667,12 +734,12 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Histórico de Provas */}
       {activeView === 'exam-history' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md flex gap-2">
                       <input 
                           type="text" 
-                          placeholder="Buscar por Nome ou CPF..." 
+                          placeholder="Buscar por Nome, CPF ou Banca..." 
                           className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                           value={examHistorySearch}
                           onChange={e => setExamHistorySearch(e.target.value)}
@@ -705,7 +772,6 @@ const Reports: React.FC = () => {
                               onChange={e => setExamHistoryDateEnd(e.target.value)}
                           />
                       </div>
-
                       <button 
                           onClick={() => window.print()} 
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
@@ -734,58 +800,72 @@ const Reports: React.FC = () => {
               </div>
 
               <div className="overflow-x-auto print:overflow-visible">
-                  {Object.keys(groupedExamHistory).length === 0 ? (
-                      <div className="p-10 text-center text-gray-400">Nenhum histórico encontrado.</div>
-                  ) : (
-                      Object.entries(groupedExamHistory).map(([code, categories]) => (
-                          <div key={code} className="border-b last:border-b-0 print:border-black">
-                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
-                                  Banca: {code} ({Object.values(categories).flat().length})
-                              </div>
-                              
-                              {Object.entries(categories).map(([category, items]) => (
-                                  <div key={`${code}-${category}`}>
-                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
-                                          Categoria {category} ({items.length})
-                                      </div>
-                                      <table className="w-full text-sm text-left">
-                                          <thead>
-                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[40%]">Nome</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">CPF</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Data/Hora</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Resultado</th>
-                                              </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                                              {items.map((item: any) => (
-                                                  <tr key={item.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
-                                                      <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
-                                                          {new Date(item.date).toLocaleDateString()} às {item.time}
-                                                      </td>
-                                                      <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
-                                                          {item.result ? (
-                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                                  item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
-                                                                  item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
-                                                                  {item.result}
-                                                              </span>
-                                                          ) : <span className="text-gray-400 print:text-black">-</span>}
-                                                      </td>
-                                                  </tr>
+                  <table className="w-full">
+                      <thead className="hidden print:table-header-group">
+                          <tr><td><div className="h-2"></div></td></tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td>
+                                  {Object.keys(groupedExamHistory).length === 0 ? (
+                                      <div className="p-10 text-center text-gray-400">Nenhum histórico encontrado.</div>
+                                  ) : (
+                                      Object.entries(groupedExamHistory).map(([code, categories]) => (
+                                          <div key={code} className="border-b last:border-b-0 print:border-black">
+                                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
+                                                  Banca: {code} ({Object.values(categories).flat().length})
+                                              </div>
+                                              
+                                              {Object.entries(categories).map(([category, items]) => (
+                                                  <div key={`${code}-${category}`}>
+                                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
+                                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
+                                                          Categoria {category} ({items.length})
+                                                      </div>
+                                                      <table className="w-full text-sm text-left">
+                                                          <thead>
+                                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
+                                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[40%]">Nome</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">CPF</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Data/Hora</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Resultado</th>
+                                                              </tr>
+                                                          </thead>
+                                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                                              {items.map((item: any) => (
+                                                                  <tr key={item.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          {new Date(item.date).toLocaleDateString()} às {item.time}
+                                                                      </td>
+                                                                      <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
+                                                                          {item.result ? (
+                                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                                                  item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
+                                                                                  item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
+                                                                                  {item.result}
+                                                                              </span>
+                                                                          ) : <span className="text-gray-400 print:text-black">-</span>}
+                                                                      </td>
+                                                                  </tr>
+                                                              ))}
+                                                          </tbody>
+                                                      </table>
+                                                  </div>
                                               ))}
-                                          </tbody>
-                                      </table>
-                                  </div>
-                              ))}
-                          </div>
-                      ))
-                  )}
+                                          </div>
+                                      ))
+                                  )}
+                              </td>
+                          </tr>
+                      </tbody>
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr><td><div className="h-16"></div></td></tr>
+                      </tfoot>
+                  </table>
               </div>
 
               {/* Print Footer (Visible only in print) */}
@@ -798,7 +878,7 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Lista de Instrutores */}
       {activeView === 'instructors-list' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md">
                       <div className="relative">
@@ -842,48 +922,62 @@ const Reports: React.FC = () => {
               </div>
 
               <div className="overflow-x-auto print:overflow-visible">
-                  {filteredInstructors.length === 0 ? (
-                      <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
-                  ) : (
-                      <table className="w-full text-sm text-left">
-                          <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
-                              <tr>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">CPF</th>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Telefone</th>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Veículos</th>
-                              </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                              {filteredInstructors.map(inst => (
-                                  <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                      <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{inst.name}</td>
-                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.cpf}</td>
-                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.phone}</td>
-                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
-                                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0">
-                                              {inst.category || 'N/A'}
-                                          </span>
-                                      </td>
-                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
-                                          {inst.vehicles && inst.vehicles.length > 0 ? (
-                                              <div className="flex flex-col gap-1">
-                                                  {inst.vehicles.filter(v => v.active).map(v => (
-                                                      <span key={v.id} className="text-xs">
-                                                          {v.type === 'CAR' ? '🚗' : '🏍️'} {v.model} ({v.plate})
-                                                      </span>
-                                                  ))}
-                                              </div>
-                                          ) : (
-                                              <span className="text-gray-400 print:text-black">-</span>
-                                          )}
-                                      </td>
-                                  </tr>
-                              ))}
-                          </tbody>
-                      </table>
-                  )}
+                  <table className="w-full">
+                      <thead className="hidden print:table-header-group">
+                          <tr><td><div className="h-2"></div></td></tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td>
+                                  {filteredInstructors.length === 0 ? (
+                                      <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
+                                  ) : (
+                                      <table className="w-full text-sm text-left">
+                                          <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
+                                              <tr>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">CPF</th>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Telefone</th>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Veículos</th>
+                                              </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                              {filteredInstructors.map(inst => (
+                                                  <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                      <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{inst.name}</td>
+                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.cpf}</td>
+                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.phone}</td>
+                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0">
+                                                              {inst.category || 'N/A'}
+                                                          </span>
+                                                      </td>
+                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                                          {inst.vehicles && inst.vehicles.length > 0 ? (
+                                                              <div className="flex flex-col gap-1">
+                                                                  {inst.vehicles.filter(v => v.active).map(v => (
+                                                                      <span key={v.id} className="text-xs">
+                                                                          {v.type === 'CAR' ? '🚗' : '🏍️'} {v.model} ({v.plate})
+                                                                      </span>
+                                                                  ))}
+                                                              </div>
+                                                          ) : (
+                                                              <span className="text-gray-400 print:text-black">-</span>
+                                                          )}
+                                                      </td>
+                                                  </tr>
+                                              ))}
+                                          </tbody>
+                                      </table>
+                                  )}
+                              </td>
+                          </tr>
+                      </tbody>
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr><td><div className="h-16"></div></td></tr>
+                      </tfoot>
+                  </table>
               </div>
 
               {/* Print Footer (Visible only in print) */}
@@ -896,7 +990,7 @@ const Reports: React.FC = () => {
 
       {/* VIEW: Lista de Candidatos */}
       {activeView === 'schedules-list' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <h3 className="text-lg font-bold">Todas as Bancas</h3>
                   
@@ -956,49 +1050,63 @@ const Reports: React.FC = () => {
               </div>
 
               <div className="overflow-x-auto print:overflow-visible">
-                  {Object.keys(groupedSchedules).length === 0 ? (
-                      <div className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</div>
-                  ) : (
-                      Object.entries(groupedSchedules).map(([status, types]) => (
-                          <div key={status} className="border-b last:border-b-0 print:border-black">
-                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
-                                  {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
-                              </div>
-                              
-                              {Object.entries(types).map(([code, scheds]) => (
-                                  <div key={`${status}-${code}`}>
-                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
-                                          {code}
-                                      </div>
-                                      <table className="w-full text-sm text-left">
-                                          <thead>
-                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px]">Data</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horário</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Examinadores</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Utilizadas</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Totais</th>
-                                              </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                                              {scheds.map(sch => (
-                                                  <tr key={sch.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                      <td className="px-6 py-3 font-bold text-gray-800 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{new Date(sch.date).toLocaleDateString()}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.time}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.examinerIds.length}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{requests.filter(r => r.scheduleId === sch.id).length}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
-                                                  </tr>
+                  <table className="w-full">
+                      <thead className="hidden print:table-header-group">
+                          <tr><td><div className="h-2"></div></td></tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td>
+                                  {Object.keys(groupedSchedules).length === 0 ? (
+                                      <div className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</div>
+                                  ) : (
+                                      Object.entries(groupedSchedules).map(([status, types]) => (
+                                          <div key={status} className="border-b last:border-b-0 print:border-black">
+                                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
+                                                  {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
+                                              </div>
+                                              
+                                              {Object.entries(types).map(([code, scheds]) => (
+                                                  <div key={`${status}-${code}`}>
+                                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
+                                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
+                                                          {code}
+                                                      </div>
+                                                      <table className="w-full text-sm text-left">
+                                                          <thead>
+                                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
+                                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px]">Data</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horário</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Examinadores</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Utilizadas</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Totais</th>
+                                                              </tr>
+                                                          </thead>
+                                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                                              {scheds.map(sch => (
+                                                                  <tr key={sch.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                                      <td className="px-6 py-3 font-bold text-gray-800 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{new Date(sch.date).toLocaleDateString()}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.time}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.examinerIds.length}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{requests.filter(r => r.scheduleId === sch.id).length}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
+                                                                  </tr>
+                                                              ))}
+                                                          </tbody>
+                                                      </table>
+                                                  </div>
                                               ))}
-                                          </tbody>
-                                      </table>
-                                  </div>
-                              ))}
-                          </div>
-                      ))
-                  )}
+                                          </div>
+                                      ))
+                                  )}
+                              </td>
+                          </tr>
+                      </tbody>
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr><td><div className="h-16"></div></td></tr>
+                      </tfoot>
+                  </table>
               </div>
 
               {/* Print Footer (Visible only in print) */}
