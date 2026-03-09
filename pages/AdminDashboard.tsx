@@ -67,6 +67,32 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     { name: 'PCD', value: requests.filter(r => r.examType === 'PCD').length },
   ];
 
+  // Stats for "CNH do Brasil" tab (All time, no filters)
+  const approvalStatsAllTime = useMemo(() => {
+    const allExamResults = requests.flatMap(req => {
+        const list: any[] = [];
+        if (req.examHistory && Array.isArray(req.examHistory)) {
+            req.examHistory.forEach((h: any) => {
+                list.push({ result: h.result });
+            });
+        }
+        if (req.status === ExamStatus.DONE && req.result) {
+            list.push({ result: req.result });
+        }
+        return list;
+    });
+
+    const total = allExamResults.length;
+    const apto = allExamResults.filter(r => r.result === 'APTO').length;
+    const inapto = allExamResults.filter(r => r.result === 'INAPTO').length;
+    const faltou = allExamResults.filter(r => r.result === 'FALTOU').length;
+    const rate = total > 0 ? ((apto / total) * 100).toFixed(1) : '0';
+
+    return { total, apto, inapto, faltou, rate };
+  }, [requests]);
+
+  const [activeTab, setActiveTab] = useState('dashboard');
+
   if (loading) {
       return <div className="p-10 text-center text-gray-500">Carregando painel de controle...</div>;
   }
@@ -82,54 +108,85 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total de Bancas" value={totalBancas} icon={Calendar} color="bg-blue-600" />
-        <StatCard title="Aguardando Agendamento" value={pending} icon={AlertTriangle} color="bg-yellow-500" />
-        <StatCard title="Candidatos Agendados" value={scheduled} icon={Users} color="bg-indigo-500" />
-        <StatCard title="Provas Realizadas" value={done} icon={FileCheck} color="bg-green-500" />
+      <div className="flex gap-2 border-b">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-4 py-2 font-bold text-sm ${activeTab === 'dashboard' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+          >
+              Dashboard
+          </button>
+          <button 
+            onClick={() => setActiveTab('cnh')}
+            className={`px-4 py-2 font-bold text-sm ${activeTab === 'cnh' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+          >
+              CNH do Brasil
+          </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-          <h3 className="text-lg font-semibold mb-6 flex-shrink-0">Status dos Candidatos</h3>
-          <div className="flex-1 min-h-0 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dataByStatus} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} interval={0} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+      {activeTab === 'dashboard' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard title="Total de Bancas" value={totalBancas} icon={Calendar} color="bg-blue-600" />
+            <StatCard title="Aguardando Agendamento" value={pending} icon={AlertTriangle} color="bg-yellow-500" />
+            <StatCard title="Candidatos Agendados" value={scheduled} icon={Users} color="bg-indigo-500" />
+            <StatCard title="Provas Realizadas" value={done} icon={FileCheck} color="bg-green-500" />
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
-          <h3 className="text-lg font-semibold mb-6 flex-shrink-0">Distribuição por Tipo</h3>
-          <div className="flex-1 min-h-0 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={dataByType}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {dataByType.map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={index === 0 ? '#3B82F6' : '#10B981'} strokeWidth={0} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Legend verticalAlign="bottom" height={36} iconType="circle" />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+              <h3 className="text-lg font-semibold mb-6 flex-shrink-0">Status dos Candidatos</h3>
+              <div className="flex-1 min-h-0 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dataByStatus} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10}} interval={0} />
+                    <YAxis axisLine={false} tickLine={false} />
+                    <Tooltip cursor={{ fill: '#F3F4F6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={40} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96">
+              <h3 className="text-lg font-semibold mb-6 flex-shrink-0">Distribuição por Tipo</h3>
+              <div className="flex-1 min-h-0 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={dataByType}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {dataByType.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={index === 0 ? '#3B82F6' : '#10B981'} strokeWidth={0} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {activeTab === 'cnh' && (
+        <div className="space-y-6">
+            <h3 className="text-lg font-bold">Resumo Geral de Estatísticas (CNH do Brasil)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <StatCard title="Total Finalizados" value={approvalStatsAllTime.total} icon={FileCheck} color="bg-blue-600" />
+                <StatCard title="Taxa de Aprovação" value={`${approvalStatsAllTime.rate}%`} icon={Trophy} color="bg-green-600" />
+                <StatCard title="Reprovações" value={approvalStatsAllTime.inapto} icon={AlertTriangle} color="bg-red-600" />
+                <StatCard title="Faltas" value={approvalStatsAllTime.faltou} icon={UserMinus} color="bg-gray-600" />
+            </div>
+        </div>
+      )}
     </div>
   );
 };
