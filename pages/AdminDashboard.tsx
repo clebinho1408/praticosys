@@ -1,9 +1,9 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { ExamRequest, UserRole, User, ExamStatus, ExamSchedule } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Users, FileCheck, AlertTriangle, Calendar } from 'lucide-react';
+import { Users, FileCheck, AlertTriangle, Calendar, Trophy, UserMinus } from 'lucide-react';
 
 const StatCard: React.FC<{ title: string; value: number | string; icon: React.ElementType; color: string }> = ({ title, value, icon: Icon, color }) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center space-x-4">
