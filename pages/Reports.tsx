@@ -488,18 +488,6 @@ const Reports: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <style>
-        {`
-          @media print {
-            @page {
-              margin-bottom: 2cm;
-            }
-            body {
-              margin-bottom: 2cm;
-            }
-          }
-        `}
-      </style>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
         <div>
           <h2 className="text-2xl font-bold text-gray-800 uppercase tracking-tight">
