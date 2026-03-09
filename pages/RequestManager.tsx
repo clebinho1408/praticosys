@@ -284,8 +284,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
 
     const newHistoryEntry = {
       id: 'hist_' + Date.now(),
-      date: editingRequest.scheduledDate || new Date().toISOString().split('T')[0],
-      time: editingRequest.scheduledTime || new Date().toLocaleTimeString().substring(0, 5),
+      date: schedule?.date || editingRequest.scheduledDate || new Date().toISOString().split('T')[0],
+      time: schedule?.time || editingRequest.scheduledTime || new Date().toLocaleTimeString().substring(0, 5),
       result: resultData.result,
       category: editingRequest.scheduledCategory || editingRequest.intendedCategory,
       examiners: examinerNames,
@@ -915,11 +915,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y">
-                                                {formData.examHistory.map((hist, idx) => (
+                                                {formData.examHistory.map((hist, idx) => {
+                                                    const schedule = schedules.find(s => s.id === hist.scheduleId);
+                                                    const displayDate = schedule?.date || hist.date;
+                                                    const displayTime = schedule?.time || hist.time;
+                                                    return (
                                                     <tr key={idx} className="hover:bg-gray-50">
                                                         <td className="px-3 py-2 whitespace-nowrap">
-                                                            <div className="font-medium">{hist.date ? hist.date.split('-').reverse().join('/') : '-'}</div>
-                                                            <div className="text-[10px] text-gray-400">{hist.time}</div>
+                                                            <div className="font-medium">{displayDate ? displayDate.split('-').reverse().join('/') : '-'}</div>
+                                                            <div className="text-[10px] text-gray-400">{displayTime}</div>
                                                         </td>
                                                         <td className="px-3 py-2 text-[10px] max-w-[120px] truncate" title={hist.examiners}>
                                                             {hist.examiners || '-'}
@@ -950,7 +954,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                                             </td>
                                                         )}
                                                     </tr>
-                                                ))}
+                                                )})}
                                             </tbody>
                                         </table>
                                     </div>

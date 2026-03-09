@@ -1,25 +1,27 @@
 
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { ExamRequest, ExamStatus } from '../types';
+import { ExamRequest, ExamStatus, ExamSchedule } from '../types';
 import { Search, User, Calendar, History, ChevronRight, X, ShieldCheck, MapPin, Phone } from 'lucide-react';
 
 const StudentDatabase: React.FC = () => {
   const [students, setStudents] = useState<ExamRequest[]>([]);
+  const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState<ExamRequest | null>(null);
 
   useEffect(() => {
     setLoading(true);
-    api.getRequests().then(data => {
-      setStudents(data);
+    Promise.all([api.getRequests(), api.getSchedules()]).then(([requestsData, schedulesData]) => {
+      setStudents(requestsData);
+      setSchedules(schedulesData);
       setLoading(false);
     });
   }, []);
 
   const filtered = students.filter(s => 
-    s.studentName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (s.socialName || s.studentName).toLowerCase().includes(searchTerm.toLowerCase()) || 
     s.cpf.includes(searchTerm)
   );
 
@@ -65,14 +67,14 @@ const StudentDatabase: React.FC = () => {
           >
             <div className="flex justify-between items-start mb-5">
               <div className="h-14 w-14 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg shadow-blue-200">
-                {student.studentName.charAt(0)}
+                {(student.socialName || student.studentName).charAt(0)}
               </div>
               <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${getStatusColor(student.status)}`}>
                 {student.status.replace('_', ' ')}
               </span>
             </div>
             
-            <h3 className="text-lg font-black text-slate-900 uppercase truncate mb-1">{student.studentName}</h3>
+            <h3 className="text-lg font-black text-slate-900 uppercase truncate mb-1">{student.socialName || student.studentName}</h3>
             <p className="text-sm text-slate-400 font-bold mb-4">{student.cpf}</p>
             
             <div className="space-y-3 border-t border-gray-50 pt-5">
@@ -104,10 +106,10 @@ const StudentDatabase: React.FC = () => {
             <div className="p-6 border-b flex justify-between items-center bg-white">
               <div className="flex items-center gap-4">
                 <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-xl">
-                    {selectedStudent.studentName.charAt(0)}
+                    {(selectedStudent.socialName || selectedStudent.studentName).charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-gray-900 uppercase">{selectedStudent.studentName}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 uppercase">{selectedStudent.socialName || selectedStudent.studentName}</h3>
                   <p className="text-sm text-gray-500">{selectedStudent.cpf}</p>
                 </div>
               </div>
@@ -164,18 +166,22 @@ const StudentDatabase: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                             {(selectedStudent.examHistory || []).length > 0 ? (
-                                selectedStudent.examHistory.map((h, i) => (
+                                selectedStudent.examHistory.map((h, i) => {
+                                    const schedule = schedules.find(s => s.id === h.scheduleId);
+                                    const displayDate = schedule?.date || h.date;
+                                    const displayTime = schedule?.time || h.time;
+                                    return (
                                     <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-slate-700">{h.date ? h.date.split('-').reverse().join('/') : '-'} às {h.time}</td>
+                                        <td className="px-6 py-4 font-bold text-slate-700">{displayDate ? displayDate.split('-').reverse().join('/') : '-'} às {displayTime}</td>
                                         <td className="px-6 py-4 text-slate-500 font-medium">Prática {h.category}</td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
                                                 h.result === 'APTO' ? 'text-green-700 bg-green-100' : 'text-red-700 bg-red-100'
                                             }`}>{h.result}</span>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-400 text-xs font-bold">{h.examinerId || '-'}</td>
+                                        <td className="px-6 py-4 text-slate-400 text-xs font-bold">{h.examiners || h.examinerId || '-'}</td>
                                     </tr>
-                                ))
+                                )})
                             ) : (
                                 <tr>
                                     <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic font-medium">

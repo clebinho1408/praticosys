@@ -294,7 +294,7 @@ export const CommonRequestForm: React.FC = () => {
                 <div className="bg-blue-50 p-4 rounded-md text-sm text-blue-900">
                    <p className="font-semibold mb-2">Resumo da Solicitação:</p>
                    <ul className="list-disc pl-5 space-y-1">
-                     <li>Candidato: {formData.studentName}</li>
+                     <li>Candidato: {formData.socialName || formData.studentName}</li>
                      <li>CPF: {formData.cpf}</li>
                      <li>Taxa Paga: {formData.paidFee === 'true' ? 'Sim' : 'Não'}</li>
                      <li>Curso Prático: {formData.completedPracticalCourse === 'true' ? 'Sim' : 'Não'}</li>
@@ -535,7 +535,7 @@ export const StatusCheck: React.FC = () => {
               <div key={req.id} className="bg-white border-l-4 border-blue-500 shadow-sm rounded-r-lg p-6">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-bold text-lg text-gray-900">{req.studentName}</h3>
+                    <h3 className="font-bold text-lg text-gray-900">{req.socialName || req.studentName}</h3>
                     <p className="text-sm text-gray-500">Prova: {req.examType === ExamType.COMMON ? '1ª Habilitação' : 'PCD'}</p>
                     <p className="text-sm text-gray-500">Data Desejada: {new Date(req.desiredDate).toLocaleDateString()}</p>
                   </div>

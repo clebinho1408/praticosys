@@ -493,7 +493,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     .filter(r => 
         r.status === ExamStatus.WAITING_SCHEDULING && 
         r.examType === selectedSchedule?.type &&
-        (r.studentName.toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch))
+        ((r.socialName || r.studentName).toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch))
     )
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
 
@@ -975,7 +975,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                                               </div>
                                               <div className="flex-1">
-                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
                                                   <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
                                                       <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
                                                       <span>•</span>
@@ -1032,7 +1032,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                                               </div>
                                               <div className="flex-1">
-                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.studentName}</div>
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
                                                   <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
                                                       <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
                                                       <span>•</span>
@@ -1110,7 +1110,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                       </div>
                       <h3 className="text-xl font-bold text-gray-900 mb-2">Remover Candidato?</h3>
                       <p className="text-sm text-gray-500 mb-6">
-                          Tem certeza que deseja remover <span className="font-bold text-gray-800">{candidateToRemove.studentName}</span> desta banca?
+                          Tem certeza que deseja remover <span className="font-bold text-gray-800">{candidateToRemove.socialName || candidateToRemove.studentName}</span> desta banca?
                           <br/><br/>
                           O candidato voltará para a lista de "Aguardando Agendamento".
                       </p>

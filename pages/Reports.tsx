@@ -184,10 +184,11 @@ const Reports: React.FC = () => {
           // 1. Add past history
           if (req.examHistory && Array.isArray(req.examHistory)) {
               req.examHistory.forEach((h: any) => {
+                  const schedule = schedules.find(s => s.id === h.scheduleId);
                   list.push({
                       id: `${req.id}-${h.date}-${h.time}`,
-                      studentName: req.studentName,
-                      date: h.date,
+                      studentName: req.socialName || req.studentName,
+                      date: schedule ? schedule.date : h.date,
                       result: h.result,
                       category: h.category || req.intendedCategory,
                       scheduleId: h.scheduleId
@@ -199,11 +200,15 @@ const Reports: React.FC = () => {
           if (req.status === ExamStatus.DONE && req.result) {
                const date = req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]);
                // Avoid duplicates if history already contains this date
-               const isDuplicate = req.examHistory?.some((h: any) => h.date === date);
+               const isDuplicate = req.examHistory?.some((h: any) => {
+                   const schedule = schedules.find(s => s.id === h.scheduleId);
+                   const hDate = schedule ? schedule.date : h.date;
+                   return hDate === date;
+               });
                if (!isDuplicate) {
                    list.push({
                        id: req.id,
-                       studentName: req.studentName,
+                       studentName: req.socialName || req.studentName,
                        date: date,
                        result: req.result,
                        category: req.scheduledCategory || req.intendedCategory,
@@ -408,7 +413,7 @@ const Reports: React.FC = () => {
                   const schedule = schedules.find(s => s.id === h.scheduleId);
                   list.push({
                       id: `${req.id}-${h.date}-${h.time}`,
-                      studentName: req.studentName,
+                      studentName: req.socialName || req.studentName,
                       cpf: req.cpf,
                       date: schedule ? schedule.date : h.date,
                       time: schedule ? schedule.time : (h.time || '00:00'),
@@ -426,11 +431,15 @@ const Reports: React.FC = () => {
                const date = schedule ? schedule.date : (req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]));
                
                // Avoid duplicates if history already contains this date
-               const isDuplicate = req.examHistory?.some((h: any) => h.date === date);
+               const isDuplicate = req.examHistory?.some((h: any) => {
+                   const schedule = schedules.find(s => s.id === h.scheduleId);
+                   const hDate = schedule ? schedule.date : h.date;
+                   return hDate === date;
+               });
                if (!isDuplicate) {
                    list.push({
                        id: req.id,
-                       studentName: req.studentName,
+                       studentName: req.socialName || req.studentName,
                        cpf: req.cpf,
                        date: date,
                        time: schedule ? schedule.time : (req.scheduledTime || '00:00'),
