@@ -913,51 +913,62 @@ const Reports: React.FC = () => {
               </div>
 
               <div className="overflow-x-auto print:overflow-visible">
-                  {filteredInstructors.length === 0 ? (
-                      <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
-                  ) : (
-                      <table className="w-full text-sm text-left">
-                          <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
-                              <tr>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">CPF</th>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Telefone</th>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
-                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Veículos</th>
-                              </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                              {filteredInstructors.map(inst => (
-                                  <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                      <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{inst.name}</td>
-                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.cpf}</td>
-                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.phone}</td>
-                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
-                                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0">
-                                              {inst.category || 'N/A'}
-                                          </span>
-                                      </td>
-                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
-                                          {inst.vehicles && inst.vehicles.length > 0 ? (
-                                              <div className="flex flex-col gap-1">
-                                                  {inst.vehicles.filter(v => v.active).map(v => (
-                                                      <span key={v.id} className="text-xs">
-                                                          {v.type === 'CAR' ? '🚗' : '🏍️'} {v.model} ({v.plate})
-                                                      </span>
-                                                  ))}
-                                              </div>
-                                          ) : (
-                                              <span className="text-gray-400 print:text-black">-</span>
-                                          )}
-                                      </td>
-                                  </tr>
-                              ))}
-                          </tbody>
-                          <tfoot className="hidden print:table-footer-group">
-                              <tr><td colSpan={5}><div className="h-16"></div></td></tr>
-                          </tfoot>
-                      </table>
-                  )}
+                  <table className="w-full">
+                      <thead className="hidden print:table-header-group">
+                          <tr><td><div className="h-2"></div></td></tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td>
+                                  {filteredInstructors.length === 0 ? (
+                                      <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
+                                  ) : (
+                                      <table className="w-full text-sm text-left">
+                                          <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
+                                              <tr>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">CPF</th>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Telefone</th>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
+                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Veículos</th>
+                                              </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                              {filteredInstructors.map(inst => (
+                                                  <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                      <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{inst.name}</td>
+                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.cpf}</td>
+                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.phone}</td>
+                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0">
+                                                              {inst.category || 'N/A'}
+                                                          </span>
+                                                      </td>
+                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                                          {inst.vehicles && inst.vehicles.length > 0 ? (
+                                                              <div className="flex flex-col gap-1">
+                                                                  {inst.vehicles.filter(v => v.active).map(v => (
+                                                                      <span key={v.id} className="text-xs">
+                                                                          {v.type === 'CAR' ? '🚗' : '🏍️'} {v.model} ({v.plate})
+                                                                      </span>
+                                                                  ))}
+                                                              </div>
+                                                          ) : (
+                                                              <span className="text-gray-400 print:text-black">-</span>
+                                                          )}
+                                                      </td>
+                                                  </tr>
+                                              ))}
+                                          </tbody>
+                                      </table>
+                                  )}
+                              </td>
+                          </tr>
+                      </tbody>
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr><td><div className="h-16"></div></td></tr>
+                      </tfoot>
+                  </table>
               </div>
 
               {/* Print Footer (Visible only in print) */}

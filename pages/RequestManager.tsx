@@ -410,10 +410,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                         value={currentInstructorName}
                         onChange={e => {
                             const newName = e.target.value;
-                            const newInstructor = instructors.find(i => i.name === newName);
-                            // Auto-select first vehicle if available
-                            const firstVehicle = newInstructor?.vehicles?.find(v => v.type === (categoryCode === 'A' ? 'MOTO' : 'CAR') && v.active);
-                            const newPlate = firstVehicle ? firstVehicle.plate : (newInstructor?.plate || '');
+                            let newPlate = '';
+                            
+                            if (newName === 'A DEFINIR') {
+                                newPlate = 'A DEFINIR';
+                            } else {
+                                const newInstructor = instructors.find(i => i.name === newName);
+                                // Auto-select first vehicle if available
+                                const firstVehicle = newInstructor?.vehicles?.find(v => v.type === (categoryCode === 'A' ? 'MOTO' : 'CAR') && v.active);
+                                newPlate = firstVehicle ? firstVehicle.plate : (newInstructor?.plate || '');
+                            }
 
                             if (formData.intendedCategory === 'AB') {
                                 const otherPartInstr = formData.instructor?.split(' / ')[categoryCode === 'A' ? 1 : 0] || '';
@@ -434,6 +440,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                         }}
                     >
                         <option value="">Selecione...</option>
+                        <option value="A DEFINIR">A DEFINIR</option>
                         {availableInstructors.map(inst => (
                             <option key={inst.id} value={inst.name}>{inst.name}</option>
                         ))}
@@ -459,6 +466,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                         disabled={!currentInstructorName}
                     >
                         <option value="">Selecione...</option>
+                        <option value="A DEFINIR">A DEFINIR</option>
                         {availableVehicles.map(v => (
                             <option key={v.id} value={v.plate}>{v.model} - {v.plate}</option>
                         ))}
@@ -467,7 +475,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                              <option value={selectedInstructor.plate}>{selectedInstructor.plate}</option>
                         )}
                          {/* Allow manual entry if needed or show current value if not in list */}
-                         {currentPlate && !availableVehicles.some(v => v.plate === currentPlate) && (!selectedInstructor || selectedInstructor.plate !== currentPlate) && (
+                         {currentPlate && currentPlate !== 'A DEFINIR' && !availableVehicles.some(v => v.plate === currentPlate) && (!selectedInstructor || selectedInstructor.plate !== currentPlate) && (
                             <option value={currentPlate}>{currentPlate}</option>
                          )}
                     </select>
@@ -910,7 +918,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => 
                                                 {formData.examHistory.map((hist, idx) => (
                                                     <tr key={idx} className="hover:bg-gray-50">
                                                         <td className="px-3 py-2 whitespace-nowrap">
-                                                            <div className="font-medium">{hist.date}</div>
+                                                            <div className="font-medium">{hist.date ? hist.date.split('-').reverse().join('/') : '-'}</div>
                                                             <div className="text-[10px] text-gray-400">{hist.time}</div>
                                                         </td>
                                                         <td className="px-3 py-2 text-[10px] max-w-[120px] truncate" title={hist.examiners}>

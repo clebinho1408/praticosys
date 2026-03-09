@@ -497,9 +497,30 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     )
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
 
+  const isValidForCategory = (r: ExamRequest, category: 'A' | 'B') => {
+      if (!r.instructor || !r.vehiclePlate) return false;
+      
+      if (r.intendedCategory === 'AB') {
+          const instrParts = r.instructor.split(' / ');
+          const plateParts = r.vehiclePlate.split(' / ');
+          
+          if (category === 'A') {
+              const motoInstr = instrParts[0]?.replace('Moto: ', '');
+              const motoPlate = plateParts[0]?.replace('Moto: ', '');
+              return motoInstr !== 'A DEFINIR' && motoPlate !== 'A DEFINIR';
+          } else {
+              const carInstr = instrParts[1]?.replace('Carro: ', '');
+              const carPlate = plateParts[1]?.replace('Carro: ', '');
+              return carInstr !== 'A DEFINIR' && carPlate !== 'A DEFINIR';
+          }
+      } else {
+          return r.instructor !== 'A DEFINIR' && r.vehiclePlate !== 'A DEFINIR';
+      }
+  };
+
   // Split into categories
-  const candidatesA = availableRequests.filter(r => r.intendedCategory === 'A' || r.intendedCategory === 'AB');
-  const candidatesB = availableRequests.filter(r => r.intendedCategory === 'B' || r.intendedCategory === 'AB');
+  const candidatesA = availableRequests.filter(r => (r.intendedCategory === 'A' || r.intendedCategory === 'AB') && isValidForCategory(r, 'A'));
+  const candidatesB = availableRequests.filter(r => (r.intendedCategory === 'B' || r.intendedCategory === 'AB') && isValidForCategory(r, 'B'));
 
   // Counts for selection limits
   const currentCountA = scheduledStudents.filter(s => s.scheduledCategory === 'A').length;

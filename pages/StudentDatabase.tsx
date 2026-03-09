@@ -166,7 +166,7 @@ const StudentDatabase: React.FC = () => {
                             {(selectedStudent.examHistory || []).length > 0 ? (
                                 selectedStudent.examHistory.map((h, i) => (
                                     <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-bold text-slate-700">{h.date} às {h.time}</td>
+                                        <td className="px-6 py-4 font-bold text-slate-700">{h.date ? h.date.split('-').reverse().join('/') : '-'} às {h.time}</td>
                                         <td className="px-6 py-4 text-slate-500 font-medium">Prática {h.category}</td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${
