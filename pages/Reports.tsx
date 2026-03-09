@@ -790,63 +790,74 @@ const Reports: React.FC = () => {
                   </div>
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible print:pb-28">
-                  {Object.keys(groupedExamHistory).length === 0 ? (
-                      <div className="p-10 text-center text-gray-400">Nenhum histórico encontrado.</div>
-                  ) : (
-                      Object.entries(groupedExamHistory).map(([code, categories]) => (
-                          <div key={code} className="border-b last:border-b-0 print:border-black">
-                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
-                                  Banca: {code} ({Object.values(categories).flat().length})
-                              </div>
-                              
-                              {Object.entries(categories).map(([category, items]) => (
-                                  <div key={`${code}-${category}`}>
-                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
-                                          Categoria {category} ({items.length})
-                                      </div>
-                                      <table className="w-full text-sm text-left">
-                                          <thead>
-                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[40%]">Nome</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">CPF</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Data/Hora</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Resultado</th>
-                                              </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                                              {items.map((item: any) => (
-                                                  <tr key={item.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
-                                                      <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
-                                                          {new Date(item.date).toLocaleDateString()} às {item.time}
-                                                      </td>
-                                                      <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
-                                                          {item.result ? (
-                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                                  item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
-                                                                  item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
-                                                                  {item.result}
-                                                              </span>
-                                                          ) : <span className="text-gray-400 print:text-black">-</span>}
-                                                      </td>
-                                                  </tr>
+              <div className="overflow-x-auto print:overflow-visible">
+                  <table className="w-full">
+                      <thead className="hidden print:table-header-group">
+                          <tr><td><div className="h-2"></div></td></tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td>
+                                  {Object.keys(groupedExamHistory).length === 0 ? (
+                                      <div className="p-10 text-center text-gray-400">Nenhum histórico encontrado.</div>
+                                  ) : (
+                                      Object.entries(groupedExamHistory).map(([code, categories]) => (
+                                          <div key={code} className="border-b last:border-b-0 print:border-black">
+                                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
+                                                  Banca: {code} ({Object.values(categories).flat().length})
+                                              </div>
+                                              
+                                              {Object.entries(categories).map(([category, items]) => (
+                                                  <div key={`${code}-${category}`}>
+                                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
+                                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
+                                                          Categoria {category} ({items.length})
+                                                      </div>
+                                                      <table className="w-full text-sm text-left">
+                                                          <thead>
+                                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
+                                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[40%]">Nome</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">CPF</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Data/Hora</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Resultado</th>
+                                                              </tr>
+                                                          </thead>
+                                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                                              {items.map((item: any) => (
+                                                                  <tr key={item.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          {new Date(item.date).toLocaleDateString()} às {item.time}
+                                                                      </td>
+                                                                      <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
+                                                                          {item.result ? (
+                                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                                                  item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
+                                                                                  item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
+                                                                                  {item.result}
+                                                                              </span>
+                                                                          ) : <span className="text-gray-400 print:text-black">-</span>}
+                                                                      </td>
+                                                                  </tr>
+                                                              ))}
+                                                          </tbody>
+                                                      </table>
+                                                  </div>
                                               ))}
-                                          </tbody>
-                                      </table>
-                                  </div>
-                              ))}
-                          </div>
-                      ))
-                  )}
+                                          </div>
+                                      ))
+                                  )}
+                              </td>
+                          </tr>
+                      </tbody>
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr><td><div className="h-16"></div></td></tr>
+                      </tfoot>
+                  </table>
               </div>
-
-              {/* Spacer to prevent footer overlap */}
-              <div className="hidden print:block h-24"></div>
 
               {/* Print Footer (Visible only in print) */}
               <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
@@ -901,7 +912,7 @@ const Reports: React.FC = () => {
                   </div>
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible print:pb-28">
+              <div className="overflow-x-auto print:overflow-visible">
                   {filteredInstructors.length === 0 ? (
                       <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
                   ) : (
@@ -942,12 +953,12 @@ const Reports: React.FC = () => {
                                   </tr>
                               ))}
                           </tbody>
+                          <tfoot className="hidden print:table-footer-group">
+                              <tr><td colSpan={5}><div className="h-16"></div></td></tr>
+                          </tfoot>
                       </table>
                   )}
               </div>
-
-              {/* Spacer to prevent footer overlap */}
-              <div className="hidden print:block h-24"></div>
 
               {/* Print Footer (Visible only in print) */}
               <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
@@ -1018,54 +1029,65 @@ const Reports: React.FC = () => {
                   </div>
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible print:pb-28">
-                  {Object.keys(groupedSchedules).length === 0 ? (
-                      <div className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</div>
-                  ) : (
-                      Object.entries(groupedSchedules).map(([status, types]) => (
-                          <div key={status} className="border-b last:border-b-0 print:border-black">
-                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
-                                  {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
-                              </div>
-                              
-                              {Object.entries(types).map(([code, scheds]) => (
-                                  <div key={`${status}-${code}`}>
-                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
-                                          {code}
-                                      </div>
-                                      <table className="w-full text-sm text-left">
-                                          <thead>
-                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px]">Data</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horário</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Examinadores</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Utilizadas</th>
-                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Totais</th>
-                                              </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                                              {scheds.map(sch => (
-                                                  <tr key={sch.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                      <td className="px-6 py-3 font-bold text-gray-800 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{new Date(sch.date).toLocaleDateString()}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.time}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.examinerIds.length}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{requests.filter(r => r.scheduleId === sch.id).length}</td>
-                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
-                                                  </tr>
+              <div className="overflow-x-auto print:overflow-visible">
+                  <table className="w-full">
+                      <thead className="hidden print:table-header-group">
+                          <tr><td><div className="h-2"></div></td></tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td>
+                                  {Object.keys(groupedSchedules).length === 0 ? (
+                                      <div className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</div>
+                                  ) : (
+                                      Object.entries(groupedSchedules).map(([status, types]) => (
+                                          <div key={status} className="border-b last:border-b-0 print:border-black">
+                                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
+                                                  {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
+                                              </div>
+                                              
+                                              {Object.entries(types).map(([code, scheds]) => (
+                                                  <div key={`${status}-${code}`}>
+                                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
+                                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
+                                                          {code}
+                                                      </div>
+                                                      <table className="w-full text-sm text-left">
+                                                          <thead>
+                                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
+                                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px]">Data</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horário</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Examinadores</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Utilizadas</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Totais</th>
+                                                              </tr>
+                                                          </thead>
+                                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                                              {scheds.map(sch => (
+                                                                  <tr key={sch.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                                      <td className="px-6 py-3 font-bold text-gray-800 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{new Date(sch.date).toLocaleDateString()}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.time}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.examinerIds.length}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{requests.filter(r => r.scheduleId === sch.id).length}</td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
+                                                                  </tr>
+                                                              ))}
+                                                          </tbody>
+                                                      </table>
+                                                  </div>
                                               ))}
-                                          </tbody>
-                                      </table>
-                                  </div>
-                              ))}
-                          </div>
-                      ))
-                  )}
+                                          </div>
+                                      ))
+                                  )}
+                              </td>
+                          </tr>
+                      </tbody>
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr><td><div className="h-16"></div></td></tr>
+                      </tfoot>
+                  </table>
               </div>
-
-              {/* Spacer to prevent footer overlap */}
-              <div className="hidden print:block h-24"></div>
 
               {/* Print Footer (Visible only in print) */}
               <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
