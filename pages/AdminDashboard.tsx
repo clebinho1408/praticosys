@@ -68,16 +68,17 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
   ];
 
   // Stats for "CNH do Brasil" tab (All time, no filters)
-  const approvalStatsAllTime = useMemo(() => {
+  const cnhStats = useMemo(() => {
+    // 1. Approval Stats
     const allExamResults = requests.flatMap(req => {
         const list: any[] = [];
         if (req.examHistory && Array.isArray(req.examHistory)) {
             req.examHistory.forEach((h: any) => {
-                list.push({ result: h.result });
+                list.push({ result: h.result, date: h.date || req.createdAt.split('T')[0] });
             });
         }
         if (req.status === ExamStatus.DONE && req.result) {
-            list.push({ result: req.result });
+            list.push({ result: req.result, date: req.scheduledDate || req.createdAt.split('T')[0] });
         }
         return list;
     });
@@ -88,8 +89,63 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     const faltou = allExamResults.filter(r => r.result === 'FALTOU').length;
     const rate = total > 0 ? ((apto / total) * 100).toFixed(1) : '0';
 
-    return { total, apto, inapto, faltou, rate };
-  }, [requests]);
+    const pieData = [
+      { name: 'Apto', value: apto },
+      { name: 'Inapto', value: inapto },
+      { name: 'Faltou', value: faltou }
+    ];
+
+    // Monthly data logic
+    const monthlyData: Record<string, { name: string, sortKey: string, apto: number, inapto: number }> = {};
+    allExamResults.forEach(r => {
+      if (!r.date) return;
+      const dateStr = r.date.split('T')[0];
+      const [year, month] = dateStr.split('-');
+      const sortKey = `${year}-${month}`;
+      const monthName = new Date(parseInt(year), parseInt(month) - 1, 1).toLocaleString('pt-BR', { month: 'short' });
+      const label = `${monthName}/${year.substr(2)}`;
+      if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, apto: 0, inapto: 0 };
+      if (r.result === 'APTO') monthlyData[sortKey].apto++;
+      if (r.result === 'INAPTO') monthlyData[sortKey].inapto++;
+    });
+    const chartData = Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+    // 2. Schedule Stats
+    const totalSchedules = schedules.length;
+    const open = schedules.filter(s => s.status === 'OPEN').length;
+    const concluded = schedules.filter(s => s.status === 'CONCLUDED').length;
+    const cancelled = schedules.filter(s => s.status === 'CANCELLED').length;
+    const closed = schedules.filter(s => s.status === 'CLOSED').length;
+
+    const schedulePieData = [
+        { name: 'Abertas', value: open },
+        { name: 'Concluídas', value: concluded },
+        { name: 'Canceladas', value: cancelled },
+        { name: 'Fechadas', value: closed }
+    ];
+
+    // 3. Slot Usage Stats
+    const slotUsageData: Record<string, { name: string, sortKey: string, total: number, used: number }> = {};
+    schedules.forEach(sch => {
+        const date = new Date(sch.date);
+        const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthName = date.toLocaleString('pt-BR', { month: 'short' });
+        const label = `${monthName}/${date.getFullYear().toString().substr(2)}`;
+        
+        if (!slotUsageData[sortKey]) slotUsageData[sortKey] = { name: label, sortKey, total: 0, used: 0 };
+        
+        const totalSlots = (sch.maxSlotsA || 0) + (sch.maxSlotsB || 0);
+        const usedSlots = requests.filter(r => r.scheduleId === sch.id).length;
+        
+        slotUsageData[sortKey].total += totalSlots;
+        slotUsageData[sortKey].used += usedSlots;
+    });
+    const slotUsageChartData = Object.values(slotUsageData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+    return { total, apto, inapto, faltou, rate, pieData, chartData, totalSchedules, open, concluded, cancelled, closed, schedulePieData, slotUsageChartData };
+  }, [requests, schedules]);
+
+  const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B'];
 
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -177,14 +233,96 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       )}
 
       {activeTab === 'cnh' && (
-        <div className="space-y-6">
-            <h3 className="text-lg font-bold">Resumo Geral de Estatísticas (CNH do Brasil)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard title="Total Finalizados" value={approvalStatsAllTime.total} icon={FileCheck} color="bg-blue-600" />
-                <StatCard title="Taxa de Aprovação" value={`${approvalStatsAllTime.rate}%`} icon={Trophy} color="bg-green-600" />
-                <StatCard title="Reprovações" value={approvalStatsAllTime.inapto} icon={AlertTriangle} color="bg-red-600" />
-                <StatCard title="Faltas" value={approvalStatsAllTime.faltou} icon={UserMinus} color="bg-gray-600" />
+        <div className="space-y-6 animate-fadeIn">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard title="Total Finalizados" value={cnhStats.total} icon={FileCheck} color="bg-blue-600" />
+            <StatCard title="Taxa de Aprovação" value={`${cnhStats.rate}%`} icon={Trophy} color="bg-green-500" />
+            <StatCard title="Reprovações" value={cnhStats.inapto} icon={AlertTriangle} color="bg-red-500" />
+            <StatCard title="Faltas" value={cnhStats.faltou} icon={UserMinus} color="bg-gray-500" />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96">
+              <h3 className="text-lg font-semibold mb-4">Distribuição de Resultados</h3>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={cnhStats.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                    {cnhStats.pieData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96">
+              <h3 className="text-lg font-semibold mb-4">Evolução Mensal (Apto/Inapto)</h3>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cnhStats.chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="apto" name="Apto" fill="#10B981" />
+                  <Bar dataKey="inapto" name="Inapto" fill="#EF4444" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 className="text-lg font-semibold mb-6">Estatísticas de Bancas</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                    <p className="text-sm text-slate-500">Total</p>
+                    <p className="text-2xl font-bold">{cnhStats.totalSchedules}</p>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <p className="text-sm text-blue-500">Abertas</p>
+                    <p className="text-2xl font-bold text-blue-700">{cnhStats.open}</p>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                    <p className="text-sm text-green-500">Concluídas</p>
+                    <p className="text-2xl font-bold text-green-700">{cnhStats.concluded}</p>
+                </div>
+                <div className="p-4 bg-red-50 rounded-lg border border-red-100">
+                    <p className="text-sm text-red-500">Canceladas</p>
+                    <p className="text-2xl font-bold text-red-700">{cnhStats.cancelled}</p>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <p className="text-sm text-gray-500">Fechadas</p>
+                    <p className="text-2xl font-bold text-gray-700">{cnhStats.closed}</p>
+                </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="h-80">
+                    <h4 className="text-sm font-semibold mb-2">Status das Bancas</h4>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                        <Pie data={cnhStats.schedulePieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                            {cnhStats.schedulePieData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="h-80">
+                    <h4 className="text-sm font-semibold mb-2">Ocupação de Vagas</h4>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={cnhStats.slotUsageChartData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="total" name="Total Vagas" fill="#94A3B8" />
+                        <Bar dataKey="used" name="Vagas Ocupadas" fill="#3B82F6" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
