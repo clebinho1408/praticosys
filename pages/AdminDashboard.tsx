@@ -4,16 +4,6 @@ import { api } from '../services/api';
 import { ExamRequest, UserRole, User, ExamStatus, ExamSchedule } from '../types';
 // ... restante do código
 
-import React, { useEffect, useState, useMemo } from 'react';
-<<<<<<< HEAD
-import { useParams, useNavigate } from 'react-router-dom';
-=======
->>>>>>> cee389c93c7958df4d2f1f9360c63fcd533b8bf0
-import { api } from '../services/api';
-import { ExamRequest, UserRole, User, ExamStatus, ExamSchedule } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Users, FileCheck, AlertTriangle, Calendar, Trophy, UserMinus } from 'lucide-react';
-
 // Module Components
 import { CnhModule } from '../components/dashboard/CnhModule';
 import { CfcModule } from '../components/dashboard/CfcModule';
