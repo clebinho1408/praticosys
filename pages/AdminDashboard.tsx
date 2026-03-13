@@ -1,3 +1,8 @@
+import React, { useEffect, useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { api } from '../services/api';
+import { ExamRequest, UserRole, User, ExamStatus, ExamSchedule } from '../types';
+// ... restante do código
 
 import React, { useEffect, useState, useMemo } from 'react';
 <<<<<<< HEAD
