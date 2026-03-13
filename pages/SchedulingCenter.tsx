@@ -134,9 +134,17 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Date Filters
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Date Filters - Default to 30 days ago and 30 days ahead
+  const [startDate, setStartDate] = useState(() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 30);
+      return d.toISOString().split('T')[0];
+  });
+  const [endDate, setEndDate] = useState(() => {
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      return d.toISOString().split('T')[0];
+  });
 
   const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
   const [scheduleForm, setScheduleForm] = useState({ 
@@ -644,19 +652,21 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           <span>Carro: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length}/{s.maxSlotsB}</span>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
-                            <Edit2 className="h-4 w-4" />
-                         </button>
-                         {s.status !== 'CANCELLED' && (
-                             <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Cancelar Banca">
-                                <Ban className="h-4 w-4" />
-                             </button>
+                         {s.status !== 'CONCLUDED' && s.status !== 'CANCELLED' && (
+                             <>
+                                 <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
+                                    <Edit2 className="h-4 w-4" />
+                                 </button>
+                                 <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Cancelar Banca">
+                                    <Ban className="h-4 w-4" />
+                                 </button>
+                                 {user.role === UserRole.ADMIN && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(s.id); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Excluir Banca">
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                 )}
+                             </>
                          )}
-                         {user.role === UserRole.ADMIN && (
-                            <button onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(s.id); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Excluir Banca">
-                                <Trash2 className="h-4 w-4" />
-                            </button>
-                         ) }
                       </div>
                   </div>
                 </div>
@@ -758,6 +768,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     </div>
                                                     <div className="flex gap-2 text-xs text-gray-500">
                                                         <span>{req.cpf}</span>
+                                                        <span className="text-gray-300">|</span>
+                                                        <span>Restrição: {req.cnhRestriction || '-'}</span>
                                                         <span className="text-gray-300">|</span>
                                                         <span>Instrutor: {req.instructor || '-'}</span>
                                                         {selectedSchedule.status === 'CONCLUDED' && (

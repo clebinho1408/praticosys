@@ -45,6 +45,7 @@ const App: React.FC = () => {
               <Layout user={auth.user} onLogout={handleLogout}>
                 <Routes>
                   <Route path="/" element={<AdminDashboard user={auth.user} />} />
+                  <Route path="dashboard/:tab" element={<AdminDashboard user={auth.user} />} />
                   
                   {/* Common Routes for specific filters */}
                   <Route path="requests" element={<RequestManager user={auth.user} />} /> 
