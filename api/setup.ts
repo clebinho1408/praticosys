@@ -127,17 +127,26 @@ export default async function handler(req: any, res: any) {
       // Garantir colunas extras em instructors (FIX: Adicionado plate e cpf)
       sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS category text`,
       sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS plate text`,
-      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS cpf text`
+      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS cpf text`,
+      
+      // Colunas para driving_schools
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS email text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS services jsonb DEFAULT '[]'::jsonb`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS moto_yard_address text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS car_yard_address text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS category_change_yard_address text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS main_schedule jsonb`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS provisional_schedule jsonb`
     ];
 
     // Executa criação de tabelas
     for (const query of tableQueries) {
-      await db.execute(query).catch(err => console.warn("[Setup] Erro ao criar tabela:", err.message));
+      await db.execute(query).catch((err: any) => console.warn("[Setup] Erro ao criar tabela:", err.message));
     }
 
     // Executa adição de colunas
     for (const query of columnQueries) {
-      await db.execute(query).catch(err => console.warn("[Setup] Coluna ignorada (já existe):", err.message));
+      await db.execute(query).catch((err: any) => console.warn("[Setup] Coluna ignorada (já existe):", err.message));
     }
 
     return res.status(200).json({ 

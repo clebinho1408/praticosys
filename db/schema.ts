@@ -1,5 +1,5 @@
 
-import { pgTable, text, boolean, integer, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, boolean, integer, timestamp, jsonb } from 'drizzle-orm/pg-core';
 
 // Tabela de Usuários (Admin, Operadores, Escolas)
 export const users = pgTable('users', {
@@ -17,7 +17,14 @@ export const drivingSchools = pgTable('driving_schools', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   phone: text('phone'),
+  email: text('email'),
   address: text('address'),
+  services: jsonb('services').$type<string[]>().default([]),
+  motoYardAddress: text('moto_yard_address'),
+  carYardAddress: text('car_yard_address'),
+  categoryChangeYardAddress: text('category_change_yard_address'),
+  mainSchedule: jsonb('main_schedule').$type<any>(),
+  provisionalSchedule: jsonb('provisional_schedule').$type<any>(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

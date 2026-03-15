@@ -35,11 +35,28 @@ export interface User {
   login: string;
 }
 
+export interface SchoolSchedule {
+  frequency: '1_WEEK' | '2_WEEK' | '3_WEEK' | '15_DAYS';
+  days: string[]; // ['SEG', 'TER', ...]
+  slots: { time: string; examiner: string }[]; 
+}
+
 export interface DrivingSchool {
   id: string;
   name: string;
   phone: string;
+  email: string;
   address: string;
+  services: string[]; // ['A', 'B', 'C', 'D', 'E']
+  
+  // Pátios
+  motoYardAddress?: string;
+  carYardAddress?: string;
+  categoryChangeYardAddress?: string; // C, D, E
+  
+  // Escalas
+  mainSchedule?: SchoolSchedule;
+  provisionalSchedule?: SchoolSchedule;
 }
 
 export interface Examiner {

@@ -216,7 +216,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
         whatsappMessageTemplate: '',
         agencyName: 'Detran',
         defaultExamAddress: '',
-        defaultExamAddressLink: ''
+        defaultExamAddressLink: '',
+        restrictions: []
     };
     
     let currentTemplate = safeSettings.whatsappMessageTemplate || '';

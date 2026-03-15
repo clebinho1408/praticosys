@@ -10,7 +10,7 @@ export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
       const data = await db.select().from(users);
-      const safeData = data.map(({ password, ...rest }) => rest);
+      const safeData = data.map(({ password, ...rest }: any) => rest);
       return res.status(200).json(safeData);
     }
 

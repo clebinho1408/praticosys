@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, DrivingSchool, Examiner, Instructor, Vehicle } from '../types';
+import { User, UserRole, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
@@ -2579,7 +2579,22 @@ const SchoolsManager: React.FC = () => {
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DrivingSchool | null>(null);
-  const [formData, setFormData] = useState({ name: '', phone: '', address: '' });
+  const [modalTab, setModalTab] = useState<'MAIN' | 'YARDS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
+  
+  const initialFormData: Partial<DrivingSchool> = {
+    name: '',
+    phone: '',
+    email: '',
+    address: '',
+    services: [],
+    motoYardAddress: '',
+    carYardAddress: '',
+    categoryChangeYardAddress: '',
+    mainSchedule: { frequency: '1_WEEK', days: [], slots: [] },
+    provisionalSchedule: { frequency: '1_WEEK', days: [], slots: [] }
+  };
+
+  const [formData, setFormData] = useState<Partial<DrivingSchool>>(initialFormData);
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -2604,7 +2619,8 @@ const SchoolsManager: React.FC = () => {
 
   const openModal = (school?: DrivingSchool) => {
     setEditing(school || null);
-    setFormData(school ? { name: school.name, phone: school.phone, address: school.address } : { name: '', phone: '', address: '' });
+    setFormData(school ? { ...initialFormData, ...school } : initialFormData);
+    setModalTab('MAIN');
     setIsModalOpen(true);
   };
 
@@ -2633,6 +2649,129 @@ const SchoolsManager: React.FC = () => {
   const filteredSchools = schools.filter(s => 
       s.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const toggleService = (cat: string) => {
+    const current = formData.services || [];
+    if (current.includes(cat)) {
+      setFormData({ ...formData, services: current.filter(c => c !== cat) });
+    } else {
+      setFormData({ ...formData, services: [...current, cat] });
+    }
+  };
+
+  const renderScheduleConfig = (type: 'main' | 'provisional') => {
+    const schedule = type === 'main' ? formData.mainSchedule : formData.provisionalSchedule;
+    if (!schedule) return null;
+
+    const updateSchedule = (updates: Partial<SchoolSchedule>) => {
+      if (type === 'main') {
+        setFormData({ ...formData, mainSchedule: { ...schedule, ...updates } });
+      } else {
+        setFormData({ ...formData, provisionalSchedule: { ...schedule, ...updates } });
+      }
+    };
+
+    const addSlot = () => {
+      updateSchedule({ slots: [...schedule.slots, { time: '', examiner: '' }] });
+    };
+
+    const removeSlot = (index: number) => {
+      updateSchedule({ slots: schedule.slots.filter((_, i) => i !== index) });
+    };
+
+    const updateSlot = (index: number, field: 'time' | 'examiner', value: string) => {
+      const newSlots = [...schedule.slots];
+      newSlots[index] = { ...newSlots[index], [field]: value };
+      updateSchedule({ slots: newSlots });
+    };
+
+    const toggleDay = (day: string) => {
+      const current = schedule.days || [];
+      if (current.includes(day)) {
+        updateSchedule({ days: current.filter(d => d !== day) });
+      } else {
+        updateSchedule({ days: [...current, day] });
+      }
+    };
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Frequência</label>
+          <select 
+            className="w-full border rounded p-2 bg-white text-gray-900"
+            value={schedule.frequency}
+            onChange={e => updateSchedule({ frequency: e.target.value as any })}
+          >
+            <option value="1_WEEK">1 vez na semana</option>
+            <option value="2_WEEK">2 vezes na semana</option>
+            <option value="3_WEEK">3 vezes na semana</option>
+            <option value="15_DAYS">A cada 15 dias</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Dias da Semana</label>
+          <div className="flex flex-wrap gap-2">
+            {['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'].map(day => (
+              <button
+                key={day}
+                type="button"
+                onClick={() => toggleDay(day)}
+                className={`px-3 py-1 rounded text-xs font-bold border ${
+                  schedule.days?.includes(day) 
+                    ? 'bg-blue-600 text-white border-blue-600' 
+                    : 'bg-white text-gray-600 border-gray-300'
+                }`}
+              >
+                {day}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="block text-sm font-medium">Horários e Examinadores</label>
+            <button 
+              type="button" 
+              onClick={addSlot}
+              className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100"
+            >
+              + Adicionar Horário
+            </button>
+          </div>
+          {schedule.slots.map((slot, idx) => (
+            <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded border border-gray-200">
+              <input 
+                type="time" 
+                className="border rounded p-1 text-sm bg-white" 
+                value={slot.time}
+                onChange={e => updateSlot(idx, 'time', e.target.value)}
+              />
+              <input 
+                type="text" 
+                placeholder="Nome do Examinador"
+                className="flex-1 border rounded p-1 text-sm bg-white" 
+                value={slot.examiner}
+                onChange={e => updateSlot(idx, 'examiner', e.target.value)}
+              />
+              <button 
+                type="button" 
+                onClick={() => removeSlot(idx)}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          {schedule.slots.length === 0 && (
+            <p className="text-xs text-gray-500 italic">Nenhum horário configurado.</p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -2667,7 +2806,7 @@ const SchoolsManager: React.FC = () => {
             <tr>
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Telefone</th>
-              <th className="px-4 py-3">Endereço</th>
+              <th className="px-4 py-3">E-mail</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -2676,7 +2815,7 @@ const SchoolsManager: React.FC = () => {
               <tr key={s.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium">{s.name}</td>
                 <td className="px-4 py-3 text-gray-500">{s.phone}</td>
-                <td className="px-4 py-3 text-gray-500 truncate max-w-xs">{s.address}</td>
+                <td className="px-4 py-3 text-gray-500">{s.email || '-'}</td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button onClick={() => openModal(s)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
                   <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
@@ -2692,17 +2831,101 @@ const SchoolsManager: React.FC = () => {
       
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold mb-4">{editing ? 'Editar Autoescola' : 'Nova Autoescola'}</h3>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div><label className="block text-sm font-medium">Nome</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} /></div>
-              <div><label className="block text-sm font-medium">Telefone</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
-              <div><label className="block text-sm font-medium">Endereço</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} /></div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
-              </div>
-            </form>
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-bold">{editing ? 'Editar Autoescola' : 'Nova Autoescola'}</h3>
+            </div>
+            
+            <div className="flex border-b bg-gray-50 overflow-x-auto">
+              {[
+                { id: 'MAIN', label: 'Dados Principais' },
+                { id: 'YARDS', label: 'Pátios' },
+                { id: 'SCHEDULE_MAIN', label: 'Escala Principal' },
+                { id: 'SCHEDULE_PROV', label: 'Escala Provisória' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setModalTab(tab.id as any)}
+                  className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    modalTab === tab.id 
+                      ? 'border-blue-600 text-blue-600 bg-white' 
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <form id="school-form" onSubmit={handleSave} className="space-y-4">
+                {modalTab === 'MAIN' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium">Nome</label>
+                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">E-mail</label>
+                        <input type="email" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium">Telefone</label>
+                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Endereço</label>
+                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Serviços (Categorias)</label>
+                      <div className="flex flex-wrap gap-3">
+                        {['A', 'B', 'C', 'D', 'E'].map(cat => (
+                          <label key={cat} className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded border hover:bg-gray-100">
+                            <input 
+                              type="checkbox" 
+                              checked={formData.services?.includes(cat)} 
+                              onChange={() => toggleService(cat)}
+                              className="w-4 h-4 text-blue-600"
+                            />
+                            <span className="text-sm font-bold">Categoria {cat}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {modalTab === 'YARDS' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium">Endereço Pátio Moto (Cat. A)</label>
+                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.motoYardAddress} onChange={e => setFormData({...formData, motoYardAddress: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Endereço Pátio Carro (Cat. B)</label>
+                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.carYardAddress} onChange={e => setFormData({...formData, carYardAddress: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Endereço Mudança de Categoria (Cat. C, D, E)</label>
+                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.categoryChangeYardAddress} onChange={e => setFormData({...formData, categoryChangeYardAddress: e.target.value})} />
+                    </div>
+                  </div>
+                )}
+
+                {modalTab === 'SCHEDULE_MAIN' && renderScheduleConfig('main')}
+                {modalTab === 'SCHEDULE_PROV' && renderScheduleConfig('provisional')}
+              </form>
+            </div>
+
+            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+              <button type="submit" form="school-form" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
+            </div>
           </div>
         </div>
       )}

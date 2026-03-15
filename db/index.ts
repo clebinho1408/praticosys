@@ -23,7 +23,7 @@ try {
   
   // Inicializa conexão real
   const sql = neon(cleanUrl);
-  dbInstance = drizzle(sql, { schema });
+  dbInstance = drizzle(sql as any, { schema });
 
 } catch (e: any) {
   console.error("ERRO FATAL DB: Falha ao inicializar conexão:", e.message);
