@@ -28,12 +28,25 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const body = parseBody(req);
+      console.log("[API/Requests] POST Body:", JSON.stringify(body));
       const newItem = await db.insert(examRequests).values({
         id: body.id || crypto.randomUUID(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ...body
+        ...body,
+        // Ensure dates are Date objects if they were passed as strings
+        createdAt: body.createdAt ? new Date(body.createdAt) : new Date(),
+        updatedAt: new Date()
       }).returning();
+
+      if (!newItem || newItem.length === 0) {
+        // Fallback for mock mode or databases that don't support returning
+        return res.status(200).json({ 
+          id: body.id || crypto.randomUUID(), 
+          ...body,
+          createdAt: body.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+
       return res.status(200).json(newItem[0]);
     }
 
