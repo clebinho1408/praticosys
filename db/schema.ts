@@ -79,10 +79,10 @@ export const examSchedules = pgTable('exam_schedules', {
 // Tabela de Solicitações/Candidatos
 export const examRequests = pgTable('exam_requests', {
   id: text('id').primaryKey(),
-  studentName: text('student_name').notNull(),
+  studentName: text('student_name'),
   socialName: text('social_name'),
-  cpf: text('cpf').notNull(),
-  phone: text('phone').notNull(),
+  cpf: text('cpf'),
+  phone: text('phone'),
   email: text('email'),
   address: text('address'),
   

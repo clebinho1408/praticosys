@@ -68,10 +68,10 @@ export default async function handler(req: any, res: any) {
       // 5. CANDIDATOS (REQUESTS)
       sql`CREATE TABLE IF NOT EXISTS exam_requests (
           id text PRIMARY KEY,
-          student_name text NOT NULL,
+          student_name text,
           social_name text,
-          cpf text NOT NULL,
-          phone text NOT NULL,
+          cpf text,
+          phone text,
           status text NOT NULL,
           created_at timestamp DEFAULT now()
       )`,
@@ -147,7 +147,12 @@ export default async function handler(req: any, res: any) {
       sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS car_yard_address text`,
       sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS category_change_yard_address text`,
       sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS main_schedule jsonb`,
-      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS provisional_schedule jsonb`
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS provisional_schedule jsonb`,
+      
+      // Remover NOT NULL de colunas que podem ser vazias em escalas automáticas
+      sql`ALTER TABLE exam_requests ALTER COLUMN student_name DROP NOT NULL`,
+      sql`ALTER TABLE exam_requests ALTER COLUMN cpf DROP NOT NULL`,
+      sql`ALTER TABLE exam_requests ALTER COLUMN phone DROP NOT NULL`
     ];
 
     // Executa criação de tabelas

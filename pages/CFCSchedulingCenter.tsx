@@ -255,6 +255,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           for (const slot of activeSchedule.slots) {
             await api.createRequest({
               schoolId: school.id,
+              source: 'SCHOOL',
               examType: ExamType.COMMON,
               intendedCategory: 'A,B', // Default categories for auto-generation
               status: ExamStatus.SCHEDULED,
@@ -295,6 +296,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       
       await api.createRequest({
         schoolId: newRequest.schoolId,
+        source: 'SCHOOL',
         examType: ExamType.COMMON,
         intendedCategory: newRequest.categories.join(','),
         status: newRequest.date ? ExamStatus.SCHEDULED : ExamStatus.WAITING_SCHEDULING,
