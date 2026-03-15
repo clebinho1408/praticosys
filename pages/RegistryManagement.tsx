@@ -2577,6 +2577,7 @@ const UsersManager: React.FC = () => {
 
 const SchoolsManager: React.FC = () => {
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
+  const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DrivingSchool | null>(null);
   const [modalTab, setModalTab] = useState<'MAIN' | 'YARDS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
@@ -2590,8 +2591,8 @@ const SchoolsManager: React.FC = () => {
     motoYardAddress: '',
     carYardAddress: '',
     categoryChangeYardAddress: '',
-    mainSchedule: { frequency: '1_WEEK', days: [], slots: [] },
-    provisionalSchedule: { frequency: '1_WEEK', days: [], slots: [] }
+    mainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
+    provisionalSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false }
   };
 
   const [formData, setFormData] = useState<Partial<DrivingSchool>>(initialFormData);
@@ -2614,7 +2615,10 @@ const SchoolsManager: React.FC = () => {
       onConfirm: () => {}
   });
 
-  const fetch = async () => setSchools(await api.getSchoolsAsync());
+  const fetch = async () => {
+    setSchools(await api.getSchoolsAsync());
+    setExaminers(await api.getExaminersAsync());
+  };
   useEffect(() => { fetch(); }, []);
 
   const openModal = (school?: DrivingSchool) => {
@@ -2665,13 +2669,30 @@ const SchoolsManager: React.FC = () => {
 
     const updateSchedule = (updates: Partial<SchoolSchedule>) => {
       if (type === 'main') {
-        setFormData({ ...formData, mainSchedule: { ...schedule, ...updates } });
+        const newMain = { ...schedule, ...updates };
+        // Exclusive activation logic
+        const newProv = formData.provisionalSchedule ? { ...formData.provisionalSchedule } : undefined;
+        if (updates.active === true && newProv) {
+          newProv.active = false;
+        }
+        setFormData({ ...formData, mainSchedule: newMain, provisionalSchedule: newProv });
       } else {
-        setFormData({ ...formData, provisionalSchedule: { ...schedule, ...updates } });
+        const newProv = { ...schedule, ...updates };
+        // Exclusive activation logic
+        const newMain = formData.mainSchedule ? { ...formData.mainSchedule } : undefined;
+        if (updates.active === true && newMain) {
+          newMain.active = false;
+        }
+        setFormData({ ...formData, provisionalSchedule: newProv, mainSchedule: newMain });
       }
     };
 
     const addSlot = () => {
+      // Rule: "2 vezes no dia" allows only 2 slots
+      if (schedule.frequency === '2_DAY' && schedule.slots.length >= 2) {
+        alert('Frequência "2 vezes no dia" permite apenas 2 horários.');
+        return;
+      }
       updateSchedule({ slots: [...schedule.slots, { time: '', examiner: '' }] });
     };
 
@@ -2687,25 +2708,72 @@ const SchoolsManager: React.FC = () => {
 
     const toggleDay = (day: string) => {
       const current = schedule.days || [];
-      if (current.includes(day)) {
+      const isSelected = current.includes(day);
+      
+      if (isSelected) {
         updateSchedule({ days: current.filter(d => d !== day) });
       } else {
-        updateSchedule({ days: [...current, day] });
+        // Frequency limits
+        if (schedule.frequency === '1_WEEK' && current.length >= 1) {
+          updateSchedule({ days: [day] }); // Replace
+        } else if (schedule.frequency === '2_WEEK' && current.length >= 2) {
+          updateSchedule({ days: [current[1], day] }); // Keep last one and add new
+        } else if (schedule.frequency === '2_DAY' && current.length >= 1) {
+          updateSchedule({ days: [day] }); // Replace
+        } else {
+          updateSchedule({ days: [...current, day] });
+        }
       }
     };
 
     return (
       <div className="space-y-4">
+        <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
+          <div>
+            <h4 className="font-bold text-sm">{type === 'main' ? 'Escala Principal' : 'Escala Provisória'}</h4>
+            <p className="text-xs text-gray-500">{schedule.active ? 'Esta escala está ATIVA' : 'Esta escala está DESATIVADA'}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => updateSchedule({ active: !schedule.active })}
+            className={`px-4 py-2 rounded text-xs font-bold transition-colors ${
+              schedule.active 
+                ? 'bg-red-100 text-red-600 border border-red-200 hover:bg-red-200' 
+                : 'bg-green-100 text-green-600 border border-green-200 hover:bg-green-200'
+            }`}
+          >
+            {schedule.active ? 'DESATIVAR ESCALA' : 'ATIVAR ESCALA'}
+          </button>
+        </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Frequência</label>
           <select 
             className="w-full border rounded p-2 bg-white text-gray-900"
             value={schedule.frequency}
-            onChange={e => updateSchedule({ frequency: e.target.value as any })}
+            onChange={e => {
+              const freq = e.target.value as any;
+              let days = [...schedule.days];
+              let slots = [...schedule.slots];
+              
+              // Reset days if they exceed new frequency limits
+              if (freq === '1_WEEK' || freq === '2_DAY') {
+                if (days.length > 1) days = [days[0]];
+              } else if (freq === '2_WEEK') {
+                if (days.length > 2) days = days.slice(0, 2);
+              }
+
+              // Limit slots for 2_DAY
+              if (freq === '2_DAY' && slots.length > 2) {
+                slots = slots.slice(0, 2);
+              }
+
+              updateSchedule({ frequency: freq, days, slots });
+            }}
           >
             <option value="1_WEEK">1 vez na semana</option>
             <option value="2_WEEK">2 vezes na semana</option>
-            <option value="3_WEEK">3 vezes na semana</option>
+            <option value="2_DAY">2 vezes no dia</option>
             <option value="15_DAYS">A cada 15 dias</option>
           </select>
         </div>
@@ -2713,7 +2781,7 @@ const SchoolsManager: React.FC = () => {
         <div>
           <label className="block text-sm font-medium mb-1">Dias da Semana</label>
           <div className="flex flex-wrap gap-2">
-            {['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'].map(day => (
+            {['SEG', 'TER', 'QUA', 'QUI', 'SEX'].map(day => (
               <button
                 key={day}
                 type="button"
@@ -2728,6 +2796,11 @@ const SchoolsManager: React.FC = () => {
               </button>
             ))}
           </div>
+          <p className="text-[10px] text-gray-400 mt-1">
+            {schedule.frequency === '1_WEEK' && 'Selecione apenas 1 dia.'}
+            {schedule.frequency === '2_WEEK' && 'Selecione apenas 2 dias.'}
+            {schedule.frequency === '2_DAY' && 'Selecione apenas 1 dia.'}
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -2749,13 +2822,16 @@ const SchoolsManager: React.FC = () => {
                 value={slot.time}
                 onChange={e => updateSlot(idx, 'time', e.target.value)}
               />
-              <input 
-                type="text" 
-                placeholder="Nome do Examinador"
-                className="flex-1 border rounded p-1 text-sm bg-white" 
+              <select
+                className="flex-1 border rounded p-1 text-sm bg-white"
                 value={slot.examiner}
                 onChange={e => updateSlot(idx, 'examiner', e.target.value)}
-              />
+              >
+                <option value="">Selecione o Examinador</option>
+                {examiners.map(ex => (
+                  <option key={ex.id} value={ex.name}>{ex.name}</option>
+                ))}
+              </select>
               <button 
                 type="button" 
                 onClick={() => removeSlot(idx)}
