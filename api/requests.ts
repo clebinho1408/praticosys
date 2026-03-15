@@ -32,6 +32,10 @@ export default async function handler(req: any, res: any) {
       const newItem = await db.insert(examRequests).values({
         id: body.id || crypto.randomUUID(),
         ...body,
+        // Fallbacks para evitar erro de NOT NULL no banco de dados de produção (Vercel)
+        studentName: body.studentName || 'Vaga Disponível',
+        cpf: body.cpf || '00000000000',
+        phone: body.phone || '00000000000',
         // Ensure dates are Date objects if they were passed as strings
         createdAt: body.createdAt ? new Date(body.createdAt) : new Date(),
         updatedAt: new Date()
@@ -52,6 +56,12 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'PUT') {
       const { id, ...updates } = parseBody(req);
+      
+      // Prevent nulling out required fields on Vercel
+      if (updates.studentName === null || updates.studentName === '') updates.studentName = 'Vaga Disponível';
+      if (updates.cpf === null || updates.cpf === '') updates.cpf = '00000000000';
+      if (updates.phone === null || updates.phone === '') updates.phone = '00000000000';
+
       const updated = await db.update(examRequests)
         .set({ ...updates, updatedAt: new Date() })
         .where(eq(examRequests.id, id))
