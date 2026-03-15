@@ -2723,24 +2723,28 @@ const SchoolsManager: React.FC = () => {
         alert('Frequência "2 vezes no dia" permite apenas 2 horários.');
         return;
       }
-      // Rule: 1_WEEK, 2_WEEK, 15_DAYS allow only 1 slot
-      if ((schedule.frequency === '1_WEEK' || schedule.frequency === '2_WEEK' || schedule.frequency === '15_DAYS') && schedule.slots.length >= 1) {
+      // Rule: 2_WEEK allows 2 slots
+      if (schedule.frequency === '2_WEEK' && schedule.slots.length >= 2) {
+        alert('Frequência "2 vezes na semana" permite apenas 2 horários.');
+        return;
+      }
+      // Rule: 1_WEEK, 15_DAYS allow only 1 slot
+      if ((schedule.frequency === '1_WEEK' || schedule.frequency === '15_DAYS') && schedule.slots.length >= 1) {
         const labels: Record<string, string> = {
           '1_WEEK': '1 vez na semana',
-          '2_WEEK': '2 vezes na semana',
           '15_DAYS': 'A cada 15 dias'
         };
         alert(`Frequência "${labels[schedule.frequency]}" permite apenas 1 horário.`);
         return;
       }
-      updateSchedule({ slots: [...schedule.slots, { time: '', examiner: '' }] });
+      updateSchedule({ slots: [...schedule.slots, { time: '', examiner: '', day: '' }] });
     };
 
     const removeSlot = (index: number) => {
       updateSchedule({ slots: schedule.slots.filter((_, i) => i !== index) });
     };
 
-    const updateSlot = (index: number, field: 'time' | 'examiner', value: string) => {
+    const updateSlot = (index: number, field: 'time' | 'examiner' | 'day', value: string) => {
       const newSlots = [...schedule.slots];
       newSlots[index] = { ...newSlots[index], [field]: value };
       updateSchedule({ slots: newSlots });
@@ -2802,10 +2806,15 @@ const SchoolsManager: React.FC = () => {
               }
 
               // Limit slots based on frequency
-              if (freq === '2_DAY') {
+              if (freq === '2_DAY' || freq === '2_WEEK') {
                 if (slots.length > 2) slots = slots.slice(0, 2);
-              } else if (freq === '1_WEEK' || freq === '2_WEEK' || freq === '15_DAYS') {
+              } else if (freq === '1_WEEK' || freq === '15_DAYS') {
                 if (slots.length > 1) slots = slots.slice(0, 1);
+              }
+
+              // Clear day from slots if frequency is not 2_WEEK
+              if (freq !== '2_WEEK') {
+                slots = slots.map(s => ({ ...s, day: '' }));
               }
 
               updateSchedule({ frequency: freq, days, slots });
@@ -2855,6 +2864,18 @@ const SchoolsManager: React.FC = () => {
           </div>
           {schedule.slots.map((slot, idx) => (
             <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded border border-gray-200">
+              {schedule.frequency === '2_WEEK' && (
+                <select
+                  className="border rounded p-1 text-sm bg-white"
+                  value={slot.day || ''}
+                  onChange={e => updateSlot(idx, 'day', e.target.value)}
+                >
+                  <option value="">Dia</option>
+                  {schedule.days.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              )}
               <input 
                 type="time" 
                 className="border rounded p-1 text-sm bg-white" 
@@ -2863,12 +2884,12 @@ const SchoolsManager: React.FC = () => {
               />
               <select
                 className="flex-1 border rounded p-1 text-sm bg-white"
-                value={slot.examiner}
+                value={examiners.find(e => e.id === slot.examiner || e.name === slot.examiner)?.id || ''}
                 onChange={e => updateSlot(idx, 'examiner', e.target.value)}
               >
                 <option value="">Selecione o Examinador</option>
                 {examiners.map(ex => (
-                  <option key={ex.id} value={ex.name}>{ex.name}</option>
+                  <option key={ex.id} value={ex.id}>{ex.name}</option>
                 ))}
               </select>
               <button 

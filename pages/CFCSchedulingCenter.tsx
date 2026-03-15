@@ -180,7 +180,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   });
 
   const getSchoolName = (id?: string) => schools.find(s => s.id === id)?.name || 'N/A';
-  const getExaminerName = (id?: string) => examiners.find(e => e.id === id)?.name || 'SEM IDENTIFICAÇÃO';
+  const getExaminerName = (idOrName?: string) => {
+    if (!idOrName) return 'SEM IDENTIFICAÇÃO';
+    const examiner = examiners.find(e => e.id === idOrName || e.name === idOrName);
+    return examiner ? examiner.name : idOrName;
+  };
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Não definida';
@@ -248,11 +252,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         const mainActive = school.mainSchedule?.active;
         const provActive = school.provisionalSchedule?.active;
         
+        // If provisional is active, it overrides main. Otherwise use main.
         const activeSchedule = provActive ? school.provisionalSchedule : (mainActive ? school.mainSchedule : null);
         
-        if (activeSchedule && activeSchedule.days.includes(selectedDayName)) {
+        if (activeSchedule && activeSchedule.days && activeSchedule.days.includes(selectedDayName)) {
           // Generate requests for each slot
-          for (const slot of activeSchedule.slots) {
+          const slots = activeSchedule.slots || [];
+          for (const slot of slots) {
+            // If the slot has a specific day assigned (e.g., in 2_WEEK frequency), only generate if it matches the selected day
+            if (slot.day && slot.day !== selectedDayName) {
+              continue;
+            }
+
             await api.createRequest({
               schoolId: school.id,
               source: 'SCHOOL',
