@@ -1,7 +1,7 @@
 
 import { db } from '../db/index.js';
 import { drivingSchools } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -15,6 +15,20 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const body = parseBody(req);
+      
+      // Ensure columns exist (Hotfix for schema sync issues)
+      try {
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS email text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS services jsonb DEFAULT '[]'::jsonb`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS moto_yard_address text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS car_yard_address text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS category_change_yard_address text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS main_schedule jsonb`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS provisional_schedule jsonb`);
+      } catch (e) {
+        console.warn("[API Schools] Schema sync warning:", e);
+      }
+
       const newItem = await db.insert(drivingSchools).values({
         id: crypto.randomUUID(),
         ...body

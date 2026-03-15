@@ -1,7 +1,7 @@
 
 import { db } from '../db/index.js';
 import { users } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -16,6 +16,15 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const body = parseBody(req);
+
+      // Ensure columns exist (Hotfix for schema sync issues)
+      try {
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`);
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`);
+      } catch (e) {
+        console.warn("[API Users] Schema sync warning:", e);
+      }
+
       const newItem = await db.insert(users).values({
         id: crypto.randomUUID(),
         password: '123456', 

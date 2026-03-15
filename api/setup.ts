@@ -152,12 +152,28 @@ export default async function handler(req: any, res: any) {
 
     // Executa criação de tabelas
     for (const query of tableQueries) {
-      await db.execute(query).catch((err: any) => console.warn("[Setup] Erro ao criar tabela:", err.message));
+      try {
+        await db.execute(query);
+        console.log("[Setup] Tabela processada com sucesso.");
+      } catch (err: any) {
+        console.warn("[Setup] Tabela ignorada ou erro:", err.message);
+      }
     }
 
     // Executa adição de colunas
+    console.log("[Setup] Iniciando adição de colunas...");
     for (const query of columnQueries) {
-      await db.execute(query).catch((err: any) => console.warn("[Setup] Coluna ignorada (já existe):", err.message));
+      try {
+        await db.execute(query);
+        console.log("[Setup] Coluna processada com sucesso.");
+      } catch (err: any) {
+        // Se o erro for que a coluna já existe, ignoramos silenciosamente no log de warn
+        if (err.message.includes("already exists")) {
+            console.log("[Setup] Coluna já existe (pulando).");
+        } else {
+            console.warn("[Setup] Erro ao processar coluna:", err.message);
+        }
+      }
     }
 
     return res.status(200).json({ 
