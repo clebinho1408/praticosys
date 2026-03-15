@@ -95,6 +95,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
            { label: 'Meus Candidatos', path: '/admin/students' }
          ]
        });
+       items.push({
+         icon: CalendarCheck,
+         label: 'Agendamentos',
+         path: '/admin/scheduling/cfc'
+       });
     } else {
        // --- GRUPO: CNH DO BRASIL ---
        items.push({
