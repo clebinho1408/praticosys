@@ -2621,11 +2621,18 @@ const SchoolsManager: React.FC = () => {
   };
   useEffect(() => { fetch(); }, []);
 
-  const openModal = (school?: DrivingSchool) => {
+  const openModal = async (school?: DrivingSchool) => {
     setEditing(school || null);
     setFormData(school ? { ...initialFormData, ...school } : initialFormData);
     setModalTab('MAIN');
     setIsModalOpen(true);
+    // Re-fetch examiners to ensure we have the latest list
+    try {
+      const exData = await api.getExaminersAsync();
+      setExaminers(exData);
+    } catch (err) {
+      console.error("Erro ao carregar examinadores:", err);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -2693,6 +2700,16 @@ const SchoolsManager: React.FC = () => {
         alert('Frequência "2 vezes no dia" permite apenas 2 horários.');
         return;
       }
+      // Rule: 1_WEEK, 2_WEEK, 15_DAYS allow only 1 slot
+      if ((schedule.frequency === '1_WEEK' || schedule.frequency === '2_WEEK' || schedule.frequency === '15_DAYS') && schedule.slots.length >= 1) {
+        const labels: Record<string, string> = {
+          '1_WEEK': '1 vez na semana',
+          '2_WEEK': '2 vezes na semana',
+          '15_DAYS': 'A cada 15 dias'
+        };
+        alert(`Frequência "${labels[schedule.frequency]}" permite apenas 1 horário.`);
+        return;
+      }
       updateSchedule({ slots: [...schedule.slots, { time: '', examiner: '' }] });
     };
 
@@ -2714,12 +2731,10 @@ const SchoolsManager: React.FC = () => {
         updateSchedule({ days: current.filter(d => d !== day) });
       } else {
         // Frequency limits
-        if (schedule.frequency === '1_WEEK' && current.length >= 1) {
+        if ((schedule.frequency === '1_WEEK' || schedule.frequency === '2_DAY' || schedule.frequency === '15_DAYS') && current.length >= 1) {
           updateSchedule({ days: [day] }); // Replace
         } else if (schedule.frequency === '2_WEEK' && current.length >= 2) {
           updateSchedule({ days: [current[1], day] }); // Keep last one and add new
-        } else if (schedule.frequency === '2_DAY' && current.length >= 1) {
-          updateSchedule({ days: [day] }); // Replace
         } else {
           updateSchedule({ days: [...current, day] });
         }
@@ -2757,15 +2772,17 @@ const SchoolsManager: React.FC = () => {
               let slots = [...schedule.slots];
               
               // Reset days if they exceed new frequency limits
-              if (freq === '1_WEEK' || freq === '2_DAY') {
-                if (days.length > 1) days = [days[0]];
+              if (freq === '1_WEEK' || freq === '2_DAY' || freq === '15_DAYS') {
+                if (days.length > 1) days = days.length > 0 ? [days[0]] : [];
               } else if (freq === '2_WEEK') {
                 if (days.length > 2) days = days.slice(0, 2);
               }
 
-              // Limit slots for 2_DAY
-              if (freq === '2_DAY' && slots.length > 2) {
-                slots = slots.slice(0, 2);
+              // Limit slots based on frequency
+              if (freq === '2_DAY') {
+                if (slots.length > 2) slots = slots.slice(0, 2);
+              } else if (freq === '1_WEEK' || freq === '2_WEEK' || freq === '15_DAYS') {
+                if (slots.length > 1) slots = slots.slice(0, 1);
               }
 
               updateSchedule({ frequency: freq, days, slots });
@@ -2797,9 +2814,8 @@ const SchoolsManager: React.FC = () => {
             ))}
           </div>
           <p className="text-[10px] text-gray-400 mt-1">
-            {schedule.frequency === '1_WEEK' && 'Selecione apenas 1 dia.'}
+            {(schedule.frequency === '1_WEEK' || schedule.frequency === '2_DAY' || schedule.frequency === '15_DAYS') && 'Selecione apenas 1 dia.'}
             {schedule.frequency === '2_WEEK' && 'Selecione apenas 2 dias.'}
-            {schedule.frequency === '2_DAY' && 'Selecione apenas 1 dia.'}
           </p>
         </div>
 
