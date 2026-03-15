@@ -14,7 +14,6 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  ClipboardList,
   Map,
   Car,
   Accessibility,
@@ -82,25 +81,17 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   }, [location.pathname]);
 
   const getNavItems = (): NavItem[] => {
-    const items: NavItem[] = [
-      { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' }
-    ];
+    const items: NavItem[] = [];
 
     if (user.role === UserRole.SCHOOL) {
-       items.push({ 
-         icon: ClipboardList, 
-         label: 'Solicitações', 
-         subItems: [
-           { label: 'Todas solicitações', path: '/admin/requests' },
-           { label: 'Meus Candidatos', path: '/admin/students' }
-         ]
-       });
        items.push({
          icon: CalendarCheck,
          label: 'Agendamentos',
          path: '/admin/scheduling/cfc'
        });
     } else {
+       items.push({ icon: LayoutDashboard, label: 'Dashboard', path: '/admin' });
+
        // --- GRUPO: CNH DO BRASIL ---
        items.push({
          icon: Map,

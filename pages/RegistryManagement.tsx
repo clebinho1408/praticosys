@@ -2637,10 +2637,33 @@ const SchoolsManager: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await api.updateSchool(editing.id, formData);
-    else await api.createSchool(formData);
-    setIsModalOpen(false);
-    fetch();
+    try {
+      if (editing) {
+        await api.updateSchool(editing.id, formData);
+      } else {
+        const createdSchool = await api.createSchool(formData);
+        
+        // Automatically create a user for this school
+        // Sanitize name for login: lowercase, no spaces, no accents
+        const login = formData.name!
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]/g, "");
+
+        await api.createUser({
+          name: formData.name!,
+          login: login,
+          password: '123456',
+          role: UserRole.SCHOOL,
+          schoolId: createdSchool.id
+        });
+      }
+      setIsModalOpen(false);
+      fetch();
+    } catch (err: any) {
+      alert('Erro ao salvar autoescola: ' + (err.message || 'Verifique os dados'));
+    }
   };
 
   const handleDelete = (id: string) => {

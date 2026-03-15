@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthState, ExamType, User } from './types';
+import { AuthState, ExamType, User, UserRole } from './types';
 import Layout from './components/Layout';
 
 // Pages
@@ -45,7 +45,14 @@ const App: React.FC = () => {
             auth.isAuthenticated && auth.user ? (
               <Layout user={auth.user} onLogout={handleLogout}>
                 <Routes>
-                  <Route path="/" element={<AdminDashboard user={auth.user} />} />
+                  <Route 
+                    path="/" 
+                    element={
+                      auth.user?.role === UserRole.SCHOOL 
+                        ? <Navigate to="/admin/scheduling/cfc" replace /> 
+                        : <AdminDashboard user={auth.user!} />
+                    } 
+                  />
                   <Route path="dashboard/:tab" element={<AdminDashboard user={auth.user} />} />
                   
                   {/* Common Routes for specific filters */}
