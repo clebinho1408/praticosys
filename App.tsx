@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import SchedulingCenter from './pages/SchedulingCenter';
 import Reports from './pages/Reports';
 import StudentDatabase from './pages/StudentDatabase';
+import CFCSchedulingCenter from './pages/CFCSchedulingCenter';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>({
@@ -55,7 +56,7 @@ const App: React.FC = () => {
                   
                   {/* Scheduling Center */}
                   <Route path="scheduling/common" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
-                  <Route path="scheduling/cfc" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
+                  <Route path="scheduling/cfc" element={<CFCSchedulingCenter user={auth.user} />} />
                   <Route path="scheduling/pcd" element={<SchedulingCenter user={auth.user} type={ExamType.PCD} />} />
 
                   {/* Reports */}
