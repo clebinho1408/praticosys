@@ -47,6 +47,16 @@ async function startServer() {
   app.all('/api/setup', wrap(setupHandler));
   app.all('/api/test', wrap(testHandler));
   app.all('/api/users', wrap(usersHandler));
+  
+  // Run DB Setup on startup
+  console.log("[Server] Executando setup do banco de dados...");
+  const mockRes = { 
+    status: (code: number) => ({ 
+      json: (data: any) => console.log(`[Setup Startup] Status ${code}:`, data),
+      send: (data: any) => console.log(`[Setup Startup] Status ${code}:`, data)
+    }) 
+  };
+  setupHandler({ method: 'POST' }, mockRes).catch(err => console.error("[Setup Startup] Erro:", err));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {

@@ -43,7 +43,8 @@ export default async function handler(req: any, res: any) {
       await db.delete(users).where(eq(users.id, id));
       return res.status(200).json({ success: true });
     }
-  } catch (error) {
-    return res.status(500).json({ error: 'Database error' });
+  } catch (error: any) {
+    console.error('[API Users] Error:', error);
+    return res.status(500).json({ error: 'Database error', details: error.message });
   }
 }

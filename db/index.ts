@@ -24,9 +24,10 @@ try {
   // Inicializa conexão real
   const sql = neon(cleanUrl);
   dbInstance = drizzle(sql as any, { schema });
-
+  console.log("[DB] Conexão com Neon estabelecida com sucesso.");
 } catch (e: any) {
   console.error("ERRO FATAL DB: Falha ao inicializar conexão:", e.message);
+  console.log("[DB] Entrando em modo MOCK devido a falha na conexão.");
   
   // Cria um Mock do DB que não faz nada mas não derruba a aplicação
   // Isso permite que a API responda com erro 500 controlado em vez de crashar

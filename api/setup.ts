@@ -90,6 +90,17 @@ export default async function handler(req: any, res: any) {
           whatsapp_template text,
           default_exam_address text,
           default_exam_address_link text
+      )`,
+      
+      // 7. USUÁRIOS
+      sql`CREATE TABLE IF NOT EXISTS users (
+          id text PRIMARY KEY,
+          name text NOT NULL,
+          login text NOT NULL UNIQUE,
+          password text,
+          role text NOT NULL,
+          school_id text,
+          created_at timestamp DEFAULT now()
       )`
     ];
 
