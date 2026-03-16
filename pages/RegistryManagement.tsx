@@ -2587,6 +2587,7 @@ const SchoolsManager: React.FC = () => {
     phone: '',
     email: '',
     address: '',
+    city: '',
     services: [],
     motoYardAddress: '',
     carYardAddress: '',
@@ -2941,23 +2942,39 @@ const SchoolsManager: React.FC = () => {
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3">Telefone</th>
               <th className="px-4 py-3">E-mail</th>
+              <th className="px-4 py-3">Telefone</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredSchools.map(s => (
-              <tr key={s.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{s.name}</td>
-                <td className="px-4 py-3 text-gray-500">{s.phone}</td>
-                <td className="px-4 py-3 text-gray-500">{s.email || '-'}</td>
-                <td className="px-4 py-3 text-right space-x-2">
-                  <button onClick={() => openModal(s)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
-                  <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
-                </td>
-              </tr>
-            ))}
+            {filteredSchools.map(s => {
+              const activeSchedule = s.provisionalSchedule?.active 
+                ? 'Escala Provisória' 
+                : (s.mainSchedule?.active ? 'Escala Principal' : 'Nenhuma escala ativa');
+              const servicesText = s.services && s.services.length > 0 ? s.services.join(', ') : 'Nenhum';
+
+              return (
+                <tr key={s.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="font-medium">{s.name}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      <span className={s.provisionalSchedule?.active || s.mainSchedule?.active ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
+                        {activeSchedule}
+                      </span>
+                      <span className="mx-1">•</span>
+                      <span>Serviços: {servicesText}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">{s.email || '-'}</td>
+                  <td className="px-4 py-3 text-gray-500">{s.phone}</td>
+                  <td className="px-4 py-3 text-right space-x-2">
+                    <button onClick={() => openModal(s)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
+                    <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                  </td>
+                </tr>
+              );
+            })}
              {filteredSchools.length === 0 && (
                 <tr><td colSpan={4} className="p-4 text-center text-gray-500">Nenhuma autoescola encontrada.</td></tr>
             )}
@@ -3003,18 +3020,22 @@ const SchoolsManager: React.FC = () => {
                         <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium">E-mail</label>
-                        <input type="email" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                        <label className="block text-sm font-medium">Telefone</label>
+                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium">Telefone</label>
-                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
+                        <label className="block text-sm font-medium">E-mail</label>
+                        <input type="email" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
                       </div>
                       <div>
                         <label className="block text-sm font-medium">Endereço</label>
                         <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium">Cidade</label>
+                        <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.city || ''} onChange={e => setFormData({...formData, city: e.target.value})} />
                       </div>
                     </div>
                     <div>
@@ -3073,7 +3094,7 @@ const ExaminersManager: React.FC = () => {
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Examiner | null>(null);
-  const [formData, setFormData] = useState({ name: '', registrationNumber: '', canExamCommon: true, canExamPCD: false });
+  const [formData, setFormData] = useState<{ name: string; registrationNumber: string; categories: string[] }>({ name: '', registrationNumber: '', categories: [] });
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -3098,7 +3119,7 @@ const ExaminersManager: React.FC = () => {
 
   const openModal = (ex?: Examiner) => {
     setEditing(ex || null);
-    setFormData(ex ? { name: ex.name, registrationNumber: ex.registrationNumber, canExamCommon: ex.canExamCommon, canExamPCD: ex.canExamPCD } : { name: '', registrationNumber: '', canExamCommon: true, canExamPCD: false });
+    setFormData(ex ? { name: ex.name, registrationNumber: ex.registrationNumber, categories: ex.categories || [] } : { name: '', registrationNumber: '', categories: [] });
     setIsModalOpen(true);
   };
 
@@ -3128,6 +3149,15 @@ const ExaminersManager: React.FC = () => {
       setFormData({...formData, name: val});
   }
   
+  const toggleCategory = (cat: string) => {
+    const current = formData.categories || [];
+    if (current.includes(cat)) {
+      setFormData({ ...formData, categories: current.filter(c => c !== cat) });
+    } else {
+      setFormData({ ...formData, categories: [...current, cat] });
+    }
+  };
+
   // Filter Logic
   const filteredExaminers = examiners.filter(e => 
       e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -3167,7 +3197,7 @@ const ExaminersManager: React.FC = () => {
             <tr>
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Matrícula</th>
-              <th className="px-4 py-3">Permissões</th>
+              <th className="px-4 py-3">Categoria</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -3177,8 +3207,15 @@ const ExaminersManager: React.FC = () => {
                 <td className="px-4 py-3 font-medium">{e.name}</td>
                 <td className="px-4 py-3 text-gray-500">{e.registrationNumber}</td>
                 <td className="px-4 py-3 space-x-1">
-                  {e.canExamCommon && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">1ª Hab</span>}
-                  {e.canExamPCD && <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">PCD</span>}
+                  {e.categories && e.categories.length > 0 ? (
+                    e.categories.map(cat => (
+                      <span key={cat} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded inline-block mb-1">
+                        {cat}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-500">-</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   <button onClick={() => openModal(e)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
@@ -3211,15 +3248,20 @@ const ExaminersManager: React.FC = () => {
               </div>
               <div><label className="block text-sm font-medium">Matrícula</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.registrationNumber} onChange={e => setFormData({...formData, registrationNumber: e.target.value})} /></div>
               <div className="space-y-2">
-                <label className="block text-sm font-medium">Permissões</label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={formData.canExamCommon} onChange={e => setFormData({...formData, canExamCommon: e.target.checked})} />
-                  <span className="text-sm">Prova Comum (1ª Hab)</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={formData.canExamPCD} onChange={e => setFormData({...formData, canExamPCD: e.target.checked})} />
-                  <span className="text-sm">Prova Especial (PCD)</span>
-                </label>
+                <label className="block text-sm font-medium">Categoria</label>
+                <div className="flex flex-wrap gap-3">
+                  {['A', 'B', 'C', 'D', 'E', 'PCD'].map(cat => (
+                    <label key={cat} className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded border hover:bg-gray-100">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.categories?.includes(cat)} 
+                        onChange={() => toggleCategory(cat)}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm font-bold">{cat}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>

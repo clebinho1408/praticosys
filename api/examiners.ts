@@ -1,7 +1,7 @@
 
 import { db } from '../db/index.js';
 import { examiners } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
@@ -15,6 +15,13 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const body = parseBody(req);
+      
+      try {
+        await db.execute(sql`ALTER TABLE examiners ADD COLUMN IF NOT EXISTS categories jsonb DEFAULT '[]'::jsonb`);
+      } catch (e) {
+        console.warn("[API Examiners] Schema sync warning:", e);
+      }
+
       const newItem = await db.insert(examiners).values({
         id: crypto.randomUUID(),
         ...body

@@ -48,6 +48,7 @@ export interface DrivingSchool {
   phone: string;
   email: string;
   address: string;
+  city?: string;
   services: string[]; // ['A', 'B', 'C', 'D', 'E']
   
   // Pátios
@@ -64,8 +65,9 @@ export interface Examiner {
   id: string;
   name: string;
   registrationNumber: string; // Matrícula
-  canExamCommon: boolean;
-  canExamPCD: boolean;
+  canExamCommon?: boolean;
+  canExamPCD?: boolean;
+  categories?: string[]; // ['A', 'B', 'C', 'D', 'E', 'PCD']
 }
 
 export interface Vehicle {

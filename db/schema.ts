@@ -19,6 +19,7 @@ export const drivingSchools = pgTable('driving_schools', {
   phone: text('phone'),
   email: text('email'),
   address: text('address'),
+  city: text('city'),
   services: jsonb('services').$type<string[]>().default([]),
   motoYardAddress: text('moto_yard_address'),
   carYardAddress: text('car_yard_address'),
@@ -35,6 +36,7 @@ export const examiners = pgTable('examiners', {
   registrationNumber: text('registration_number').notNull(),
   canExamCommon: boolean('can_exam_common').default(true),
   canExamPCD: boolean('can_exam_pcd').default(false),
+  categories: jsonb('categories').$type<string[]>().default([]),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

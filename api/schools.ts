@@ -19,6 +19,7 @@ export default async function handler(req: any, res: any) {
       // Ensure columns exist (Hotfix for schema sync issues)
       try {
         await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS email text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS city text`);
         await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS services jsonb DEFAULT '[]'::jsonb`);
         await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS moto_yard_address text`);
         await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS car_yard_address text`);
