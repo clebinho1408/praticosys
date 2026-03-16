@@ -16,6 +16,11 @@ const parseBody = (req: any) => {
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
+      try {
+        await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`);
+      } catch (e) {
+        console.warn("[API Requests] Schema sync warning:", e);
+      }
       const { cpf } = req.query;
       if (cpf) {
          const cleanCpf = cpf.replace(/\D/g, '');

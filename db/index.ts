@@ -40,7 +40,7 @@ try {
     insert: () => ({ values: () => ({ returning: () => [] }) }),
     update: () => ({ set: () => ({ where: () => ({ returning: () => [] }) }) }),
     delete: () => ({ where: () => ({ returning: () => [] }) }),
-    execute: async () => crash('execute'),
+    execute: async () => [],
     transaction: async () => crash('transaction'),
     _isMock: true // Flag para diagnóstico
   } as any;

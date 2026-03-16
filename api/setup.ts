@@ -142,6 +142,7 @@ export default async function handler(req: any, res: any) {
       
       // Colunas para driving_schools
       sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS email text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS city text`,
       sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS services jsonb DEFAULT '[]'::jsonb`,
       sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS moto_yard_address text`,
       sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS car_yard_address text`,
@@ -152,7 +153,8 @@ export default async function handler(req: any, res: any) {
       // Remover NOT NULL de colunas que podem ser vazias em escalas automáticas
       sql`ALTER TABLE exam_requests ALTER COLUMN student_name DROP NOT NULL`,
       sql`ALTER TABLE exam_requests ALTER COLUMN cpf DROP NOT NULL`,
-      sql`ALTER TABLE exam_requests ALTER COLUMN phone DROP NOT NULL`
+      sql`ALTER TABLE exam_requests ALTER COLUMN phone DROP NOT NULL`,
+      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`
     ];
 
     // Executa criação de tabelas

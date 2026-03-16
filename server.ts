@@ -16,10 +16,19 @@ import settingsHandler from './api/settings.js';
 import setupHandler from './api/setup.js';
 import testHandler from './api/test.js';
 import usersHandler from './api/users.js';
+import { db } from './db/index.js';
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.get('/api/db-status', (req, res) => {
+    res.json({
+      hasUrl: !!process.env.DATABASE_URL,
+      hasViteUrl: !!process.env.VITE_NEON_DATABASE_URL,
+      isMock: (db as any)._isMock || false,
+    });
+  });
 
   // Middleware to parse JSON bodies (needed for API handlers)
   app.use(express.json());

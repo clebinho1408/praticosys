@@ -9,6 +9,18 @@ const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.bo
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
+      try {
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS email text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS city text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS services jsonb DEFAULT '[]'::jsonb`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS moto_yard_address text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS car_yard_address text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS category_change_yard_address text`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS main_schedule jsonb`);
+        await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS provisional_schedule jsonb`);
+      } catch (e) {
+        console.warn("[API Schools] Schema sync warning:", e);
+      }
       const data = await db.select().from(drivingSchools);
       return res.status(200).json(data);
     }
