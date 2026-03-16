@@ -9,7 +9,16 @@ const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.bo
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
+      try {
+        console.log("[API Examiners] Executando ALTER TABLE...");
+        await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS categories jsonb DEFAULT '[]'::jsonb`);
+        console.log("[API Examiners] ALTER TABLE executado.");
+      } catch (e) {
+        console.error("[API Examiners] Schema sync error:", e);
+      }
+      console.log("[API Examiners] Executando SELECT...");
       const data = await db.select().from(examiners);
+      console.log("[API Examiners] SELECT executado.");
       return res.status(200).json(data);
     }
 
@@ -17,7 +26,7 @@ export default async function handler(req: any, res: any) {
       const body = parseBody(req);
       
       try {
-        await db.execute(sql`ALTER TABLE examiners ADD COLUMN IF NOT EXISTS categories jsonb DEFAULT '[]'::jsonb`);
+        await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS categories jsonb DEFAULT '[]'::jsonb`);
       } catch (e) {
         console.warn("[API Examiners] Schema sync warning:", e);
       }

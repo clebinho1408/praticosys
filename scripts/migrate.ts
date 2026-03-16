@@ -44,6 +44,7 @@ async function migrate() {
         registration_number text NOT NULL,
         can_exam_common boolean DEFAULT true,
         can_exam_pcd boolean DEFAULT false,
+        categories jsonb DEFAULT '[]'::jsonb,
         created_at timestamp DEFAULT now()
     )`);
 
