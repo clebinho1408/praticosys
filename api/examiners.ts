@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'PUT') {
-      const { id, ...updates } = parseBody(req);
+      const { id, createdAt, updatedAt, ...updates } = parseBody(req);
       const updated = await db.update(examiners)
         .set(updates)
         .where(eq(examiners.id, id))

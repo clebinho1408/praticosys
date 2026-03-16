@@ -52,7 +52,7 @@ export default async function handler(req: any, res: any) {
       const updates = parseBody(req);
       
       // Filter out fields that don't exist in the database table
-      const { enableEmailNotifications, enableSmsNotifications, ...validUpdates } = updates;
+      const { enableEmailNotifications, enableSmsNotifications, createdAt, updatedAt, ...validUpdates } = updates;
       
       const existing = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
       let result;

@@ -53,7 +53,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'PUT') {
-      const { id, vehicles: vehiclesList, ...updates } = parseBody(req);
+      const { id, vehicles: vehiclesList, createdAt, updatedAt, ...updates } = parseBody(req);
       
       // Atualiza dados básicos
       const updated = await db.update(instructors)
