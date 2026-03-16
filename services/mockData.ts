@@ -185,7 +185,7 @@ const fetchOrMock = async <T>(
 
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({}));
-            throw new Error(errorData.error || `API Error ${res.status}`);
+            throw new Error((errorData.error || `API Error ${res.status}`) + (errorData.details ? `: ${errorData.details}` : ''));
         }
         return await res.json();
     } catch (error: any) {
