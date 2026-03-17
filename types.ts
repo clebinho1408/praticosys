@@ -185,6 +185,12 @@ export interface SystemSettings {
   restrictions: Restriction[]; // New: List of CNH restrictions
 }
 
+export interface City {
+  id: string;
+  name: string;
+  createdAt?: string;
+}
+
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;

@@ -2,7 +2,7 @@
 // Mock Data Service
 import { 
   User, UserRole, DrivingSchool, Examiner, Instructor, ExamSchedule, ExamRequest, 
-  SystemSettings, ExamStatus
+  SystemSettings, ExamStatus, City
 } from '../types';
 
 // ============================================================================
@@ -15,6 +15,7 @@ const MEMORY_STORE = {
     schools: [] as any[],
     examiners: [] as any[],
     instructors: [] as any[],
+    cities: [] as any[],
     schedules: [
         {
             id: 'sch_1',
@@ -345,6 +346,24 @@ export const api = {
   }),
   deleteRequest: async (id: string): Promise<void> => fetchOrMock(`requests?id=${id}`, { method: 'DELETE' }, () => {
       MEMORY_STORE.requests = MEMORY_STORE.requests.filter(r => r.id !== id);
+  }),
+
+  // --- CITIES ---
+  getCities: async (): Promise<City[]> => fetchOrMock('cities', {}, () => MEMORY_STORE.cities),
+  createCity: async (data: Partial<City>): Promise<City> => fetchOrMock('cities', { method: 'POST', body: JSON.stringify(data) }, () => {
+      const novo = { id: genId(), name: (data.name || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), createdAt: new Date().toISOString() };
+      MEMORY_STORE.cities.push(novo);
+      return novo;
+  }),
+  updateCity: async (id: string, data: Partial<City>): Promise<City> => fetchOrMock('cities', { method: 'PUT', body: JSON.stringify({ id, ...data }) }, () => {
+      const idx = MEMORY_STORE.cities.findIndex(c => c.id === id);
+      if (idx !== -1) {
+          MEMORY_STORE.cities[idx] = { ...MEMORY_STORE.cities[idx], ...data, name: (data.name || MEMORY_STORE.cities[idx].name).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") };
+      }
+      return MEMORY_STORE.cities[idx];
+  }),
+  deleteCity: async (id: string): Promise<void> => fetchOrMock(`cities?id=${id}`, { method: 'DELETE' }, () => {
+      MEMORY_STORE.cities = MEMORY_STORE.cities.filter(c => c.id !== id);
   }),
 
   // --- ACTIONS ---

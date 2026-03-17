@@ -22,7 +22,7 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.get('/api/db-status', (req, res) => {
+  app.get('/api/db-status', (_req, res) => {
     res.json({
       hasUrl: !!process.env.DATABASE_URL,
       hasViteUrl: !!process.env.VITE_NEON_DATABASE_URL,

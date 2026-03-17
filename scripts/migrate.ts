@@ -89,6 +89,13 @@ async function migrate() {
         default_exam_address_link text
     )`);
 
+    // 8. CIDADES
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS cities (
+        id text PRIMARY KEY,
+        name text NOT NULL UNIQUE,
+        created_at timestamp DEFAULT now()
+    )`);
+
     // Add columns if missing
     const columns = [
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS email text`,

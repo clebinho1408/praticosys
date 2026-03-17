@@ -1,4 +1,4 @@
-import { ExamRequest, ExamSchedule, Examiner, Instructor, DrivingSchool, SystemSettings, User } from '../types';
+import { ExamRequest, ExamSchedule, Examiner, Instructor, DrivingSchool, SystemSettings, User, City } from '../types';
 
 const API_BASE = '/api';
 
@@ -70,6 +70,12 @@ export const api = {
   createRequest: (data: any) => request<ExamRequest>('/requests', { method: 'POST', body: JSON.stringify(data) }),
   updateRequest: (id: string, updates: Partial<ExamRequest>) => request<ExamRequest>('/requests', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }),
   deleteRequest: (id: string) => request<void>(`/requests?id=${id}`, { method: 'DELETE' }),
+
+  // --- CITIES ---
+  getCities: () => request<City[]>('/cities'),
+  createCity: (data: Partial<City>) => request<City>('/cities', { method: 'POST', body: JSON.stringify(data) }),
+  updateCity: (id: string, data: Partial<City>) => request<City>('/cities', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  deleteCity: (id: string) => request<void>(`/cities?id=${id}`, { method: 'DELETE' }),
 
   // --- ACTIONS ---
   assignStudentToSchedule: (requestId: string, scheduleId: string, category: string) => 

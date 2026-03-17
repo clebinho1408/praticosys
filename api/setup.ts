@@ -102,6 +102,13 @@ export default async function handler(req: any, res: any) {
           role text NOT NULL,
           school_id text,
           created_at timestamp DEFAULT now()
+      )`,
+
+      // 8. CIDADES
+      sql`CREATE TABLE IF NOT EXISTS cities (
+          id text PRIMARY KEY,
+          name text NOT NULL UNIQUE,
+          created_at timestamp DEFAULT now()
       )`
     ];
 

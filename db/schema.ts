@@ -143,3 +143,10 @@ export const systemSettings = pgTable('system_settings', {
   defaultExamAddressLink: text('default_exam_address_link'),
   restrictions: jsonb('restrictions').default([]),
 });
+
+// Tabela de Cidades
+export const cities = pgTable('cities', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow(),
+});

@@ -2,7 +2,7 @@
 // Requests API Handler
 import { db } from '../db/index.js';
 import { examRequests } from '../db/schema.js';
-import { eq, like } from 'drizzle-orm';
+import { eq, like, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 
 const parseBody = (req: any) => {
