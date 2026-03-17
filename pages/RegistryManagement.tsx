@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule } from '../types';
-import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle } from 'lucide-react';
+import { User, UserRole, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule, City } from '../types';
+import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
@@ -2578,9 +2578,15 @@ const UsersManager: React.FC = () => {
 const SchoolsManager: React.FC = () => {
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DrivingSchool | null>(null);
   const [modalTab, setModalTab] = useState<'MAIN' | 'YARDS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
+  
+  // Search & Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
+  const [examinerFilter, setExaminerFilter] = useState('');
   
   const initialFormData: Partial<DrivingSchool> = {
     name: '',
@@ -2597,9 +2603,6 @@ const SchoolsManager: React.FC = () => {
   };
 
   const [formData, setFormData] = useState<Partial<DrivingSchool>>(initialFormData);
-  
-  // Search State
-  const [searchTerm, setSearchTerm] = useState('');
   
   // Confirm Modal State
   const [confirmState, setConfirmState] = useState<{
@@ -2619,6 +2622,12 @@ const SchoolsManager: React.FC = () => {
   const fetch = async () => {
     setSchools(await api.getSchoolsAsync());
     setExaminers(await api.getExaminersAsync());
+    try {
+      const citiesData = await api.getCities();
+      setCities(citiesData);
+    } catch (err) {
+      console.error("Erro ao carregar cidades:", err);
+    }
   };
   useEffect(() => { fetch(); }, []);
 
@@ -2681,9 +2690,36 @@ const SchoolsManager: React.FC = () => {
   };
   
   // Filter Logic
-  const filteredSchools = schools.filter(s => 
-      s.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSchools = schools.filter(s => {
+      const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCity = !cityFilter || s.city === cityFilter;
+      
+      // Check if any schedule (main or provisional) has the selected examiner
+      const matchesExaminer = !examinerFilter || 
+          (s.mainSchedule?.slots.some(slot => slot.examiner === examinerFilter)) ||
+          (s.provisionalSchedule?.slots.some(slot => slot.examiner === examinerFilter));
+
+      return matchesSearch && matchesCity && matchesExaminer;
+  });
+
+  // Group by City
+  const schoolsByCity = useMemo(() => {
+    const groups: Record<string, DrivingSchool[]> = {};
+    filteredSchools.forEach(s => {
+      const city = s.city || 'SEM CIDADE';
+      if (!groups[city]) groups[city] = [];
+      groups[city].push(s);
+    });
+    return groups;
+  }, [filteredSchools]);
+
+  const formatUpperNoAccents = (val: string) => {
+    return val.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+  };
+
+  const formatEmail = (val: string) => {
+    return val.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/\s/g, "");
+  };
 
   const toggleService = (cat: string) => {
     const current = formData.services || [];
@@ -2922,64 +2958,136 @@ const SchoolsManager: React.FC = () => {
       />
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input 
-                type="text" 
-                placeholder="Buscar autoescola..." 
-                className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-            />
+        <div className="flex flex-wrap gap-4 flex-1">
+          <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input 
+                  type="text" 
+                  placeholder="Buscar autoescola..." 
+                  className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+              />
+          </div>
+          
+          <select 
+            className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            value={cityFilter}
+            onChange={e => setCityFilter(e.target.value)}
+          >
+            <option value="">Todas as Cidades</option>
+            {cities.map(c => (
+              <option key={c.id} value={c.name}>{c.name}</option>
+            ))}
+          </select>
+
+          <select 
+            className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            value={examinerFilter}
+            onChange={e => setExaminerFilter(e.target.value)}
+          >
+            <option value="">Todos os Examinadores</option>
+            {examiners.map(ex => (
+              <option key={ex.id} value={ex.id}>{ex.name}</option>
+            ))}
+          </select>
         </div>
+        
         <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
           <Plus className="h-4 w-4" /> Nova Autoescola
         </button>
       </div>
 
-      <div className="overflow-x-auto border rounded-lg">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr>
-              <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3">E-mail</th>
-              <th className="px-4 py-3">Telefone</th>
-              <th className="px-4 py-3 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredSchools.map(s => {
-              const activeSchedule = s.provisionalSchedule?.active 
-                ? 'Escala Provisória' 
-                : (s.mainSchedule?.active ? 'Escala Principal' : 'Nenhuma escala ativa');
-              const servicesText = s.services && s.services.length > 0 ? s.services.join(', ') : 'Nenhum';
+      <div className="space-y-8">
+        {Object.entries(schoolsByCity).sort(([a], [b]) => a.localeCompare(b)).map(([city, citySchools]) => (
+          <div key={city} className="space-y-4">
+            <h3 className="text-lg font-bold flex items-center gap-2 text-gray-700 border-b pb-2">
+              <MapPin className="h-5 w-5 text-blue-500" />
+              {city}
+              <span className="text-sm font-normal text-gray-400 ml-2">({citySchools.length} autoescolas)</span>
+            </h3>
+            
+            <div className="overflow-x-auto border rounded-lg bg-white">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-50 text-gray-600">
+                  <tr>
+                    <th className="px-4 py-3">Nome</th>
+                    <th className="px-4 py-3">Escalas Detalhadas</th>
+                    <th className="px-4 py-3">Contato</th>
+                    <th className="px-4 py-3 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {citySchools.map(s => {
+                    const activeSchedule = s.provisionalSchedule?.active 
+                      ? s.provisionalSchedule 
+                      : (s.mainSchedule?.active ? s.mainSchedule : null);
+                    
+                    const scheduleType = s.provisionalSchedule?.active ? 'Provisória' : 'Principal';
+                    const servicesText = s.services && s.services.length > 0 ? s.services.join(', ') : 'Nenhum';
 
-              return (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{s.name}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      <span className={s.provisionalSchedule?.active || s.mainSchedule?.active ? 'text-green-600 font-medium' : 'text-red-500 font-medium'}>
-                        {activeSchedule}
-                      </span>
-                      <span className="mx-1">•</span>
-                      <span>Serviços: {servicesText}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500">{s.email || '-'}</td>
-                  <td className="px-4 py-3 text-gray-500">{s.phone}</td>
-                  <td className="px-4 py-3 text-right space-x-2">
-                    <button onClick={() => openModal(s)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
-                    <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
-                  </td>
-                </tr>
-              );
-            })}
-             {filteredSchools.length === 0 && (
-                <tr><td colSpan={4} className="p-4 text-center text-gray-500">Nenhuma autoescola encontrada.</td></tr>
-            )}
-          </tbody>
-        </table>
+                    return (
+                      <tr key={s.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{s.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            <span>Serviços: {servicesText}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {activeSchedule ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 uppercase">
+                                  {scheduleType}
+                                </span>
+                                <span className="text-xs font-medium text-gray-600">
+                                  {activeSchedule.frequency === '1_WEEK' && '1x na Semana'}
+                                  {activeSchedule.frequency === '2_WEEK' && '2x na Semana'}
+                                  {activeSchedule.frequency === '2_DAY' && '2x no Dia'}
+                                  {activeSchedule.frequency === '15_DAYS' && 'A cada 15 dias'}
+                                </span>
+                              </div>
+                              <div className="space-y-1">
+                                {activeSchedule.slots.map((slot, i) => {
+                                  const examiner = examiners.find(ex => ex.id === slot.examiner || ex.name === slot.examiner);
+                                  return (
+                                    <div key={i} className="text-[11px] text-gray-500 flex flex-wrap gap-x-2">
+                                      <span className="font-bold text-gray-700">{slot.day || activeSchedule.days.join(', ')}</span>
+                                      <span>às {slot.time}h</span>
+                                      <span className="text-blue-600 italic">({examiner?.name || 'Sem examinador'})</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-red-400 italic">Nenhuma escala ativa</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="text-xs font-medium">{s.phone}</div>
+                          <div className="text-[11px] text-gray-400">{s.email || '-'}</div>
+                          <div className="text-[10px] text-gray-400 truncate max-w-[150px]">{s.address}</div>
+                        </td>
+                        <td className="px-4 py-3 text-right space-x-2">
+                          <button onClick={() => openModal(s)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
+                          <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+        
+        {Object.keys(schoolsByCity).length === 0 && (
+          <div className="p-12 text-center text-gray-500 bg-gray-50 rounded-lg border-2 border-dashed">
+            Nenhuma autoescola encontrada com os filtros atuais.
+          </div>
+        )}
       </div>
       
       {isModalOpen && (
@@ -3017,7 +3125,7 @@ const SchoolsManager: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium">Nome</label>
-                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: formatUpperNoAccents(e.target.value)})} />
                       </div>
                       <div>
                         <label className="block text-sm font-medium">Telefone</label>
@@ -3027,15 +3135,24 @@ const SchoolsManager: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium">E-mail</label>
-                        <input type="email" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                        <input type="email" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.email} onChange={e => setFormData({...formData, email: formatEmail(e.target.value)})} />
                       </div>
                       <div>
                         <label className="block text-sm font-medium">Endereço</label>
-                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
+                        <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.address} onChange={e => setFormData({...formData, address: formatUpperNoAccents(e.target.value)})} />
                       </div>
                       <div>
                         <label className="block text-sm font-medium">Cidade</label>
-                        <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.city || ''} onChange={e => setFormData({...formData, city: e.target.value})} />
+                        <select 
+                          className="w-full border rounded p-2 bg-white text-gray-900" 
+                          value={formData.city || ''} 
+                          onChange={e => setFormData({...formData, city: e.target.value})}
+                        >
+                          <option value="">Selecione uma cidade</option>
+                          {cities.map(city => (
+                            <option key={city.id} value={city.name}>{city.name}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                     <div>
@@ -3061,15 +3178,15 @@ const SchoolsManager: React.FC = () => {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium">Endereço Pátio Moto (Cat. A)</label>
-                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.motoYardAddress} onChange={e => setFormData({...formData, motoYardAddress: e.target.value})} />
+                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.motoYardAddress} onChange={e => setFormData({...formData, motoYardAddress: formatUpperNoAccents(e.target.value)})} />
                     </div>
                     <div>
                       <label className="block text-sm font-medium">Endereço Pátio Carro (Cat. B)</label>
-                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.carYardAddress} onChange={e => setFormData({...formData, carYardAddress: e.target.value})} />
+                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.carYardAddress} onChange={e => setFormData({...formData, carYardAddress: formatUpperNoAccents(e.target.value)})} />
                     </div>
                     <div>
                       <label className="block text-sm font-medium">Endereço Mudança de Categoria (Cat. C, D, E)</label>
-                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.categoryChangeYardAddress} onChange={e => setFormData({...formData, categoryChangeYardAddress: e.target.value})} />
+                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.categoryChangeYardAddress} onChange={e => setFormData({...formData, categoryChangeYardAddress: formatUpperNoAccents(e.target.value)})} />
                     </div>
                   </div>
                 )}
