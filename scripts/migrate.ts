@@ -44,6 +44,7 @@ async function migrate() {
         registration_number text NOT NULL,
         can_exam_common boolean DEFAULT true,
         can_exam_pcd boolean DEFAULT false,
+        categories jsonb DEFAULT '[]'::jsonb,
         created_at timestamp DEFAULT now()
     )`);
 
@@ -86,6 +87,13 @@ async function migrate() {
         whatsapp_template text,
         default_exam_address text,
         default_exam_address_link text
+    )`);
+
+    // 8. CIDADES
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS cities (
+        id text PRIMARY KEY,
+        name text NOT NULL UNIQUE,
+        created_at timestamp DEFAULT now()
     )`);
 
     // Add columns if missing

@@ -216,7 +216,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
         whatsappMessageTemplate: '',
         agencyName: 'Detran',
         defaultExamAddress: '',
-        defaultExamAddressLink: ''
+        defaultExamAddressLink: '',
+        restrictions: []
     };
     
     let currentTemplate = safeSettings.whatsappMessageTemplate || '';
@@ -467,7 +468,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     return matchesStatus && matchesSearch && matchesDate;
   });
 
-  const scheduledStudents = allRequests.filter(r => {
+  const allScheduledInThisBanca = allRequests.filter(r => {
     // 1. Currently scheduled
     if (r.scheduleId === selectedSchedule?.id) return true;
     
@@ -495,14 +496,21 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     }
     return r;
   });
+
+  const scheduledStudents = allScheduledInThisBanca.filter(r => 
+    user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId
+  );
   
   // Logic for Available Students (Modal)
   const availableRequests = allRequests
-    .filter(r => 
-        r.status === ExamStatus.WAITING_SCHEDULING && 
-        r.examType === selectedSchedule?.type &&
-        ((r.socialName || r.studentName).toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch))
-    )
+    .filter(r => {
+        const matchesStatus = r.status === ExamStatus.WAITING_SCHEDULING;
+        const matchesType = r.examType === selectedSchedule?.type;
+        const matchesSearch = (r.socialName || r.studentName).toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch);
+        const matchesSchool = user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId;
+        
+        return matchesStatus && matchesType && matchesSearch && matchesSchool;
+    })
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
 
   const isValidForCategory = (r: ExamRequest, category: 'A' | 'B') => {
@@ -531,8 +539,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   const candidatesB = availableRequests.filter(r => (r.intendedCategory === 'B' || r.intendedCategory === 'AB') && isValidForCategory(r, 'B'));
 
   // Counts for selection limits
-  const currentCountA = scheduledStudents.filter(s => s.scheduledCategory === 'A').length;
-  const currentCountB = scheduledStudents.filter(s => s.scheduledCategory === 'B').length;
+  const currentCountA = allScheduledInThisBanca.filter(s => s.scheduledCategory === 'A').length;
+  const currentCountB = allScheduledInThisBanca.filter(s => s.scheduledCategory === 'B').length;
   
   const selectedCountA = Object.values(selectedCandidates).filter(c => c === 'A').length;
   const selectedCountB = Object.values(selectedCandidates).filter(c => c === 'B').length;
@@ -602,12 +610,14 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
              {/* Right Side Action */}
              <div className="w-full md:w-auto flex justify-end">
-                <button 
-                  onClick={() => handleOpenModal()}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold transition-colors"
-                >
-                  <Plus className="h-4 w-4" /> Nova Banca
-                </button>
+                {user.role !== UserRole.SCHOOL && (
+                  <button 
+                    onClick={() => handleOpenModal()}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold transition-colors"
+                  >
+                    <Plus className="h-4 w-4" /> Nova Banca
+                  </button>
+                )}
              </div>
           </div>
 
@@ -652,7 +662,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           <span>Carro: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length}/{s.maxSlotsB}</span>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         {s.status !== 'CONCLUDED' && s.status !== 'CANCELLED' && (
+                         {s.status !== 'CONCLUDED' && s.status !== 'CANCELLED' && user.role !== UserRole.SCHOOL && (
                              <>
                                  <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
                                     <Edit2 className="h-4 w-4" />
@@ -816,13 +826,15 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
                                                     <div className="w-px h-4 bg-gray-200 mx-1"></div>
 
-                                                    <button 
-                                                        onClick={() => handleRemoveStudent(req)}
-                                                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
-                                                        title="Remover da Banca"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
+                                                    {(user.role !== UserRole.SCHOOL || req.schoolId === user.schoolId) && (
+                                                        <button 
+                                                            onClick={() => handleRemoveStudent(req)}
+                                                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
+                                                            title="Remover da Banca"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

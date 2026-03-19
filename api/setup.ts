@@ -48,6 +48,7 @@ export default async function handler(req: any, res: any) {
           registration_number text NOT NULL,
           can_exam_common boolean DEFAULT true,
           can_exam_pcd boolean DEFAULT false,
+          categories jsonb DEFAULT '[]'::jsonb,
           created_at timestamp DEFAULT now()
       )`,
 
@@ -68,10 +69,10 @@ export default async function handler(req: any, res: any) {
       // 5. CANDIDATOS (REQUESTS)
       sql`CREATE TABLE IF NOT EXISTS exam_requests (
           id text PRIMARY KEY,
-          student_name text NOT NULL,
+          student_name text,
           social_name text,
-          cpf text NOT NULL,
-          phone text NOT NULL,
+          cpf text,
+          phone text,
           status text NOT NULL,
           created_at timestamp DEFAULT now()
       )`,
@@ -90,6 +91,24 @@ export default async function handler(req: any, res: any) {
           whatsapp_template text,
           default_exam_address text,
           default_exam_address_link text
+      )`,
+      
+      // 7. USUÁRIOS
+      sql`CREATE TABLE IF NOT EXISTS users (
+          id text PRIMARY KEY,
+          name text NOT NULL,
+          login text NOT NULL UNIQUE,
+          password text,
+          role text NOT NULL,
+          school_id text,
+          created_at timestamp DEFAULT now()
+      )`,
+
+      // 8. CIDADES
+      sql`CREATE TABLE IF NOT EXISTS cities (
+          id text PRIMARY KEY,
+          name text NOT NULL UNIQUE,
+          created_at timestamp DEFAULT now()
       )`
     ];
 
@@ -127,17 +146,49 @@ export default async function handler(req: any, res: any) {
       // Garantir colunas extras em instructors (FIX: Adicionado plate e cpf)
       sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS category text`,
       sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS plate text`,
-      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS cpf text`
+      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS cpf text`,
+      
+      // Colunas para driving_schools
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS email text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS city text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS services jsonb DEFAULT '[]'::jsonb`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS moto_yard_address text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS car_yard_address text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS category_change_yard_address text`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS main_schedule jsonb`,
+      sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS provisional_schedule jsonb`,
+      
+      // Remover NOT NULL de colunas que podem ser vazias em escalas automáticas
+      sql`ALTER TABLE exam_requests ALTER COLUMN student_name DROP NOT NULL`,
+      sql`ALTER TABLE exam_requests ALTER COLUMN cpf DROP NOT NULL`,
+      sql`ALTER TABLE exam_requests ALTER COLUMN phone DROP NOT NULL`,
+      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`
     ];
 
     // Executa criação de tabelas
     for (const query of tableQueries) {
-      await db.execute(query).catch(err => console.warn("[Setup] Erro ao criar tabela:", err.message));
+      try {
+        await db.execute(query);
+        console.log("[Setup] Tabela processada com sucesso.");
+      } catch (err: any) {
+        console.warn("[Setup] Tabela ignorada ou erro:", err.message);
+      }
     }
 
     // Executa adição de colunas
+    console.log("[Setup] Iniciando adição de colunas...");
     for (const query of columnQueries) {
-      await db.execute(query).catch(err => console.warn("[Setup] Coluna ignorada (já existe):", err.message));
+      try {
+        await db.execute(query);
+        console.log("[Setup] Coluna processada com sucesso.");
+      } catch (err: any) {
+        // Se o erro for que a coluna já existe, ignoramos silenciosamente no log de warn
+        if (err.message.includes("already exists")) {
+            console.log("[Setup] Coluna já existe (pulando).");
+        } else {
+            console.warn("[Setup] Erro ao processar coluna:", err.message);
+        }
+      }
     }
 
     return res.status(200).json({ 

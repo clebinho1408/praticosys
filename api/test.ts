@@ -1,7 +1,7 @@
 import { db } from '../db/index.js';
 import { sql } from 'drizzle-orm';
 
-export default async function handler(req: any, res: any) {
+export default async function handler(_req: any, res: any) {
   try {
     const rawUrl = process.env.DATABASE_URL || process.env.VITE_NEON_DATABASE_URL || "";
     

@@ -1,11 +1,11 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
-import { SystemSettings } from '../types';
+import { SystemSettings, City } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
-type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION' | 'RESTRICTIONS';
+type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION' | 'RESTRICTIONS' | 'CITIES';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -15,6 +15,9 @@ const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
+  const [cities, setCities] = useState<City[]>([]);
+  const [newCityName, setNewCityName] = useState('');
+  const [editingCity, setEditingCity] = useState<City | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; title: string; message: string; type?: 'error' | 'success' | 'info' }>({
@@ -25,6 +28,7 @@ const Settings: React.FC = () => {
 
   useEffect(() => {
     loadSettings();
+    loadCities();
   }, []);
 
   const loadSettings = () => {
@@ -32,6 +36,61 @@ const Settings: React.FC = () => {
       setSettings(data);
       setLoading(false);
     });
+  };
+
+  const loadCities = () => {
+    api.getCities().then(setCities);
+  };
+
+  const removeAccents = (str: string) => {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  };
+
+  const handleCityNameChange = (val: string) => {
+    const transformed = removeAccents(val.toUpperCase()).replace(/[^A-Z\s]/g, '');
+    if (editingCity) {
+      setEditingCity({ ...editingCity, name: transformed });
+    } else {
+      setNewCityName(transformed);
+    }
+  };
+
+  const handleAddCity = async () => {
+    if (!newCityName.trim()) return;
+    try {
+      await api.createCity({ name: newCityName });
+      setNewCityName('');
+      loadCities();
+      setSuccessMsg('Cidade adicionada com sucesso!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleUpdateCity = async () => {
+    if (!editingCity || !editingCity.name.trim()) return;
+    try {
+      await api.updateCity(editingCity.id, { name: editingCity.name });
+      setEditingCity(null);
+      loadCities();
+      setSuccessMsg('Cidade atualizada com sucesso!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDeleteCity = async (id: string) => {
+    if (!confirm('Tem certeza que deseja remover esta cidade?')) return;
+    try {
+      await api.deleteCity(id);
+      loadCities();
+      setSuccessMsg('Cidade removida com sucesso!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -135,6 +194,7 @@ const Settings: React.FC = () => {
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('RULES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Sliders className="h-4 w-4" /> REGRAS</button>
            <button type="button" onClick={() => setActiveTab('RESTRICTIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RESTRICTIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> RESTRIÇÕES</button>
+           <button type="button" onClick={() => setActiveTab('CITIES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'CITIES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MapPin className="h-4 w-4" /> CIDADES</button>
            <button type="button" onClick={() => setActiveTab('COMMUNICATION')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'COMMUNICATION' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MessageSquare className="h-4 w-4" /> COMUNICAÇÃO</button>
         </div>
 
@@ -195,6 +255,63 @@ const Settings: React.FC = () => {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+            )}
+            {activeTab === 'CITIES' && (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="flex gap-4">
+                        <input 
+                            type="text" 
+                            placeholder="Nome da Cidade (MAIÚSCULA E SEM ACENTO)" 
+                            value={editingCity ? editingCity.name : newCityName} 
+                            onChange={e => handleCityNameChange(e.target.value)} 
+                            className="flex-1 rounded-md border p-2 bg-white text-gray-900 uppercase" 
+                        />
+                        <button 
+                            type="button" 
+                            onClick={editingCity ? handleUpdateCity : handleAddCity} 
+                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
+                        >
+                            {editingCity ? 'Atualizar' : 'Adicionar'}
+                        </button>
+                        {editingCity && (
+                            <button 
+                                type="button" 
+                                onClick={() => setEditingCity(null)} 
+                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                            >
+                                Cancelar
+                            </button>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {cities.map(city => (
+                            <div key={city.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
+                                <span className="font-bold text-gray-700">{city.name}</span>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setEditingCity(city)} 
+                                        className="text-blue-600 hover:text-blue-800 text-sm font-bold"
+                                    >
+                                        Editar
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => handleDeleteCity(city.id)} 
+                                        className="text-red-600 hover:text-red-800"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                        {cities.length === 0 && (
+                            <div className="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
+                                Nenhuma cidade cadastrada.
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

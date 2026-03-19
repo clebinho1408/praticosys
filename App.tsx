@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthState, ExamType, User } from './types';
+import { AuthState, ExamType, User, UserRole } from './types';
 import Layout from './components/Layout';
 
 // Pages
@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import SchedulingCenter from './pages/SchedulingCenter';
 import Reports from './pages/Reports';
 import StudentDatabase from './pages/StudentDatabase';
+import CFCSchedulingCenter from './pages/CFCSchedulingCenter';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>({
@@ -44,7 +45,15 @@ const App: React.FC = () => {
             auth.isAuthenticated && auth.user ? (
               <Layout user={auth.user} onLogout={handleLogout}>
                 <Routes>
-                  <Route path="/" element={<AdminDashboard user={auth.user} />} />
+                  <Route 
+                    path="/" 
+                    element={
+                      auth.user?.role === UserRole.SCHOOL 
+                        ? <Navigate to="/admin/scheduling/cfc" replace /> 
+                        : <AdminDashboard user={auth.user!} />
+                    } 
+                  />
+                  <Route path="dashboard/:tab" element={<AdminDashboard user={auth.user} />} />
                   
                   {/* Common Routes for specific filters */}
                   <Route path="requests" element={<RequestManager user={auth.user} />} /> 
@@ -54,7 +63,7 @@ const App: React.FC = () => {
                   
                   {/* Scheduling Center */}
                   <Route path="scheduling/common" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
-                  <Route path="scheduling/cfc" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
+                  <Route path="scheduling/cfc" element={<CFCSchedulingCenter user={auth.user} />} />
                   <Route path="scheduling/pcd" element={<SchedulingCenter user={auth.user} type={ExamType.PCD} />} />
 
                   {/* Reports */}

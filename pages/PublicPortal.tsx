@@ -63,6 +63,7 @@ export const CommonRequestForm: React.FC = () => {
   const [formData, setFormData] = useState({
     cpf: '',
     studentName: '',
+    socialName: '',
     phone: '',
     email: '',
     address: '',

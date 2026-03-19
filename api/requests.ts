@@ -2,7 +2,7 @@
 // Requests API Handler
 import { db } from '../db/index.js';
 import { examRequests } from '../db/schema.js';
-import { eq, like } from 'drizzle-orm';
+import { eq, like, sql } from 'drizzle-orm';
 import crypto from 'node:crypto';
 
 const parseBody = (req: any) => {
@@ -16,6 +16,11 @@ const parseBody = (req: any) => {
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
+      try {
+        await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`);
+      } catch (e) {
+        console.warn("[API Requests] Schema sync warning:", e);
+      }
       const { cpf } = req.query;
       if (cpf) {
          const cleanCpf = cpf.replace(/\D/g, '');
@@ -28,17 +33,40 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const body = parseBody(req);
+      console.log("[API/Requests] POST Body:", JSON.stringify(body));
       const newItem = await db.insert(examRequests).values({
         id: body.id || crypto.randomUUID(),
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        ...body
+        ...body,
+        // Fallbacks para evitar erro de NOT NULL no banco de dados de produção (Vercel)
+        studentName: body.studentName || 'Vaga Disponível',
+        cpf: body.cpf || '00000000000',
+        phone: body.phone || '00000000000',
+        // Ensure dates are Date objects if they were passed as strings
+        createdAt: body.createdAt ? new Date(body.createdAt) : new Date(),
+        updatedAt: new Date()
       }).returning();
+
+      if (!newItem || newItem.length === 0) {
+        // Fallback for mock mode or databases that don't support returning
+        return res.status(200).json({ 
+          id: body.id || crypto.randomUUID(), 
+          ...body,
+          createdAt: body.createdAt || new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        });
+      }
+
       return res.status(200).json(newItem[0]);
     }
 
     if (req.method === 'PUT') {
-      const { id, ...updates } = parseBody(req);
+      const { id, createdAt, updatedAt, ...updates } = parseBody(req);
+      
+      // Prevent nulling out required fields on Vercel
+      if (updates.studentName === null || updates.studentName === '') updates.studentName = 'Vaga Disponível';
+      if (updates.cpf === null || updates.cpf === '') updates.cpf = '00000000000';
+      if (updates.phone === null || updates.phone === '') updates.phone = '00000000000';
+
       const updated = await db.update(examRequests)
         .set({ ...updates, updatedAt: new Date() })
         .where(eq(examRequests.id, id))

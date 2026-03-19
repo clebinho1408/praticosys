@@ -1,5 +1,5 @@
 
-import { pgTable, text, boolean, integer, timestamp, uuid, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, boolean, integer, timestamp, jsonb } from 'drizzle-orm/pg-core';
 
 // Tabela de Usuários (Admin, Operadores, Escolas)
 export const users = pgTable('users', {
@@ -17,7 +17,15 @@ export const drivingSchools = pgTable('driving_schools', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   phone: text('phone'),
+  email: text('email'),
   address: text('address'),
+  city: text('city'),
+  services: jsonb('services').$type<string[]>().default([]),
+  motoYardAddress: text('moto_yard_address'),
+  carYardAddress: text('car_yard_address'),
+  categoryChangeYardAddress: text('category_change_yard_address'),
+  mainSchedule: jsonb('main_schedule').$type<any>(),
+  provisionalSchedule: jsonb('provisional_schedule').$type<any>(),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -28,6 +36,7 @@ export const examiners = pgTable('examiners', {
   registrationNumber: text('registration_number').notNull(),
   canExamCommon: boolean('can_exam_common').default(true),
   canExamPCD: boolean('can_exam_pcd').default(false),
+  categories: jsonb('categories').$type<string[]>().default([]),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
@@ -72,12 +81,13 @@ export const examSchedules = pgTable('exam_schedules', {
 // Tabela de Solicitações/Candidatos
 export const examRequests = pgTable('exam_requests', {
   id: text('id').primaryKey(),
-  studentName: text('student_name').notNull(),
+  studentName: text('student_name'),
   socialName: text('social_name'),
-  cpf: text('cpf').notNull(),
-  phone: text('phone').notNull(),
+  cpf: text('cpf'),
+  phone: text('phone'),
   email: text('email'),
   address: text('address'),
+  city: text('city'),
   
   examType: text('exam_type').notNull(), // COMMON, PCD
   intendedCategory: text('intended_category').default('B'),
@@ -132,4 +142,11 @@ export const systemSettings = pgTable('system_settings', {
   defaultExamAddress: text('default_exam_address'),
   defaultExamAddressLink: text('default_exam_address_link'),
   restrictions: jsonb('restrictions').default([]),
+});
+
+// Tabela de Cidades
+export const cities = pgTable('cities', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull().unique(),
+  createdAt: timestamp('created_at').defaultNow(),
 });

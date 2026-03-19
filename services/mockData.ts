@@ -2,7 +2,7 @@
 // Mock Data Service
 import { 
   User, UserRole, DrivingSchool, Examiner, Instructor, ExamSchedule, ExamRequest, 
-  SystemSettings, ExamStatus
+  SystemSettings, ExamStatus, City
 } from '../types';
 
 // ============================================================================
@@ -15,6 +15,7 @@ const MEMORY_STORE = {
     schools: [] as any[],
     examiners: [] as any[],
     instructors: [] as any[],
+    cities: [] as any[],
     schedules: [
         {
             id: 'sch_1',
@@ -101,7 +102,34 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
 [HOURGLASS] _*Confirmação até amanhã às 18:00*_`,
         defaultExamAddress: 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC', 
-        defaultExamAddressLink: 'https://maps.google.com'
+        defaultExamAddressLink: 'https://maps.google.com',
+        restrictions: [
+            { code: 'A', description: 'Obrigatório o uso de lentes corretivas' },
+            { code: 'B', description: 'Obrigatório o uso de prótese auditiva' },
+            { code: 'C', description: 'Obrigatório o uso de acelerador à esquerda' },
+            { code: 'D', description: 'Obrigatório o uso de veículo com transmissão automática' },
+            { code: 'E', description: 'Obrigatório o uso de empunhadura/manopla no volante' },
+            { code: 'F', description: 'Obrigatório o uso de veículo com direção hidráulica' },
+            { code: 'G', description: 'Obrigatório o uso de veículo com embreagem automática' },
+            { code: 'H', description: 'Obrigatório o uso de acelerador e freio manual' },
+            { code: 'I', description: 'Obrigatório o uso de adaptação dos comandos de painel ao volante' },
+            { code: 'J', description: 'Obrigatório o uso de adaptação dos comandos de painel para os membros inferiores e/ou outras partes do corpo' },
+            { code: 'K', description: 'Obrigatório o uso de veículo com prolongamento da alavanca de câmbio e/ou almofadas (fixas) de compensação de altura e/ou profundidade' },
+            { code: 'L', description: 'Obrigatório o uso de veículo com prolongadores dos pedais de freio e acelerador e/ou almofadas (fixas) de compensação de altura e/ou profundidade' },
+            { code: 'M', description: 'Obrigatório o uso de motocicleta com pedal de câmbio adaptado' },
+            { code: 'N', description: 'Obrigatório o uso de motocicleta com pedal de freio traseiro adaptado' },
+            { code: 'O', description: 'Obrigatório o uso de motocicleta com manopla do freio dianteiro adaptada' },
+            { code: 'P', description: 'Obrigatório o uso de motocicleta com manopla do acelerador adaptada' },
+            { code: 'Q', description: 'Obrigatório o uso de motocicleta com manopla de embreagem adaptada' },
+            { code: 'R', description: 'Obrigatório o uso de motoneta com pedal de freio traseiro adaptado' },
+            { code: 'S', description: 'Obrigatório o uso de motocicleta com transmissão automática' },
+            { code: 'T', description: 'Vedado dirigir em rodovias e vias de trânsito rápido' },
+            { code: 'U', description: 'Vedado dirigir após o pôr-do-sol e antes do amanhecer' },
+            { code: 'V', description: 'Obrigatório o uso de capacete de segurança com viseira protetora sem limitação de campo visual' },
+            { code: 'W', description: 'Aposentado por invalidez' },
+            { code: 'X', description: 'Outras restrições' },
+            { code: 'Z', description: 'Visão Monocular' }
+        ]
     } as SystemSettings
 };
 
@@ -158,7 +186,7 @@ const fetchOrMock = async <T>(
 
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({}));
-            throw new Error(errorData.error || `API Error ${res.status}`);
+            throw new Error((errorData.error || `API Error ${res.status}`) + (errorData.details ? `: ${errorData.details}` : ''));
         }
         return await res.json();
     } catch (error: any) {
@@ -318,6 +346,24 @@ export const api = {
   }),
   deleteRequest: async (id: string): Promise<void> => fetchOrMock(`requests?id=${id}`, { method: 'DELETE' }, () => {
       MEMORY_STORE.requests = MEMORY_STORE.requests.filter(r => r.id !== id);
+  }),
+
+  // --- CITIES ---
+  getCities: async (): Promise<City[]> => fetchOrMock('cities', {}, () => MEMORY_STORE.cities),
+  createCity: async (data: Partial<City>): Promise<City> => fetchOrMock('cities', { method: 'POST', body: JSON.stringify(data) }, () => {
+      const novo = { id: genId(), name: (data.name || '').toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""), createdAt: new Date().toISOString() };
+      MEMORY_STORE.cities.push(novo);
+      return novo;
+  }),
+  updateCity: async (id: string, data: Partial<City>): Promise<City> => fetchOrMock('cities', { method: 'PUT', body: JSON.stringify({ id, ...data }) }, () => {
+      const idx = MEMORY_STORE.cities.findIndex(c => c.id === id);
+      if (idx !== -1) {
+          MEMORY_STORE.cities[idx] = { ...MEMORY_STORE.cities[idx], ...data, name: (data.name || MEMORY_STORE.cities[idx].name).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") };
+      }
+      return MEMORY_STORE.cities[idx];
+  }),
+  deleteCity: async (id: string): Promise<void> => fetchOrMock(`cities?id=${id}`, { method: 'DELETE' }, () => {
+      MEMORY_STORE.cities = MEMORY_STORE.cities.filter(c => c.id !== id);
   }),
 
   // --- ACTIONS ---

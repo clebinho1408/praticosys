@@ -16,6 +16,11 @@ export enum RequestSource {
   SCHOOL = 'SCHOOL'
 }
 
+export enum RequestType {
+  FIXA = 'FIXA',
+  EXTRA = 'EXTRA'
+}
+
 export enum ExamStatus {
   WAITING_SCHEDULING = 'WAITING_SCHEDULING', // Aguardando Agendamento
   SCHEDULED = 'SCHEDULED',                   // Agendado
@@ -35,19 +40,39 @@ export interface User {
   login: string;
 }
 
+export interface SchoolSchedule {
+  frequency: '1_WEEK' | '2_WEEK' | '2_DAY' | '15_DAYS';
+  days: string[]; // ['SEG', 'TER', ...]
+  slots: { time: string; examiner: string; day?: string }[]; 
+  active: boolean;
+}
+
 export interface DrivingSchool {
   id: string;
   name: string;
   phone: string;
+  email: string;
   address: string;
+  city?: string;
+  services: string[]; // ['A', 'B', 'C', 'D', 'E']
+  
+  // Pátios
+  motoYardAddress?: string;
+  carYardAddress?: string;
+  categoryChangeYardAddress?: string; // C, D, E
+  
+  // Escalas
+  mainSchedule?: SchoolSchedule;
+  provisionalSchedule?: SchoolSchedule;
 }
 
 export interface Examiner {
   id: string;
   name: string;
   registrationNumber: string; // Matrícula
-  canExamCommon: boolean;
-  canExamPCD: boolean;
+  canExamCommon?: boolean;
+  canExamPCD?: boolean;
+  categories?: string[]; // ['A', 'B', 'C', 'D', 'E', 'PCD']
 }
 
 export interface Vehicle {
@@ -107,6 +132,7 @@ export interface ExamRequest {
   examType: ExamType;
   intendedCategory?: string; // New (A, B, etc.)
   source: RequestSource;
+  requestType: RequestType; // New
   schoolId?: string; 
   desiredDate: string;
   
@@ -163,6 +189,12 @@ export interface SystemSettings {
   defaultExamAddress: string; // New: Default physical address
   defaultExamAddressLink: string; // New: Google Maps Link
   restrictions: Restriction[]; // New: List of CNH restrictions
+}
+
+export interface City {
+  id: string;
+  name: string;
+  createdAt?: string;
 }
 
 export interface AuthState {

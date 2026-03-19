@@ -99,7 +99,7 @@ export default async function handler(req: any, res: any) {
 
     // --- PUT: Atualizar ou Cancelar Banca ---
     if (req.method === 'PUT') {
-      const { id, action, reason, ...updates } = parseBody(req);
+      const { id, action, reason, createdAt, updatedAt, ...updates } = parseBody(req);
       
       // Ação Especial: Cancelamento
       if (action === 'CANCEL') {
