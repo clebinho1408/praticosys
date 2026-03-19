@@ -944,7 +944,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   <select 
                     className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                     value={newRequest.schoolId}
-                    onChange={e => setNewRequest({...newRequest, schoolId: e.target.value})}
+                    onChange={e => setNewRequest({...newRequest, schoolId: e.target.value, categories: []})}
                     disabled={user.role === UserRole.SCHOOL}
                   >
                     <option value="">Selecione a autoescola</option>
@@ -955,7 +955,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria <span className="text-red-500">*</span></label>
                   <div className="flex items-center gap-4 pt-2">
-                    {['A', 'B', 'PCD'].map(cat => (
+                    {(newRequest.schoolId 
+                      ? schools.find(s => s.id === newRequest.schoolId)?.services || [] 
+                      : ['A', 'B', 'PCD']
+                    ).map(cat => (
                       <label key={cat} className="flex items-center gap-2 cursor-pointer group">
                         <input 
                           type="checkbox" 
