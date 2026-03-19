@@ -8,8 +8,12 @@ import {
   ExamStatus, 
   DrivingSchool,
   User, 
+<<<<<<< HEAD
   UserRole,
   RequestType
+=======
+  UserRole 
+>>>>>>> 540a71c348e30522dd7d06c59a72d8d012a5453d
 } from '../types';
 import { 
   Plus, 
@@ -89,8 +93,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     examinerId: '',
     date: '',
     time: '',
+<<<<<<< HEAD
     observation: '',
     requestType: RequestType.FIXA
+=======
+    observation: ''
+>>>>>>> 540a71c348e30522dd7d06c59a72d8d012a5453d
   });
 
   const fetchData = async () => {
@@ -354,7 +362,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         schoolId: newRequest.schoolId,
         source: 'SCHOOL',
         examType: ExamType.COMMON,
+<<<<<<< HEAD
         requestType: newRequest.requestType,
+=======
+>>>>>>> 540a71c348e30522dd7d06c59a72d8d012a5453d
         intendedCategory: newRequest.categories.join(','),
         status: newRequest.date ? ExamStatus.SCHEDULED : ExamStatus.WAITING_SCHEDULING,
         attendanceConfirmed: false,
@@ -371,8 +382,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         examinerId: '',
         date: '',
         time: '',
+<<<<<<< HEAD
         observation: '',
         requestType: RequestType.FIXA
+=======
+        observation: ''
+>>>>>>> 540a71c348e30522dd7d06c59a72d8d012a5453d
       });
       fetchData();
     } catch (error) {
@@ -976,6 +991,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 </div>
 
                 <div className="space-y-1.5">
+<<<<<<< HEAD
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tipo <span className="text-red-500">*</span></label>
                   <select 
                     className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -988,6 +1004,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 </div>
 
                 <div className="space-y-1.5">
+=======
+>>>>>>> 540a71c348e30522dd7d06c59a72d8d012a5453d
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame <span className="text-red-500">*</span></label>
                   <input 
                     type="text" 
