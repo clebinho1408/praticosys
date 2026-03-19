@@ -5,7 +5,7 @@ import { SystemSettings, City } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
-type TabType = 'GENERAL' | 'RULES' | 'COMMUNICATION' | 'RESTRICTIONS' | 'CITIES';
+type TabType = 'GENERAL' | 'RULES' | 'RESTRICTIONS' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -15,6 +15,8 @@ const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
+  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'CITIES'>('CITIES');
+  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION'>('COMMUNICATION');
   const [cities, setCities] = useState<City[]>([]);
   const [newCityName, setNewCityName] = useState('');
   const [editingCity, setEditingCity] = useState<City | null>(null);
@@ -194,8 +196,8 @@ const Settings: React.FC = () => {
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('RULES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Sliders className="h-4 w-4" /> REGRAS</button>
            <button type="button" onClick={() => setActiveTab('RESTRICTIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RESTRICTIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> RESTRIÇÕES</button>
-           <button type="button" onClick={() => setActiveTab('CITIES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'CITIES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MapPin className="h-4 w-4" /> CIDADES</button>
-           <button type="button" onClick={() => setActiveTab('COMMUNICATION')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'COMMUNICATION' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><MessageSquare className="h-4 w-4" /> COMUNICAÇÃO</button>
+           <button type="button" onClick={() => setActiveTab('CNH_BRASIL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'CNH_BRASIL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> CNH DO BRASIL</button>
+           <button type="button" onClick={() => setActiveTab('PROVA_PRATICA_CFC')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'PROVA_PRATICA_CFC' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> PROVA PRÁTICA CFC</button>
         </div>
 
         <div className="p-8">
@@ -258,133 +260,150 @@ const Settings: React.FC = () => {
                     </div>
                 </div>
             )}
-            {activeTab === 'CITIES' && (
+            {activeTab === 'CNH_BRASIL' && (
                 <div className="space-y-6 animate-fadeIn">
-                    <div className="flex gap-4">
-                        <input 
-                            type="text" 
-                            placeholder="Nome da Cidade (MAIÚSCULA E SEM ACENTO)" 
-                            value={editingCity ? editingCity.name : newCityName} 
-                            onChange={e => handleCityNameChange(e.target.value)} 
-                            className="flex-1 rounded-md border p-2 bg-white text-gray-900 uppercase" 
-                        />
-                        <button 
-                            type="button" 
-                            onClick={editingCity ? handleUpdateCity : handleAddCity} 
-                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
-                        >
-                            {editingCity ? 'Atualizar' : 'Adicionar'}
-                        </button>
-                        {editingCity && (
-                            <button 
-                                type="button" 
-                                onClick={() => setEditingCity(null)} 
-                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
-                            >
-                                Cancelar
-                            </button>
-                        )}
+                    <div className="flex border-b border-gray-100 mb-6">
+                        <button type="button" onClick={() => setActiveSubTabCNH('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCNH === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {cities.map(city => (
-                            <div key={city.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
-                                <span className="font-bold text-gray-700">{city.name}</span>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setEditingCity(city)} 
-                                        className="text-blue-600 hover:text-blue-800 text-sm font-bold"
-                                    >
-                                        Editar
-                                    </button>
-                                    <button 
-                                        type="button" 
-                                        onClick={() => handleDeleteCity(city.id)} 
-                                        className="text-red-600 hover:text-red-800"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
+                    
+                    {activeSubTabCNH === 'COMMUNICATION' && (
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="space-y-4">
+                                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-blue-600" /> Endereço Padrão do Exame
+                                </h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Endereço Completo</label>
+                                        <input 
+                                            type="text" 
+                                            name="defaultExamAddress" 
+                                            value={settings.defaultExamAddress || ''} 
+                                            onChange={handleChange} 
+                                            placeholder="Ex: Av. Principal, 123 - Centro"
+                                            className="w-full border p-2 rounded bg-white text-gray-900" 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">Localização (Link Google Maps)</label>
+                                        <div className="relative">
+                                            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <input 
+                                                type="text" 
+                                                name="defaultExamAddressLink" 
+                                                value={settings.defaultExamAddressLink || ''} 
+                                                onChange={handleChange} 
+                                                placeholder="Ex: https://maps.app.goo.gl/..."
+                                                className="w-full border p-2 pl-10 rounded bg-white text-gray-900" 
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        ))}
-                        {cities.length === 0 && (
-                            <div className="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
-                                Nenhuma cidade cadastrada.
+
+                            <div className="space-y-4 pt-4 border-t">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                        <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp
+                                    </h3>
+                                </div>
+                                <div>
+                                    <textarea 
+                                        name="whatsappMessageTemplate" 
+                                        rows={8} 
+                                        value={settings.whatsappMessageTemplate} 
+                                        onChange={handleChange} 
+                                        className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
+                                    />
+                                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            {[
+                                                { tag: '{CANDIDATO}', desc: 'Nome' },
+                                                { tag: '{CATEGORIA}', desc: 'Categoria' },
+                                                { tag: '{DATA}', desc: 'Data' },
+                                                { tag: '{HORA}', desc: 'Hora' },
+                                                { tag: '{AGENCIA}', desc: 'Agência' },
+                                                { tag: '{ENDERECO}', desc: 'Local' },
+                                                { tag: '{LOCALIZACAO}', desc: 'Link Maps' },
+                                                { tag: '{RESTRICOES}', desc: 'Restrições CNH' }
+                                            ].map(item => (
+                                                <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
+                                                    <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
+                                                    <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    )}
                 </div>
             )}
-            {activeTab === 'COMMUNICATION' && (
-                <div className="space-y-8 animate-fadeIn">
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                            <MapPin className="h-4 w-4 text-blue-600" /> Endereço Padrão do Exame
-                        </h3>
-                        <div className="grid grid-cols-1 gap-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Endereço Completo</label>
-                                <input 
-                                    type="text" 
-                                    name="defaultExamAddress" 
-                                    value={settings.defaultExamAddress || ''} 
-                                    onChange={handleChange} 
-                                    placeholder="Ex: Av. Principal, 123 - Centro"
-                                    className="w-full border p-2 rounded bg-white text-gray-900" 
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 mb-1">Localização (Link Google Maps)</label>
-                                <div className="relative">
-                                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                    <input 
-                                        type="text" 
-                                        name="defaultExamAddressLink" 
-                                        value={settings.defaultExamAddressLink || ''} 
-                                        onChange={handleChange} 
-                                        placeholder="Ex: https://maps.app.goo.gl/..."
-                                        className="w-full border p-2 pl-10 rounded bg-white text-gray-900" 
-                                    />
-                                </div>
-                            </div>
-                        </div>
+
+            {activeTab === 'PROVA_PRATICA_CFC' && (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="flex border-b border-gray-100 mb-6">
+                        <button type="button" onClick={() => setActiveSubTabCFC('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCFC === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
                     </div>
 
-                    <div className="space-y-4 pt-4 border-t">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp
-                            </h3>
-                        </div>
-                        <div>
-                            <textarea 
-                                name="whatsappMessageTemplate" 
-                                rows={8} 
-                                value={settings.whatsappMessageTemplate} 
-                                onChange={handleChange} 
-                                className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
-                            />
-                            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {[
-                                        { tag: '{CANDIDATO}', desc: 'Nome' },
-                                        { tag: '{CATEGORIA}', desc: 'Categoria' },
-                                        { tag: '{DATA}', desc: 'Data' },
-                                        { tag: '{HORA}', desc: 'Hora' },
-                                        { tag: '{AGENCIA}', desc: 'Agência' },
-                                        { tag: '{ENDERECO}', desc: 'Local' },
-                                        { tag: '{LOCALIZACAO}', desc: 'Link Maps' },
-                                        { tag: '{RESTRICOES}', desc: 'Restrições CNH' }
-                                    ].map(item => (
-                                        <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
-                                            <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
-                                            <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
+                    {activeSubTabCFC === 'CITIES' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="flex gap-4">
+                                <input 
+                                    type="text" 
+                                    placeholder="Nome da Cidade (MAIÚSCULA E SEM ACENTO)" 
+                                    value={editingCity ? editingCity.name : newCityName} 
+                                    onChange={e => handleCityNameChange(e.target.value)} 
+                                    className="flex-1 rounded-md border p-2 bg-white text-gray-900 uppercase" 
+                                />
+                                <button 
+                                    type="button" 
+                                    onClick={editingCity ? handleUpdateCity : handleAddCity} 
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
+                                >
+                                    {editingCity ? 'Atualizar' : 'Adicionar'}
+                                </button>
+                                {editingCity && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setEditingCity(null)} 
+                                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {cities.map(city => (
+                                    <div key={city.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
+                                        <span className="font-bold text-gray-700">{city.name}</span>
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setEditingCity(city)} 
+                                                className="text-blue-600 hover:text-blue-800 text-sm font-bold"
+                                            >
+                                                Editar
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleDeleteCity(city.id)} 
+                                                className="text-red-600 hover:text-red-800"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                ))}
+                                {cities.length === 0 && (
+                                    <div className="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
+                                        Nenhuma cidade cadastrada.
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
         </div>
