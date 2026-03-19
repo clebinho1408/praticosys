@@ -67,6 +67,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   // Modal states
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [isTypeSelectionModalOpen, setIsTypeSelectionModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isAutoGenerateModalOpen, setIsAutoGenerateModalOpen] = useState(false);
@@ -443,7 +444,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             </button>
           )}
           <button 
-            onClick={() => setIsNewModalOpen(true)}
+            onClick={() => setIsTypeSelectionModalOpen(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 font-bold text-sm shadow-sm transition-colors"
           >
             <Plus className="h-4 w-4" /> Novo Agendamento
@@ -922,6 +923,47 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         </div>
       )}
 
+      {/* MODAL: SELEÇÃO DE TIPO DE AGENDAMENTO */}
+      {isTypeSelectionModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100">
+              <h2 className="text-lg font-bold text-slate-800">Tipo de Agendamento</h2>
+            </div>
+            <div className="p-6 grid grid-cols-2 gap-4">
+              <button 
+                onClick={() => {
+                  setNewRequest({...newRequest, requestType: RequestType.FIXA});
+                  setIsTypeSelectionModalOpen(false);
+                  setIsNewModalOpen(true);
+                }}
+                className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-4 rounded-lg transition-all"
+              >
+                Fixo
+              </button>
+              <button 
+                onClick={() => {
+                  setNewRequest({...newRequest, requestType: RequestType.EXTRA});
+                  setIsTypeSelectionModalOpen(false);
+                  setIsNewModalOpen(true);
+                }}
+                className="bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold py-4 rounded-lg transition-all"
+              >
+                Extra
+              </button>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => setIsTypeSelectionModalOpen(false)}
+                className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-200 transition-all"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: NOVO AGENDAMENTO */}
       {isNewModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -957,19 +999,32 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   <div className="flex items-center gap-4 pt-2">
                     {(newRequest.schoolId 
                       ? schools.find(s => s.id === newRequest.schoolId)?.services || [] 
-                      : ['A', 'B', 'PCD']
-                    ).map(cat => (
+                      : ['A', 'B', 'C', 'D', 'E', 'PCD']
+                    ).filter(cat => {
+                      if (newRequest.requestType === RequestType.FIXA) {
+                        return ['A', 'B'].includes(cat);
+                      }
+                      return true;
+                    }).map(cat => (
                       <label key={cat} className="flex items-center gap-2 cursor-pointer group">
                         <input 
                           type="checkbox" 
                           className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
                           checked={newRequest.categories.includes(cat)}
                           onChange={e => {
-                            if (e.target.checked) {
-                              setNewRequest({...newRequest, categories: [...newRequest.categories, cat]});
-                            } else {
-                              setNewRequest({...newRequest, categories: newRequest.categories.filter(c => c !== cat)});
+                            let newCats = e.target.checked 
+                              ? [...newRequest.categories, cat]
+                              : newRequest.categories.filter(c => c !== cat);
+                            
+                            // Regra: Não permitir A/B junto com C/D/E
+                            const hasAB = newCats.some(c => ['A', 'B'].includes(c));
+                            const hasCDE = newCats.some(c => ['C', 'D', 'E'].includes(c));
+                            if (hasAB && hasCDE) {
+                              alert('Não é permitido selecionar categorias A/B junto com C/D/E.');
+                              return;
                             }
+                            
+                            setNewRequest({...newRequest, categories: newCats});
                           }}
                         />
                         <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{cat}</span>
@@ -994,7 +1049,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame <span className="text-red-500">*</span></label>
                   <input 
                     type="text" 
-                    value="1º Habilitação"
+                    value={
+                      newRequest.categories.some(c => ['A', 'B'].includes(c)) && !newRequest.categories.some(c => ['C', 'D', 'E'].includes(c))
+                        ? '1º Habilitação'
+                        : newRequest.categories.some(c => ['C', 'D', 'E'].includes(c))
+                        ? 'Mudança Categoria'
+                        : ''
+                    }
                     readOnly
                     className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none"
                   />
