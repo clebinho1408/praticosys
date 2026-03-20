@@ -604,41 +604,58 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           </button>
           
           {expandedSections.waiting && (
-            <div className="p-4 bg-white space-y-4">
-              {waitingConfirmation.map(req => (
-                <div key={req.id} className="border border-slate-100 rounded-lg p-4 relative group hover:border-amber-200 transition-all">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <h3 className="font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1 text-xs">
-                        <p><span className="text-slate-400 font-bold">Tipo:</span> <span className="text-slate-600">{req.observation?.includes('Fixa') ? 'Fixa' : 'Extra'}</span></p>
-                        <p><span className="text-slate-400 font-bold">Data:</span> <span className="text-red-600 font-bold">{formatDate(req.scheduledDate)} às {req.scheduledTime || '08:00'}</span></p>
-                        <p><span className="text-slate-400 font-bold">Examinador:</span> <span className="text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</span></p>
-                        <p><span className="text-slate-400 font-bold">Exame:</span> <span className="text-slate-600">1º Habilitação</span></p>
-                        <p className="flex items-center gap-2">
-                          <span className="text-slate-400 font-bold">Categoria:</span> 
-                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-black uppercase">{req.intendedCategory || 'AB'}</span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleConfirmAction(req)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-md flex items-center gap-2 font-bold text-xs shadow-sm transition-colors"
-                      >
-                        <CheckCircle className="h-3 w-3" /> Confirmar
-                      </button>
-                      <button 
-                        onClick={() => handleCancelAction(req)}
-                        className="border border-red-200 text-red-600 hover:bg-red-50 px-4 py-1.5 rounded-md flex items-center gap-2 font-bold text-xs transition-colors"
-                      >
-                        <XCircle className="h-3 w-3" /> Cancelar
-                      </button>
-                    </div>
-                  </div>
+            <div className="p-4 bg-white">
+              {waitingConfirmation.length > 0 ? (
+                <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
+                        <th className="px-4 py-3">Tipo</th>
+                        <th className="px-4 py-3">Autoescola</th>
+                        <th className="px-4 py-3">Data/Hora</th>
+                        <th className="px-4 py-3">Examinador</th>
+                        <th className="px-4 py-3">Exame</th>
+                        <th className="px-4 py-3 text-center">Cat.</th>
+                        <th className="px-4 py-3 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {waitingConfirmation.map(req => (
+                        <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
+                          <td className="px-4 py-3 text-slate-600">{req.observation?.includes('Fixa') ? 'Fixa' : 'Extra'}</td>
+                          <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
+                          <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)} às {req.scheduledTime || '08:00'}</td>
+                          <td className="px-4 py-3 text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</td>
+                          <td className="px-4 py-3 text-slate-600">1º Habilitação</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-black uppercase">{req.intendedCategory || 'AB'}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => handleConfirmAction(req)}
+                                className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                title="Confirmar"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleCancelAction(req)}
+                                className="border border-red-200 text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                title="Cancelar"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-              {waitingConfirmation.length === 0 && <p className="text-center py-4 text-slate-400 text-sm italic">Nenhum agendamento aguardando confirmação.</p>}
+              ) : (
+                <p className="text-center py-4 text-slate-400 text-sm italic">Nenhum agendamento aguardando confirmação.</p>
+              )}
             </div>
           )}
         </div>

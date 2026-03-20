@@ -15,11 +15,7 @@ const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
-<<<<<<< HEAD
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'CITIES' | 'COMMUNICATION'>('CITIES');
-=======
-  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'CITIES'>('CITIES');
->>>>>>> 2db034759bc54e071e300c6448fcb167c538545f
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION'>('COMMUNICATION');
   const [cities, setCities] = useState<City[]>([]);
   const [newCityName, setNewCityName] = useState('');
@@ -349,10 +345,7 @@ const Settings: React.FC = () => {
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6">
                         <button type="button" onClick={() => setActiveSubTabCFC('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCFC === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
-<<<<<<< HEAD
                         <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
-=======
->>>>>>> 2db034759bc54e071e300c6448fcb167c538545f
                     </div>
 
                     {activeSubTabCFC === 'CITIES' && (
@@ -409,7 +402,6 @@ const Settings: React.FC = () => {
                                         Nenhuma cidade cadastrada.
                                     </div>
                                 )}
-<<<<<<< HEAD
                             </div>
                         </div>
                     )}
@@ -448,8 +440,6 @@ const Settings: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
-=======
->>>>>>> 2db034759bc54e071e300c6448fcb167c538545f
                             </div>
                         </div>
                     )}
