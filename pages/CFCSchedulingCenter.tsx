@@ -219,11 +219,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     const examinerName = getExaminerName(req.examinerId);
     const type = req.observation?.includes('Fixa') ? 'Fixa' : 'Extra';
     
+    const examType = req.intendedCategory?.includes('C') || req.intendedCategory?.includes('D') || req.intendedCategory?.includes('E') 
+      ? 'Mudança Categoria' 
+      : '1º Habilitação';
+    
     message = message.replace(/{AUTOESCOLA}/g, school.name);
     message = message.replace(/{DATA}/g, formatDate(req.scheduledDate));
     message = message.replace(/{HORARIO}/g, req.scheduledTime || '08:00');
     message = message.replace(/{EXAMINADOR}/g, examinerName);
-    message = message.replace(/{EXAME}/g, '1º Habilitação');
+    message = message.replace(/{EXAME}/g, examType);
     message = message.replace(/{TIPO}/g, type);
 
     const phone = school.phone.replace(/\D/g, '');
@@ -435,6 +439,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const handleUpdateEdit = async () => {
     if (!selectedRequest) return;
 
+    let newStatus = selectedRequest.status;
+    // Se for uma solicitação extra pendente e preencher os dados de agendamento, muda para SCHEDULED (Aguardando Confirmação)
+    if (selectedRequest.status === ExamStatus.WAITING_SCHEDULING && 
+        selectedRequest.scheduledDate && 
+        selectedRequest.scheduledTime && 
+        selectedRequest.examinerId) {
+      newStatus = ExamStatus.SCHEDULED;
+    }
+
     try {
       await api.updateRequest(selectedRequest.id, {
         schoolId: selectedRequest.schoolId,
@@ -443,7 +456,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         scheduledTime: selectedRequest.scheduledTime,
         examinerId: selectedRequest.examinerId,
         observation: selectedRequest.observation,
-        status: selectedRequest.status,
+        status: newStatus,
         attendanceConfirmed: selectedRequest.attendanceConfirmed
       });
       setIsEditModalOpen(false);
@@ -585,57 +598,75 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           </button>
           
           {expandedSections.extras && (
-            <div className="p-4 bg-white space-y-4">
-              {extras.map(req => (
-                <div key={req.id} className="border border-slate-100 rounded-lg p-4 relative group hover:border-orange-200 transition-all">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2">
-                      <h3 className="font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-1 text-xs">
-                        <p><span className="text-slate-400 font-bold">Data:</span> <span className="text-slate-600 font-bold">{req.scheduledDate || 'A Definir'}</span></p>
-                        <p><span className="text-slate-400 font-bold">Examinador:</span> <span className="text-slate-600 font-bold">{req.examinerId ? getExaminerName(req.examinerId) : 'A Definir'}</span></p>
-                        <p><span className="text-slate-400 font-bold">Horário:</span> <span className="text-slate-600 font-bold">{req.scheduledTime || 'A Definir'}</span></p>
-                        <p><span className="text-slate-400 font-bold">Exame:</span> <span className="text-slate-600">{req.examType || '1º Habilitação'}</span></p>
-                        <p className="flex items-center gap-2">
-                          <span className="text-slate-400 font-bold">Categoria:</span> 
-                          <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-black uppercase">{req.intendedCategory || 'AB'}</span>
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <span className="text-slate-400 font-bold">Status:</span> 
-                          <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-[10px] font-black uppercase">Solicitar Prova Extra</span>
-                        </p>
-                      </div>
-                      <div className="pt-2 text-[10px] text-slate-400">
-                        <p><span className="font-bold">Cadastrado em:</span> {new Date(req.createdAt).toLocaleString()}</p>
-                        {req.observation && <p><span className="font-bold">Observações:</span> {req.observation}</p>}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {user.role !== UserRole.SCHOOL && (
-                        <button 
-                          onClick={() => {
-                            setSelectedRequest(req);
-                            setIsEditModalOpen(true);
-                          }}
-                          className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-md flex items-center gap-2 font-bold text-xs shadow-sm transition-colors"
-                        >
-                          <FileText className="h-3 w-3" /> Inserir Dados
-                        </button>
-                      )}
-                      <button 
-                        onClick={() => {
-                          setSelectedRequest(req);
-                          setIsEditModalOpen(true);
-                        }}
-                        className="absolute top-4 right-4 p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-all"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+            <div className="p-4 bg-white">
+              {extras.length > 0 ? (
+                <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
+                        <th className="px-4 py-3 w-[20%]">Autoescola</th>
+                        <th className="px-4 py-3 w-[15%]">Exame</th>
+                        <th className="px-4 py-3 w-[10%]">Categoria</th>
+                        <th className="px-4 py-3 w-[15%] text-center">Cadastrado em</th>
+                        <th className="px-4 py-3 w-[30%]">Observações</th>
+                        <th className="px-4 py-3 w-[10%] text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {extras.map(req => (
+                        <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
+                          <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
+                          <td className="px-4 py-3 text-slate-600">
+                            {req.intendedCategory?.includes('C') || req.intendedCategory?.includes('D') || req.intendedCategory?.includes('E') 
+                              ? 'Mudança Categoria' 
+                              : '1º Habilitação'}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-black uppercase">{req.intendedCategory || 'AB'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 text-center">{new Date(req.createdAt).toLocaleString()}</td>
+                          <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate" title={req.observation}>{req.observation || '-'}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-2">
+                              {user.role !== UserRole.SCHOOL && (
+                                <button 
+                                  onClick={() => {
+                                    setSelectedRequest(req);
+                                    setIsEditModalOpen(true);
+                                  }}
+                                  className="bg-orange-600 hover:bg-orange-700 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                  title="Inserir Dados"
+                                >
+                                  <FileText className="h-4 w-4" />
+                                </button>
+                              )}
+                              <button 
+                                onClick={() => {
+                                  setSelectedRequest(req);
+                                  setIsEditModalOpen(true);
+                                }}
+                                className="border border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                title="Editar"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteAction(req)}
+                                className="border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                title="Excluir"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-              {extras.length === 0 && <p className="text-center py-4 text-slate-400 text-sm italic">Nenhuma solicitação extra pendente.</p>}
+              ) : (
+                <p className="text-center py-4 text-slate-400 text-sm italic">Nenhuma solicitação extra pendente.</p>
+              )}
             </div>
           )}
         </div>
@@ -675,7 +706,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                           <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)} às {req.scheduledTime || '08:00'}</td>
                           <td className="px-4 py-3 text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</td>
-                          <td className="px-4 py-3 text-slate-600">1º Habilitação</td>
+                          <td className="px-4 py-3 text-slate-600">
+                            {req.intendedCategory?.includes('C') || req.intendedCategory?.includes('D') || req.intendedCategory?.includes('E') 
+                              ? 'Mudança Categoria' 
+                              : '1º Habilitação'}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
                               <button 
@@ -760,7 +795,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
                               <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
                               <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
-                              <td className="px-4 py-3 text-slate-600">1º Habilitação</td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {req.intendedCategory?.includes('C') || req.intendedCategory?.includes('D') || req.intendedCategory?.includes('E') 
+                                  ? 'Mudança Categoria' 
+                                  : '1º Habilitação'}
+                              </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
                                   <button 
@@ -1156,16 +1195,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
                     <div className="space-y-1.5">
                       <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Horário <span className="text-red-500">*</span></label>
-                      <select 
+                      <input 
+                        type="time" 
                         className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                         value={newRequest.time}
                         onChange={e => setNewRequest({...newRequest, time: e.target.value})}
-                      >
-                        <option value="">Selecione o horário</option>
-                        {['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'].map(t => (
-                          <option key={t} value={t}>{t}</option>
-                        ))}
-                      </select>
+                      />
                     </div>
                   </>
                 )}
@@ -1226,15 +1261,33 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria</label>
-                  <input 
-                    type="text" 
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                    value={selectedRequest.intendedCategory}
-                    onChange={e => setSelectedRequest({...selectedRequest, intendedCategory: e.target.value})}
-                  />
-                </div>
+                {selectedRequest.requestType !== RequestType.EXTRA ? (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria</label>
+                      <input 
+                        type="text" 
+                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        value={selectedRequest.intendedCategory}
+                        onChange={e => setSelectedRequest({...selectedRequest, intendedCategory: e.target.value})}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame</label>
+                    <input 
+                      type="text" 
+                      value={
+                        selectedRequest.intendedCategory?.includes('C') || selectedRequest.intendedCategory?.includes('D') || selectedRequest.intendedCategory?.includes('E')
+                          ? 'Mudança Categoria'
+                          : '1º Habilitação'
+                      }
+                      readOnly
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none"
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Examinador</label>
@@ -1260,28 +1313,26 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Horário</label>
-                  <select 
+                  <input 
+                    type="time" 
                     className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                     value={selectedRequest.scheduledTime || ''}
                     onChange={e => setSelectedRequest({...selectedRequest, scheduledTime: e.target.value})}
-                  >
-                    <option value="">Selecione o horário</option>
-                    {['08:00', '09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'].map(t => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
-                  <select 
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                    value={selectedRequest.status}
-                    onChange={e => setSelectedRequest({...selectedRequest, status: e.target.value as ExamStatus})}
-                  >
-                    {Object.values(ExamStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
+                {selectedRequest.requestType !== RequestType.EXTRA && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                    <select 
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      value={selectedRequest.status}
+                      onChange={e => setSelectedRequest({...selectedRequest, status: e.target.value as ExamStatus})}
+                    >
+                      {Object.values(ExamStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1.5">
