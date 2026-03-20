@@ -9,7 +9,8 @@ import {
   DrivingSchool,
   User, 
   UserRole,
-  RequestType
+  RequestType,
+  SystemSettings
 } from '../types';
 import { 
   Plus, 
@@ -26,7 +27,8 @@ import {
   Trash2,
   X,
   Save,
-  RefreshCw
+  RefreshCw,
+  MessageCircle
 } from 'lucide-react';
 
 interface CFCSchedulingCenterProps {
@@ -38,6 +40,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   
   // Expanded sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -97,10 +100,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [reqs, schs, exms] = await Promise.all([
+      const [reqs, schs, exms, settings] = await Promise.all([
         api.getRequests(),
         api.getSchoolsAsync(),
-        api.getExaminersAsync()
+        api.getExaminersAsync(),
+        api.getSettings()
       ]);
       
       // Filter for CFC (COMMON)
@@ -109,6 +113,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       setRequests(cfcReqs);
       setSchools(schs);
       setExaminers(exms);
+      setSystemSettings(settings);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -196,6 +201,34 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     if (!dateStr) return 'Não definida';
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
+  };
+
+  const handleWhatsAppMessage = (req: ExamRequest) => {
+    if (!systemSettings?.cfcWhatsappMessageTemplate) {
+      alert('Modelo de mensagem WhatsApp não configurado.');
+      return;
+    }
+
+    const school = schools.find(s => s.id === req.schoolId);
+    if (!school || !school.phone) {
+      alert('Telefone da autoescola não encontrado.');
+      return;
+    }
+
+    let message = systemSettings.cfcWhatsappMessageTemplate;
+    const examinerName = getExaminerName(req.examinerId);
+    const type = req.observation?.includes('Fixa') ? 'Fixa' : 'Extra';
+    
+    message = message.replace(/{AUTOESCOLA}/g, school.name);
+    message = message.replace(/{DATA}/g, formatDate(req.scheduledDate));
+    message = message.replace(/{HORARIO}/g, req.scheduledTime || '08:00');
+    message = message.replace(/{EXAMINADOR}/g, examinerName);
+    message = message.replace(/{EXAME}/g, '1º Habilitação');
+    message = message.replace(/{TIPO}/g, type);
+
+    const phone = school.phone.replace(/\D/g, '');
+    const url = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
   };
 
   const handleConfirmAction = (req: ExamRequest) => {
@@ -340,7 +373,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   };
 
   const handleSubmitNew = async () => {
-    if (!newRequest.schoolId || newRequest.categories.length === 0 || !newRequest.date || !newRequest.time) {
+    const isFixa = newRequest.requestType === RequestType.FIXA;
+    const basicFieldsOk = newRequest.schoolId && newRequest.categories.length > 0;
+    const fixaFieldsOk = !isFixa || (newRequest.date && newRequest.time && newRequest.examinerId);
+
+    if (!basicFieldsOk || !fixaFieldsOk) {
       alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
@@ -380,6 +417,19 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       console.error('Error creating request:', error);
       alert('Erro ao criar agendamento.');
     }
+  };
+
+  const handleCloseNewModal = () => {
+    setIsNewModalOpen(false);
+    setNewRequest({
+      schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
+      categories: [],
+      examinerId: '',
+      date: '',
+      time: '',
+      observation: '',
+      requestType: RequestType.FIXA
+    });
   };
 
   const handleUpdateEdit = async () => {
@@ -615,7 +665,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         <th className="px-4 py-3">Data/Hora</th>
                         <th className="px-4 py-3">Examinador</th>
                         <th className="px-4 py-3">Exame</th>
-                        <th className="px-4 py-3 text-center">Cat.</th>
                         <th className="px-4 py-3 text-right">Ações</th>
                       </tr>
                     </thead>
@@ -627,11 +676,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)} às {req.scheduledTime || '08:00'}</td>
                           <td className="px-4 py-3 text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</td>
                           <td className="px-4 py-3 text-slate-600">1º Habilitação</td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-black uppercase">{req.intendedCategory || 'AB'}</span>
-                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => handleWhatsAppMessage(req)}
+                                className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                title="Enviar WhatsApp"
+                              >
+                                <MessageCircle className="h-4 w-4" />
+                              </button>
                               <button 
                                 onClick={() => handleConfirmAction(req)}
                                 className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
@@ -971,7 +1024,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             </div>
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
               <button 
-                onClick={() => setIsTypeSelectionModalOpen(false)}
+                onClick={() => {
+                  setIsTypeSelectionModalOpen(false);
+                  setNewRequest({
+                    schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
+                    categories: [],
+                    examinerId: '',
+                    date: '',
+                    time: '',
+                    observation: '',
+                    requestType: RequestType.FIXA
+                  });
+                }}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-200 transition-all"
               >
                 Cancelar
@@ -987,7 +1051,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">Novo Agendamento</h2>
-              <button onClick={() => setIsNewModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={handleCloseNewModal} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <X className="h-6 w-6" />
               </button>
             </div>
@@ -1121,7 +1185,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
             <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
               <button 
-                onClick={() => setIsNewModalOpen(false)}
+                onClick={handleCloseNewModal}
                 className="px-6 py-2 rounded-lg border border-slate-200 text-slate-600 font-bold text-sm hover:bg-white transition-all"
               >
                 Cancelar
