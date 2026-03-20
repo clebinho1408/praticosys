@@ -604,28 +604,26 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
-                        <th className="px-4 py-3 w-[20%]">Autoescola</th>
-                        <th className="px-4 py-3 w-[15%]">Exame</th>
-                        <th className="px-4 py-3 w-[10%]">Categoria</th>
-                        <th className="px-4 py-3 w-[15%] text-center">Cadastrado em</th>
-                        <th className="px-4 py-3 w-[30%]">Observações</th>
-                        <th className="px-4 py-3 w-[10%] text-right">Ações</th>
+                        <th className="px-4 py-3 text-center">Cadastrado em</th>
+                        <th className="px-4 py-3">Autoescola</th>
+                        <th className="px-4 py-3">Exame</th>
+                        <th className="px-4 py-3">Observações</th>
+                        <th className="px-4 py-3 text-right">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {extras.map(req => (
                         <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
+                          <td className="px-4 py-3 text-slate-500 text-center">{new Date(req.createdAt).toLocaleString()}</td>
                           <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                           <td className="px-4 py-3 text-slate-600">
-                            {req.intendedCategory?.includes('C') || req.intendedCategory?.includes('D') || req.intendedCategory?.includes('E') 
+                            {req.intendedCategory?.split(',').some(c => ['C', 'D', 'E'].includes(c)) 
                               ? 'Mudança Categoria' 
-                              : '1º Habilitação'}
+                              : req.intendedCategory?.split(',').some(c => ['A', 'B'].includes(c))
+                              ? '1º Habilitação'
+                              : '-'}
                           </td>
-                          <td className="px-4 py-3">
-                            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px] font-black uppercase">{req.intendedCategory || 'AB'}</span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-500 text-center">{new Date(req.createdAt).toLocaleString()}</td>
-                          <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate" title={req.observation}>{req.observation || '-'}</td>
+                          <td className="px-4 py-3 text-slate-500 max-w-[250px] truncate" title={req.observation}>{req.observation || '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
                               {user.role !== UserRole.SCHOOL && (
@@ -634,10 +632,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                     setSelectedRequest(req);
                                     setIsEditModalOpen(true);
                                   }}
-                                  className="bg-orange-600 hover:bg-orange-700 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-md flex items-center gap-1.5 font-bold text-[10px] shadow-sm transition-colors"
                                   title="Inserir Dados"
                                 >
-                                  <FileText className="h-4 w-4" />
+                                  <FileText className="h-3 w-3" /> Inserir Dados
                                 </button>
                               )}
                               <button 
@@ -1261,33 +1259,61 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   </select>
                 </div>
 
-                {selectedRequest.requestType !== RequestType.EXTRA ? (
-                  <>
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria</label>
-                      <input 
-                        type="text" 
-                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                        value={selectedRequest.intendedCategory}
-                        onChange={e => setSelectedRequest({...selectedRequest, intendedCategory: e.target.value})}
-                      />
-                    </div>
-                  </>
-                ) : (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame</label>
-                    <input 
-                      type="text" 
-                      value={
-                        selectedRequest.intendedCategory?.includes('C') || selectedRequest.intendedCategory?.includes('D') || selectedRequest.intendedCategory?.includes('E')
-                          ? 'Mudança Categoria'
-                          : '1º Habilitação'
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria <span className="text-red-500">*</span></label>
+                  <div className="flex items-center gap-4 pt-2">
+                    {(selectedRequest.schoolId 
+                      ? schools.find(s => s.id === selectedRequest.schoolId)?.services || [] 
+                      : ['A', 'B', 'C', 'D', 'E', 'PCD']
+                    ).filter(cat => {
+                      if (selectedRequest.requestType === RequestType.FIXA) {
+                        return ['A', 'B'].includes(cat);
                       }
-                      readOnly
-                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none"
-                    />
+                      return true;
+                    }).map(cat => (
+                      <label key={cat} className="flex items-center gap-2 cursor-pointer group">
+                        <input 
+                          type="checkbox" 
+                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                          checked={selectedRequest.intendedCategory?.split(',').includes(cat)}
+                          onChange={e => {
+                            const currentCats = selectedRequest.intendedCategory ? selectedRequest.intendedCategory.split(',').filter(Boolean) : [];
+                            let newCats = e.target.checked 
+                              ? [...currentCats, cat]
+                              : currentCats.filter(c => c !== cat);
+                            
+                            // Regra: Não permitir A/B junto com C/D/E
+                            const hasAB = newCats.some(c => ['A', 'B'].includes(c));
+                            const hasCDE = newCats.some(c => ['C', 'D', 'E'].includes(c));
+                            if (hasAB && hasCDE) {
+                              alert('Não é permitido selecionar categorias A/B junto com C/D/E.');
+                              return;
+                            }
+                            
+                            setSelectedRequest({...selectedRequest, intendedCategory: newCats.join(',')});
+                          }}
+                        />
+                        <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{cat}</span>
+                      </label>
+                    ))}
                   </div>
-                )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame</label>
+                  <input 
+                    type="text" 
+                    value={
+                      selectedRequest.intendedCategory?.split(',').some(c => ['A', 'B'].includes(c)) && !selectedRequest.intendedCategory?.split(',').some(c => ['C', 'D', 'E'].includes(c))
+                        ? '1º Habilitação'
+                        : selectedRequest.intendedCategory?.split(',').some(c => ['C', 'D', 'E'].includes(c))
+                        ? 'Mudança Categoria'
+                        : ''
+                    }
+                    readOnly
+                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none"
+                  />
+                </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Examinador</label>
@@ -1320,19 +1346,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     onChange={e => setSelectedRequest({...selectedRequest, scheduledTime: e.target.value})}
                   />
                 </div>
-
-                {selectedRequest.requestType !== RequestType.EXTRA && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Status</label>
-                    <select 
-                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                      value={selectedRequest.status}
-                      onChange={e => setSelectedRequest({...selectedRequest, status: e.target.value as ExamStatus})}
-                    >
-                      {Object.values(ExamStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                )}
               </div>
 
               <div className="space-y-1.5">
@@ -1346,13 +1359,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
-              <button 
-                onClick={() => handleDeleteAction(selectedRequest)}
-                className="px-4 py-2 rounded-lg text-xs font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" /> Excluir
-              </button>
+            <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end items-center">
               <div className="flex gap-3">
                 <button 
                   onClick={() => setIsEditModalOpen(false)}
