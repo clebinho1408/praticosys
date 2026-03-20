@@ -139,6 +139,7 @@ export const systemSettings = pgTable('system_settings', {
   defaultMaxSlotsA: integer('default_max_slots_a').default(10),
   defaultMaxSlotsB: integer('default_max_slots_b').default(10),
   whatsappMessageTemplate: text('whatsapp_template'),
+  cfcWhatsappMessageTemplate: text('cfc_whatsapp_template'),
   defaultExamAddress: text('default_exam_address'),
   defaultExamAddressLink: text('default_exam_address_link'),
   restrictions: jsonb('restrictions').default([]),

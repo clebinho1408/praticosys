@@ -16,6 +16,11 @@ export enum RequestSource {
   SCHOOL = 'SCHOOL'
 }
 
+export enum RequestType {
+  FIXA = 'FIXA',
+  EXTRA = 'EXTRA'
+}
+
 export enum ExamStatus {
   WAITING_SCHEDULING = 'WAITING_SCHEDULING', // Aguardando Agendamento
   SCHEDULED = 'SCHEDULED',                   // Agendado
@@ -127,6 +132,7 @@ export interface ExamRequest {
   examType: ExamType;
   intendedCategory?: string; // New (A, B, etc.)
   source: RequestSource;
+  requestType: RequestType; // New
   schoolId?: string; 
   desiredDate: string;
   
@@ -180,6 +186,7 @@ export interface SystemSettings {
   defaultMaxSlotsB: number; // New: Default slots for Car
   
   whatsappMessageTemplate: string;
+  cfcWhatsappMessageTemplate?: string; // New: Template for CFC Practical Exam
   defaultExamAddress: string; // New: Default physical address
   defaultExamAddressLink: string; // New: Google Maps Link
   restrictions: Restriction[]; // New: List of CNH restrictions
