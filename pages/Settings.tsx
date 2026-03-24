@@ -5,7 +5,7 @@ import { SystemSettings, City } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
-type TabType = 'GENERAL' | 'RULES' | 'RESTRICTIONS' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC';
+type TabType = 'GENERAL' | 'RULES' | 'RESTRICTIONS' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'INTEGRATIONS';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -15,7 +15,7 @@ const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
-  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'CITIES'>('CITIES');
+  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'CITIES' | 'COMMUNICATION'>('CITIES');
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION'>('COMMUNICATION');
   const [cities, setCities] = useState<City[]>([]);
   const [newCityName, setNewCityName] = useState('');
@@ -198,6 +198,7 @@ const Settings: React.FC = () => {
            <button type="button" onClick={() => setActiveTab('RESTRICTIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RESTRICTIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> RESTRIÇÕES</button>
            <button type="button" onClick={() => setActiveTab('CNH_BRASIL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'CNH_BRASIL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> CNH DO BRASIL</button>
            <button type="button" onClick={() => setActiveTab('PROVA_PRATICA_CFC')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'PROVA_PRATICA_CFC' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> PROVA PRÁTICA CFC</button>
+           <button type="button" onClick={() => setActiveTab('INTEGRATIONS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'INTEGRATIONS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><LinkIcon className="h-4 w-4" /> INTEGRAÇÕES</button>
         </div>
 
         <div className="p-8">
@@ -345,6 +346,7 @@ const Settings: React.FC = () => {
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6">
                         <button type="button" onClick={() => setActiveSubTabCFC('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCFC === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
+                        <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
                     </div>
 
                     {activeSubTabCFC === 'CITIES' && (
@@ -404,6 +406,83 @@ const Settings: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    {activeSubTabCFC === 'COMMUNICATION' && (
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                        <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp (CFC)
+                                    </h3>
+                                </div>
+                                <div>
+                                    <textarea 
+                                        name="cfcWhatsappMessageTemplate" 
+                                        rows={8} 
+                                        value={settings.cfcWhatsappMessageTemplate || ''} 
+                                        onChange={handleChange} 
+                                        className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
+                                    />
+                                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                            {[
+                                                { tag: '{AUTOESCOLA}', desc: 'Autoescola' },
+                                                { tag: '{DATA}', desc: 'Data' },
+                                                { tag: '{HORARIO}', desc: 'Horário' },
+                                                { tag: '{EXAMINADOR}', desc: 'Examinador' },
+                                                { tag: '{EXAME}', desc: 'Exame' },
+                                                { tag: '{TIPO}', desc: 'Tipo' }
+                                            ].map(item => (
+                                                <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
+                                                    <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
+                                                    <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'INTEGRATIONS' && (
+                <div className="p-6 space-y-8 animate-fadeIn">
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                <MessageSquare className="h-4 w-4 text-green-600" /> Z-API (WhatsApp)
+                            </h3>
+                        </div>
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800 mb-4">
+                            Configure o Z-API para enviar mensagens via WhatsApp automaticamente sem precisar abrir o WhatsApp Web.
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-gray-700">Instance ID</label>
+                                <input 
+                                    type="text" 
+                                    name="zApiInstanceId" 
+                                    value={settings.zApiInstanceId || ''} 
+                                    onChange={handleChange} 
+                                    placeholder="Ex: 3B..."
+                                    className="w-full border p-2 rounded bg-white text-gray-900" 
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-gray-700">Token</label>
+                                <input 
+                                    type="text" 
+                                    name="zApiToken" 
+                                    value={settings.zApiToken || ''} 
+                                    onChange={handleChange} 
+                                    placeholder="Ex: CB47F4C806C103A0B0BB97C9"
+                                    className="w-full border p-2 rounded bg-white text-gray-900" 
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

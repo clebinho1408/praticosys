@@ -25,6 +25,20 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 [HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
 };
 
+const getCfcDefaultTemplate = () => {
+  return `Olá, *{AUTOESCOLA}*! [WAVE][SMILE]
+
+Aqui é do {AGENCIA} – Setor Prova Prática CFC.
+Estamos confirmando o agendamento da Prova Prática (Tipo: *{TIPO}*), marcada para:
+
+[CALENDAR] *{DATA}*
+[CLOCK] *{HORARIO}*
+[EXAM] Exame: *{EXAME}*
+[USER] Examinador: *{EXAMINADOR}*
+
+[CHECK] *Por favor, confirme o recebimento.*`;
+};
+
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
@@ -41,11 +55,20 @@ export default async function handler(req: any, res: any) {
           defaultMaxSlotsB: 10,
           minDaysForScheduling: 2,
           whatsappMessageTemplate: getDefaultTemplate(),
+          cfcWhatsappMessageTemplate: getCfcDefaultTemplate(),
+          zApiInstanceId: '',
+          zApiToken: '',
           defaultExamAddress: addr,
           defaultExamAddressLink: 'https://maps.google.com'
         });
       }
-      return res.status(200).json(data[0]);
+      
+      const settings = data[0];
+      if (!settings.cfcWhatsappMessageTemplate) {
+        settings.cfcWhatsappMessageTemplate = getCfcDefaultTemplate();
+      }
+      
+      return res.status(200).json(settings);
     }
 
     if (req.method === 'PUT') {

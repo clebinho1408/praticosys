@@ -18,7 +18,8 @@ export enum RequestSource {
 
 export enum RequestType {
   FIXA = 'FIXA',
-  EXTRA = 'EXTRA'
+  EXTRA = 'EXTRA',
+  REPOSICAO = 'REPOSICAO'
 }
 
 export enum ExamStatus {
@@ -186,6 +187,9 @@ export interface SystemSettings {
   defaultMaxSlotsB: number; // New: Default slots for Car
   
   whatsappMessageTemplate: string;
+  cfcWhatsappMessageTemplate?: string; // New: Template for CFC Practical Exam
+  zApiInstanceId?: string; // New: Z-API Instance ID
+  zApiToken?: string; // New: Z-API Token
   defaultExamAddress: string; // New: Default physical address
   defaultExamAddressLink: string; // New: Google Maps Link
   restrictions: Restriction[]; // New: List of CNH restrictions

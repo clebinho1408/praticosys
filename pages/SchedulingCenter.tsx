@@ -217,7 +217,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
         agencyName: 'Detran',
         defaultExamAddress: '',
         defaultExamAddressLink: '',
-        restrictions: []
+        restrictions: [],
+        zApiInstanceId: '',
+        zApiToken: ''
     };
     
     let currentTemplate = safeSettings.whatsappMessageTemplate || '';
@@ -279,6 +281,35 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     }
 
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
+    
+    // Check if Z-API is configured
+    if (safeSettings.zApiInstanceId && safeSettings.zApiToken) {
+      const zApiUrl = `https://api.z-api.io/instances/${safeSettings.zApiInstanceId}/token/${safeSettings.zApiToken}/send-text`;
+      
+      fetch(zApiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          phone: finalPhone,
+          message: finalMessage
+        })
+      })
+      .then(response => {
+        if (response.ok) {
+          alert('Mensagem enviada com sucesso via Z-API!');
+        } else {
+          alert('Erro ao enviar mensagem via Z-API. Verifique as configurações.');
+        }
+      })
+      .catch(error => {
+        console.error('Z-API Error:', error);
+        alert('Erro de conexão ao tentar enviar via Z-API.');
+      });
+      
+      return;
+    }
     
     let encodedMessage = '';
     try {
