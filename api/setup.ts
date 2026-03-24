@@ -159,8 +159,11 @@ export default async function handler(req: any, res: any) {
       sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS provisional_schedule jsonb`,
       
       sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS cfc_whatsapp_template text`,
+<<<<<<< HEAD
       sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS zapi_instance_id text`,
       sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS zapi_token text`,
+=======
+>>>>>>> df482ec354f5528f091bfb2b37484c53a52c799f
       
       // Remover NOT NULL de colunas que podem ser vazias em escalas automáticas
       sql`ALTER TABLE exam_requests ALTER COLUMN student_name DROP NOT NULL`,

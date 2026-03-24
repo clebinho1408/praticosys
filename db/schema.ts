@@ -140,8 +140,11 @@ export const systemSettings = pgTable('system_settings', {
   defaultMaxSlotsB: integer('default_max_slots_b').default(10),
   whatsappMessageTemplate: text('whatsapp_template'),
   cfcWhatsappMessageTemplate: text('cfc_whatsapp_template'),
+<<<<<<< HEAD
   zApiInstanceId: text('zapi_instance_id'),
   zApiToken: text('zapi_token'),
+=======
+>>>>>>> df482ec354f5528f091bfb2b37484c53a52c799f
   defaultExamAddress: text('default_exam_address'),
   defaultExamAddressLink: text('default_exam_address_link'),
   restrictions: jsonb('restrictions').default([]),

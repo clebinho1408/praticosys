@@ -267,6 +267,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     message = message.replace(/{TIPO}/g, type);
 
     const phone = school.phone.replace(/\D/g, '');
+<<<<<<< HEAD
     const finalPhone = phone.startsWith('55') ? phone : `55${phone}`;
     
     // Check if Z-API is configured
@@ -299,6 +300,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
     
     const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
+=======
+    const url = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+>>>>>>> df482ec354f5528f091bfb2b37484c53a52c799f
     window.open(url, '_blank');
   };
 
