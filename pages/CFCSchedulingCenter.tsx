@@ -269,50 +269,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     const phone = school.phone.replace(/\D/g, '');
     const finalPhone = phone.startsWith('55') ? phone : `55${phone}`;
     
-    // Check if Z-API is configured
-    if (systemSettings.zApiInstanceId && systemSettings.zApiToken) {
-      let instanceId = systemSettings.zApiInstanceId.trim();
-      // If user pasted the full URL, extract the instance ID
-      if (instanceId.includes('/instances/')) {
-        const parts = instanceId.split('/instances/')[1].split('/');
-        instanceId = parts[0];
-      }
-      
-      const zApiUrl = `https://api.z-api.io/instances/${instanceId}/token/${systemSettings.zApiToken.trim()}/send-text`;
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-      };
-      
-      if (systemSettings.zApiClientToken) {
-        headers['Client-Token'] = systemSettings.zApiClientToken;
-      }
-      
-      fetch(zApiUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          phone: finalPhone,
-          message: message
-        })
-      })
-      .then(async response => {
-        if (response.ok) {
-          alert('Mensagem enviada com sucesso via Z-API!');
-        } else {
-          const errorText = await response.text();
-          console.error('Z-API Error Response:', errorText);
-          alert(`Erro ao enviar mensagem via Z-API. Verifique as configurações.\nDetalhes: ${errorText}`);
-        }
-      })
-      .catch(error => {
-        console.error('Z-API Error:', error);
-        alert('Erro de conexão ao tentar enviar via Z-API.');
-      });
-      
-      return;
-    }
-    
     const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };

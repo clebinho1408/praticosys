@@ -217,10 +217,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
         agencyName: 'Detran',
         defaultExamAddress: '',
         defaultExamAddressLink: '',
-        restrictions: [],
-        zApiInstanceId: '',
-        zApiToken: '',
-        zApiClientToken: ''
+        restrictions: []
     };
     
     let currentTemplate = safeSettings.whatsappMessageTemplate || '';
@@ -282,50 +279,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     }
 
     const finalPhone = phoneDigits.startsWith('55') ? phoneDigits : `55${phoneDigits}`;
-    
-    // Check if Z-API is configured
-    if (safeSettings.zApiInstanceId && safeSettings.zApiToken) {
-      let instanceId = safeSettings.zApiInstanceId.trim();
-      // If user pasted the full URL, extract the instance ID
-      if (instanceId.includes('/instances/')) {
-        const parts = instanceId.split('/instances/')[1].split('/');
-        instanceId = parts[0];
-      }
-      
-      const zApiUrl = `https://api.z-api.io/instances/${instanceId}/token/${safeSettings.zApiToken.trim()}/send-text`;
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-      };
-      
-      if (safeSettings.zApiClientToken) {
-        headers['Client-Token'] = safeSettings.zApiClientToken;
-      }
-      
-      fetch(zApiUrl, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          phone: finalPhone,
-          message: finalMessage
-        })
-      })
-      .then(async response => {
-        if (response.ok) {
-          alert('Mensagem enviada com sucesso via Z-API!');
-        } else {
-          const errorText = await response.text();
-          console.error('Z-API Error Response:', errorText);
-          alert(`Erro ao enviar mensagem via Z-API. Verifique as configurações.\nDetalhes: ${errorText}`);
-        }
-      })
-      .catch(error => {
-        console.error('Z-API Error:', error);
-        alert('Erro de conexão ao tentar enviar via Z-API.');
-      });
-      
-      return;
-    }
     
     let encodedMessage = '';
     try {
