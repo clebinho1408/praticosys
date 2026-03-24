@@ -28,7 +28,8 @@ import {
   X,
   Save,
   RefreshCw,
-  MessageCircle
+  MessageCircle,
+  Copy
 } from 'lucide-react';
 
 interface CFCSchedulingCenterProps {
@@ -163,7 +164,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     return true;
   });
 
-  const extras = filteredRequests.filter(r => r.status === ExamStatus.WAITING_SCHEDULING);
+  const extras = filteredRequests
+    .filter(r => r.status === ExamStatus.WAITING_SCHEDULING)
+    .sort((a, b) => {
+      // Reposição first
+      if (a.requestType === RequestType.REPOSICAO && b.requestType !== RequestType.REPOSICAO) return -1;
+      if (a.requestType !== RequestType.REPOSICAO && b.requestType === RequestType.REPOSICAO) return 1;
+      // Then by createdAt (oldest first)
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
   const waitingConfirmation = filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed);
   const confirmed = filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed);
   const done = filteredRequests.filter(r => r.status === ExamStatus.DONE);
@@ -190,6 +199,20 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
   });
 
+  // Sort each day by examiner name and then by time
+  daysOfWeek.forEach(day => {
+    groupedByDayOfWeek[day].sort((a, b) => {
+      const examinerA = getExaminerName(a.examinerId).toUpperCase();
+      const examinerB = getExaminerName(b.examinerId).toUpperCase();
+      if (examinerA < examinerB) return -1;
+      if (examinerA > examinerB) return 1;
+      
+      const timeA = a.scheduledTime || '00:00';
+      const timeB = b.scheduledTime || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+  });
+
   const getSchoolName = (id?: string) => schools.find(s => s.id === id)?.name || 'N/A';
   const getExaminerName = (idOrName?: string) => {
     if (!idOrName) return 'SEM IDENTIFICAÇÃO';
@@ -201,6 +224,20 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     if (!dateStr) return 'Não definida';
     const [year, month, day] = dateStr.split('-');
     return `${day}/${month}/${year}`;
+  };
+
+  const getExamTypeLabel = (req: ExamRequest) => {
+    return req.intendedCategory?.split(',').some(c => ['C', 'D', 'E'].includes(c)) 
+      ? 'Mudança Categoria' 
+      : req.intendedCategory?.split(',').some(c => ['A', 'B'].includes(c))
+      ? '1º Habilitação'
+      : '-';
+  };
+
+  const getRequestTypeLabel = (req: ExamRequest) => {
+    if (req.requestType === RequestType.REPOSICAO) return 'Reposição';
+    if (req.requestType === RequestType.FIXA) return 'Fixa';
+    return 'Extra';
   };
 
   const handleWhatsAppMessage = (req: ExamRequest) => {
@@ -233,6 +270,43 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     const phone = school.phone.replace(/\D/g, '');
     const url = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
+  };
+
+  const copyDayScheduleToWhatsApp = (dayName: string, dayRequests: ExamRequest[]) => {
+    if (dayRequests.length === 0) return;
+    
+    const firstReq = dayRequests[0];
+    const date = new Date(firstReq.scheduledDate + 'T00:00:00');
+    const dayOfMonth = date.getDate().toString().padStart(2, '0');
+    const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+    const monthName = months[date.getMonth()];
+    
+    let text = `_*EXAMES PRÁTICOS PARA ${dayName.toUpperCase()} (${dayOfMonth}/${monthName})*_\n\n`;
+    
+    // Group by examiner
+    const byExaminer: Record<string, ExamRequest[]> = {};
+    dayRequests.forEach(req => {
+      const exName = getExaminerName(req.examinerId).toUpperCase();
+      if (!byExaminer[exName]) byExaminer[exName] = [];
+      byExaminer[exName].push(req);
+    });
+    
+    // Examiners are already sorted in the dayRequests array
+    const sortedExaminerNames = Object.keys(byExaminer).sort();
+    
+    sortedExaminerNames.forEach(exName => {
+      text += `_${exName}_\n`;
+      byExaminer[exName].forEach(req => {
+        const schoolName = getSchoolName(req.schoolId).toUpperCase();
+        const time = req.scheduledTime || '08:00';
+        const isMudCat = getExamTypeLabel(req) === 'Mudança Categoria';
+        text += `_*${schoolName} - ${time}${isMudCat ? ' (Mud. Cat.)' : ''}*_\n`;
+      });
+      text += `\n`;
+    });
+    
+    navigator.clipboard.writeText(text.trim());
+    alert('Escala copiada para o WhatsApp!');
   };
 
   const handleConfirmAction = (req: ExamRequest) => {
@@ -403,7 +477,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         scheduledDate: newRequest.date,
         scheduledTime: newRequest.time,
         examinerId: newRequest.examinerId,
-        observation: newRequest.observation || 'Solicitação Extra'
+        observation: newRequest.observation || (newRequest.requestType === RequestType.REPOSICAO ? 'Reposição' : 'Solicitação Extra')
       });
 
       setIsNewModalOpen(false);
@@ -605,6 +679,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     <thead>
                       <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
                         <th className="px-4 py-3 text-center">Cadastrado em</th>
+                        <th className="px-4 py-3">Tipo</th>
                         <th className="px-4 py-3">Autoescola</th>
                         <th className="px-4 py-3">Exame</th>
                         <th className="px-4 py-3">Observações</th>
@@ -615,13 +690,19 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       {extras.map(req => (
                         <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
                           <td className="px-4 py-3 text-slate-500 text-center">{new Date(req.createdAt).toLocaleString()}</td>
-                          <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
+                          <td className="px-4 py-3 text-slate-600">{getRequestTypeLabel(req)}</td>
+                          <td className="px-4 py-3 font-black text-slate-800 uppercase">
+                            <div className="flex flex-col">
+                              {getSchoolName(req.schoolId)}
+                              {req.requestType === RequestType.REPOSICAO && (
+                                <span className="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded w-fit mt-1 uppercase tracking-tighter">
+                                  Prioridade
+                                </span>
+                              )}
+                            </div>
+                          </td>
                           <td className="px-4 py-3 text-slate-600">
-                            {req.intendedCategory?.split(',').some(c => ['C', 'D', 'E'].includes(c)) 
-                              ? 'Mudança Categoria' 
-                              : req.intendedCategory?.split(',').some(c => ['A', 'B'].includes(c))
-                              ? '1º Habilitação'
-                              : '-'}
+                            {getExamTypeLabel(req)}
                           </td>
                           <td className="px-4 py-3 text-slate-500 max-w-[250px] truncate" title={req.observation}>{req.observation || '-'}</td>
                           <td className="px-4 py-3">
@@ -643,10 +724,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   setSelectedRequest(req);
                                   setIsEditModalOpen(true);
                                 }}
-                                className="border border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                className="border border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-md flex items-center justify-center transition-colors font-bold text-[10px]"
                                 title="Editar"
                               >
-                                <Edit className="h-4 w-4" />
+                                Editar
                               </button>
                               <button 
                                 onClick={() => handleDeleteAction(req)}
@@ -691,7 +772,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
                         <th className="px-4 py-3">Tipo</th>
                         <th className="px-4 py-3">Autoescola</th>
-                        <th className="px-4 py-3">Data/Hora</th>
+                        <th className="px-4 py-3">Data</th>
+                        <th className="px-4 py-3">Horário</th>
                         <th className="px-4 py-3">Examinador</th>
                         <th className="px-4 py-3">Exame</th>
                         <th className="px-4 py-3 text-right">Ações</th>
@@ -700,14 +782,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     <tbody className="divide-y divide-slate-50">
                       {waitingConfirmation.map(req => (
                         <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
-                          <td className="px-4 py-3 text-slate-600">{req.observation?.includes('Fixa') ? 'Fixa' : 'Extra'}</td>
+                          <td className="px-4 py-3 text-slate-600">{getRequestTypeLabel(req)}</td>
                           <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
-                          <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)} às {req.scheduledTime || '08:00'}</td>
+                          <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)}</td>
+                          <td className="px-4 py-3 text-red-600 font-bold">{req.scheduledTime || '08:00'}</td>
                           <td className="px-4 py-3 text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</td>
                           <td className="px-4 py-3 text-slate-600">
-                            {req.intendedCategory?.includes('C') || req.intendedCategory?.includes('D') || req.intendedCategory?.includes('E') 
-                              ? 'Mudança Categoria' 
-                              : '1º Habilitação'}
+                            {getExamTypeLabel(req)}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
@@ -763,13 +844,27 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             <div className="p-4 bg-white space-y-4">
               {daysOfWeek.map((dayName) => (
                 <div key={dayName} className="border border-slate-200 rounded-lg overflow-hidden">
-                  <button 
-                    onClick={() => toggleDay(dayName)}
-                    className="w-full flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 transition-colors border-b border-slate-200"
-                  >
-                    <span className="font-bold text-slate-700 text-sm uppercase tracking-tight">{dayName} ({groupedByDayOfWeek[dayName].length})</span>
-                    {expandedDays[dayName] ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
-                  </button>
+                  <div className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-200">
+                    <button 
+                      onClick={() => toggleDay(dayName)}
+                      className="flex-1 flex items-center justify-between hover:bg-slate-100 transition-colors p-1 rounded"
+                    >
+                      <span className="font-bold text-slate-700 text-sm uppercase tracking-tight">{dayName} ({groupedByDayOfWeek[dayName].length})</span>
+                      {expandedDays[dayName] ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                    </button>
+                    {groupedByDayOfWeek[dayName].length > 0 && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          copyDayScheduleToWhatsApp(dayName, groupedByDayOfWeek[dayName]);
+                        }}
+                        className="ml-2 p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+                        title="Copiar Escala para WhatsApp"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                   
                   {expandedDays[dayName] && (
                     <div className="overflow-x-auto">
@@ -788,15 +883,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         <tbody className="divide-y divide-slate-50">
                           {groupedByDayOfWeek[dayName].map(req => (
                             <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
-                              <td className="px-4 py-3 text-slate-600">{req.observation?.includes('Fixa') ? 'Fixa' : 'Extra'}</td>
+                              <td className="px-4 py-3 text-slate-600">{getRequestTypeLabel(req)}</td>
                               <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                               <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
                               <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
                               <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
                               <td className="px-4 py-3 text-slate-600">
-                                {req.intendedCategory?.includes('C') || req.intendedCategory?.includes('D') || req.intendedCategory?.includes('E') 
-                                  ? 'Mudança Categoria' 
-                                  : '1º Habilitação'}
+                                {getExamTypeLabel(req)}
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2">
@@ -851,19 +944,23 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                    <table className="w-full text-left text-xs">
                      <thead>
                        <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold tracking-wider">
+                         <th className="px-4 py-3">Tipo</th>
                          <th className="px-4 py-3">Autoescola</th>
                          <th className="px-4 py-3">Data</th>
+                         <th className="px-4 py-3">Horário</th>
                          <th className="px-4 py-3">Examinador</th>
-                         <th className="px-4 py-3">Categoria</th>
+                         <th className="px-4 py-3">Exame</th>
                        </tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                        {done.map(req => (
                          <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
+                           <td className="px-4 py-3 text-slate-600">{getRequestTypeLabel(req)}</td>
                            <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                            <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
+                           <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
                            <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
-                           <td className="px-4 py-3 text-slate-600 uppercase">{req.intendedCategory}</td>
+                           <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
                          </tr>
                        ))}
                      </tbody>
@@ -895,19 +992,23 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                    <table className="w-full text-left text-xs">
                      <thead>
                        <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold tracking-wider">
+                         <th className="px-4 py-3">Tipo</th>
                          <th className="px-4 py-3">Autoescola</th>
                          <th className="px-4 py-3">Data</th>
+                         <th className="px-4 py-3">Horário</th>
                          <th className="px-4 py-3">Examinador</th>
-                         <th className="px-4 py-3">Categoria</th>
+                         <th className="px-4 py-3">Exame</th>
                        </tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                        {cancelled.map(req => (
                          <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
+                           <td className="px-4 py-3 text-slate-600">{getRequestTypeLabel(req)}</td>
                            <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                            <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
+                           <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
                            <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
-                           <td className="px-4 py-3 text-slate-600 uppercase">{req.intendedCategory}</td>
+                           <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
                          </tr>
                        ))}
                      </tbody>
@@ -1037,7 +1138,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             <div className="p-6 border-b border-slate-100">
               <h2 className="text-lg font-bold text-slate-800">Tipo de Agendamento</h2>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
+            <div className="p-6 grid grid-cols-3 gap-4">
               <button 
                 onClick={() => {
                   setNewRequest({...newRequest, requestType: RequestType.FIXA});
@@ -1057,6 +1158,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 className="bg-orange-100 hover:bg-orange-200 text-orange-800 font-bold py-4 rounded-lg transition-all"
               >
                 Extra
+              </button>
+              <button 
+                onClick={() => {
+                  setNewRequest({...newRequest, requestType: RequestType.REPOSICAO});
+                  setIsTypeSelectionModalOpen(false);
+                  setIsNewModalOpen(true);
+                }}
+                className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-4 rounded-lg transition-all"
+              >
+                Reposição
               </button>
             </div>
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
@@ -1119,7 +1230,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       ? schools.find(s => s.id === newRequest.schoolId)?.services || [] 
                       : ['A', 'B', 'C', 'D', 'E', 'PCD']
                     ).filter(cat => {
-                      if (newRequest.requestType === RequestType.FIXA) {
+                      if (newRequest.requestType === RequestType.FIXA || newRequest.requestType === RequestType.REPOSICAO) {
                         return ['A', 'B'].includes(cat);
                       }
                       return true;
@@ -1247,7 +1358,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             
             <div className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
+                <div className="md:col-span-2 space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Autoescola</label>
                   <select 
                     className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -1259,14 +1370,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
+                <div className="md:col-span-2 space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria <span className="text-red-500">*</span></label>
-                  <div className="flex items-center gap-4 pt-2">
+                  <div className="flex flex-wrap items-center gap-6 p-3 bg-slate-50 rounded-lg border border-slate-100">
                     {(selectedRequest.schoolId 
                       ? schools.find(s => s.id === selectedRequest.schoolId)?.services || [] 
                       : ['A', 'B', 'C', 'D', 'E', 'PCD']
                     ).filter(cat => {
-                      if (selectedRequest.requestType === RequestType.FIXA) {
+                      if (selectedRequest.requestType === RequestType.FIXA || selectedRequest.requestType === RequestType.REPOSICAO) {
                         return ['A', 'B'].includes(cat);
                       }
                       return true;
@@ -1301,30 +1412,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame</label>
-                  <input 
-                    type="text" 
-                    value={
-                      selectedRequest.intendedCategory?.split(',').some(c => ['A', 'B'].includes(c)) && !selectedRequest.intendedCategory?.split(',').some(c => ['C', 'D', 'E'].includes(c))
-                        ? '1º Habilitação'
-                        : selectedRequest.intendedCategory?.split(',').some(c => ['C', 'D', 'E'].includes(c))
-                        ? 'Mudança Categoria'
-                        : ''
-                    }
-                    readOnly
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Examinador</label>
-                  <select 
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                    value={selectedRequest.examinerId || ''}
-                    onChange={e => setSelectedRequest({...selectedRequest, examinerId: e.target.value})}
-                  >
-                    <option value="">Selecione o examinador</option>
-                    {examiners.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                  </select>
+                  <div className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-600 font-bold">
+                    {getExamTypeLabel(selectedRequest)}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
@@ -1346,6 +1436,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     onChange={e => setSelectedRequest({...selectedRequest, scheduledTime: e.target.value})}
                   />
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Examinador</label>
+                  <select 
+                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    value={selectedRequest.examinerId || ''}
+                    onChange={e => setSelectedRequest({...selectedRequest, examinerId: e.target.value})}
+                  >
+                    <option value="">Selecione o examinador</option>
+                    {examiners.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -1353,6 +1455,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 <textarea 
                   rows={3}
                   className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                  placeholder="Observações adicionais..."
                   value={selectedRequest.observation || ''}
                   onChange={e => setSelectedRequest({...selectedRequest, observation: e.target.value})}
                 ></textarea>

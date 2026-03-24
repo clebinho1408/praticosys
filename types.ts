@@ -18,7 +18,8 @@ export enum RequestSource {
 
 export enum RequestType {
   FIXA = 'FIXA',
-  EXTRA = 'EXTRA'
+  EXTRA = 'EXTRA',
+  REPOSICAO = 'REPOSICAO'
 }
 
 export enum ExamStatus {
