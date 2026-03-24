@@ -129,10 +129,21 @@ const Settings: React.FC = () => {
     e.preventDefault();
     if (!settings) return;
     setSaving(true);
-    await api.updateSettings(settings);
-    setSaving(false);
-    setSuccessMsg('Configurações salvas com sucesso!');
-    setTimeout(() => setSuccessMsg(''), 3000);
+    try {
+      await api.updateSettings(settings);
+      setSuccessMsg('Configurações salvas com sucesso!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      setAlertConfig({
+        isOpen: true,
+        title: 'Erro ao salvar',
+        message: 'Ocorreu um erro ao salvar as configurações. Verifique os dados e tente novamente.',
+        type: 'error'
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addRestriction = () => {

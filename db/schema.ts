@@ -142,6 +142,7 @@ export const systemSettings = pgTable('system_settings', {
   cfcWhatsappMessageTemplate: text('cfc_whatsapp_template'),
   zApiInstanceId: text('zapi_instance_id'),
   zApiToken: text('zapi_token'),
+  zApiClientToken: text('zapi_client_token'),
   defaultExamAddress: text('default_exam_address'),
   defaultExamAddressLink: text('default_exam_address_link'),
   restrictions: jsonb('restrictions').default([]),
