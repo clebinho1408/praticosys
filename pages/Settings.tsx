@@ -444,7 +444,6 @@ const Settings: React.FC = () => {
                             </div>
                         </div>
                     )}
-<<<<<<< HEAD
                 </div>
             )}
 
@@ -484,8 +483,6 @@ const Settings: React.FC = () => {
                             </div>
                         </div>
                     </div>
-=======
->>>>>>> df482ec354f5528f091bfb2b37484c53a52c799f
                 </div>
             )}
         </div>

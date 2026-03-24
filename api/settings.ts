@@ -56,11 +56,8 @@ export default async function handler(req: any, res: any) {
           minDaysForScheduling: 2,
           whatsappMessageTemplate: getDefaultTemplate(),
           cfcWhatsappMessageTemplate: getCfcDefaultTemplate(),
-<<<<<<< HEAD
           zApiInstanceId: '',
           zApiToken: '',
-=======
->>>>>>> df482ec354f5528f091bfb2b37484c53a52c799f
           defaultExamAddress: addr,
           defaultExamAddressLink: 'https://maps.google.com'
         });
