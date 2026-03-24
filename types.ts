@@ -190,6 +190,7 @@ export interface SystemSettings {
   cfcWhatsappMessageTemplate?: string; // New: Template for CFC Practical Exam
   zApiInstanceId?: string; // New: Z-API Instance ID
   zApiToken?: string; // New: Z-API Token
+  zApiClientToken?: string; // New: Z-API Client Token (Optional)
   defaultExamAddress: string; // New: Default physical address
   defaultExamAddressLink: string; // New: Google Maps Link
   restrictions: Restriction[]; // New: List of CNH restrictions

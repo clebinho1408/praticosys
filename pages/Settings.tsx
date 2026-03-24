@@ -481,6 +481,17 @@ const Settings: React.FC = () => {
                                     className="w-full border p-2 rounded bg-white text-gray-900" 
                                 />
                             </div>
+                            <div className="space-y-2">
+                                <label className="block text-sm font-bold text-gray-700">Client-Token (Opcional)</label>
+                                <input 
+                                    type="text" 
+                                    name="zApiClientToken" 
+                                    value={settings.zApiClientToken || ''} 
+                                    onChange={handleChange} 
+                                    placeholder="Ex: F4C806C103A0B0BB97C9..."
+                                    className="w-full border p-2 rounded bg-white text-gray-900" 
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
