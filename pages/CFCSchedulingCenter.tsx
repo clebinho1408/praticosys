@@ -199,20 +199,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
   });
 
-  // Sort each day by examiner name and then by time
-  daysOfWeek.forEach(day => {
-    groupedByDayOfWeek[day].sort((a, b) => {
-      const examinerA = getExaminerName(a.examinerId).toUpperCase();
-      const examinerB = getExaminerName(b.examinerId).toUpperCase();
-      if (examinerA < examinerB) return -1;
-      if (examinerA > examinerB) return 1;
-      
-      const timeA = a.scheduledTime || '00:00';
-      const timeB = b.scheduledTime || '00:00';
-      return timeA.localeCompare(timeB);
-    });
-  });
-
   const getSchoolName = (id?: string) => schools.find(s => s.id === id)?.name || 'N/A';
   const getExaminerName = (idOrName?: string) => {
     if (!idOrName) return 'SEM IDENTIFICAÇÃO';
@@ -233,6 +219,20 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       ? '1º Habilitação'
       : '-';
   };
+
+  // Sort each day by examiner name and then by time
+  daysOfWeek.forEach(day => {
+    groupedByDayOfWeek[day].sort((a, b) => {
+      const examinerA = getExaminerName(a.examinerId).toUpperCase();
+      const examinerB = getExaminerName(b.examinerId).toUpperCase();
+      if (examinerA < examinerB) return -1;
+      if (examinerA > examinerB) return 1;
+      
+      const timeA = a.scheduledTime || '00:00';
+      const timeB = b.scheduledTime || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+  });
 
   const getRequestTypeLabel = (req: ExamRequest) => {
     if (req.requestType === RequestType.REPOSICAO) return 'Reposição';
