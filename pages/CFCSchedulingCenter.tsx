@@ -308,14 +308,20 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     });
   });
 
-  const renderRequestTypeBadge = (req: ExamRequest) => {
+  const getRowClass = (req: ExamRequest) => {
+    if (req.requestType === RequestType.REPOSICAO) return 'bg-purple-50/70 hover:bg-purple-100/70 transition-colors';
+    if (req.requestType === RequestType.FIXA) return 'bg-blue-50/70 hover:bg-blue-100/70 transition-colors';
+    return 'bg-orange-50/70 hover:bg-orange-100/70 transition-colors';
+  };
+
+  const renderRequestTypeText = (req: ExamRequest) => {
     if (req.requestType === RequestType.REPOSICAO) {
-      return <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider">Reposição</span>;
+      return <span className="text-purple-800 font-black uppercase text-[10px] tracking-wider">Reposição</span>;
     }
     if (req.requestType === RequestType.FIXA) {
-      return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider">Fixa</span>;
+      return <span className="text-blue-800 font-black uppercase text-[10px] tracking-wider">Fixa</span>;
     }
-    return <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider">Extra</span>;
+    return <span className="text-orange-800 font-black uppercase text-[10px] tracking-wider">Extra</span>;
   };
 
   const handleWhatsAppMessage = (req: ExamRequest) => {
@@ -840,17 +846,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {extras.map(req => (
-                        <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
+                        <tr key={req.id} className={getRowClass(req)}>
                           <td className="px-4 py-3 text-slate-500 text-center">{new Date(req.createdAt).toLocaleString()}</td>
-                          <td className="px-4 py-3">{renderRequestTypeBadge(req)}</td>
+                          <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
                           <td className="px-4 py-3 font-black text-slate-800 uppercase">
                             <div className="flex flex-col">
                               {getSchoolName(req.schoolId)}
-                              {req.requestType === RequestType.REPOSICAO && (
-                                <span className="bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded w-fit mt-1 uppercase tracking-tighter">
-                                  Prioridade
-                                </span>
-                              )}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-slate-600">
@@ -935,8 +936,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                           {groupedWaitingByDayOfWeek[dayName].map(req => (
-                            <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
-                              <td className="px-4 py-3">{renderRequestTypeBadge(req)}</td>
+                            <tr key={req.id} className={getRowClass(req)}>
+                              <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
                               <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                               <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)}</td>
                               <td className="px-4 py-3 text-red-600 font-bold">{req.scheduledTime || '08:00'}</td>
@@ -1042,8 +1043,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                           {groupedByDayOfWeek[dayName].map(req => (
-                            <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
-                              <td className="px-4 py-3">{renderRequestTypeBadge(req)}</td>
+                            <tr key={req.id} className={getRowClass(req)}>
+                              <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
                               <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                               <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
                               <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
@@ -1109,8 +1110,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                        {done.map(req => (
-                         <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
-                           <td className="px-4 py-3">{renderRequestTypeBadge(req)}</td>
+                         <tr key={req.id} className={getRowClass(req)}>
+                           <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
                            <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                            <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
                            <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
@@ -1157,8 +1158,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                      </thead>
                      <tbody className="divide-y divide-slate-50">
                        {cancelled.map(req => (
-                         <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
-                           <td className="px-4 py-3">{renderRequestTypeBadge(req)}</td>
+                         <tr key={req.id} className={getRowClass(req)}>
+                           <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
                            <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
                            <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
                            <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
