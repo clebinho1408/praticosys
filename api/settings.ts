@@ -57,13 +57,29 @@ export default async function handler(req: any, res: any) {
           whatsappMessageTemplate: getDefaultTemplate(),
           cfcWhatsappMessageTemplate: getCfcDefaultTemplate(),
           defaultExamAddress: addr,
-          defaultExamAddressLink: 'https://maps.google.com'
+          defaultExamAddressLink: 'https://maps.google.com',
+          pcdExamName: 'Prova Prática PCD',
+          pcdDefaultExamAddress: addr,
+          pcdDefaultExamAddressLink: 'https://maps.google.com',
+          pcdMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false }
         });
       }
       
       const settings = data[0];
       if (!settings.cfcWhatsappMessageTemplate) {
         settings.cfcWhatsappMessageTemplate = getCfcDefaultTemplate();
+      }
+      if (!settings.pcdExamName) {
+        settings.pcdExamName = 'Prova Prática PCD';
+      }
+      if (!settings.pcdDefaultExamAddress) {
+        settings.pcdDefaultExamAddress = settings.defaultExamAddress;
+      }
+      if (!settings.pcdDefaultExamAddressLink) {
+        settings.pcdDefaultExamAddressLink = settings.defaultExamAddressLink;
+      }
+      if (!settings.pcdMainSchedule) {
+        settings.pcdMainSchedule = { frequency: '1_WEEK', days: [], slots: [], active: false };
       }
       
       return res.status(200).json(settings);

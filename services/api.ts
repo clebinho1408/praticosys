@@ -38,6 +38,7 @@ export const api = {
   updateSettings: (settings: Partial<SystemSettings>) => request<SystemSettings>('/settings', { method: 'PUT', body: JSON.stringify(settings) }),
 
   // --- EXAMINERS ---
+  getExaminers: () => request<Examiner[]>('/examiners'),
   getExaminersAsync: () => request<Examiner[]>('/examiners'),
   createExaminer: (data: Partial<Examiner>) => request<Examiner>('/examiners', { method: 'POST', body: JSON.stringify(data) }),
   updateExaminer: (id: string, data: Partial<Examiner>) => request<Examiner>('/examiners', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),

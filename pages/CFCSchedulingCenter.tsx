@@ -59,6 +59,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     'Sexta-feira': false
   });
 
+  const [expandedWaitingDays, setExpandedWaitingDays] = useState<Record<string, boolean>>({
+    'Segunda-feira': false,
+    'Terça-feira': false,
+    'Quarta-feira': false,
+    'Quinta-feira': false,
+    'Sexta-feira': false
+  });
+
   // Filters state
   const [filters, setFilters] = useState({
     status: 'ALL',
@@ -133,6 +141,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     setExpandedDays(prev => ({ ...prev, [day]: !prev[day] }));
   };
 
+  const toggleWaitingDay = (day: string) => {
+    setExpandedWaitingDays(prev => ({ ...prev, [day]: !prev[day] }));
+  };
+
   // Logic to group and filter data
   const filteredRequests = requests.filter(r => {
     if (user.role === UserRole.SCHOOL && r.schoolId !== user.schoolId) return false;
@@ -187,6 +199,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     'Sexta-feira': []
   };
 
+  const groupedWaitingByDayOfWeek: Record<string, ExamRequest[]> = {
+    'Segunda-feira': [],
+    'Terça-feira': [],
+    'Quarta-feira': [],
+    'Quinta-feira': [],
+    'Sexta-feira': []
+  };
+
   confirmed.forEach(r => {
     if (!r.scheduledDate) return;
     const date = new Date(r.scheduledDate + 'T00:00:00');
@@ -195,6 +215,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     if (dayIndex >= 1 && dayIndex <= 5) {
       const dayName = daysOfWeek[dayIndex - 1];
       groupedByDayOfWeek[dayName].push(r);
+    }
+  });
+
+  waitingConfirmation.forEach(r => {
+    if (!r.scheduledDate) return;
+    const date = new Date(r.scheduledDate + 'T00:00:00');
+    const dayIndex = date.getDay();
+    // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
+    if (dayIndex >= 1 && dayIndex <= 5) {
+      const dayName = daysOfWeek[dayIndex - 1];
+      groupedWaitingByDayOfWeek[dayName].push(r);
     }
   });
 
@@ -222,6 +253,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   // Sort each day by examiner name and then by time
   daysOfWeek.forEach(day => {
     groupedByDayOfWeek[day].sort((a, b) => {
+      const examinerA = getExaminerName(a.examinerId).toUpperCase();
+      const examinerB = getExaminerName(b.examinerId).toUpperCase();
+      if (examinerA < examinerB) return -1;
+      if (examinerA > examinerB) return 1;
+      
+      const timeA = a.scheduledTime || '00:00';
+      const timeB = b.scheduledTime || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+
+    groupedWaitingByDayOfWeek[day].sort((a, b) => {
       const examinerA = getExaminerName(a.examinerId).toUpperCase();
       const examinerB = getExaminerName(b.examinerId).toUpperCase();
       if (examinerA < examinerB) return -1;
@@ -721,16 +763,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 </button>
                               )}
                               <button 
-                                onClick={() => {
-                                  setSelectedRequest(req);
-                                  setIsEditModalOpen(true);
-                                }}
-                                className="border border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-md flex items-center justify-center transition-colors font-bold text-[10px]"
-                                title="Editar"
-                              >
-                                Editar
-                              </button>
-                              <button 
                                 onClick={() => handleDeleteAction(req)}
                                 className="border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
                                 title="Excluir"
@@ -765,65 +797,83 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           </button>
           
           {expandedSections.waiting && (
-            <div className="p-4 bg-white">
-              {waitingConfirmation.length > 0 ? (
-                <div className="overflow-x-auto border border-slate-200 rounded-lg">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
-                        <th className="px-4 py-3">Tipo</th>
-                        <th className="px-4 py-3">Autoescola</th>
-                        <th className="px-4 py-3">Data</th>
-                        <th className="px-4 py-3">Horário</th>
-                        <th className="px-4 py-3">Examinador</th>
-                        <th className="px-4 py-3">Exame</th>
-                        <th className="px-4 py-3 text-right">Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {waitingConfirmation.map(req => (
-                        <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
-                          <td className="px-4 py-3 text-slate-600">{getRequestTypeLabel(req)}</td>
-                          <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
-                          <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)}</td>
-                          <td className="px-4 py-3 text-red-600 font-bold">{req.scheduledTime || '08:00'}</td>
-                          <td className="px-4 py-3 text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {getExamTypeLabel(req)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-end gap-2">
-                              <button 
-                                onClick={() => handleWhatsAppMessage(req)}
-                                className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
-                                title="Enviar WhatsApp"
-                              >
-                                <MessageCircle className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleConfirmAction(req)}
-                                className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
-                                title="Confirmar"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleCancelAction(req)}
-                                className="border border-red-200 text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
-                                title="Cancelar"
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            <div className="p-4 bg-white space-y-4">
+              {daysOfWeek.map((dayName) => (
+                <div key={dayName} className="border border-slate-200 rounded-lg overflow-hidden">
+                  <div className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-200">
+                    <button 
+                      onClick={() => toggleWaitingDay(dayName)}
+                      className="flex-1 flex items-center justify-between hover:bg-slate-100 transition-colors p-1 rounded"
+                    >
+                      <span className="font-bold text-slate-700 text-sm uppercase tracking-tight">{dayName} ({groupedWaitingByDayOfWeek[dayName].length})</span>
+                      {expandedWaitingDays[dayName] ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                    </button>
+                  </div>
+                  
+                  {expandedWaitingDays[dayName] && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs">
+                        <thead>
+                          <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
+                            <th className="px-4 py-3">Tipo</th>
+                            <th className="px-4 py-3">Autoescola</th>
+                            <th className="px-4 py-3">Data</th>
+                            <th className="px-4 py-3">Horário</th>
+                            <th className="px-4 py-3">Examinador</th>
+                            <th className="px-4 py-3">Exame</th>
+                            <th className="px-4 py-3 text-right">Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                          {groupedWaitingByDayOfWeek[dayName].map(req => (
+                            <tr key={req.id} className="hover:bg-slate-50/30 transition-colors">
+                              <td className="px-4 py-3 text-slate-600">{getRequestTypeLabel(req)}</td>
+                              <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
+                              <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)}</td>
+                              <td className="px-4 py-3 text-red-600 font-bold">{req.scheduledTime || '08:00'}</td>
+                              <td className="px-4 py-3 text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {getExamTypeLabel(req)}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button 
+                                    onClick={() => handleWhatsAppMessage(req)}
+                                    className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                    title="Enviar WhatsApp"
+                                  >
+                                    <MessageCircle className="h-4 w-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleConfirmAction(req)}
+                                    className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                    title="Confirmar"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleCancelAction(req)}
+                                    className="border border-red-200 text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                    title="Cancelar"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                          {groupedWaitingByDayOfWeek[dayName].length === 0 && (
+                            <tr>
+                              <td colSpan={7} className="px-4 py-8 text-center text-slate-400 italic">Nenhum agendamento para este dia.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <p className="text-center py-4 text-slate-400 text-sm italic">Nenhum agendamento aguardando confirmação.</p>
-              )}
+              ))}
+              {waitingConfirmation.length === 0 && <p className="text-center py-4 text-slate-400 text-sm italic">Nenhum agendamento aguardando confirmação.</p>}
             </div>
           )}
         </div>
