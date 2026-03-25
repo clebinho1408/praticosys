@@ -23,7 +23,6 @@ import {
   CheckCircle,
   FileText,
   XCircle,
-  Edit,
   Trash2,
   X,
   Save,
@@ -268,7 +267,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     message = message.replace(/{TIPO}/g, type);
 
     const phone = school.phone.replace(/\D/g, '');
-    const url = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`;
+    const finalPhone = phone.startsWith('55') ? phone : `55${phone}`;
+    
+    const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
 
