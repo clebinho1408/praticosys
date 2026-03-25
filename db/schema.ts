@@ -143,6 +143,12 @@ export const systemSettings = pgTable('system_settings', {
   defaultExamAddress: text('default_exam_address'),
   defaultExamAddressLink: text('default_exam_address_link'),
   restrictions: jsonb('restrictions').default([]),
+  
+  // PCD Practical Exam Settings
+  pcdExamName: text('pcd_exam_name'),
+  pcdDefaultExamAddress: text('pcd_default_exam_address'),
+  pcdDefaultExamAddressLink: text('pcd_default_exam_address_link'),
+  pcdMainSchedule: jsonb('pcd_main_schedule'),
 });
 
 // Tabela de Cidades

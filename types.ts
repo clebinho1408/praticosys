@@ -191,6 +191,12 @@ export interface SystemSettings {
   defaultExamAddress: string; // New: Default physical address
   defaultExamAddressLink: string; // New: Google Maps Link
   restrictions: Restriction[]; // New: List of CNH restrictions
+  
+  // PCD Practical Exam Settings
+  pcdExamName?: string;
+  pcdDefaultExamAddress?: string;
+  pcdDefaultExamAddressLink?: string;
+  pcdMainSchedule?: SchoolSchedule;
 }
 
 export interface City {
