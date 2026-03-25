@@ -31,6 +31,9 @@ import {
   Copy
 } from 'lucide-react';
 
+// Global reference to keep track of the WhatsApp window
+let whatsappWindowRef: Window | null = null;
+
 interface CFCSchedulingCenterProps {
   user: User;
 }
@@ -343,12 +346,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     
     const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
     
-    // Usa um nome específico para a janela ('whatsapp_cfc_window') em vez de '_blank'.
-    // Isso faz com que o navegador reutilize a mesma aba do WhatsApp se ela já estiver aberta,
-    // em vez de abrir dezenas de abas novas.
-    const whatsappWindow = window.open(url, 'whatsapp_cfc_window');
-    if (whatsappWindow) {
-      whatsappWindow.focus();
+    // Se já existe uma janela do WhatsApp aberta por este sistema, fecha ela primeiro
+    if (whatsappWindowRef && !whatsappWindowRef.closed) {
+      whatsappWindowRef.close();
+    }
+    
+    // Abre uma nova janela e guarda a referência
+    whatsappWindowRef = window.open(url, '_blank');
+    if (whatsappWindowRef) {
+      whatsappWindowRef.focus();
     }
   };
 
