@@ -18,6 +18,7 @@ export default async function handler(req: any, res: any) {
     if (req.method === 'GET') {
       try {
         await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`);
+        await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS request_type text DEFAULT 'EXTRA'`);
       } catch (e) {
         console.warn("[API Requests] Schema sync warning:", e);
       }

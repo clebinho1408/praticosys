@@ -88,6 +88,7 @@ export const examRequests = pgTable('exam_requests', {
   email: text('email'),
   address: text('address'),
   city: text('city'),
+  requestType: text('request_type').default('EXTRA'),
   
   examType: text('exam_type').notNull(), // COMMON, PCD
   intendedCategory: text('intended_category').default('B'),
