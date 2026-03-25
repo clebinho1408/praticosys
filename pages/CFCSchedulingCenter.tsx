@@ -343,17 +343,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     
     const url = `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
     
-    // Attempt to close the current window/tab if it was opened by a script, 
-    // then open the new WhatsApp link.
-    // Note: window.close() might be blocked by browsers if the window wasn't opened by a script.
-    const newWindow = window.open(url, '_blank');
-    if (newWindow) {
-      newWindow.focus();
+    // Usa um nome específico para a janela ('whatsapp_cfc_window') em vez de '_blank'.
+    // Isso faz com que o navegador reutilize a mesma aba do WhatsApp se ela já estiver aberta,
+    // em vez de abrir dezenas de abas novas.
+    const whatsappWindow = window.open(url, 'whatsapp_cfc_window');
+    if (whatsappWindow) {
+      whatsappWindow.focus();
     }
-    
-    // Try to close the current window (this will only work if the window was opened by a script)
-    // If it's a regular tab, the browser will likely block it, but it's the standard way to attempt it.
-    window.close();
   };
 
   const copyDayScheduleToWhatsApp = (dayName: string, dayRequests: ExamRequest[]) => {
