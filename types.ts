@@ -197,6 +197,9 @@ export interface SystemSettings {
   pcdDefaultExamAddress?: string;
   pcdDefaultExamAddressLink?: string;
   pcdMainSchedule?: SchoolSchedule;
+  
+  // CNH Brasil Practical Exam Settings
+  cnhBrasilMainSchedule?: SchoolSchedule;
 }
 
 export interface City {

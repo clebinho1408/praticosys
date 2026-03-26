@@ -61,7 +61,8 @@ export default async function handler(req: any, res: any) {
           pcdExamName: 'PROVA DIREÇÃO PCD',
           pcdDefaultExamAddress: addr,
           pcdDefaultExamAddressLink: 'https://maps.google.com',
-          pcdMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false }
+          pcdMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
+          cnhBrasilMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false }
         });
       }
       
@@ -80,6 +81,9 @@ export default async function handler(req: any, res: any) {
       }
       if (!settings.pcdMainSchedule) {
         settings.pcdMainSchedule = { frequency: '1_WEEK', days: [], slots: [], active: false };
+      }
+      if (!settings.cnhBrasilMainSchedule) {
+        settings.cnhBrasilMainSchedule = { frequency: '1_WEEK', days: [], slots: [], active: false };
       }
       
       return res.status(200).json(settings);

@@ -150,6 +150,7 @@ export const systemSettings = pgTable('system_settings', {
   pcdDefaultExamAddress: text('pcd_default_exam_address'),
   pcdDefaultExamAddressLink: text('pcd_default_exam_address_link'),
   pcdMainSchedule: jsonb('pcd_main_schedule'),
+  cnhBrasilMainSchedule: jsonb('cnh_brasil_main_schedule'),
 });
 
 // Tabela de Cidades

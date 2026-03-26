@@ -41,6 +41,14 @@ const Settings: React.FC = () => {
       if (data && (!data.pcdExamName || data.pcdExamName === 'Prova Prática PCD')) {
         data.pcdExamName = 'PROVA DIREÇÃO PCD';
       }
+      if (data && !data.cnhBrasilMainSchedule) {
+        data.cnhBrasilMainSchedule = {
+          active: false,
+          frequency: '1_WEEK',
+          days: [],
+          slots: []
+        };
+      }
       setSettings(data);
       setLoading(false);
     });
@@ -109,9 +117,14 @@ const Settings: React.FC = () => {
     if (!settings) return;
     const { name, value } = e.target;
     
+    let finalValue = value;
+    if (name === 'pcdExamName') {
+      finalValue = value.toUpperCase();
+    }
+    
     setSettings({
       ...settings,
-      [name]: value
+      [name]: finalValue
     });
   };
 
@@ -499,7 +512,22 @@ const Settings: React.FC = () => {
 
                     {activeSubTabCFC === 'COMMUNICATION' && (
                         <div className="space-y-8 animate-fadeIn">
-                            <div className="space-y-4">
+                            <div className="grid grid-cols-1 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Nome do Exame PCD</label>
+                                    <input 
+                                        type="text" 
+                                        name="pcdExamName" 
+                                        value={settings.pcdExamName || ''} 
+                                        onChange={handleChange} 
+                                        placeholder="Ex: PROVA DIREÇÃO PCD"
+                                        className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900 font-bold" 
+                                    />
+                                    <p className="text-[10px] text-gray-500 mt-1 uppercase">Este nome será exibido nos agendamentos e mensagens automáticas.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                                         <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp (CFC)
@@ -735,10 +763,202 @@ const Settings: React.FC = () => {
                         </div>
                     )}
 
-                    {activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' && (
-                        <div className="space-y-8 animate-fadeIn">
-                            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                                Configurações da Escala Padrão CNH do Brasil em desenvolvimento.
+                    {activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' && settings.cnhBrasilMainSchedule && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                                <p className="text-sm text-blue-800">
+                                    Configure aqui a escala padrão para os exames CNH do Brasil. Esta escala será usada como base para os agendamentos automáticos.
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
+                                    <div>
+                                        <h4 className="font-bold text-sm">Status da Escala CNH do Brasil</h4>
+                                        <p className="text-xs text-gray-500">{settings.cnhBrasilMainSchedule.active ? 'Esta escala está ATIVA' : 'Esta escala está DESATIVADA'}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSettings({
+                                            ...settings,
+                                            cnhBrasilMainSchedule: { ...settings.cnhBrasilMainSchedule!, active: !settings.cnhBrasilMainSchedule!.active }
+                                        })}
+                                        className={`px-4 py-2 rounded text-xs font-bold transition-colors ${
+                                            settings.cnhBrasilMainSchedule.active 
+                                                ? 'bg-red-100 text-red-600 border border-red-200 hover:bg-red-200' 
+                                                : 'bg-green-100 text-green-600 border border-green-200 hover:bg-green-200'
+                                        }`}
+                                    >
+                                        {settings.cnhBrasilMainSchedule.active ? 'DESATIVAR ESCALA' : 'ATIVAR ESCALA'}
+                                    </button>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 text-gray-700">Frequência</label>
+                                    <select 
+                                        className="w-full border rounded p-2 bg-white text-gray-900"
+                                        value={settings.cnhBrasilMainSchedule.frequency}
+                                        onChange={e => {
+                                            const freq = e.target.value as any;
+                                            let days = [...settings.cnhBrasilMainSchedule!.days];
+                                            let slots = [...settings.cnhBrasilMainSchedule!.slots];
+                                            
+                                            if (freq === '1_WEEK' || freq === '2_DAY' || freq === '15_DAYS') {
+                                                if (days.length > 1) days = days.length > 0 ? [days[0]] : [];
+                                            } else if (freq === '2_WEEK') {
+                                                if (days.length > 2) days = days.slice(0, 2);
+                                            }
+
+                                            if (freq === '2_DAY' || freq === '2_WEEK') {
+                                                if (slots.length > 2) slots = slots.slice(0, 2);
+                                            } else if (freq === '1_WEEK' || freq === '15_DAYS') {
+                                                if (slots.length > 1) slots = slots.slice(0, 1);
+                                            }
+
+                                            if (freq !== '2_WEEK') {
+                                                slots = slots.map(s => ({ ...s, day: '' }));
+                                            }
+
+                                            setSettings({
+                                                ...settings,
+                                                cnhBrasilMainSchedule: { ...settings.cnhBrasilMainSchedule!, frequency: freq, days, slots }
+                                            });
+                                        }}
+                                    >
+                                        <option value="1_WEEK">1 vez na semana</option>
+                                        <option value="2_WEEK">2 vezes na semana</option>
+                                        <option value="2_DAY">2 vezes no dia</option>
+                                        <option value="15_DAYS">A cada 15 dias</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-1 text-gray-700">Dias da Semana</label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['SEG', 'TER', 'QUA', 'QUI', 'SEX'].map(day => (
+                                            <button
+                                                key={day}
+                                                type="button"
+                                                onClick={() => {
+                                                    const current = settings.cnhBrasilMainSchedule!.days || [];
+                                                    const isSelected = current.includes(day);
+                                                    let newDays = [];
+                                                    
+                                                    if (isSelected) {
+                                                        newDays = current.filter(d => d !== day);
+                                                    } else {
+                                                        if ((settings.cnhBrasilMainSchedule!.frequency === '1_WEEK' || settings.cnhBrasilMainSchedule!.frequency === '2_DAY' || settings.cnhBrasilMainSchedule!.frequency === '15_DAYS') && current.length >= 1) {
+                                                            newDays = [day];
+                                                        } else if (settings.cnhBrasilMainSchedule!.frequency === '2_WEEK' && current.length >= 2) {
+                                                            newDays = [current[1], day];
+                                                        } else {
+                                                            newDays = [...current, day];
+                                                        }
+                                                    }
+                                                    setSettings({
+                                                        ...settings,
+                                                        cnhBrasilMainSchedule: { ...settings.cnhBrasilMainSchedule!, days: newDays }
+                                                    });
+                                                }}
+                                                className={`px-3 py-1 rounded text-xs font-bold border ${
+                                                    settings.cnhBrasilMainSchedule!.days?.includes(day) 
+                                                        ? 'bg-blue-600 text-white border-blue-600' 
+                                                        : 'bg-white text-gray-600 border-gray-300'
+                                                }`}
+                                            >
+                                                {day}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                        <label className="block text-sm font-medium text-gray-700">Horários e Examinadores</label>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                const schedule = settings.cnhBrasilMainSchedule!;
+                                                if (schedule.frequency === '2_DAY' && schedule.slots.length >= 2) {
+                                                    alert('Frequência "2 vezes no dia" permite apenas 2 horários.');
+                                                    return;
+                                                }
+                                                if (schedule.frequency === '2_WEEK' && schedule.slots.length >= 2) {
+                                                    alert('Frequência "2 vezes na semana" permite apenas 2 horários.');
+                                                    return;
+                                                }
+                                                if ((schedule.frequency === '1_WEEK' || schedule.frequency === '15_DAYS') && schedule.slots.length >= 1) {
+                                                    alert('Esta frequência permite apenas 1 horário.');
+                                                    return;
+                                                }
+                                                setSettings({
+                                                    ...settings,
+                                                    cnhBrasilMainSchedule: { ...schedule, slots: [...schedule.slots, { time: '', examiner: '', day: '' }] }
+                                                });
+                                            }}
+                                            className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100"
+                                        >
+                                            + Adicionar Horário
+                                        </button>
+                                    </div>
+                                    {settings.cnhBrasilMainSchedule.slots.map((slot, idx) => (
+                                        <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded border border-gray-200">
+                                            {settings.cnhBrasilMainSchedule!.frequency === '2_WEEK' && (
+                                                <select
+                                                    className="border rounded p-1 text-sm bg-white text-gray-900"
+                                                    value={slot.day || ''}
+                                                    onChange={e => {
+                                                        const newSlots = [...settings.cnhBrasilMainSchedule!.slots];
+                                                        newSlots[idx] = { ...newSlots[idx], day: e.target.value };
+                                                        setSettings({ ...settings, cnhBrasilMainSchedule: { ...settings.cnhBrasilMainSchedule!, slots: newSlots } });
+                                                    }}
+                                                >
+                                                    <option value="">Dia</option>
+                                                    {settings.cnhBrasilMainSchedule!.days.map(d => (
+                                                        <option key={d} value={d}>{d}</option>
+                                                    ))}
+                                                </select>
+                                            )}
+                                            <input 
+                                                type="time" 
+                                                className="border rounded p-1 text-sm bg-white text-gray-900" 
+                                                value={slot.time}
+                                                onChange={e => {
+                                                    const newSlots = [...settings.cnhBrasilMainSchedule!.slots];
+                                                    newSlots[idx] = { ...newSlots[idx], time: e.target.value };
+                                                    setSettings({ ...settings, cnhBrasilMainSchedule: { ...settings.cnhBrasilMainSchedule!, slots: newSlots } });
+                                                }}
+                                            />
+                                            <select
+                                                className="flex-1 border rounded p-1 text-sm bg-white text-gray-900"
+                                                value={examiners.find(e => e.id === slot.examiner || e.name === slot.examiner)?.id || ''}
+                                                onChange={e => {
+                                                    const newSlots = [...settings.cnhBrasilMainSchedule!.slots];
+                                                    newSlots[idx] = { ...newSlots[idx], examiner: e.target.value };
+                                                    setSettings({ ...settings, cnhBrasilMainSchedule: { ...settings.cnhBrasilMainSchedule!, slots: newSlots } });
+                                                }}
+                                            >
+                                                <option value="">Selecione o Examinador</option>
+                                                {examiners.map(ex => (
+                                                    <option key={ex.id} value={ex.id}>{ex.name}</option>
+                                                ))}
+                                            </select>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => {
+                                                    const newSlots = settings.cnhBrasilMainSchedule!.slots.filter((_, i) => i !== idx);
+                                                    setSettings({ ...settings, cnhBrasilMainSchedule: { ...settings.cnhBrasilMainSchedule!, slots: newSlots } });
+                                                }}
+                                                className="text-red-500 hover:text-red-700"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {settings.cnhBrasilMainSchedule.slots.length === 0 && (
+                                        <p className="text-xs text-gray-500 italic">Nenhum horário configurado.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
