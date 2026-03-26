@@ -2,10 +2,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
 import { SystemSettings, City, Examiner } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, Sliders, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
-type TabType = 'GENERAL' | 'RULES' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'PROVA_PRATICA_PCD';
+type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'PROVA_PRATICA_PCD';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -15,7 +15,8 @@ const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
-  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'CITIES' | 'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL' | 'RESTRICTIONS'>('CITIES');
+  const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'RULES'>('AGENCY_DATA');
+  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'RESTRICTIONS'>('COMMUNICATION');
   const [activeSubTabPCD, setActiveSubTabPCD] = useState<'GENERAL' | 'SCHEDULE'>('GENERAL');
   const [cities, setCities] = useState<City[]>([]);
@@ -212,7 +213,6 @@ const Settings: React.FC = () => {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="flex border-b border-gray-100 bg-gray-50 flex-wrap">
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
-           <button type="button" onClick={() => setActiveTab('RULES')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RULES' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Sliders className="h-4 w-4" /> REGRAS</button>
            <button type="button" onClick={() => setActiveTab('CNH_BRASIL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'CNH_BRASIL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> CNH DO BRASIL</button>
            <button type="button" onClick={() => setActiveTab('PROVA_PRATICA_CFC')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'PROVA_PRATICA_CFC' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> PROVA PRÁTICA CFC</button>
            <button type="button" onClick={() => setActiveTab('PROVA_PRATICA_PCD')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'PROVA_PRATICA_PCD' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> PROVA PRÁTICA PCD</button>
@@ -221,37 +221,181 @@ const Settings: React.FC = () => {
         <div className="p-8">
             {activeTab === 'GENERAL' && (
                 <div className="space-y-8 animate-fadeIn">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">Nome da Agência</label>
-                            <input type="text" name="agencyName" value={settings.agencyName} onChange={handleChange} className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" />
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">Endereço da Agência (Rodapé Relatórios)</label>
-                            <input type="text" name="agencyAddress" value={settings.agencyAddress || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" />
-                        </div>
-                        <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 flex items-center gap-2 mb-2"><ImageIcon className="h-4 w-4" /> Logo</label>
-                            <div className="flex items-start gap-6">
-                                <div className="h-32 w-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">{settings.logoUrl ? <img src={settings.logoUrl} className="h-full w-full object-contain p-2" /> : <span className="text-gray-400 text-xs">Sem Logo</span>}</div>
-                                <div className="flex-1 space-y-3">
-                                    <div className="flex gap-3">
-                                        <label className="cursor-pointer bg-white py-2 px-4 border rounded-md shadow-sm text-sm font-medium flex items-center gap-2"><Upload className="h-4 w-4" /> Carregar <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} /></label>
-                                        {settings.logoUrl && <button type="button" onClick={() => setSettings({...settings, logoUrl: ''})} className="py-2 px-4 border border-red-200 rounded-md text-red-600 flex items-center gap-2"><Trash2 className="h-4 w-4" /> Remover</button>}
+                    <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
+                        <button type="button" onClick={() => setActiveSubTabGeneral('AGENCY_DATA')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'AGENCY_DATA' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>DADOS DA AGÊNCIA</button>
+                        <button type="button" onClick={() => setActiveSubTabGeneral('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
+                        <button type="button" onClick={() => setActiveSubTabGeneral('RESTRICTIONS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'RESTRICTIONS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>RESTRIÇÕES</button>
+                        <button type="button" onClick={() => setActiveSubTabGeneral('RULES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'RULES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>REGRAS</button>
+                    </div>
+
+                    {activeSubTabGeneral === 'AGENCY_DATA' && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">Nome da Agência</label>
+                                <input type="text" name="agencyName" value={settings.agencyName} onChange={handleChange} className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">Endereço da Agência (Rodapé Relatórios)</label>
+                                <input type="text" name="agencyAddress" value={settings.agencyAddress || ''} onChange={handleChange} className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2 mb-2"><ImageIcon className="h-4 w-4" /> Logo</label>
+                                <div className="flex items-start gap-6">
+                                    <div className="h-32 w-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">{settings.logoUrl ? <img src={settings.logoUrl} className="h-full w-full object-contain p-2" /> : <span className="text-gray-400 text-xs">Sem Logo</span>}</div>
+                                    <div className="flex-1 space-y-3">
+                                        <div className="flex gap-3">
+                                            <label className="cursor-pointer bg-white py-2 px-4 border rounded-md shadow-sm text-sm font-medium flex items-center gap-2"><Upload className="h-4 w-4" /> Carregar <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} /></label>
+                                            {settings.logoUrl && <button type="button" onClick={() => setSettings({...settings, logoUrl: ''})} className="py-2 px-4 border border-red-200 rounded-md text-red-600 flex items-center gap-2"><Trash2 className="h-4 w-4" /> Remover</button>}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            )}
+                    )}
 
-            {activeTab === 'RULES' && (
-                <div className="space-y-6 animate-fadeIn">
-                    <div className="grid grid-cols-2 gap-6 text-gray-900">
-                        <div><label className="block text-sm font-medium">Vagas Moto Padrão (Cat. A)</label><input type="number" name="defaultMaxSlotsA" value={settings.defaultMaxSlotsA} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
-                        <div><label className="block text-sm font-medium">Vagas Carro Padrão (Cat. B)</label><input type="number" name="defaultMaxSlotsB" value={settings.defaultMaxSlotsB} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
-                    </div>
+                    {activeSubTabGeneral === 'CITIES' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="flex gap-4">
+                                <input 
+                                    type="text" 
+                                    placeholder="Nome da Cidade (MAIÚSCULA E SEM ACENTO)" 
+                                    value={editingCity ? editingCity.name : newCityName} 
+                                    onChange={e => handleCityNameChange(e.target.value)} 
+                                    className="flex-1 rounded-md border p-2 bg-white text-gray-900 uppercase" 
+                                />
+                                <button 
+                                    type="button" 
+                                    onClick={editingCity ? handleUpdateCity : handleAddCity} 
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
+                                >
+                                    {editingCity ? 'Atualizar' : 'Adicionar'}
+                                </button>
+                                {editingCity && (
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setEditingCity(null)} 
+                                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {cities.map(city => (
+                                    <div key={city.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
+                                        <span className="font-bold text-gray-700">{city.name}</span>
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setEditingCity(city)} 
+                                                className="text-blue-600 hover:text-blue-800 text-sm font-bold"
+                                            >
+                                                Editar
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleDeleteCity(city.id)} 
+                                                className="text-red-600 hover:text-red-800"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {cities.length === 0 && (
+                                    <div className="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
+                                        Nenhuma cidade cadastrada.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSubTabGeneral === 'RESTRICTIONS' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
+                                <AlertOctagon className="h-5 w-5 text-amber-600 mt-0.5" />
+                                <div>
+                                    <h4 className="text-sm font-bold text-amber-800">Aviso de Restrições</h4>
+                                    <p className="text-xs text-amber-700 mt-1">As restrições abaixo bloqueiam o agendamento de candidatos que possuam as letras informadas em sua CNH.</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex gap-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Letra" 
+                                        maxLength={1}
+                                        value={editingRestriction ? editingRestriction.code : newRestriction.code} 
+                                        onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, code: e.target.value.toUpperCase()}) : setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} 
+                                        className="w-24 rounded-md border p-2 bg-white text-gray-900 uppercase" 
+                                    />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Descrição da Restrição" 
+                                        value={editingRestriction ? editingRestriction.description : newRestriction.description} 
+                                        onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, description: e.target.value}) : setNewRestriction({...newRestriction, description: e.target.value})} 
+                                        className="flex-1 rounded-md border p-2 bg-white text-gray-900" 
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={addRestriction} 
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
+                                    >
+                                        {editingRestriction ? 'Atualizar' : 'Adicionar'}
+                                    </button>
+                                    {editingRestriction && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setEditingRestriction(null)} 
+                                            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {(settings.restrictions || []).map(r => (
+                                        <div key={r.code} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-blue-600">{r.code}</span>
+                                                <span className="text-xs text-gray-500">{r.description}</span>
+                                            </div>
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => startEditRestriction(r)} 
+                                                    className="text-blue-600 hover:text-blue-800 text-sm font-bold"
+                                                >
+                                                    Editar
+                                                </button>
+                                                <button 
+                                                    type="button" 
+                                                    onClick={() => removeRestriction(r.code)} 
+                                                    className="text-red-600 hover:text-red-800"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {(!settings.restrictions || settings.restrictions.length === 0) && (
+                                        <div className="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
+                                            Nenhuma restrição cadastrada.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSubTabGeneral === 'RULES' && (
+                        <div className="grid grid-cols-2 gap-6 text-gray-900">
+                            <div><label className="block text-sm font-medium">Vagas Moto Padrão (Cat. A)</label><input type="number" name="defaultMaxSlotsA" value={settings.defaultMaxSlotsA} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
+                            <div><label className="block text-sm font-medium">Vagas Carro Padrão (Cat. B)</label><input type="number" name="defaultMaxSlotsB" value={settings.defaultMaxSlotsB} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
+                        </div>
+                    )}
                 </div>
             )}
             {activeTab === 'CNH_BRASIL' && (
@@ -347,70 +491,10 @@ const Settings: React.FC = () => {
             {activeTab === 'PROVA_PRATICA_CFC' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
-                        <button type="button" onClick={() => setActiveSubTabCFC('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
-                        <button type="button" onClick={() => setActiveSubTabCFC('RESTRICTIONS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'RESTRICTIONS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>RESTRIÇÕES</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_PCD')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_PCD' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO PCD</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO CNH DO BRASIL</button>
                     </div>
-
-                    {activeSubTabCFC === 'CITIES' && (
-                        <div className="space-y-6 animate-fadeIn">
-                            <div className="flex gap-4">
-                                <input 
-                                    type="text" 
-                                    placeholder="Nome da Cidade (MAIÚSCULA E SEM ACENTO)" 
-                                    value={editingCity ? editingCity.name : newCityName} 
-                                    onChange={e => handleCityNameChange(e.target.value)} 
-                                    className="flex-1 rounded-md border p-2 bg-white text-gray-900 uppercase" 
-                                />
-                                <button 
-                                    type="button" 
-                                    onClick={editingCity ? handleUpdateCity : handleAddCity} 
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
-                                >
-                                    {editingCity ? 'Atualizar' : 'Adicionar'}
-                                </button>
-                                {editingCity && (
-                                    <button 
-                                        type="button" 
-                                        onClick={() => setEditingCity(null)} 
-                                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
-                                    >
-                                        Cancelar
-                                    </button>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {cities.map(city => (
-                                    <div key={city.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
-                                        <span className="font-bold text-gray-700">{city.name}</span>
-                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setEditingCity(city)} 
-                                                className="text-blue-600 hover:text-blue-800 text-sm font-bold"
-                                            >
-                                                Editar
-                                            </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => handleDeleteCity(city.id)} 
-                                                className="text-red-600 hover:text-red-800"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                                {cities.length === 0 && (
-                                    <div className="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
-                                        Nenhuma cidade cadastrada.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
 
                     {activeSubTabCFC === 'COMMUNICATION' && (
                         <div className="space-y-8 animate-fadeIn">
@@ -445,85 +529,6 @@ const Settings: React.FC = () => {
                                             ))}
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeSubTabCFC === 'RESTRICTIONS' && (
-                        <div className="space-y-6 animate-fadeIn">
-                            <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg flex items-start gap-3">
-                                <AlertOctagon className="h-5 w-5 text-amber-600 mt-0.5" />
-                                <div>
-                                    <h4 className="text-sm font-bold text-amber-800">Aviso de Restrições</h4>
-                                    <p className="text-xs text-amber-700 mt-1">As restrições abaixo bloqueiam o agendamento de candidatos que possuam as letras informadas em sua CNH.</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div className="flex gap-4">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Letra" 
-                                        maxLength={1}
-                                        value={editingRestriction ? editingRestriction.code : newRestriction.code} 
-                                        onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, code: e.target.value.toUpperCase()}) : setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} 
-                                        className="w-24 rounded-md border p-2 bg-white text-gray-900 uppercase" 
-                                    />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Descrição da Restrição" 
-                                        value={editingRestriction ? editingRestriction.description : newRestriction.description} 
-                                        onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, description: e.target.value}) : setNewRestriction({...newRestriction, description: e.target.value})} 
-                                        className="flex-1 rounded-md border p-2 bg-white text-gray-900" 
-                                    />
-                                    <button 
-                                        type="button" 
-                                        onClick={addRestriction} 
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
-                                    >
-                                        {editingRestriction ? 'Atualizar' : 'Adicionar'}
-                                    </button>
-                                    {editingRestriction && (
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setEditingRestriction(null)} 
-                                            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
-                                        >
-                                            Cancelar
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {(settings.restrictions || []).map(r => (
-                                        <div key={r.code} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
-                                            <div className="flex flex-col">
-                                                <span className="font-bold text-blue-600">{r.code}</span>
-                                                <span className="text-xs text-gray-500">{r.description}</span>
-                                            </div>
-                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => startEditRestriction(r)} 
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-bold"
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => removeRestriction(r.code)} 
-                                                    className="text-red-600 hover:text-red-800"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {(!settings.restrictions || settings.restrictions.length === 0) && (
-                                        <div className="col-span-full py-8 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
-                                            Nenhuma restrição cadastrada.
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>
