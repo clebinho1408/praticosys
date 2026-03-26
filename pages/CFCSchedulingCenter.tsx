@@ -261,7 +261,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   });
 
   const getSchoolName = (id?: string) => {
-    if (id === 'PCD') return systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD';
+    if (id === 'PCD') return systemSettings?.pcdExamName || 'PROVA DIRECAO PCD';
     if (id === 'CNH_BRASIL') return 'CNH DO BRASIL';
     return schools.find(s => s.id === id)?.name || 'N/A';
   };
@@ -804,10 +804,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               onChange={e => setFilters({...filters, schoolId: e.target.value})}
             >
               <option value="ALL">Todas</option>
-              {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               {user.role !== UserRole.SCHOOL && (
                 <>
-                  <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD'}</option>
+                  <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</option>
                   <option value="CNH_BRASIL">CNH DO BRASIL</option>
                 </>
               )}
@@ -1253,7 +1253,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           onChange={e => setSelectedPcdForAutoGenerate(e.target.checked)}
                         />
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-blue-700">{systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD'}</span>
+                          <span className="text-sm font-bold text-blue-700">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</span>
                           <span className="text-[10px] text-blue-500 font-bold uppercase">Configuração Global PCD</span>
                         </div>
                       </label>
@@ -1269,7 +1269,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           onChange={e => setSelectedCnhBrasilForAutoGenerate(e.target.checked)}
                         />
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-orange-700">ESCALA PADRÃO CNH DO BRASIL</span>
+                          <span className="text-sm font-bold text-orange-700">CNH DO BRASIL</span>
                           <span className="text-[10px] text-orange-500 font-bold uppercase">Configuração Global CNH Brasil</span>
                         </div>
                       </label>
@@ -1440,11 +1440,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     disabled={user.role === UserRole.SCHOOL}
                   >
                     <option value="">Selecione a autoescola</option>
-                    {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     {user.role !== UserRole.SCHOOL && (
                       <>
-                        <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD'}</option>
-                        <option value="CNH_BRASIL">ESCALA PADRÃO CNH DO BRASIL</option>
+                        <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</option>
+                        <option value="CNH_BRASIL">CNH DO BRASIL</option>
                       </>
                     )}
                   </select>
@@ -1609,10 +1609,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     onChange={e => setSelectedRequest({...selectedRequest, schoolId: e.target.value})}
                     disabled={user.role === UserRole.SCHOOL}
                   >
-                    {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     {user.role !== UserRole.SCHOOL && (
                       <>
-                        <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD'}</option>
+                        <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</option>
                         <option value="CNH_BRASIL">CNH DO BRASIL</option>
                       </>
                     )}

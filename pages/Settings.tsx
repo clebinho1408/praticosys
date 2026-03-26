@@ -38,8 +38,8 @@ const Settings: React.FC = () => {
 
   const loadSettings = () => {
     api.getSettings().then(data => {
-      if (data && (!data.pcdExamName || data.pcdExamName === 'Prova Prática PCD')) {
-        data.pcdExamName = 'PROVA DIREÇÃO PCD';
+      if (data && (!data.pcdExamName || data.pcdExamName === 'Prova Prática PCD' || data.pcdExamName === 'PROVA DIRECTAO PCD' || data.pcdExamName === 'PROVA DIREÇÃO PCD' || data.pcdExamName === 'Prova Direção PCD')) {
+        data.pcdExamName = 'PROVA DIRECAO PCD';
       }
       if (data && !data.cnhBrasilMainSchedule) {
         data.cnhBrasilMainSchedule = {
@@ -510,7 +510,7 @@ const Settings: React.FC = () => {
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
                         <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_PCD')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_PCD' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO PCD</button>
-                        <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO CNH DO BRASIL</button>
+                        <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CNH DO BRASIL</button>
                     </div>
 
                     {activeSubTabCFC === 'COMMUNICATION' && (
@@ -522,8 +522,11 @@ const Settings: React.FC = () => {
                                         type="text" 
                                         name="pcdExamName" 
                                         value={settings.pcdExamName || ''} 
-                                        onChange={handleChange} 
-                                        placeholder="Ex: PROVA DIREÇÃO PCD"
+                                        onChange={(e) => {
+                                            const val = e.target.value.toUpperCase();
+                                            setSettings({ ...settings, pcdExamName: val });
+                                        }} 
+                                        placeholder="Ex: PROVA DIRECAO PCD"
                                         className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900 font-bold" 
                                     />
                                     <p className="text-[10px] text-gray-500 mt-1 uppercase">Este nome será exibido nos agendamentos e mensagens automáticas.</p>
@@ -770,14 +773,14 @@ const Settings: React.FC = () => {
                         <div className="space-y-6 animate-fadeIn">
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                                 <p className="text-sm text-blue-800">
-                                    Configure aqui a escala padrão para os exames CNH do Brasil. Esta escala será usada como base para os agendamentos automáticos.
+                                    Configure aqui a escala padrão para os exames CNH DO BRASIL. Esta escala será usada como base para os agendamentos automáticos.
                                 </p>
                             </div>
 
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
                                     <div>
-                                        <h4 className="font-bold text-sm">Status da Escala CNH do Brasil</h4>
+                                        <h4 className="font-bold text-sm">Status da Escala CNH DO BRASIL</h4>
                                         <p className="text-xs text-gray-500">{settings.cnhBrasilMainSchedule.active ? 'Esta escala está ATIVA' : 'Esta escala está DESATIVADA'}</p>
                                     </div>
                                     <button
