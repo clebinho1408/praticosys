@@ -637,6 +637,7 @@ const Settings: React.FC = () => {
                                     >
                                         <option value="1_WEEK">1 vez na semana</option>
                                         <option value="2_WEEK">2 vezes na semana</option>
+                                        <option value="3_WEEK">3 vezes na semana</option>
                                         <option value="2_DAY">2 vezes no dia</option>
                                         <option value="15_DAYS">A cada 15 dias</option>
                                     </select>
@@ -843,6 +844,7 @@ const Settings: React.FC = () => {
                                     >
                                         <option value="1_WEEK">1 vez na semana</option>
                                         <option value="2_WEEK">2 vezes na semana</option>
+                                        <option value="3_WEEK">3 vezes na semana</option>
                                         <option value="2_DAY">2 vezes no dia</option>
                                         <option value="15_DAYS">A cada 15 dias</option>
                                     </select>
