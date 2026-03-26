@@ -510,7 +510,7 @@ const Settings: React.FC = () => {
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
                         <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_PCD')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_PCD' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO PCD</button>
-                        <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CNH DO BRASIL</button>
+                        <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO CNH DO BRASIL</button>
                     </div>
 
                     {activeSubTabCFC === 'COMMUNICATION' && (
@@ -613,15 +613,19 @@ const Settings: React.FC = () => {
                                                 if (days.length > 1) days = days.length > 0 ? [days[0]] : [];
                                             } else if (freq === '2_WEEK') {
                                                 if (days.length > 2) days = days.slice(0, 2);
+                                            } else if (freq === '3_WEEK') {
+                                                if (days.length > 3) days = days.slice(0, 3);
                                             }
 
                                             if (freq === '2_DAY' || freq === '2_WEEK') {
                                                 if (slots.length > 2) slots = slots.slice(0, 2);
+                                            } else if (freq === '3_WEEK') {
+                                                if (slots.length > 3) slots = slots.slice(0, 3);
                                             } else if (freq === '1_WEEK' || freq === '15_DAYS') {
                                                 if (slots.length > 1) slots = slots.slice(0, 1);
                                             }
 
-                                            if (freq !== '2_WEEK') {
+                                            if (freq !== '2_WEEK' && freq !== '3_WEEK') {
                                                 slots = slots.map(s => ({ ...s, day: '' }));
                                             }
 
@@ -657,6 +661,8 @@ const Settings: React.FC = () => {
                                                             newDays = [day];
                                                         } else if (settings.pcdMainSchedule!.frequency === '2_WEEK' && current.length >= 2) {
                                                             newDays = [current[1], day];
+                                                        } else if (settings.pcdMainSchedule!.frequency === '3_WEEK' && current.length >= 3) {
+                                                            newDays = [current[1], current[2], day];
                                                         } else {
                                                             newDays = [...current, day];
                                                         }
@@ -709,7 +715,7 @@ const Settings: React.FC = () => {
                                     </div>
                                     {settings.pcdMainSchedule.slots.map((slot, idx) => (
                                         <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded border border-gray-200">
-                                            {settings.pcdMainSchedule!.frequency === '2_WEEK' && (
+                                            {(settings.pcdMainSchedule!.frequency === '2_WEEK' || settings.pcdMainSchedule!.frequency === '3_WEEK') && (
                                                 <select
                                                     className="border rounded p-1 text-sm bg-white text-gray-900"
                                                     value={slot.day || ''}
@@ -813,15 +819,19 @@ const Settings: React.FC = () => {
                                                 if (days.length > 1) days = days.length > 0 ? [days[0]] : [];
                                             } else if (freq === '2_WEEK') {
                                                 if (days.length > 2) days = days.slice(0, 2);
+                                            } else if (freq === '3_WEEK') {
+                                                if (days.length > 3) days = days.slice(0, 3);
                                             }
 
                                             if (freq === '2_DAY' || freq === '2_WEEK') {
                                                 if (slots.length > 2) slots = slots.slice(0, 2);
+                                            } else if (freq === '3_WEEK') {
+                                                if (slots.length > 3) slots = slots.slice(0, 3);
                                             } else if (freq === '1_WEEK' || freq === '15_DAYS') {
                                                 if (slots.length > 1) slots = slots.slice(0, 1);
                                             }
 
-                                            if (freq !== '2_WEEK') {
+                                            if (freq !== '2_WEEK' && freq !== '3_WEEK') {
                                                 slots = slots.map(s => ({ ...s, day: '' }));
                                             }
 
@@ -857,6 +867,8 @@ const Settings: React.FC = () => {
                                                             newDays = [day];
                                                         } else if (settings.cnhBrasilMainSchedule!.frequency === '2_WEEK' && current.length >= 2) {
                                                             newDays = [current[1], day];
+                                                        } else if (settings.cnhBrasilMainSchedule!.frequency === '3_WEEK' && current.length >= 3) {
+                                                            newDays = [current[1], current[2], day];
                                                         } else {
                                                             newDays = [...current, day];
                                                         }
@@ -909,7 +921,7 @@ const Settings: React.FC = () => {
                                     </div>
                                     {settings.cnhBrasilMainSchedule.slots.map((slot, idx) => (
                                         <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded border border-gray-200">
-                                            {settings.cnhBrasilMainSchedule!.frequency === '2_WEEK' && (
+                                            {(settings.cnhBrasilMainSchedule!.frequency === '2_WEEK' || settings.cnhBrasilMainSchedule!.frequency === '3_WEEK') && (
                                                 <select
                                                     className="border rounded p-1 text-sm bg-white text-gray-900"
                                                     value={slot.day || ''}

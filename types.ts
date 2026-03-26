@@ -42,7 +42,7 @@ export interface User {
 }
 
 export interface SchoolSchedule {
-  frequency: '1_WEEK' | '2_WEEK' | '2_DAY' | '15_DAYS';
+  frequency: '1_WEEK' | '2_WEEK' | '3_WEEK' | '2_DAY' | '15_DAYS';
   days: string[]; // ['SEG', 'TER', ...]
   slots: { time: string; examiner: string; day?: string }[]; 
   active: boolean;
