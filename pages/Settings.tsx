@@ -5,7 +5,7 @@ import { SystemSettings, City, Examiner } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
-type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'PROVA_PRATICA_PCD';
+type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -18,7 +18,6 @@ const Settings: React.FC = () => {
   const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'RULES'>('AGENCY_DATA');
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'RESTRICTIONS'>('COMMUNICATION');
-  const [activeSubTabPCD, setActiveSubTabPCD] = useState<'GENERAL' | 'SCHEDULE'>('GENERAL');
   const [cities, setCities] = useState<City[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [newCityName, setNewCityName] = useState('');
@@ -39,6 +38,9 @@ const Settings: React.FC = () => {
 
   const loadSettings = () => {
     api.getSettings().then(data => {
+      if (data && (!data.pcdExamName || data.pcdExamName === 'Prova Prática PCD')) {
+        data.pcdExamName = 'PROVA DIREÇÃO PCD';
+      }
       setSettings(data);
       setLoading(false);
     });
@@ -215,7 +217,6 @@ const Settings: React.FC = () => {
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('CNH_BRASIL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'CNH_BRASIL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> CNH DO BRASIL</button>
            <button type="button" onClick={() => setActiveTab('PROVA_PRATICA_CFC')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'PROVA_PRATICA_CFC' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> PROVA PRÁTICA CFC</button>
-           <button type="button" onClick={() => setActiveTab('PROVA_PRATICA_PCD')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'PROVA_PRATICA_PCD' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> PROVA PRÁTICA PCD</button>
         </div>
 
         <div className="p-8">
@@ -317,7 +318,7 @@ const Settings: React.FC = () => {
                                 <AlertOctagon className="h-5 w-5 text-amber-600 mt-0.5" />
                                 <div>
                                     <h4 className="text-sm font-bold text-amber-800">Aviso de Restrições</h4>
-                                    <p className="text-xs text-amber-700 mt-1">As restrições abaixo bloqueiam o agendamento de candidatos que possuam as letras informadas em sua CNH.</p>
+                                    <p className="text-xs text-amber-700 mt-1">As restrições abaixo referem-se as letras informadas em sua CNH.</p>
                                 </div>
                             </div>
 
@@ -534,81 +535,7 @@ const Settings: React.FC = () => {
                         </div>
                     )}
 
-                    {activeSubTabCFC === 'ESCALA_PADRAO_PCD' && (
-                        <div className="space-y-8 animate-fadeIn">
-                            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                                Configurações da Escala Padrão PCD em desenvolvimento.
-                            </div>
-                        </div>
-                    )}
-
-                    {activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' && (
-                        <div className="space-y-8 animate-fadeIn">
-                            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                                Configurações da Escala Padrão CNH do Brasil em desenvolvimento.
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {activeTab === 'PROVA_PRATICA_PCD' && (
-                <div className="space-y-6 animate-fadeIn">
-                    <div className="flex border-b border-gray-100 mb-6">
-                        <button type="button" onClick={() => setActiveSubTabPCD('GENERAL')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabPCD === 'GENERAL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>GERAL</button>
-                        <button type="button" onClick={() => setActiveSubTabPCD('SCHEDULE')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabPCD === 'SCHEDULE' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO</button>
-                    </div>
-
-                    {activeSubTabPCD === 'GENERAL' && (
-                        <div className="space-y-8 animate-fadeIn">
-                            <div className="grid grid-cols-1 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Nome do Exame PCD</label>
-                                    <input 
-                                        type="text" 
-                                        name="pcdExamName" 
-                                        value={settings.pcdExamName || ''} 
-                                        onChange={handleChange} 
-                                        className="mt-1 block w-full rounded-md border p-2 bg-white text-gray-900" 
-                                    />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 mb-4">
-                                        <MapPin className="h-4 w-4 text-blue-600" /> Endereço Padrão do Exame PCD
-                                    </h3>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 mb-1">Endereço Completo</label>
-                                            <input 
-                                                type="text" 
-                                                name="pcdDefaultExamAddress" 
-                                                value={settings.pcdDefaultExamAddress || ''} 
-                                                onChange={handleChange} 
-                                                placeholder="Ex: Av. Principal, 123 - Centro"
-                                                className="w-full border p-2 rounded bg-white text-gray-900" 
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-500 mb-1">Localização (Link Google Maps)</label>
-                                            <div className="relative">
-                                                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                                <input 
-                                                    type="text" 
-                                                    name="pcdDefaultExamAddressLink" 
-                                                    value={settings.pcdDefaultExamAddressLink || ''} 
-                                                    onChange={handleChange} 
-                                                    placeholder="Ex: https://maps.app.goo.gl/..."
-                                                    className="w-full border p-2 pl-10 rounded bg-white text-gray-900" 
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeSubTabPCD === 'SCHEDULE' && settings.pcdMainSchedule && (
+                    {activeSubTabCFC === 'ESCALA_PADRAO_PCD' && settings.pcdMainSchedule && (
                         <div className="space-y-6 animate-fadeIn">
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                                 <p className="text-sm text-blue-800">
@@ -804,6 +731,14 @@ const Settings: React.FC = () => {
                                         <p className="text-xs text-gray-500 italic">Nenhum horário configurado.</p>
                                     )}
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' && (
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
+                                Configurações da Escala Padrão CNH do Brasil em desenvolvimento.
                             </div>
                         </div>
                     )}

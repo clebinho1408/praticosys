@@ -259,7 +259,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   });
 
   const getSchoolName = (id?: string) => {
-    if (id === 'PCD') return systemSettings?.pcdExamName || 'Prova Prática PCD';
+    if (id === 'PCD') return systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD';
     return schools.find(s => s.id === id)?.name || 'N/A';
   };
   const getExaminerName = (idOrName?: string) => {
@@ -457,20 +457,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       console.error('Error cancelling request:', error);
       alert('Erro ao cancelar agendamento.');
     }
-  };
-
-  const handleRealizadoAction = (req: ExamRequest) => {
-    setConfirmConfig({
-      title: 'Confirmar Realizado',
-      message: "Tem certeza que deseja alterar o status deste agendamento para 'Realizado'?",
-      type: 'green',
-      onConfirm: async () => {
-        await api.updateRequest(req.id, { status: ExamStatus.DONE });
-        setIsConfirmModalOpen(false);
-        fetchData();
-      }
-    });
-    setIsConfirmModalOpen(true);
   };
 
   useEffect(() => {
@@ -1221,7 +1207,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           onChange={e => setSelectedPcdForAutoGenerate(e.target.checked)}
                         />
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-blue-700">{systemSettings?.pcdExamName || 'Prova Prática PCD'}</span>
+                          <span className="text-sm font-bold text-blue-700">{systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD'}</span>
                           <span className="text-[10px] text-blue-500 font-bold uppercase">Configuração Global PCD</span>
                         </div>
                       </label>
@@ -1394,7 +1380,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     <option value="">Selecione a autoescola</option>
                     {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     {user.role !== UserRole.SCHOOL && (
-                      <option value="PCD">{systemSettings?.pcdExamName || 'Prova Prática PCD'}</option>
+                      <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD'}</option>
                     )}
                   </select>
                 </div>

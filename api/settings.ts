@@ -58,7 +58,7 @@ export default async function handler(req: any, res: any) {
           cfcWhatsappMessageTemplate: getCfcDefaultTemplate(),
           defaultExamAddress: addr,
           defaultExamAddressLink: 'https://maps.google.com',
-          pcdExamName: 'Prova Prática PCD',
+          pcdExamName: 'PROVA DIREÇÃO PCD',
           pcdDefaultExamAddress: addr,
           pcdDefaultExamAddressLink: 'https://maps.google.com',
           pcdMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false }
@@ -70,7 +70,7 @@ export default async function handler(req: any, res: any) {
         settings.cfcWhatsappMessageTemplate = getCfcDefaultTemplate();
       }
       if (!settings.pcdExamName) {
-        settings.pcdExamName = 'Prova Prática PCD';
+        settings.pcdExamName = 'PROVA DIREÇÃO PCD';
       }
       if (!settings.pcdDefaultExamAddress) {
         settings.pcdDefaultExamAddress = settings.defaultExamAddress;
