@@ -15,8 +15,8 @@ const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
-  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'CITIES' | 'COMMUNICATION'>('CITIES');
-  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION'>('COMMUNICATION');
+  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'CITIES' | 'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('CITIES');
+  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'RESTRICTIONS'>('COMMUNICATION');
   const [activeSubTabPCD, setActiveSubTabPCD] = useState<'GENERAL' | 'SCHEDULE'>('GENERAL');
   const [cities, setCities] = useState<City[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
@@ -281,8 +281,9 @@ const Settings: React.FC = () => {
             )}
             {activeTab === 'CNH_BRASIL' && (
                 <div className="space-y-6 animate-fadeIn">
-                    <div className="flex border-b border-gray-100 mb-6">
-                        <button type="button" onClick={() => setActiveSubTabCNH('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCNH === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
+                    <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
+                        <button type="button" onClick={() => setActiveSubTabCNH('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
+                        <button type="button" onClick={() => setActiveSubTabCNH('RESTRICTIONS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'RESTRICTIONS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>RESTRIÇÕES</button>
                     </div>
                     
                     {activeSubTabCNH === 'COMMUNICATION' && (
@@ -357,14 +358,24 @@ const Settings: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    {activeSubTabCNH === 'RESTRICTIONS' && (
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
+                                Configurações de Restrições em desenvolvimento.
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
             {activeTab === 'PROVA_PRATICA_CFC' && (
                 <div className="space-y-6 animate-fadeIn">
-                    <div className="flex border-b border-gray-100 mb-6">
-                        <button type="button" onClick={() => setActiveSubTabCFC('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCFC === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
-                        <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
+                    <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
+                        <button type="button" onClick={() => setActiveSubTabCFC('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
+                        <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
+                        <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_PCD')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_PCD' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO PCD</button>
+                        <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO CNH DO BRASIL</button>
                     </div>
 
                     {activeSubTabCFC === 'CITIES' && (
@@ -459,6 +470,22 @@ const Settings: React.FC = () => {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSubTabCFC === 'ESCALA_PADRAO_PCD' && (
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
+                                Configurações da Escala Padrão PCD em desenvolvimento.
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' && (
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
+                                Configurações da Escala Padrão CNH do Brasil em desenvolvimento.
                             </div>
                         </div>
                     )}
