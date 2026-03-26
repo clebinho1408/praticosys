@@ -1,9 +1,21 @@
 
 import { db } from '../db/index.js';
 import { systemSettings } from '../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
+// Helper to ensure schema is up to date
+let schemaUpdated = false;
+async function ensureSchema() {
+  if (schemaUpdated) return;
+  try {
+    await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS cnh_brasil_main_schedule JSONB`);
+    schemaUpdated = true;
+  } catch (e) {
+    console.error("Schema update error:", e);
+  }
+}
 
 // Template oficial usando tags de texto seguras para evitar corrupção por codificação no banco de dados
 const getDefaultTemplate = () => {
@@ -41,6 +53,7 @@ Estamos confirmando o agendamento da Prova Prática (Tipo: *{TIPO}*), marcada pa
 
 export default async function handler(req: any, res: any) {
   try {
+    await ensureSchema();
     if (req.method === 'GET') {
       const data = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
       if (data.length === 0) {

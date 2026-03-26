@@ -262,6 +262,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const getSchoolName = (id?: string) => {
     if (id === 'PCD') return systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD';
+    if (id === 'CNH_BRASIL') return 'CNH DO BRASIL';
     return schools.find(s => s.id === id)?.name || 'N/A';
   };
   const getExaminerName = (idOrName?: string) => {
@@ -804,6 +805,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             >
               <option value="ALL">Todas</option>
               {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+              {user.role !== UserRole.SCHOOL && (
+                <>
+                  <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD'}</option>
+                  <option value="CNH_BRASIL">CNH DO BRASIL</option>
+                </>
+              )}
             </select>
           </div>
           <div className="space-y-1">
@@ -1603,6 +1610,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     disabled={user.role === UserRole.SCHOOL}
                   >
                     {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {user.role !== UserRole.SCHOOL && (
+                      <>
+                        <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIREÇÃO PCD'}</option>
+                        <option value="CNH_BRASIL">CNH DO BRASIL</option>
+                      </>
+                    )}
                   </select>
                 </div>
 

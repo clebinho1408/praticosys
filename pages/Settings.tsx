@@ -51,6 +51,9 @@ const Settings: React.FC = () => {
       }
       setSettings(data);
       setLoading(false);
+    }).catch(err => {
+      console.error("Error loading settings:", err);
+      setLoading(false);
     });
   };
 
