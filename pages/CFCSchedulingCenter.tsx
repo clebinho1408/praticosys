@@ -10,8 +10,10 @@ import {
   User, 
   UserRole,
   RequestType,
-  SystemSettings
+  SystemSettings,
+  BlockedDate
 } from '../types';
+import { isDateBlocked } from '../lib/dateBlocking';
 import { 
   Plus, 
   Filter, 
@@ -44,6 +46,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   
   // Expanded sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -120,11 +123,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [reqs, schs, exms, settings] = await Promise.all([
+      const [reqs, schs, exms, settings, blocked] = await Promise.all([
         api.getRequests(),
         api.getSchoolsAsync(),
         api.getExaminersAsync(),
-        api.getSettings()
+        api.getSettings(),
+        fetch('/api/blocked-dates').then(res => res.ok ? res.json() : [])
       ]);
       
       // Filter for CFC (COMMON and PCD)
@@ -154,6 +158,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       setSchools(schs);
       setExaminers(exms);
       setSystemSettings(settings);
+      setBlockedDates(blocked);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -274,8 +279,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'Não definida';
-    const [year, month, day] = dateStr.split('-');
-    return `${day}/${month}/${year}`;
+    const [, month, day] = dateStr.split('-');
+    return `${day}/${month}`;
   };
 
   const getExamTypeLabel = (req: ExamRequest) => {
@@ -379,10 +384,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     const firstReq = dayRequests[0];
     const date = new Date(firstReq.scheduledDate + 'T00:00:00');
     const dayOfMonth = date.getDate().toString().padStart(2, '0');
-    const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
-    const monthName = months[date.getMonth()];
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
     
-    let text = `_*EXAMES PRÁTICOS PARA ${dayName.toUpperCase()} (${dayOfMonth}/${monthName})*_\n\n`;
+    let text = `_*EXAMES PRÁTICOS PARA ${dayName.toUpperCase()} (${dayOfMonth}/${month})*_\n\n`;
     
     // Group by examiner
     const byExaminer: Record<string, ExamRequest[]> = {};
@@ -679,6 +683,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       return;
     }
 
+    if (newRequest.date && systemSettings) {
+      const check = isDateBlocked(newRequest.date, blockedDates, systemSettings);
+      if (check.blocked) {
+        alert(`Esta data está bloqueada: ${check.reason}`);
+        return;
+      }
+    }
+
     try {
       await api.createRequest({
         schoolId: newRequest.schoolId,
@@ -726,6 +738,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const handleUpdateEdit = async () => {
     if (!selectedRequest) return;
+
+    if (selectedRequest.scheduledDate && systemSettings) {
+      const check = isDateBlocked(selectedRequest.scheduledDate, blockedDates, systemSettings);
+      if (check.blocked) {
+        alert(`Esta data está bloqueada: ${check.reason}`);
+        return;
+      }
+    }
 
     let newStatus = selectedRequest.status;
     // Se for uma solicitação extra pendente e preencher os dados de agendamento, muda para SCHEDULED (Aguardando Confirmação)

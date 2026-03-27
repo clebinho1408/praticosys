@@ -201,6 +201,15 @@ export interface SystemSettings {
   
   // CNH Brasil Practical Exam Settings
   cnhBrasilMainSchedule?: SchoolSchedule;
+  blockWeekends?: boolean;
+}
+
+export interface BlockedDate {
+  id: string;
+  date: string; // YYYY-MM-DD
+  description: string;
+  isHoliday: boolean;
+  createdAt?: string;
 }
 
 export interface City {

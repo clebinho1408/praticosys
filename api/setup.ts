@@ -109,6 +109,15 @@ export default async function handler(req: any, res: any) {
           id text PRIMARY KEY,
           name text NOT NULL UNIQUE,
           created_at timestamp DEFAULT now()
+      )`,
+
+      // 9. DATAS BLOQUEADAS
+      sql`CREATE TABLE IF NOT EXISTS blocked_dates (
+          id text PRIMARY KEY,
+          date text NOT NULL,
+          description text,
+          is_holiday boolean DEFAULT false,
+          created_at timestamp DEFAULT now()
       )`
     ];
 
@@ -164,6 +173,8 @@ export default async function handler(req: any, res: any) {
       sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS pcd_default_exam_address text`,
       sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS pcd_default_exam_address_link text`,
       sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS pcd_main_schedule jsonb`,
+      sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS cnh_brasil_main_schedule jsonb`,
+      sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS block_weekends boolean DEFAULT false`,
       
       // Remover NOT NULL de colunas que podem ser vazias em escalas automáticas
       sql`ALTER TABLE exam_requests ALTER COLUMN student_name DROP NOT NULL`,

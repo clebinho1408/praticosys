@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ExamType, RequestSource, ExamRequest, ExamStatus } from '../types';
+import { ExamType, RequestSource, ExamRequest, ExamStatus, BlockedDate, SystemSettings } from '../types';
 import { api } from '../services/api';
+import { isDateBlocked } from '../lib/dateBlocking';
 import { CheckCircle, AlertCircle, User, FileCheck, Send, ChevronRight, ChevronLeft } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
@@ -357,6 +358,8 @@ export const CommonRequestForm: React.FC = () => {
 export const PCDRequestForm: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [formData, setFormData] = useState({
     studentName: '',
     cpf: '',
@@ -368,12 +371,37 @@ export const PCDRequestForm: React.FC = () => {
     observations: ''
   });
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [settingsData, blockedData] = await Promise.all([
+          api.getSettings(),
+          fetch('/api/blocked-dates').then(res => res.ok ? res.json() : [])
+        ]);
+        setSettings(settingsData);
+        setBlockedDates(blockedData);
+      } catch (error) {
+        console.error('Error fetching blocking data:', error);
+      }
+    };
+    fetchData();
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.desiredDate && settings) {
+      const check = isDateBlocked(formData.desiredDate, blockedDates, settings);
+      if (check.blocked) {
+        alert(`Esta data está bloqueada: ${check.reason}`);
+        return;
+      }
+    }
+
     setLoading(true);
     
     try {

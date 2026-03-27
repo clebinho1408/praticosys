@@ -2,7 +2,8 @@
 // Scheduling Center Page
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole } from '../types';
+import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate } from '../types';
+import { isDateBlocked } from '../lib/dateBlocking';
 import { 
   Calendar, 
   Clock, 
@@ -35,7 +36,7 @@ const formatDateDisplay = (dateString: string) => {
   if (!dateString) return '-';
   const cleanDate = dateString.split('T')[0];
   const parts = cleanDate.split('-');
-  return parts.length !== 3 ? cleanDate : `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return parts.length !== 3 ? cleanDate : `${parts[2]}/${parts[1]}`;
 };
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
@@ -103,6 +104,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [allRequests, setAllRequests] = useState<ExamRequest[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -159,11 +161,12 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const refreshData = async () => {
     setLoading(true);
     try {
-      const [scheds, exams, sysSettings, requests] = await Promise.all([
+      const [scheds, exams, sysSettings, requests, blocked] = await Promise.all([
         api.getSchedules(), 
         api.getExaminersAsync(), 
         api.getSettings(), 
-        api.getRequests()
+        api.getRequests(),
+        fetch('/api/blocked-dates').then(res => res.ok ? res.json() : [])
       ]);
       let filteredScheds = scheds;
       if (type) filteredScheds = filteredScheds.filter(s => s.type === type);
@@ -171,6 +174,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
       setExaminers(exams);
       setSettings(sysSettings);
       setAllRequests(requests);
+      setBlockedDates(blocked);
     } catch (e) {
       console.error(e);
     } finally {
@@ -368,6 +372,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         setIsErrorModalOpen(true);
         return;
     }
+
+    // Date blocking validation
+    if (settings) {
+        const check = isDateBlocked(scheduleForm.date, blockedDates, settings);
+        if (check.blocked) {
+            setErrorMessage(`Esta data está bloqueada: ${check.reason}`);
+            setErrorField('scheduleDate');
+            setIsErrorModalOpen(true);
+            return;
+        }
+    }
+
     if (!scheduleForm.time) {
         setErrorMessage("O campo Horário Início é obrigatório.");
         setErrorField('scheduleTime');

@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
-import { SystemSettings, City, Examiner } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon } from 'lucide-react';
+import { SystemSettings, City, Examiner, BlockedDate } from '../types';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 
 type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC';
@@ -15,11 +15,13 @@ const Settings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
-  const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'RULES'>('AGENCY_DATA');
+  const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'RULES' | 'BLOCKED_DATES'>('AGENCY_DATA');
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'RESTRICTIONS'>('COMMUNICATION');
   const [cities, setCities] = useState<City[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [newBlockedDate, setNewBlockedDate] = useState({ date: '', description: '' });
   const [newCityName, setNewCityName] = useState('');
   const [editingCity, setEditingCity] = useState<City | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,7 +36,20 @@ const Settings: React.FC = () => {
     loadSettings();
     loadCities();
     loadExaminers();
+    loadBlockedDates();
   }, []);
+
+  const loadBlockedDates = async () => {
+    try {
+      const response = await fetch('/api/blocked-dates');
+      if (response.ok) {
+        const data = await response.json();
+        setBlockedDates(data);
+      }
+    } catch (error) {
+      console.error("Error loading blocked dates:", error);
+    }
+  };
 
   const loadSettings = () => {
     api.getSettings().then(data => {
@@ -113,6 +128,86 @@ const Settings: React.FC = () => {
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleAddBlockedDate = async () => {
+    if (!newBlockedDate.date || !newBlockedDate.description) return;
+    try {
+      const response = await fetch('/api/blocked-dates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBlockedDate)
+      });
+      if (response.ok) {
+        setNewBlockedDate({ date: '', description: '' });
+        loadBlockedDates();
+        setSuccessMsg('Data bloqueada com sucesso!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      } else {
+        const err = await response.json();
+        alert(err.error || 'Erro ao bloquear data');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleDeleteBlockedDate = async (id: string) => {
+    if (!confirm('Deseja remover este bloqueio?')) return;
+    try {
+      const response = await fetch(`/api/blocked-dates?id=${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        loadBlockedDates();
+        setSuccessMsg('Bloqueio removido!');
+        setTimeout(() => setSuccessMsg(''), 3000);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleAutoPopulateHolidays = async () => {
+    const year = new Date().getFullYear();
+    const holidays = [
+      { date: `${year}-01-01`, description: 'Confraternização Universal' },
+      { date: `${year}-04-21`, description: 'Tiradentes' },
+      { date: `${year}-05-01`, description: 'Dia do Trabalho' },
+      { date: `${year}-09-07`, description: 'Independência do Brasil' },
+      { date: `${year}-10-12`, description: 'Nossa Senhora Aparecida' },
+      { date: `${year}-11-02`, description: 'Finados' },
+      { date: `${year}-11-15`, description: 'Proclamação da República' },
+      { date: `${year}-11-20`, description: 'Consciência Negra' },
+      { date: `${year}-12-25`, description: 'Natal' },
+    ];
+
+    // Filter only weekdays
+    const weekdayHolidays = holidays.filter(h => {
+      const d = new Date(h.date + 'T00:00:00');
+      const day = d.getDay();
+      return day !== 0 && day !== 6; // Not Sunday (0) or Saturday (6)
+    });
+
+    setSaving(true);
+    try {
+      for (const h of weekdayHolidays) {
+        await fetch('/api/blocked-dates', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...h, isHoliday: true })
+        });
+      }
+      loadBlockedDates();
+      setAlertConfig({
+        isOpen: true,
+        title: 'Sucesso',
+        message: 'Feriados nacionais em dias de semana foram adicionados.',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -243,6 +338,7 @@ const Settings: React.FC = () => {
                         <button type="button" onClick={() => setActiveSubTabGeneral('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
                         <button type="button" onClick={() => setActiveSubTabGeneral('RESTRICTIONS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'RESTRICTIONS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>RESTRIÇÕES</button>
                         <button type="button" onClick={() => setActiveSubTabGeneral('RULES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'RULES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>REGRAS</button>
+                        <button type="button" onClick={() => setActiveSubTabGeneral('BLOCKED_DATES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'BLOCKED_DATES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>BLOQUEIO DE DATAS</button>
                     </div>
 
                     {activeSubTabGeneral === 'AGENCY_DATA' && (
@@ -411,6 +507,121 @@ const Settings: React.FC = () => {
                         <div className="grid grid-cols-2 gap-6 text-gray-900">
                             <div><label className="block text-sm font-medium">Vagas Moto Padrão (Cat. A)</label><input type="number" name="defaultMaxSlotsA" value={settings.defaultMaxSlotsA} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
                             <div><label className="block text-sm font-medium">Vagas Carro Padrão (Cat. B)</label><input type="number" name="defaultMaxSlotsB" value={settings.defaultMaxSlotsB} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
+                        </div>
+                    )}
+
+                    {activeSubTabGeneral === 'BLOCKED_DATES' && (
+                        <div className="space-y-8 animate-fadeIn">
+                            <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                        <ShieldAlert className="h-5 w-5 text-red-500" /> Bloqueio Global de Finais de Semana
+                                    </h3>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`text-xs font-bold uppercase ${settings.blockWeekends ? 'text-red-600' : 'text-gray-400'}`}>
+                                            {settings.blockWeekends ? 'Bloqueado' : 'Liberado'}
+                                        </span>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setSettings({ ...settings, blockWeekends: !settings.blockWeekends })}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.blockWeekends ? 'bg-red-600' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.blockWeekends ? 'translate-x-6' : 'translate-x-1'}`} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500">Quando ativado, o sistema impedirá agendamentos em sábados e domingos em todos os módulos.</p>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                        <Calendar className="h-5 w-5 text-blue-600" /> Datas Bloqueadas Manualmente
+                                    </h3>
+                                    <button 
+                                        type="button"
+                                        onClick={handleAutoPopulateHolidays}
+                                        className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md border border-blue-200 hover:bg-blue-100 font-bold flex items-center gap-2"
+                                    >
+                                        <Plus className="h-3 w-3" /> Pré-cadastrar Feriados (Dias de Semana)
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <div className="md:col-span-1">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label>
+                                        <input 
+                                            type="date" 
+                                            value={newBlockedDate.date}
+                                            onChange={e => setNewBlockedDate({ ...newBlockedDate, date: e.target.value })}
+                                            className="w-full border p-2 rounded bg-white text-gray-900"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-1">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descrição</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Ex: Feriado Municipal"
+                                            value={newBlockedDate.description}
+                                            onChange={e => setNewBlockedDate({ ...newBlockedDate, description: e.target.value })}
+                                            className="w-full border p-2 rounded bg-white text-gray-900"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-1 flex items-end">
+                                        <button 
+                                            type="button"
+                                            onClick={handleAddBlockedDate}
+                                            className="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition-colors"
+                                        >
+                                            Bloquear Data
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="border rounded-lg overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-50 border-b">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left font-bold text-gray-600">Data</th>
+                                                <th className="px-4 py-3 text-left font-bold text-gray-600">Descrição</th>
+                                                <th className="px-4 py-3 text-center font-bold text-gray-600">Tipo</th>
+                                                <th className="px-4 py-3 text-right font-bold text-gray-600">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {blockedDates.map(bd => (
+                                                <tr key={bd.id} className="hover:bg-gray-50">
+                                                    <td className="px-4 py-3 font-medium text-gray-900">
+                                                        {new Date(bd.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-gray-600">{bd.description}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        {bd.isHoliday ? (
+                                                            <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">Feriado</span>
+                                                        ) : (
+                                                            <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">Manual</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 py-3 text-right">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => handleDeleteBlockedDate(bd.id)}
+                                                            className="text-red-500 hover:text-red-700 p-1"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {blockedDates.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={4} className="px-4 py-8 text-center text-gray-400 italic">Nenhuma data bloqueada.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

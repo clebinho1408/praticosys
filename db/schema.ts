@@ -152,6 +152,16 @@ export const systemSettings = pgTable('system_settings', {
   pcdDefaultExamAddressLink: text('pcd_default_exam_address_link'),
   pcdMainSchedule: jsonb('pcd_main_schedule'),
   cnhBrasilMainSchedule: jsonb('cnh_brasil_main_schedule'),
+  blockWeekends: boolean('block_weekends').default(false),
+});
+
+// Tabela de Datas Bloqueadas
+export const blockedDates = pgTable('blocked_dates', {
+  id: text('id').primaryKey(),
+  date: text('date').notNull(), // YYYY-MM-DD
+  description: text('description'),
+  isHoliday: boolean('is_holiday').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Tabela de Cidades
