@@ -35,15 +35,34 @@ export default async function handler(req: any, res: any) {
     if (req.method === 'POST') {
       const body = parseBody(req);
       console.log("[API/Requests] POST Body:", JSON.stringify(body));
+
+      // Filtrar apenas campos que existem no schema para evitar erro do Drizzle
+      const allowedFields = [
+        'id', 'studentName', 'socialName', 'cpf', 'phone', 'email', 'address', 'city',
+        'requestType', 'examType', 'intendedCategory', 'source', 'schoolId',
+        'paidFee', 'completedPracticalCourse', 'practicalHours', 'hasVehicle',
+        'cnhRestriction', 'instructor', 'vehiclePlate', 'disabilityType',
+        'specialNeeds', 'status', 'result', 'scheduleId', 'scheduledDate',
+        'scheduledTime', 'scheduledCategory', 'examinerId', 'attendanceConfirmed',
+        'cancellationReason', 'observation', 'examHistory'
+      ];
+
+      const filteredBody: any = {};
+      for (const key of allowedFields) {
+        if (body[key] !== undefined) {
+          filteredBody[key] = body[key];
+        }
+      }
+
       const newItem = await db.insert(examRequests).values({
-        id: body.id || crypto.randomUUID(),
-        ...body,
+        id: filteredBody.id || crypto.randomUUID(),
+        ...filteredBody,
         // Fallbacks para evitar erro de NOT NULL no banco de dados de produção (Vercel)
-        studentName: body.studentName || 'Vaga Disponível',
-        cpf: body.cpf || '00000000000',
-        phone: body.phone || '00000000000',
+        studentName: filteredBody.studentName || 'Vaga Disponível',
+        cpf: filteredBody.cpf || '00000000000',
+        phone: filteredBody.phone || '00000000000',
         // Ensure dates are Date objects if they were passed as strings
-        createdAt: body.createdAt ? new Date(body.createdAt) : new Date(),
+        createdAt: filteredBody.createdAt ? new Date(filteredBody.createdAt) : new Date(),
         updatedAt: new Date()
       }).returning();
 
@@ -61,18 +80,57 @@ export default async function handler(req: any, res: any) {
     }
 
     if (req.method === 'PUT') {
-      const { id, createdAt, updatedAt, ...updates } = parseBody(req);
+      const body = parseBody(req);
+      console.log("[API/Requests] PUT Body:", JSON.stringify(body));
+      if (!body || !body.id) {
+        return res.status(400).json({ error: 'ID is required for update' });
+      }
+
+      const { id, createdAt, updatedAt, ...updates } = body;
       
       // Prevent nulling out required fields on Vercel
       if (updates.studentName === null || updates.studentName === '') updates.studentName = 'Vaga Disponível';
       if (updates.cpf === null || updates.cpf === '') updates.cpf = '00000000000';
       if (updates.phone === null || updates.phone === '') updates.phone = '00000000000';
 
-      const updated = await db.update(examRequests)
-        .set({ ...updates, updatedAt: new Date() })
-        .where(eq(examRequests.id, id))
-        .returning();
-      return res.status(200).json(updated[0]);
+      // Filtrar apenas campos que existem no schema para evitar erro do Drizzle
+      // "Cannot read properties of undefined (reading 'name')"
+      const allowedFields = [
+        'studentName', 'socialName', 'cpf', 'phone', 'email', 'address', 'city',
+        'requestType', 'examType', 'intendedCategory', 'source', 'schoolId',
+        'paidFee', 'completedPracticalCourse', 'practicalHours', 'hasVehicle',
+        'cnhRestriction', 'instructor', 'vehiclePlate', 'disabilityType',
+        'specialNeeds', 'status', 'result', 'scheduleId', 'scheduledDate',
+        'scheduledTime', 'scheduledCategory', 'examinerId', 'attendanceConfirmed',
+        'cancellationReason', 'observation', 'examHistory'
+      ];
+
+      const filteredUpdates: any = {};
+      for (const key of allowedFields) {
+        if (updates[key] !== undefined) {
+          filteredUpdates[key] = updates[key];
+        }
+      }
+
+      console.log("[API/Requests] Filtered Updates:", JSON.stringify(filteredUpdates));
+
+      try {
+        const updated = await db.update(examRequests)
+          .set({ ...filteredUpdates, updatedAt: new Date() })
+          .where(eq(examRequests.id, id))
+          .returning();
+
+        if (!updated || updated.length === 0) {
+          // Fallback for mock mode or databases that don't support returning
+          // We try to return the updates object at least
+          return res.status(200).json({ id, ...updates, updatedAt: new Date().toISOString() });
+        }
+
+        return res.status(200).json(updated[0]);
+      } catch (err: any) {
+        console.error("[API/Requests] Update Error:", err);
+        throw err; // Re-throw to be caught by the outer catch
+      }
     }
 
     if (req.method === 'DELETE') {

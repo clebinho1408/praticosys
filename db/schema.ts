@@ -119,6 +119,7 @@ export const examRequests = pgTable('exam_requests', {
   examinerId: text('examiner_id'),
   
   attendanceConfirmed: boolean('attendance_confirmed').default(false),
+  cancellationReason: text('cancellation_reason'),
   observation: text('observation'),
   
   // Histórico armazenado como JSONB para simplificar migração

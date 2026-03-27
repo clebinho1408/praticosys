@@ -99,15 +99,22 @@ export default async function handler(req: any, res: any) {
 
     // --- PUT: Atualizar ou Cancelar Banca ---
     if (req.method === 'PUT') {
-      const { id, action, reason, createdAt, updatedAt, ...updates } = parseBody(req);
+      const body = parseBody(req);
+      console.log("[API/Schedules] PUT Body:", JSON.stringify(body));
+      const { id, action, reason, createdAt, updatedAt, ...updates } = body;
       
+      if (!id) {
+        return res.status(400).json({ error: 'ID is required for update' });
+      }
+
       // Ação Especial: Cancelamento
       if (action === 'CANCEL') {
+        try {
           const updated = await db.update(examSchedules)
              .set({ status: 'CANCELLED', cancellationReason: reason })
              .where(eq(examSchedules.id, id))
              .returning();
-             
+               
           // Retorna todos os candidatos desta banca para a fila de espera
           await db.update(examRequests)
              .set({ 
@@ -122,7 +129,15 @@ export default async function handler(req: any, res: any) {
              })
              .where(eq(examRequests.scheduleId, id));
 
+          if (!updated || updated.length === 0) {
+            return res.status(200).json({ id, status: 'CANCELLED', cancellationReason: reason });
+          }
+
           return res.status(200).json(updated[0]);
+        } catch (err: any) {
+          console.error("[API/Schedules] Cancel Update Error:", err);
+          throw err;
+        }
       }
 
       // Sanitização se houver update de data
@@ -130,29 +145,53 @@ export default async function handler(req: any, res: any) {
           updates.date = updates.date.split('T')[0];
       }
 
-      // Edição Normal
-      const updated = await db.update(examSchedules)
-        .set(updates)
-        .where(eq(examSchedules.id, id))
-        .returning();
-      
-      // Recalcula status caso a data tenha mudado na edição
-      const current = updated[0];
-      const newStatus = calculateStatus(current.date, current.time, current.status);
-      
-      if (newStatus !== current.status) {
-         await db.update(examSchedules).set({ status: newStatus }).where(eq(examSchedules.id, id));
-         current.status = newStatus;
+      // Filtrar apenas campos que existem no schema para evitar erro do Drizzle
+      const allowedFields = [
+        'code', 'date', 'time', 'examinerIds', 'maxSlotsA', 'maxSlotsB',
+        'type', 'status', 'cancellationReason'
+      ];
+
+      const filteredUpdates: any = {};
+      for (const key of allowedFields) {
+        if (updates[key] !== undefined) {
+          filteredUpdates[key] = updates[key];
+        }
       }
 
-      // Se alterou data/hora, reflete nos candidatos agendados
-      if (updates.date || updates.time) {
-         await db.update(examRequests)
-            .set({ scheduledDate: updates.date, scheduledTime: updates.time })
-            .where(eq(examRequests.scheduleId, id));
-      }
+      console.log("[API/Schedules] Filtered Updates:", JSON.stringify(filteredUpdates));
 
-      return res.status(200).json(current);
+      try {
+        // Edição Normal
+        const updated = await db.update(examSchedules)
+          .set(filteredUpdates)
+          .where(eq(examSchedules.id, id))
+          .returning();
+        
+        if (!updated || updated.length === 0) {
+          return res.status(200).json({ id, ...updates });
+        }
+
+        const current = updated[0];
+        // Recalcula status caso a data tenha mudado na edição
+        const newStatus = calculateStatus(current.date, current.time, current.status);
+        
+        if (newStatus !== current.status) {
+           await db.update(examSchedules).set({ status: newStatus }).where(eq(examSchedules.id, id));
+           current.status = newStatus;
+        }
+
+        // Se alterou data/hora, reflete nos candidatos agendados
+        if (updates.date || updates.time) {
+           await db.update(examRequests)
+              .set({ scheduledDate: updates.date, scheduledTime: updates.time })
+              .where(eq(examRequests.scheduleId, id));
+        }
+
+        return res.status(200).json(current);
+      } catch (err: any) {
+        console.error("[API/Schedules] General Update Error:", err);
+        throw err;
+      }
     }
 
     if (req.method === 'DELETE') {

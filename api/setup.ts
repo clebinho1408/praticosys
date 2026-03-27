@@ -135,6 +135,7 @@ export default async function handler(req: any, res: any) {
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS scheduled_time text`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS scheduled_category text`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS attendance_confirmed boolean DEFAULT false`,
+      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS cancellation_reason text`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS observation text`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS exam_history jsonb DEFAULT '[]'::jsonb`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now()`,
