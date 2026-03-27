@@ -239,7 +239,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 </button>
                 <div className="hidden md:block">
                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
-                      {location.pathname.includes('scheduling') ? 'Gestão de Bancas' : 
+                      {location.pathname.includes('scheduling') ? 'Gestão de Prova Prática CFC' : 
                        location.pathname.includes('requests') ? 'Gestão de Candidatos' : 
                        location.pathname.includes('reports') ? 'Relatórios e Análises' :
                        location.pathname.includes('users') ? 'Administração' : 'Painel Principal'}

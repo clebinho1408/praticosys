@@ -165,6 +165,7 @@ export interface ExamRequest {
   observation?: string;
   
   attendanceConfirmed?: boolean; // New: Confirmed via WhatsApp/Phone
+  cancellationReason?: string; // Reason for cancellation
   
   createdAt: string;
   updatedAt: string;
