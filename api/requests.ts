@@ -14,6 +14,10 @@ const parseBody = (req: any) => {
 };
 
 export default async function handler(req: any, res: any) {
+  console.log("[API/Requests] Handler called. examRequests defined:", !!examRequests);
+  if (examRequests) {
+    console.log("[API/Requests] examRequests name:", (examRequests as any)[Symbol.for('drizzle:Name')]);
+  }
   try {
     if (req.method === 'GET') {
       try {
