@@ -4,6 +4,7 @@ import { ExamType, RequestSource, ExamRequest, ExamStatus, BlockedDate, SystemSe
 import { api } from '../services/api';
 import { isDateBlocked } from '../lib/dateBlocking';
 import { CheckCircle, AlertCircle, User, FileCheck, Send, ChevronRight, ChevronLeft } from 'lucide-react';
+import DatePicker from '../components/DatePicker';
 
 export const LandingPage: React.FC = () => {
   return (
@@ -461,7 +462,14 @@ export const PCDRequestForm: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Data Desejada</label>
-              <input required name="desiredDate" type="date" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2 bg-white text-gray-900" onChange={handleChange} />
+              <DatePicker 
+                value={formData.desiredDate} 
+                onChange={date => setFormData({...formData, desiredDate: date})} 
+                blockedDates={blockedDates}
+                settings={settings}
+                placeholder="Selecione a data"
+                className="mt-1"
+              />
             </div>
           </div>
 

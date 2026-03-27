@@ -31,6 +31,7 @@ import {
   Car,
   AlertOctagon
 } from 'lucide-react';
+import DatePicker from '../components/DatePicker';
 
 const formatDateDisplay = (dateString: string) => {
   if (!dateString) return '-';
@@ -608,18 +609,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <input 
-                        type="date" 
-                        className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900"
-                        value={startDate}
-                        onChange={e => setStartDate(e.target.value)}
+                    <DatePicker 
+                        value={startDate} 
+                        onChange={setStartDate} 
+                        placeholder="Início"
+                        className="w-32"
                     />
                     <span className="text-gray-400">-</span>
-                    <input 
-                        type="date" 
-                        className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900"
-                        value={endDate}
-                        onChange={e => setEndDate(e.target.value)}
+                    <DatePicker 
+                        value={endDate} 
+                        onChange={setEndDate} 
+                        placeholder="Fim"
+                        className="w-32"
                     />
                 </div>
              </div>
@@ -921,7 +922,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                       <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Data da Prova <span className="text-red-500">*</span></label>
-                            <input id="scheduleDate" required type="date" className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900" value={scheduleForm.date} onChange={e => setScheduleForm({...scheduleForm, date: e.target.value})} />
+                            <DatePicker 
+                              value={scheduleForm.date} 
+                              onChange={date => setScheduleForm({...scheduleForm, date})} 
+                              blockedDates={blockedDates}
+                              settings={settings}
+                              placeholder="Selecione a data"
+                            />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Horário Início <span className="text-red-500">*</span></label>

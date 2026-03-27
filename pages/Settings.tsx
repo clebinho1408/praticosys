@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { SystemSettings, City, Examiner, BlockedDate } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
+import DatePicker from '../components/DatePicker';
 
 type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC';
 
@@ -550,11 +551,13 @@ const Settings: React.FC = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                                     <div className="md:col-span-1">
                                         <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Data</label>
-                                        <input 
-                                            type="date" 
-                                            value={newBlockedDate.date}
-                                            onChange={e => setNewBlockedDate({ ...newBlockedDate, date: e.target.value })}
-                                            className="w-full border p-2 rounded bg-white text-gray-900"
+                                        <DatePicker 
+                                            value={newBlockedDate.date} 
+                                            onChange={date => setNewBlockedDate({ ...newBlockedDate, date })} 
+                                            blockedDates={blockedDates}
+                                            settings={settings}
+                                            placeholder="Selecione a data"
+                                            className="w-full"
                                         />
                                     </div>
                                     <div className="md:col-span-1">
