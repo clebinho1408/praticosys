@@ -22,7 +22,7 @@ import { db } from '../db/index';
 
 export const app = express();
 
-app.use((req, _res, next) => {
+app.use((req, res, next) => {
   console.log(`[API] Request: ${req.method} ${req.url}`);
   // Vercel might strip the /api prefix depending on the setup
   if (!req.url.startsWith('/api')) {
