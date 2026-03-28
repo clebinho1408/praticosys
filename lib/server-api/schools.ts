@@ -1,6 +1,6 @@
 
-import { db } from '../../db/index';
-import { drivingSchools } from '../../db/schema';
+import { db } from '../../db/index.js';
+import { drivingSchools } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 

@@ -1,5 +1,5 @@
 
-import { db } from '../../db/index';
+import { db } from '../../db/index.js';
 import { sql } from 'drizzle-orm';
 
 export default async function handler(req: any, res: any) {

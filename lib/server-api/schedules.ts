@@ -1,7 +1,7 @@
 
 // Schedules API Handler
-import { db } from '../../db/index';
-import { examSchedules, examRequests } from '../../db/schema';
+import { db } from '../../db/index.js';
+import { examSchedules, examRequests } from '../../db/schema.js';
 import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import crypto from 'crypto';
 

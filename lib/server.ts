@@ -5,20 +5,20 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 // Import API handlers
-import authHandler from './server-api/auth';
-import examinersHandler from './server-api/examiners';
-import instructorsHandler from './server-api/instructors';
-import requestsHandler from './server-api/requests';
-import schedulesHandler from './server-api/schedules';
-import bancaResultsHandler from './server-api/banca-results';
-import schoolsHandler from './server-api/schools';
-import settingsHandler from './server-api/settings';
-import setupHandler from './server-api/setup';
-import testHandler from './server-api/test';
-import usersHandler from './server-api/users';
-import blockedDatesHandler from './server-api/blocked-dates';
-import citiesHandler from './server-api/cities';
-import { db } from '../db/index';
+import authHandler from './server-api/auth.js';
+import examinersHandler from './server-api/examiners.js';
+import instructorsHandler from './server-api/instructors.js';
+import requestsHandler from './server-api/requests.js';
+import schedulesHandler from './server-api/schedules.js';
+import bancaResultsHandler from './server-api/banca-results.js';
+import schoolsHandler from './server-api/schools.js';
+import settingsHandler from './server-api/settings.js';
+import setupHandler from './server-api/setup.js';
+import testHandler from './server-api/test.js';
+import usersHandler from './server-api/users.js';
+import blockedDatesHandler from './server-api/blocked-dates.js';
+import citiesHandler from './server-api/cities.js';
+import { db } from '../db/index.js';
 
 export const app = express();
 

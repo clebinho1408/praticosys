@@ -1,7 +1,7 @@
 
 // Banca Results API Handler
-import { db } from '../../db/index';
-import { bancaResults } from '../../db/schema';
+import { db } from '../../db/index.js';
+import { bancaResults } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import crypto from 'crypto';
 
