@@ -118,6 +118,3 @@ dist
 # OS
 .DS_Store
 Thumbs.db
-# Ignore old API files
-api/*
-!api/[...path].ts
