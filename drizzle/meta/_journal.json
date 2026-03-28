@@ -1,0 +1,13 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1772812627314,
+      "tag": "0000_white_mimic",
+      "breakpoints": true
+    }
+  ]
+}
