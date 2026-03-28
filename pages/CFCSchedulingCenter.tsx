@@ -30,7 +30,8 @@ import {
   Save,
   RefreshCw,
   MessageCircle,
-  Copy
+  Copy,
+  Pencil
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -1197,6 +1198,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                          <th className="px-4 py-3">Horário</th>
                          <th className="px-4 py-3">Examinador</th>
                          <th className="px-4 py-3">Exame</th>
+                         <th className="px-4 py-3 text-right">Ações</th>
                        </tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
@@ -1208,6 +1210,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                            <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
                            <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
                            <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
+                           <td className="px-4 py-3 text-right">
+                             <button
+                               onClick={() => {
+                                 setSelectedRequest(req);
+                                 setIsEditModalOpen(true);
+                               }}
+                               className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded-md hover:bg-blue-50"
+                               title="Editar"
+                             >
+                               <Pencil className="h-4 w-4" />
+                             </button>
+                           </td>
                          </tr>
                        ))}
                      </tbody>
