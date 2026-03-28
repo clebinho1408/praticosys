@@ -1,8 +1,8 @@
 
-import { db } from '../../db/index.js';
-import { blockedDates } from '../../db/schema.js';
+import { db } from '../../db/index';
+import { blockedDates } from '../../db/schema';
 import { eq } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
+import { randomUUID } from 'crypto';
 
 export default async function handler(req: any, res: any) {
   const { method } = req;

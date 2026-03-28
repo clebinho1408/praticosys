@@ -1,25 +1,24 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import * as dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
 // Import API handlers
-import authHandler from './server-api/auth.js';
-import examinersHandler from './server-api/examiners.js';
-import instructorsHandler from './server-api/instructors.js';
-import requestsHandler from './server-api/requests.js';
-import schedulesHandler from './server-api/schedules.js';
-import bancaResultsHandler from './server-api/banca-results.js';
-import schoolsHandler from './server-api/schools.js';
-import settingsHandler from './server-api/settings.js';
-import setupHandler from './server-api/setup.js';
-import testHandler from './server-api/test.js';
-import usersHandler from './server-api/users.js';
-import blockedDatesHandler from './server-api/blocked-dates.js';
-import citiesHandler from './server-api/cities.js';
-import { db } from '../db/index.js';
+import authHandler from './server-api/auth';
+import examinersHandler from './server-api/examiners';
+import instructorsHandler from './server-api/instructors';
+import requestsHandler from './server-api/requests';
+import schedulesHandler from './server-api/schedules';
+import bancaResultsHandler from './server-api/banca-results';
+import schoolsHandler from './server-api/schools';
+import settingsHandler from './server-api/settings';
+import setupHandler from './server-api/setup';
+import testHandler from './server-api/test';
+import usersHandler from './server-api/users';
+import blockedDatesHandler from './server-api/blocked-dates';
+import citiesHandler from './server-api/cities';
+import { db } from '../db/index';
 
 export async function createServer() {
   const app = express();
@@ -62,26 +61,22 @@ export async function createServer() {
   app.all('/api/blocked-dates', wrap(blockedDatesHandler));
   app.all('/api/cities', wrap(citiesHandler));
   
-  // Run DB Setup on startup
-  console.log("[Server] Executando setup do banco de dados...");
-  const mockRes = { 
-    status: (code: number) => ({ 
-      json: (data: any) => console.log(`[Setup Startup] Status ${code}:`, data),
-      send: (data: any) => console.log(`[Setup Startup] Status ${code}:`, data)
-    }) 
-  };
-  setupHandler({ method: 'POST' }, mockRes).catch(err => console.error("[Setup Startup] Erro:", err));
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
+    try {
+      const viteModule = 'vite';
+      const { createServer: createViteServer } = await import(/* @vite-ignore */ viteModule);
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } catch (e) {
+      console.error('[Server] Vite not found or failed to load, skipping middleware');
+    }
   } else {
-    // Production static file serving (if needed)
-    app.use(express.static('dist'));
+    // Production static file serving is handled by Vercel
+    // No need for express.static here
   }
 
   return app;

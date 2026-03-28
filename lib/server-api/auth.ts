@@ -1,8 +1,8 @@
 
-import { db } from '../../db/index.js';
-import { users } from '../../db/schema.js';
+import { db } from '../../db/index';
+import { users } from '../../db/schema';
 import { eq } from 'drizzle-orm';
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 
 // Gerador de ID seguro compatível com vários ambientes Node
 function generateId() {

@@ -1,6 +1,6 @@
 
-import { db } from '../../db/index.js';
-import { cities } from '../../db/schema.js';
+import { db } from '../../db/index';
+import { cities } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 

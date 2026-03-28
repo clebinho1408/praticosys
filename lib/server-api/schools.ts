@@ -1,8 +1,8 @@
 
-import { db } from '../../db/index.js';
-import { drivingSchools } from '../../db/schema.js';
+import { db } from '../../db/index';
+import { drivingSchools } from '../../db/schema';
 import { eq, sql } from 'drizzle-orm';
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 

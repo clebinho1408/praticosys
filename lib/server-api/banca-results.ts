@@ -1,9 +1,9 @@
 
 // Banca Results API Handler
-import { db } from '../../db/index.js';
-import { bancaResults } from '../../db/schema.js';
+import { db } from '../../db/index';
+import { bancaResults } from '../../db/schema';
 import { eq, and } from 'drizzle-orm';
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 
 const parseBody = (req: any) => {
     try {

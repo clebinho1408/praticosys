@@ -120,4 +120,4 @@ dist
 Thumbs.db
 # Ignore old API files
 api/*
-!api/index.ts
+!api/[...path].ts

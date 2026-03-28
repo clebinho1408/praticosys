@@ -1,9 +1,9 @@
 
 // Schedules API Handler
-import { db } from '../../db/index.js';
-import { examSchedules, examRequests } from '../../db/schema.js';
+import { db } from '../../db/index';
+import { examSchedules, examRequests } from '../../db/schema';
 import { eq, and, desc, isNotNull } from 'drizzle-orm';
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
