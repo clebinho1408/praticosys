@@ -1,4 +1,4 @@
-import { ExamRequest, ExamSchedule, Examiner, Instructor, DrivingSchool, SystemSettings, User, City } from '../types';
+import { ExamRequest, ExamSchedule, Examiner, Instructor, DrivingSchool, SystemSettings, User, City, BancaResult } from '../types';
 
 const API_BASE = '/api';
 
@@ -77,6 +77,17 @@ export const api = {
   createCity: (data: Partial<City>) => request<City>('/cities', { method: 'POST', body: JSON.stringify(data) }),
   updateCity: (id: string, data: Partial<City>) => request<City>('/cities', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteCity: (id: string) => request<void>(`/cities?id=${id}`, { method: 'DELETE' }),
+  
+  // --- BANCA RESULTS ---
+  getBancaResults: (scheduleId?: string, schoolId?: string) => {
+    let url = '/banca-results';
+    const params = new URLSearchParams();
+    if (scheduleId) params.append('scheduleId', scheduleId);
+    if (schoolId) params.append('schoolId', schoolId);
+    if (params.toString()) url += `?${params.toString()}`;
+    return request<BancaResult[]>(url);
+  },
+  saveBancaResult: (data: Partial<BancaResult>) => request<BancaResult>('/banca-results', { method: 'POST', body: JSON.stringify(data) }),
 
   // --- ACTIONS ---
   assignStudentToSchedule: (requestId: string, scheduleId: string, category: string) => 

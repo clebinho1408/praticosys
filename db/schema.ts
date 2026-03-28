@@ -170,3 +170,19 @@ export const cities = pgTable('cities', {
   name: text('name').notNull().unique(),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// Tabela de Resultados por Banca e Escola
+export const bancaResults = pgTable('banca_results', {
+  id: text('id').primaryKey(),
+  scheduleId: text('schedule_id').notNull(),
+  schoolId: text('school_id').notNull(),
+  category: text('category').notNull(), // A, B, MUDANCA
+  totalSlots: integer('total_slots').default(0),
+  usedSlots: integer('used_slots').default(0),
+  approved: integer('approved').default(0),
+  failed: integer('failed').default(0),
+  absent: integer('absent').default(0),
+  cancelled: integer('cancelled').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});

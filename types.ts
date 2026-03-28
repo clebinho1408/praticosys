@@ -218,6 +218,21 @@ export interface City {
   createdAt?: string;
 }
 
+export interface BancaResult {
+  id: string;
+  scheduleId: string;
+  schoolId: string;
+  category: string; // A, B, MUDANCA
+  totalSlots: number;
+  usedSlots: number;
+  approved: number;
+  failed: number;
+  absent: number;
+  cancelled: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;

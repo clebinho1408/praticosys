@@ -11,6 +11,7 @@ import examinersHandler from './api/examiners.js';
 import instructorsHandler from './api/instructors.js';
 import requestsHandler from './api/requests.js';
 import schedulesHandler from './api/schedules.js';
+import bancaResultsHandler from './api/banca-results.js';
 import schoolsHandler from './api/schools.js';
 import settingsHandler from './api/settings.js';
 import setupHandler from './api/setup.js';
@@ -51,6 +52,7 @@ async function startServer() {
   app.all('/api/instructors', wrap(instructorsHandler));
   app.all('/api/requests', wrap(requestsHandler));
   app.all('/api/schedules', wrap(schedulesHandler));
+  app.all('/api/banca-results', wrap(bancaResultsHandler));
   app.all('/api/schools', wrap(schoolsHandler));
   app.all('/api/settings', wrap(settingsHandler));
   app.all('/api/setup', wrap(setupHandler));
