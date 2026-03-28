@@ -20,7 +20,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["db", "api", "*.ts", "*.tsx", "pages", "components", "services"],
+  "include": ["db", "api", "*.ts", "*.tsx", "pages", "components", "services", "lib"],
   "exclude": ["vite.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
