@@ -86,7 +86,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
             className="border-none"
             modifiersClassNames={{
               selected: "bg-blue-600 text-white rounded-full",
-              today: "font-bold text-blue-600 border-b-2 border-blue-600"
+              today: "font-bold text-blue-600 border-b-2 border-blue-600",
+              disabled: "bg-gray-100 text-gray-400 cursor-not-allowed"
             }}
           />
         </div>
