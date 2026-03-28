@@ -6,22 +6,23 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 // Import API handlers
-import authHandler from './api/auth.js';
-import examinersHandler from './api/examiners.js';
-import instructorsHandler from './api/instructors.js';
-import requestsHandler from './api/requests.js';
-import schedulesHandler from './api/schedules.js';
-import bancaResultsHandler from './api/banca-results.js';
-import schoolsHandler from './api/schools.js';
-import settingsHandler from './api/settings.js';
-import setupHandler from './api/setup.js';
-import testHandler from './api/test.js';
-import usersHandler from './api/users.js';
+import authHandler from './server-api/auth.js';
+import examinersHandler from './server-api/examiners.js';
+import instructorsHandler from './server-api/instructors.js';
+import requestsHandler from './server-api/requests.js';
+import schedulesHandler from './server-api/schedules.js';
+import bancaResultsHandler from './server-api/banca-results.js';
+import schoolsHandler from './server-api/schools.js';
+import settingsHandler from './server-api/settings.js';
+import setupHandler from './server-api/setup.js';
+import testHandler from './server-api/test.js';
+import usersHandler from './server-api/users.js';
+import blockedDatesHandler from './server-api/blocked-dates.js';
+import citiesHandler from './server-api/cities.js';
 import { db } from './db/index.js';
 
-async function startServer() {
+export async function createServer() {
   const app = express();
-  const PORT = 3000;
 
   app.get('/api/db-status', (_req, res) => {
     res.json({
@@ -58,6 +59,8 @@ async function startServer() {
   app.all('/api/setup', wrap(setupHandler));
   app.all('/api/test', wrap(testHandler));
   app.all('/api/users', wrap(usersHandler));
+  app.all('/api/blocked-dates', wrap(blockedDatesHandler));
+  app.all('/api/cities', wrap(citiesHandler));
   
   // Run DB Setup on startup
   console.log("[Server] Executando setup do banco de dados...");
@@ -81,9 +84,14 @@ async function startServer() {
     app.use(express.static('dist'));
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  return app;
 }
 
-startServer();
+// Only start the server if this file is run directly
+if (process.env.NODE_ENV !== 'production') {
+  createServer().then(app => {
+    app.listen(3000, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:3000`);
+    });
+  });
+}
