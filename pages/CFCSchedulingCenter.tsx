@@ -118,12 +118,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [selectedRequest, setSelectedRequest] = useState<ExamRequest | null>(null);
 
   const updateBancaResult = (category: string, field: string, value: number) => {
+    const safeValue = Math.max(0, value);
     setBancaResults(prev => {
       const existing = prev.find(r => r.category === category);
+      let updatedResult: BancaResult;
+
       if (existing) {
-        return prev.map(r => r.category === category ? { ...r, [field]: value } : r);
+        updatedResult = { ...existing, [field]: safeValue };
       } else {
-        return [...prev, {
+        updatedResult = {
           id: `temp-${Math.random().toString(36).substr(2, 9)}`,
           scheduleId: selectedRequest?.scheduleId || '',
           schoolId: selectedRequest?.schoolId || '',
@@ -136,8 +139,34 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           failed: 0,
           absent: 0,
           cancelled: 0,
-          [field]: value
-        } as BancaResult];
+          [field]: safeValue
+        } as BancaResult;
+      }
+
+      // Validation logic: Apto + Inapto + Cancelado <= Vagas Usadas
+      const usedSlots = updatedResult.usedSlots || 0;
+      
+      if (field === 'usedSlots') {
+        // If usedSlots changed, ensure sum of others doesn't exceed it
+        let currentSum = (updatedResult.approved || 0) + (updatedResult.failed || 0) + (updatedResult.cancelled || 0);
+        if (currentSum > safeValue) {
+          updatedResult.approved = Math.min(updatedResult.approved || 0, safeValue);
+          updatedResult.failed = Math.min(updatedResult.failed || 0, safeValue - (updatedResult.approved || 0));
+          updatedResult.cancelled = Math.min(updatedResult.cancelled || 0, safeValue - (updatedResult.approved || 0) - (updatedResult.failed || 0));
+        }
+      } else if (['approved', 'failed', 'cancelled'].includes(field)) {
+        const otherFields = ['approved', 'failed', 'cancelled'].filter(f => f !== field);
+        const otherSum = otherFields.reduce((sum, f) => sum + ((updatedResult as any)[f] || 0), 0);
+        
+        if (safeValue + otherSum > usedSlots) {
+          (updatedResult as any)[field] = Math.max(0, usedSlots - otherSum);
+        }
+      }
+
+      if (existing) {
+        return prev.map(r => r.category === category ? updatedResult : r);
+      } else {
+        return [...prev, updatedResult];
       }
     });
   };
@@ -165,7 +194,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           if (cats.includes('B')) neededCategories.push('B');
           if (cats.some(c => ['C', 'D', 'E'].includes(c))) neededCategories.push('MUDANCA');
           
-          const finalResults = [...results];
+          const finalResults = results.map(r => ({
+            ...r,
+            totalSlots: r.category === 'A' ? (systemSettings?.defaultMaxSlotsA || 0) : 
+                        r.category === 'B' ? (systemSettings?.defaultMaxSlotsB || 0) :
+                        r.category === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 0) : r.totalSlots
+          }));
+          
           neededCategories.forEach(cat => {
             if (!finalResults.find(r => r.category === cat)) {
               finalResults.push({
@@ -1054,7 +1089,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                     setSelectedRequest(req);
                                     setIsFromDoneCard(false);
                                     setIsEditModalOpen(true);
-                                    setActiveEditTab('dados');
+                                    // Set initial tab based on categories
+                                  const cats = req.intendedCategory?.split(',') || [];
+                                  if (cats.includes('A')) setActiveEditTab('catA');
+                                  else if (cats.includes('B')) setActiveEditTab('catB');
+                                  else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
+                                  else setActiveEditTab('catA'); // Fallback
                                   }}
                                   className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-md flex items-center gap-1.5 font-bold text-[10px] shadow-sm transition-colors"
                                   title="Inserir Dados"
@@ -1806,7 +1846,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-slate-800">Editar Agendamento</h2>
+              <h2 className="text-xl font-bold text-slate-800">
+                {isFromDoneCard ? 'Inserir Resultados' : 'Editar Agendamento'}
+              </h2>
               <button onClick={() => {
                 setIsEditModalOpen(false);
                 setIsFromDoneCard(false);
@@ -1824,7 +1866,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   { id: 'catB', label: 'Categoria B' },
                   { id: 'mudanca', label: 'Mudança Categoria' }
                 ].filter(tab => {
-                  if (tab.id === 'dados') return true;
+                  if (tab.id === 'dados') return !isFromDoneCard;
                   const cats = selectedRequest.intendedCategory?.split(',') || [];
                   if (tab.id === 'catA') return cats.includes('A');
                   if (tab.id === 'catB') return cats.includes('B');
@@ -2017,14 +2059,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <input 
                         type="number"
                         value={bancaResults.find(r => r.category === 'A')?.totalSlots || 0}
-                        onChange={(e) => updateBancaResult('A', 'totalSlots', parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        disabled
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-500 outline-none transition-all cursor-not-allowed"
                       />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Vagas Usadas</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'A')?.usedSlots || 0}
                         onChange={(e) => updateBancaResult('A', 'usedSlots', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -2034,6 +2077,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <label className="text-sm font-bold text-slate-700">Apto</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'A')?.approved || 0}
                         onChange={(e) => updateBancaResult('A', 'approved', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -2043,15 +2087,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <label className="text-sm font-bold text-slate-700">Inapto</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'A')?.failed || 0}
                         onChange={(e) => updateBancaResult('A', 'failed', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">Cancelada</label>
+                      <label className="text-sm font-bold text-slate-700">Cancelado</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'A')?.cancelled || 0}
                         onChange={(e) => updateBancaResult('A', 'cancelled', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -2069,14 +2115,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <input 
                         type="number"
                         value={bancaResults.find(r => r.category === 'B')?.totalSlots || 0}
-                        onChange={(e) => updateBancaResult('B', 'totalSlots', parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        disabled
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-500 outline-none transition-all cursor-not-allowed"
                       />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Vagas Usadas</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'B')?.usedSlots || 0}
                         onChange={(e) => updateBancaResult('B', 'usedSlots', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -2086,6 +2133,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <label className="text-sm font-bold text-slate-700">Apto</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'B')?.approved || 0}
                         onChange={(e) => updateBancaResult('B', 'approved', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -2095,15 +2143,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <label className="text-sm font-bold text-slate-700">Inapto</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'B')?.failed || 0}
                         onChange={(e) => updateBancaResult('B', 'failed', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">Cancelada</label>
+                      <label className="text-sm font-bold text-slate-700">Cancelado</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'B')?.cancelled || 0}
                         onChange={(e) => updateBancaResult('B', 'cancelled', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -2121,14 +2171,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <input 
                         type="number"
                         value={bancaResults.find(r => r.category === 'MUDANCA')?.totalSlots || 0}
-                        onChange={(e) => updateBancaResult('MUDANCA', 'totalSlots', parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        disabled
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-100 text-slate-500 outline-none transition-all cursor-not-allowed"
                       />
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Vagas Usadas</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'MUDANCA')?.usedSlots || 0}
                         onChange={(e) => updateBancaResult('MUDANCA', 'usedSlots', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -2138,6 +2189,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <label className="text-sm font-bold text-slate-700">Apto</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'MUDANCA')?.approved || 0}
                         onChange={(e) => updateBancaResult('MUDANCA', 'approved', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
@@ -2147,15 +2199,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <label className="text-sm font-bold text-slate-700">Inapto</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'MUDANCA')?.failed || 0}
                         onChange={(e) => updateBancaResult('MUDANCA', 'failed', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-slate-700">Cancelada</label>
+                      <label className="text-sm font-bold text-slate-700">Cancelado</label>
                       <input 
                         type="number"
+                        min="0"
                         value={bancaResults.find(r => r.category === 'MUDANCA')?.cancelled || 0}
                         onChange={(e) => updateBancaResult('MUDANCA', 'cancelled', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
