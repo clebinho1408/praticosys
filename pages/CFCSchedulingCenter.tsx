@@ -118,23 +118,32 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [selectedRequest, setSelectedRequest] = useState<ExamRequest | null>(null);
 
   const updateBancaResult = (category: string, field: string, value: number) => {
-    const safeValue = Math.max(0, value);
     setBancaResults(prev => {
       const existing = prev.find(r => r.category === category);
       let updatedResult: BancaResult;
 
+      const targetScheduleId = selectedRequest?.scheduleId || selectedRequest?.id || '';
+      const defaultTotalSlots = category === 'A' ? (systemSettings?.defaultMaxSlotsA || 10) : 
+                                category === 'B' ? (systemSettings?.defaultMaxSlotsB || 10) :
+                                category === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 10) : 0;
+
+      const currentTotalSlots = existing?.totalSlots || defaultTotalSlots;
+      
+      // If field is usedSlots, limit it to totalSlots
+      let safeValue = Math.max(0, value);
+      if (field === 'usedSlots') {
+        safeValue = Math.min(safeValue, currentTotalSlots);
+      }
+
       if (existing) {
         updatedResult = { ...existing, [field]: safeValue };
       } else {
-        const targetScheduleId = selectedRequest?.scheduleId || selectedRequest?.id || '';
         updatedResult = {
           id: `temp-${Math.random().toString(36).substr(2, 9)}`,
           scheduleId: targetScheduleId,
           schoolId: selectedRequest?.schoolId || '',
           category,
-          totalSlots: category === 'A' ? (systemSettings?.defaultMaxSlotsA || 10) : 
-                      category === 'B' ? (systemSettings?.defaultMaxSlotsB || 10) :
-                      category === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 10) : 0,
+          totalSlots: defaultTotalSlots,
           usedSlots: 0,
           approved: 0,
           failed: 0,
