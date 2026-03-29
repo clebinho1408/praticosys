@@ -508,6 +508,7 @@ const Settings: React.FC = () => {
                         <div className="grid grid-cols-2 gap-6 text-gray-900">
                             <div><label className="block text-sm font-medium">Vagas Moto Padrão (Cat. A)</label><input type="number" name="defaultMaxSlotsA" value={settings.defaultMaxSlotsA} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
                             <div><label className="block text-sm font-medium">Vagas Carro Padrão (Cat. B)</label><input type="number" name="defaultMaxSlotsB" value={settings.defaultMaxSlotsB} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
+                            <div><label className="block text-sm font-medium">Vagas Mudança Categoria Padrão (Cat. C, D, e E)</label><input type="number" name="defaultMaxSlotsMudanca" value={settings.defaultMaxSlotsMudanca} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
                         </div>
                     )}
 

@@ -186,6 +186,7 @@ export interface SystemSettings {
   maxDailySlots: number; // Global cap (legacy)
   defaultMaxSlotsA: number; // New: Default slots for Moto
   defaultMaxSlotsB: number; // New: Default slots for Car
+  defaultMaxSlotsMudanca: number; // New: Default slots for Category Change (C, D, E)
   
   whatsappMessageTemplate: string;
   cfcWhatsappMessageTemplate?: string; // New: Template for CFC Practical Exam

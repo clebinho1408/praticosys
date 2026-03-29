@@ -128,7 +128,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           scheduleId: selectedRequest?.scheduleId || '',
           schoolId: selectedRequest?.schoolId || '',
           category,
-          totalSlots: 0,
+          totalSlots: category === 'A' ? (systemSettings?.defaultMaxSlotsA || 0) : 
+                      category === 'B' ? (systemSettings?.defaultMaxSlotsB || 0) :
+                      category === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 0) : 0,
           usedSlots: 0,
           approved: 0,
           failed: 0,
@@ -155,14 +157,55 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       if (isEditModalOpen && selectedRequest?.scheduleId && selectedRequest?.schoolId) {
         try {
           const results = await api.getBancaResults(selectedRequest.scheduleId, selectedRequest.schoolId);
-          setBancaResults(results);
+          
+          // Pre-populate with defaults if missing
+          const cats = selectedRequest.intendedCategory?.split(',') || [];
+          const neededCategories: string[] = [];
+          if (cats.includes('A')) neededCategories.push('A');
+          if (cats.includes('B')) neededCategories.push('B');
+          if (cats.some(c => ['C', 'D', 'E'].includes(c))) neededCategories.push('MUDANCA');
+          
+          const finalResults = [...results];
+          neededCategories.forEach(cat => {
+            if (!finalResults.find(r => r.category === cat)) {
+              finalResults.push({
+                id: `temp-${Math.random().toString(36).substr(2, 9)}`,
+                scheduleId: selectedRequest.scheduleId!,
+                schoolId: selectedRequest.schoolId!,
+                category: cat,
+                totalSlots: cat === 'A' ? (systemSettings?.defaultMaxSlotsA || 0) : 
+                            cat === 'B' ? (systemSettings?.defaultMaxSlotsB || 0) :
+                            cat === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 0) : 0,
+                usedSlots: 0,
+                approved: 0,
+                failed: 0,
+                absent: 0,
+                cancelled: 0
+              });
+            }
+          });
+          
+          setBancaResults(finalResults);
         } catch (error) {
           console.error('Error fetching banca results:', error);
         }
       }
     };
     fetchBancaResults();
-  }, [isEditModalOpen, selectedRequest]);
+  }, [isEditModalOpen, selectedRequest?.scheduleId, selectedRequest?.schoolId, systemSettings]);
+
+  useEffect(() => {
+    if (isEditModalOpen && selectedRequest && activeEditTab !== 'dados') {
+      const cats = selectedRequest.intendedCategory?.split(',') || [];
+      const isCatA = activeEditTab === 'catA' && cats.includes('A');
+      const isCatB = activeEditTab === 'catB' && cats.includes('B');
+      const isMudanca = activeEditTab === 'mudanca' && cats.some(c => ['C', 'D', 'E'].includes(c));
+      
+      if (!isCatA && !isCatB && !isMudanca) {
+        setActiveEditTab('dados');
+      }
+    }
+  }, [selectedRequest?.intendedCategory, isEditModalOpen, activeEditTab]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -831,6 +874,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       setIsFromDoneCard(false);
       setActiveEditTab('dados');
       setSelectedRequest(null);
+      setBancaResults([]);
       fetchData();
     } catch (error) {
       console.error('Error updating request:', error);
@@ -1779,7 +1823,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   { id: 'catA', label: 'Categoria A' },
                   { id: 'catB', label: 'Categoria B' },
                   { id: 'mudanca', label: 'Mudança Categoria' }
-                ].map(tab => (
+                ].filter(tab => {
+                  if (tab.id === 'dados') return true;
+                  const cats = selectedRequest.intendedCategory?.split(',') || [];
+                  if (tab.id === 'catA') return cats.includes('A');
+                  if (tab.id === 'catB') return cats.includes('B');
+                  if (tab.id === 'mudanca') return cats.some(c => ['C', 'D', 'E'].includes(c));
+                  return false;
+                }).map(tab => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveEditTab(tab.id)}
@@ -2122,6 +2173,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     setIsEditModalOpen(false);
                     setIsFromDoneCard(false);
                     setActiveEditTab('dados');
+                    setBancaResults([]);
                   }}
                   className="px-6 py-2.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors"
                 >

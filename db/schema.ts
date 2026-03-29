@@ -140,6 +140,7 @@ export const systemSettings = pgTable('system_settings', {
   maxDailySlots: integer('max_daily_slots').default(50),
   defaultMaxSlotsA: integer('default_max_slots_a').default(10),
   defaultMaxSlotsB: integer('default_max_slots_b').default(10),
+  defaultMaxSlotsMudanca: integer('default_max_slots_mudanca').default(10),
   whatsappMessageTemplate: text('whatsapp_template'),
   cfcWhatsappMessageTemplate: text('cfc_whatsapp_template'),
   defaultExamAddress: text('default_exam_address'),

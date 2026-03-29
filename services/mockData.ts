@@ -82,6 +82,7 @@ const MEMORY_STORE = {
         maxDailySlots: 50, 
         defaultMaxSlotsA: 10, 
         defaultMaxSlotsB: 10, 
+        defaultMaxSlotsMudanca: 10,
         minDaysForScheduling: 2, 
         enableEmailNotifications: false, 
         enableSmsNotifications: false,
