@@ -147,9 +147,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       const usedSlots = updatedResult.usedSlots || 0;
       
       if (field === 'usedSlots') {
-        // If usedSlots changed, ensure sum of others doesn't exceed it
         let currentSum = (updatedResult.approved || 0) + (updatedResult.failed || 0) + (updatedResult.cancelled || 0);
-        if (currentSum > safeValue) {
+        
+        // If sum is 0, auto-populate Apto with usedSlots
+        if (currentSum === 0 && safeValue > 0) {
+          updatedResult.approved = safeValue;
+        } else if (currentSum > safeValue) {
+          // Adjust if sum exceeds new usedSlots
           updatedResult.approved = Math.min(updatedResult.approved || 0, safeValue);
           updatedResult.failed = Math.min(updatedResult.failed || 0, safeValue - (updatedResult.approved || 0));
           updatedResult.cancelled = Math.min(updatedResult.cancelled || 0, safeValue - (updatedResult.approved || 0) - (updatedResult.failed || 0));
@@ -183,7 +187,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   useEffect(() => {
     const fetchBancaResults = async () => {
-      if (isEditModalOpen && selectedRequest?.scheduleId && selectedRequest?.schoolId) {
+      if (isEditModalOpen && selectedRequest?.scheduleId && selectedRequest?.schoolId && systemSettings) {
         try {
           const results = await api.getBancaResults(selectedRequest.scheduleId, selectedRequest.schoolId);
           
@@ -196,9 +200,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           
           const finalResults = results.map(r => ({
             ...r,
-            totalSlots: r.category === 'A' ? (systemSettings?.defaultMaxSlotsA || 0) : 
-                        r.category === 'B' ? (systemSettings?.defaultMaxSlotsB || 0) :
-                        r.category === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 0) : r.totalSlots
+            totalSlots: r.category === 'A' ? (systemSettings.defaultMaxSlotsA || 10) : 
+                        r.category === 'B' ? (systemSettings.defaultMaxSlotsB || 10) :
+                        r.category === 'MUDANCA' ? (systemSettings.defaultMaxSlotsMudanca || 10) : r.totalSlots
           }));
           
           neededCategories.forEach(cat => {
@@ -208,9 +212,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 scheduleId: selectedRequest.scheduleId!,
                 schoolId: selectedRequest.schoolId!,
                 category: cat,
-                totalSlots: cat === 'A' ? (systemSettings?.defaultMaxSlotsA || 0) : 
-                            cat === 'B' ? (systemSettings?.defaultMaxSlotsB || 0) :
-                            cat === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 0) : 0,
+                totalSlots: cat === 'A' ? (systemSettings.defaultMaxSlotsA || 10) : 
+                            cat === 'B' ? (systemSettings.defaultMaxSlotsB || 10) :
+                            cat === 'MUDANCA' ? (systemSettings.defaultMaxSlotsMudanca || 10) : 0,
                 usedSlots: 0,
                 approved: 0,
                 failed: 0,
@@ -1354,10 +1358,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                  setSelectedRequest(req);
                                  setIsFromDoneCard(true);
                                  setIsEditModalOpen(true);
-                                 setActiveEditTab('dados');
+                                 // Find first available category tab
+                                 const cats = req.intendedCategory?.split(',') || [];
+                                 if (cats.includes('A')) setActiveEditTab('catA');
+                                 else if (cats.includes('B')) setActiveEditTab('catB');
+                                 else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
+                                 else setActiveEditTab('dados');
                                }}
                                className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded-md hover:bg-blue-50"
-                               title="Editar"
+                               title="Inserir Resultado"
                              >
                                <Pencil className="h-4 w-4" />
                              </button>

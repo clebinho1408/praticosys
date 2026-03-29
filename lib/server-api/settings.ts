@@ -100,6 +100,12 @@ export default async function handler(req: any, res: any) {
       if (!settings.cnhBrasilMainSchedule) {
         settings.cnhBrasilMainSchedule = { frequency: '1_WEEK', days: [], slots: [], active: false };
       }
+      if (settings.defaultMaxSlotsA === undefined || settings.defaultMaxSlotsA === null) {
+        settings.defaultMaxSlotsA = 10;
+      }
+      if (settings.defaultMaxSlotsB === undefined || settings.defaultMaxSlotsB === null) {
+        settings.defaultMaxSlotsB = 10;
+      }
       if (settings.defaultMaxSlotsMudanca === undefined || settings.defaultMaxSlotsMudanca === null) {
         settings.defaultMaxSlotsMudanca = 10;
       }
