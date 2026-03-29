@@ -214,11 +214,13 @@ const Settings: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!settings) return;
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     
-    let finalValue = value;
+    let finalValue: any = value;
     if (name === 'pcdExamName') {
       finalValue = value.toUpperCase();
+    } else if (type === 'number') {
+      finalValue = parseInt(value) || 0;
     }
     
     setSettings({

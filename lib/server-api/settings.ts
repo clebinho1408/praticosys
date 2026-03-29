@@ -11,6 +11,7 @@ async function ensureSchema() {
   if (schemaUpdated) return;
   try {
     await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS cnh_brasil_main_schedule JSONB`);
+    await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS default_max_slots_mudanca INTEGER DEFAULT 10`);
     schemaUpdated = true;
   } catch (e) {
     console.error("Schema update error:", e);
@@ -66,6 +67,7 @@ export default async function handler(req: any, res: any) {
           maxDailySlots: 50,
           defaultMaxSlotsA: 10,
           defaultMaxSlotsB: 10,
+          defaultMaxSlotsMudanca: 10,
           minDaysForScheduling: 2,
           whatsappMessageTemplate: getDefaultTemplate(),
           cfcWhatsappMessageTemplate: getCfcDefaultTemplate(),
@@ -97,6 +99,9 @@ export default async function handler(req: any, res: any) {
       }
       if (!settings.cnhBrasilMainSchedule) {
         settings.cnhBrasilMainSchedule = { frequency: '1_WEEK', days: [], slots: [], active: false };
+      }
+      if (settings.defaultMaxSlotsMudanca === undefined || settings.defaultMaxSlotsMudanca === null) {
+        settings.defaultMaxSlotsMudanca = 10;
       }
       
       return res.status(200).json(settings);
