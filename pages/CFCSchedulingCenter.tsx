@@ -126,14 +126,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       if (existing) {
         updatedResult = { ...existing, [field]: safeValue };
       } else {
+        const targetScheduleId = selectedRequest?.scheduleId || selectedRequest?.id || '';
         updatedResult = {
           id: `temp-${Math.random().toString(36).substr(2, 9)}`,
-          scheduleId: selectedRequest?.scheduleId || '',
+          scheduleId: targetScheduleId,
           schoolId: selectedRequest?.schoolId || '',
           category,
-          totalSlots: category === 'A' ? (systemSettings?.defaultMaxSlotsA || 0) : 
-                      category === 'B' ? (systemSettings?.defaultMaxSlotsB || 0) :
-                      category === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 0) : 0,
+          totalSlots: category === 'A' ? (systemSettings?.defaultMaxSlotsA || 10) : 
+                      category === 'B' ? (systemSettings?.defaultMaxSlotsB || 10) :
+                      category === 'MUDANCA' ? (systemSettings?.defaultMaxSlotsMudanca || 10) : 0,
           usedSlots: 0,
           approved: 0,
           failed: 0,
@@ -159,11 +160,23 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           updatedResult.cancelled = Math.min(updatedResult.cancelled || 0, safeValue - (updatedResult.approved || 0) - (updatedResult.failed || 0));
         }
       } else if (['approved', 'failed', 'cancelled'].includes(field)) {
-        const otherFields = ['approved', 'failed', 'cancelled'].filter(f => f !== field);
-        const otherSum = otherFields.reduce((sum, f) => sum + ((updatedResult as any)[f] || 0), 0);
-        
-        if (safeValue + otherSum > usedSlots) {
-          (updatedResult as any)[field] = Math.max(0, usedSlots - otherSum);
+        if (field === 'failed' || field === 'cancelled') {
+          const newFailed = field === 'failed' ? safeValue : (updatedResult.failed || 0);
+          const newCancelled = field === 'cancelled' ? safeValue : (updatedResult.cancelled || 0);
+          
+          // Ensure failed + cancelled doesn't exceed usedSlots
+          if (newFailed + newCancelled > usedSlots) {
+            (updatedResult as any)[field] = Math.max(0, usedSlots - (field === 'failed' ? newCancelled : newFailed));
+          }
+          
+          // Auto-calculate approved
+          updatedResult.approved = Math.max(0, usedSlots - (updatedResult.failed || 0) - (updatedResult.cancelled || 0));
+        } else if (field === 'approved') {
+          // If manually changing approved, just ensure it doesn't exceed available
+          const otherSum = (updatedResult.failed || 0) + (updatedResult.cancelled || 0);
+          if (otherSum + safeValue > usedSlots) {
+            updatedResult.approved = Math.max(0, usedSlots - otherSum);
+          }
         }
       }
 
@@ -187,20 +200,22 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   useEffect(() => {
     const fetchBancaResults = async () => {
-      if (isEditModalOpen && selectedRequest?.scheduleId && selectedRequest?.schoolId && systemSettings) {
+      const targetScheduleId = selectedRequest?.scheduleId || selectedRequest?.id;
+      if (isEditModalOpen && targetScheduleId && selectedRequest?.schoolId && systemSettings) {
         try {
-          const results = await api.getBancaResults(selectedRequest.scheduleId, selectedRequest.schoolId);
+          const results = await api.getBancaResults(targetScheduleId, selectedRequest.schoolId);
           
           // Pre-populate with defaults if missing
           const cats = selectedRequest.intendedCategory?.split(',') || [];
           const neededCategories: string[] = [];
-          if (cats.includes('A')) neededCategories.push('A');
+          if (cats.includes('A') || cats.length === 0 || (cats.length === 1 && cats[0] === '')) neededCategories.push('A');
           if (cats.includes('B')) neededCategories.push('B');
           if (cats.some(c => ['C', 'D', 'E'].includes(c))) neededCategories.push('MUDANCA');
           
           const finalResults = results.map(r => ({
             ...r,
-            totalSlots: r.category === 'A' ? (systemSettings.defaultMaxSlotsA || 10) : 
+            totalSlots: r.totalSlots > 0 ? r.totalSlots :
+                        r.category === 'A' ? (systemSettings.defaultMaxSlotsA || 10) : 
                         r.category === 'B' ? (systemSettings.defaultMaxSlotsB || 10) :
                         r.category === 'MUDANCA' ? (systemSettings.defaultMaxSlotsMudanca || 10) : r.totalSlots
           }));
@@ -209,7 +224,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             if (!finalResults.find(r => r.category === cat)) {
               finalResults.push({
                 id: `temp-${Math.random().toString(36).substr(2, 9)}`,
-                scheduleId: selectedRequest.scheduleId!,
+                scheduleId: targetScheduleId,
                 schoolId: selectedRequest.schoolId!,
                 category: cat,
                 totalSlots: cat === 'A' ? (systemSettings.defaultMaxSlotsA || 10) : 
@@ -231,20 +246,27 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       }
     };
     fetchBancaResults();
-  }, [isEditModalOpen, selectedRequest?.scheduleId, selectedRequest?.schoolId, systemSettings]);
+  }, [isEditModalOpen, selectedRequest?.scheduleId, selectedRequest?.id, selectedRequest?.schoolId, systemSettings]);
 
   useEffect(() => {
     if (isEditModalOpen && selectedRequest && activeEditTab !== 'dados') {
       const cats = selectedRequest.intendedCategory?.split(',') || [];
-      const isCatA = activeEditTab === 'catA' && cats.includes('A');
+      const isCatA = activeEditTab === 'catA' && (cats.includes('A') || cats.length === 0 || (cats.length === 1 && cats[0] === ''));
       const isCatB = activeEditTab === 'catB' && cats.includes('B');
       const isMudanca = activeEditTab === 'mudanca' && cats.some(c => ['C', 'D', 'E'].includes(c));
       
       if (!isCatA && !isCatB && !isMudanca) {
-        setActiveEditTab('dados');
+        if (isFromDoneCard) {
+          if (cats.includes('A')) setActiveEditTab('catA');
+          else if (cats.includes('B')) setActiveEditTab('catB');
+          else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
+          else setActiveEditTab('catA');
+        } else {
+          setActiveEditTab('dados');
+        }
       }
     }
-  }, [selectedRequest?.intendedCategory, isEditModalOpen, activeEditTab]);
+  }, [selectedRequest?.intendedCategory, isEditModalOpen, activeEditTab, isFromDoneCard]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -1093,12 +1115,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                     setSelectedRequest(req);
                                     setIsFromDoneCard(false);
                                     setIsEditModalOpen(true);
-                                    // Set initial tab based on categories
-                                  const cats = req.intendedCategory?.split(',') || [];
-                                  if (cats.includes('A')) setActiveEditTab('catA');
-                                  else if (cats.includes('B')) setActiveEditTab('catB');
-                                  else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
-                                  else setActiveEditTab('catA'); // Fallback
+                                    setActiveEditTab('dados');
                                   }}
                                   className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-md flex items-center gap-1.5 font-bold text-[10px] shadow-sm transition-colors"
                                   title="Inserir Dados"
@@ -1363,7 +1380,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                  if (cats.includes('A')) setActiveEditTab('catA');
                                  else if (cats.includes('B')) setActiveEditTab('catB');
                                  else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
-                                 else setActiveEditTab('dados');
+                                 else setActiveEditTab('catA');
                                }}
                                className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded-md hover:bg-blue-50"
                                title="Inserir Resultado"
@@ -1877,7 +1894,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 ].filter(tab => {
                   if (tab.id === 'dados') return !isFromDoneCard;
                   const cats = selectedRequest.intendedCategory?.split(',') || [];
-                  if (tab.id === 'catA') return cats.includes('A');
+                  if (tab.id === 'catA') return cats.includes('A') || cats.length === 0 || (cats.length === 1 && cats[0] === '');
                   if (tab.id === 'catB') return cats.includes('B');
                   if (tab.id === 'mudanca') return cats.some(c => ['C', 'D', 'E'].includes(c));
                   return false;
