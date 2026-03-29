@@ -8,6 +8,13 @@
       "when": 1772812627314,
       "tag": "0000_white_mimic",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774810825743,
+      "tag": "0001_rainy_the_liberteens",
+      "breakpoints": true
     }
   ]
 }

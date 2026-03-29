@@ -153,11 +153,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         } as BancaResult;
       }
 
-      // Validation logic: Apto + Inapto + Cancelado <= Vagas Usadas
+      // Validation logic: Apto + Inapto + Cancelado + Falta <= Vagas Usadas
       const usedSlots = updatedResult.usedSlots || 0;
       
       if (field === 'usedSlots') {
-        let currentSum = (updatedResult.approved || 0) + (updatedResult.failed || 0) + (updatedResult.cancelled || 0);
+        let currentSum = (updatedResult.approved || 0) + (updatedResult.failed || 0) + (updatedResult.cancelled || 0) + (updatedResult.absent || 0);
         
         // If sum is 0, auto-populate Apto with usedSlots
         if (currentSum === 0 && safeValue > 0) {
@@ -167,22 +167,25 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           updatedResult.approved = Math.min(updatedResult.approved || 0, safeValue);
           updatedResult.failed = Math.min(updatedResult.failed || 0, safeValue - (updatedResult.approved || 0));
           updatedResult.cancelled = Math.min(updatedResult.cancelled || 0, safeValue - (updatedResult.approved || 0) - (updatedResult.failed || 0));
+          updatedResult.absent = Math.min(updatedResult.absent || 0, safeValue - (updatedResult.approved || 0) - (updatedResult.failed || 0) - (updatedResult.cancelled || 0));
         }
-      } else if (['approved', 'failed', 'cancelled'].includes(field)) {
-        if (field === 'failed' || field === 'cancelled') {
+      } else if (['approved', 'failed', 'cancelled', 'absent'].includes(field)) {
+        if (field === 'failed' || field === 'cancelled' || field === 'absent') {
           const newFailed = field === 'failed' ? safeValue : (updatedResult.failed || 0);
           const newCancelled = field === 'cancelled' ? safeValue : (updatedResult.cancelled || 0);
+          const newAbsent = field === 'absent' ? safeValue : (updatedResult.absent || 0);
           
-          // Ensure failed + cancelled doesn't exceed usedSlots
-          if (newFailed + newCancelled > usedSlots) {
-            (updatedResult as any)[field] = Math.max(0, usedSlots - (field === 'failed' ? newCancelled : newFailed));
+          // Ensure failed + cancelled + absent doesn't exceed usedSlots
+          if (newFailed + newCancelled + newAbsent > usedSlots) {
+            const otherSum = (field === 'failed' ? newCancelled + newAbsent : field === 'cancelled' ? newFailed + newAbsent : newFailed + newCancelled);
+            (updatedResult as any)[field] = Math.max(0, usedSlots - otherSum);
           }
           
           // Auto-calculate approved
-          updatedResult.approved = Math.max(0, usedSlots - (updatedResult.failed || 0) - (updatedResult.cancelled || 0));
+          updatedResult.approved = Math.max(0, usedSlots - (updatedResult.failed || 0) - (updatedResult.cancelled || 0) - (updatedResult.absent || 0));
         } else if (field === 'approved') {
           // If manually changing approved, just ensure it doesn't exceed available
-          const otherSum = (updatedResult.failed || 0) + (updatedResult.cancelled || 0);
+          const otherSum = (updatedResult.failed || 0) + (updatedResult.cancelled || 0) + (updatedResult.absent || 0);
           if (otherSum + safeValue > usedSlots) {
             updatedResult.approved = Math.max(0, usedSlots - otherSum);
           }
@@ -2138,6 +2141,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Falta</label>
+                      <input 
+                        type="number"
+                        min="0"
+                        value={bancaResults.find(r => r.category === 'A')?.absent || 0}
+                        onChange={(e) => updateBancaResult('A', 'absent', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -2194,6 +2207,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Falta</label>
+                      <input 
+                        type="number"
+                        min="0"
+                        value={bancaResults.find(r => r.category === 'B')?.absent || 0}
+                        onChange={(e) => updateBancaResult('B', 'absent', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
@@ -2247,6 +2270,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         min="0"
                         value={bancaResults.find(r => r.category === 'MUDANCA')?.cancelled || 0}
                         onChange={(e) => updateBancaResult('MUDANCA', 'cancelled', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Falta</label>
+                      <input 
+                        type="number"
+                        min="0"
+                        value={bancaResults.find(r => r.category === 'MUDANCA')?.absent || 0}
+                        onChange={(e) => updateBancaResult('MUDANCA', 'absent', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                       />
                     </div>
