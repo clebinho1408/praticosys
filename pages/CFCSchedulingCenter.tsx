@@ -1195,6 +1195,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             <th className="px-4 py-3">Examinador</th>
                             <th className="px-4 py-3">Exame</th>
                             <th className="px-4 py-3 text-right">Ações</th>
+                          <th className="px-4 py-3">Apto</th>
+                          <th className="px-4 py-3">Inapto</th>
+                          <th className="px-4 py-3">Cancelado</th>
+                          <th className="px-4 py-3">Falta</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -2091,7 +2095,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
               {activeEditTab === 'catA' && (
                 <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Total Vagas</label>
                       <input 
@@ -2157,7 +2161,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
               {activeEditTab === 'catB' && (
                 <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Total Vagas</label>
                       <input 
@@ -2223,7 +2227,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
               {activeEditTab === 'mudanca' && (
                 <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Total Vagas</label>
                       <input 
