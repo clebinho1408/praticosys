@@ -1,6 +1,6 @@
 
-import { db } from '../../db/index';
-import { blockedDates } from '../../db/schema';
+import { db } from '../../db/index.js';
+import { blockedDates } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 

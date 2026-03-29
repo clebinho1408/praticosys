@@ -1,6 +1,6 @@
 
-import { db } from '../../db/index';
-import { systemSettings } from '../../db/schema';
+import { db } from '../../db/index.js';
+import { systemSettings } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;

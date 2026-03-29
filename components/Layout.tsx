@@ -109,9 +109,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Car,
          label: 'Prova Prática CFC',
          subItems: [
-           { label: 'Dashboard', path: '/admin/dashboard/cfc', icon: LayoutDashboard },
            { label: 'Agendamentos', path: '/admin/scheduling/cfc', icon: CalendarCheck },
-           { label: 'Candidatos', path: '/admin/requests/cfc', icon: FileText },
            { label: 'Relatórios', path: '/admin/reports/cfc', icon: BarChart3 }
          ]
        });

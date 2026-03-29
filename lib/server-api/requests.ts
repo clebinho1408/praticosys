@@ -1,7 +1,7 @@
 
 // Requests API Handler
-import { db } from '../../db/index';
-import { examRequests } from '../../db/schema';
+import { db } from '../../db/index.js';
+import { examRequests } from '../../db/schema.js';
 import { eq, like, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 

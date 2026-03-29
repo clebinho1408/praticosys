@@ -11,7 +11,8 @@ import {
   UserRole,
   RequestType,
   SystemSettings,
-  BlockedDate
+  BlockedDate,
+  BancaResult
 } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
 import { 
@@ -30,7 +31,8 @@ import {
   Save,
   RefreshCw,
   MessageCircle,
-  Copy
+  Copy,
+  Pencil
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -102,6 +104,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [selectedPcdForAutoGenerate, setSelectedPcdForAutoGenerate] = useState(false);
   const [isCnhBrasilActiveForDay, setIsCnhBrasilActiveForDay] = useState(false);
   const [selectedCnhBrasilForAutoGenerate, setSelectedCnhBrasilForAutoGenerate] = useState(false);
+  const [activeEditTab, setActiveEditTab] = useState('dados');
+  const [isFromDoneCard, setIsFromDoneCard] = useState(false);
+  const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
   
   const [confirmConfig, setConfirmConfig] = useState<{
     title: string;
@@ -111,6 +116,30 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   } | null>(null);
 
   const [selectedRequest, setSelectedRequest] = useState<ExamRequest | null>(null);
+
+  const updateBancaResult = (category: string, field: string, value: number) => {
+    setBancaResults(prev => {
+      const existing = prev.find(r => r.category === category);
+      if (existing) {
+        return prev.map(r => r.category === category ? { ...r, [field]: value } : r);
+      } else {
+        return [...prev, {
+          id: `temp-${Math.random().toString(36).substr(2, 9)}`,
+          scheduleId: selectedRequest?.scheduleId || '',
+          schoolId: selectedRequest?.schoolId || '',
+          category,
+          totalSlots: 0,
+          usedSlots: 0,
+          approved: 0,
+          failed: 0,
+          absent: 0,
+          cancelled: 0,
+          [field]: value
+        } as BancaResult];
+      }
+    });
+  };
+
   const [newRequest, setNewRequest] = useState({
     schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
     categories: [] as string[],
@@ -120,6 +149,20 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     observation: '',
     requestType: RequestType.FIXA
   });
+
+  useEffect(() => {
+    const fetchBancaResults = async () => {
+      if (isEditModalOpen && selectedRequest?.scheduleId && selectedRequest?.schoolId) {
+        try {
+          const results = await api.getBancaResults(selectedRequest.scheduleId, selectedRequest.schoolId);
+          setBancaResults(results);
+        } catch (error) {
+          console.error('Error fetching banca results:', error);
+        }
+      }
+    };
+    fetchBancaResults();
+  }, [isEditModalOpen, selectedRequest]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -776,7 +819,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         status: newStatus,
         attendanceConfirmed: selectedRequest.attendanceConfirmed
       });
+
+      // Save banca results if editing from done card
+      if (isFromDoneCard && bancaResults.length > 0) {
+        for (const result of bancaResults) {
+          await api.saveBancaResult(result);
+        }
+      }
+
       setIsEditModalOpen(false);
+      setIsFromDoneCard(false);
+      setActiveEditTab('dados');
       setSelectedRequest(null);
       fetchData();
     } catch (error) {
@@ -955,7 +1008,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 <button 
                                   onClick={() => {
                                     setSelectedRequest(req);
+                                    setIsFromDoneCard(false);
                                     setIsEditModalOpen(true);
+                                    setActiveEditTab('dados');
                                   }}
                                   className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1.5 rounded-md flex items-center gap-1.5 font-bold text-[10px] shadow-sm transition-colors"
                                   title="Inserir Dados"
@@ -1197,6 +1252,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                          <th className="px-4 py-3">Horário</th>
                          <th className="px-4 py-3">Examinador</th>
                          <th className="px-4 py-3">Exame</th>
+                         <th className="px-4 py-3 text-right">Ações</th>
                        </tr>
                      </thead>
                      <tbody className="divide-y divide-slate-50">
@@ -1208,6 +1264,20 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                            <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
                            <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
                            <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
+                           <td className="px-4 py-3 text-right">
+                             <button
+                               onClick={() => {
+                                 setSelectedRequest(req);
+                                 setIsFromDoneCard(true);
+                                 setIsEditModalOpen(true);
+                                 setActiveEditTab('dados');
+                               }}
+                               className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded-md hover:bg-blue-50"
+                               title="Editar"
+                             >
+                               <Pencil className="h-4 w-4" />
+                             </button>
+                           </td>
                          </tr>
                        ))}
                      </tbody>
@@ -1693,13 +1763,42 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">Editar Agendamento</h2>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={() => {
+                setIsEditModalOpen(false);
+                setIsFromDoneCard(false);
+                setActiveEditTab('dados');
+              }} className="text-slate-400 hover:text-slate-600 transition-colors">
                 <X className="h-6 w-6" />
               </button>
             </div>
+
+            {isFromDoneCard && (
+              <div className="flex border-b border-slate-100 px-6 bg-white sticky top-0 z-10">
+                {[
+                  { id: 'dados', label: 'Dados Principais' },
+                  { id: 'catA', label: 'Categoria A' },
+                  { id: 'catB', label: 'Categoria B' },
+                  { id: 'mudanca', label: 'Mudança Categoria' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveEditTab(tab.id)}
+                    className={`px-4 py-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
+                      activeEditTab === tab.id 
+                        ? 'border-blue-600 text-blue-600' 
+                        : 'border-transparent text-slate-400 hover:text-slate-600'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
             
-            <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {activeEditTab === 'dados' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2 space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Autoescola</label>
                   <select 
@@ -1846,22 +1945,184 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Observações</label>
-                <textarea 
-                  rows={3}
-                  className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
-                  placeholder="Observações adicionais..."
-                  value={selectedRequest.observation || ''}
-                  onChange={e => setSelectedRequest({...selectedRequest, observation: e.target.value})}
-                ></textarea>
-              </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Observações</label>
+                    <textarea 
+                      rows={3}
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                      placeholder="Observações adicionais..."
+                      value={selectedRequest.observation || ''}
+                      onChange={e => setSelectedRequest({...selectedRequest, observation: e.target.value})}
+                    ></textarea>
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'catA' && (
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Total Vagas</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'A')?.totalSlots || 0}
+                        onChange={(e) => updateBancaResult('A', 'totalSlots', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Vagas Usadas</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'A')?.usedSlots || 0}
+                        onChange={(e) => updateBancaResult('A', 'usedSlots', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Apto</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'A')?.approved || 0}
+                        onChange={(e) => updateBancaResult('A', 'approved', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Inapto</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'A')?.failed || 0}
+                        onChange={(e) => updateBancaResult('A', 'failed', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Cancelada</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'A')?.cancelled || 0}
+                        onChange={(e) => updateBancaResult('A', 'cancelled', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'catB' && (
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Total Vagas</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'B')?.totalSlots || 0}
+                        onChange={(e) => updateBancaResult('B', 'totalSlots', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Vagas Usadas</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'B')?.usedSlots || 0}
+                        onChange={(e) => updateBancaResult('B', 'usedSlots', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Apto</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'B')?.approved || 0}
+                        onChange={(e) => updateBancaResult('B', 'approved', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Inapto</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'B')?.failed || 0}
+                        onChange={(e) => updateBancaResult('B', 'failed', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Cancelada</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'B')?.cancelled || 0}
+                        onChange={(e) => updateBancaResult('B', 'cancelled', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'mudanca' && (
+                <div className="p-6 space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Total Vagas</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'MUDANCA')?.totalSlots || 0}
+                        onChange={(e) => updateBancaResult('MUDANCA', 'totalSlots', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Vagas Usadas</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'MUDANCA')?.usedSlots || 0}
+                        onChange={(e) => updateBancaResult('MUDANCA', 'usedSlots', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Apto</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'MUDANCA')?.approved || 0}
+                        onChange={(e) => updateBancaResult('MUDANCA', 'approved', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Inapto</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'MUDANCA')?.failed || 0}
+                        onChange={(e) => updateBancaResult('MUDANCA', 'failed', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-slate-700">Cancelada</label>
+                      <input 
+                        type="number"
+                        value={bancaResults.find(r => r.category === 'MUDANCA')?.cancelled || 0}
+                        onChange={(e) => updateBancaResult('MUDANCA', 'cancelled', parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end items-center">
               <div className="flex gap-3">
                 <button 
-                  onClick={() => setIsEditModalOpen(false)}
+                  onClick={() => {
+                    setIsEditModalOpen(false);
+                    setIsFromDoneCard(false);
+                    setActiveEditTab('dados');
+                  }}
                   className="px-6 py-2.5 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-200 transition-colors"
                 >
                   Cancelar

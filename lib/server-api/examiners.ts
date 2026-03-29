@@ -1,6 +1,6 @@
 
-import { db } from '../../db/index';
-import { examiners } from '../../db/schema';
+import { db } from '../../db/index.js';
+import { examiners } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 
