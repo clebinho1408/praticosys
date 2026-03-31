@@ -328,6 +328,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
   };
 
+  const daysOfWeek = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'];
+
+  const hasAutoExpandedWaiting = React.useRef(false);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -388,8 +392,27 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const done = filteredRequests.filter(r => r.status === ExamStatus.DONE);
   const cancelled = filteredRequests.filter(r => r.status === ExamStatus.CANCELLED);
 
+  useEffect(() => {
+    if (user.role === UserRole.SCHOOL && waitingConfirmation.length > 0 && !hasAutoExpandedWaiting.current) {
+      hasAutoExpandedWaiting.current = true;
+      setExpandedSections(prev => ({ ...prev, waiting: true }));
+      setExpandedWaitingDays(prev => {
+        const newExpanded = { ...prev };
+        waitingConfirmation.forEach(r => {
+          if (!r.scheduledDate) return;
+          const date = new Date(r.scheduledDate + 'T00:00:00');
+          const dayIndex = date.getDay();
+          if (dayIndex >= 1 && dayIndex <= 5) {
+            const dayName = daysOfWeek[dayIndex - 1];
+            newExpanded[dayName] = true;
+          }
+        });
+        return newExpanded;
+      });
+    }
+  }, [waitingConfirmation, user.role]);
+
   // Group confirmed by day of week
-  const daysOfWeek = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'];
   const groupedByDayOfWeek: Record<string, ExamRequest[]> = {
     'Segunda-feira': [],
     'Terça-feira': [],
@@ -579,7 +602,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const handleConfirmAction = (req: ExamRequest) => {
     setConfirmConfig({
       title: 'Confirmar Agendamento',
-      message: 'Tem certeza que deseja confirmar este agendamento?',
+      message: `Tem certeza que deseja confirmar o agendamento da autoescola ${getSchoolName(req.schoolId)} para o dia ${formatDate(req.scheduledDate)} às ${req.scheduledTime || '08:00'}?`,
       type: 'blue',
       onConfirm: async () => {
         await api.updateRequest(req.id, { attendanceConfirmed: true });
@@ -1145,7 +1168,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 </button>
                               )}
                               {user.role === UserRole.SCHOOL && (
-                                <span className="text-[10px] font-bold text-orange-600 bg-orange-50 px-2 py-1.5 rounded-md border border-orange-100 whitespace-nowrap">
+                                <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2.5 py-1.5 rounded-md border border-orange-100 whitespace-nowrap">
                                   Situação: Aguardando na fila
                                 </span>
                               )}
@@ -1233,17 +1256,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   </button>
                                   <button 
                                     onClick={() => handleConfirmAction(req)}
-                                    className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 shadow-sm transition-colors text-xs font-bold"
                                     title="Confirmar"
                                   >
-                                    <CheckCircle className="h-4 w-4" />
+                                    <CheckCircle className="h-4 w-4" /> Confirmar
                                   </button>
                                   <button 
                                     onClick={() => handleCancelAction(req)}
-                                    className="border border-red-200 text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                    className="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors text-xs font-bold"
                                     title="Cancelar"
                                   >
-                                    <XCircle className="h-4 w-4" />
+                                    <XCircle className="h-4 w-4" /> Cancelar
                                   </button>
                                 </div>
                               </td>
@@ -2412,7 +2435,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             </div>
             <div className="p-6 space-y-4">
               <p className="text-sm text-slate-600">
-                Você está cancelando o agendamento da autoescola <strong>{getSchoolName(cancelRequest.schoolId)}</strong>.
+                Você está cancelando o agendamento da autoescola <strong>{getSchoolName(cancelRequest.schoolId)}</strong> para o dia {formatDate(cancelRequest.scheduledDate)}.
               </p>
               
               <div className="space-y-2">
