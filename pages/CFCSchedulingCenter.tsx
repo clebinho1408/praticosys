@@ -1365,65 +1365,67 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           {expandedSections.done && (
             <div className="p-4 bg-white">
                {done.length > 0 ? (
-                 <div className="overflow-x-auto">
-                   <table className="w-full text-left text-xs">
-                     <thead>
-                       <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold tracking-wider">
-                         <th className="px-4 py-3">Tipo</th>
-                         <th className="px-4 py-3">Autoescola</th>
-                         <th className="px-4 py-3">Data</th>
-                         <th className="px-4 py-3">Horário</th>
-                         <th className="px-4 py-3">Examinador</th>
-                         <th className="px-4 py-3">Exame</th>
-                         <th className="px-4 py-3 text-right">Ações</th>
-                       </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-50">
-                       {done.map(req => (
-                         <tr key={req.id} className={getRowClass(req)}>
-                           <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
-                           <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
-                           <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
-                           <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
-                           <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
-                           <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
-                           <td className="px-4 py-3 text-right">
-                             {(() => {
-                               const targetScheduleId = req.scheduleId || req.id;
-                               const hasResult = allBancaResults.some(r => 
-                                 r.scheduleId === targetScheduleId && 
-                                 r.schoolId === req.schoolId && 
-                                 r.usedSlots > 0
-                               );
-                               
-                               return (
-                                 <button
-                                   onClick={() => {
-                                     setSelectedRequest(req);
-                                     setIsFromDoneCard(true);
-                                     setIsEditModalOpen(true);
-                                     // Find first available category tab
-                                     const cats = req.intendedCategory?.split(',') || [];
-                                     if (cats.includes('A')) setActiveEditTab('catA');
-                                     else if (cats.includes('B')) setActiveEditTab('catB');
-                                     else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
-                                     else setActiveEditTab('catA');
-                                   }}
-                                   className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm hover:shadow-md ${
-                                     hasResult 
-                                       ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
-                                       : 'bg-red-500 text-white hover:bg-red-600'
-                                   }`}
-                                 >
-                                   {hasResult ? 'Resultado Inserido' : 'Inserir Resultado'}
-                                 </button>
-                               );
-                             })()}
-                           </td>
+                 <div className="border border-slate-200 rounded-lg overflow-hidden">
+                   <div className="overflow-x-auto">
+                     <table className="w-full text-left text-xs">
+                       <thead>
+                         <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
+                           <th className="px-4 py-3">Tipo</th>
+                           <th className="px-4 py-3">Autoescola</th>
+                           <th className="px-4 py-3">Data</th>
+                           <th className="px-4 py-3">Horário</th>
+                           <th className="px-4 py-3">Examinador</th>
+                           <th className="px-4 py-3">Exame</th>
+                           <th className="px-4 py-3 text-right">Ações</th>
                          </tr>
-                       ))}
-                     </tbody>
-                   </table>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50">
+                         {done.map(req => (
+                           <tr key={req.id} className={getRowClass(req)}>
+                             <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
+                             <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
+                             <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
+                             <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
+                             <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
+                             <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
+                             <td className="px-4 py-3 text-right">
+                               {(() => {
+                                 const targetScheduleId = req.scheduleId || req.id;
+                                 const hasResult = allBancaResults.some(r => 
+                                   r.scheduleId === targetScheduleId && 
+                                   r.schoolId === req.schoolId && 
+                                   r.usedSlots > 0
+                                 );
+                                 
+                                 return (
+                                   <button
+                                     onClick={() => {
+                                       setSelectedRequest(req);
+                                       setIsFromDoneCard(true);
+                                       setIsEditModalOpen(true);
+                                       // Find first available category tab
+                                       const cats = req.intendedCategory?.split(',') || [];
+                                       if (cats.includes('A')) setActiveEditTab('catA');
+                                       else if (cats.includes('B')) setActiveEditTab('catB');
+                                       else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
+                                       else setActiveEditTab('catA');
+                                     }}
+                                     className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm hover:shadow-md ${
+                                       hasResult 
+                                         ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                                         : 'bg-red-500 text-white hover:bg-red-600'
+                                     }`}
+                                   >
+                                     {hasResult ? 'Resultado Inserido' : 'Inserir Resultado'}
+                                   </button>
+                                 );
+                               })()}
+                             </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
                  </div>
                ) : (
                  <p className="text-center py-4 text-slate-400 text-sm italic">Nenhuma prova realizada encontrada.</p>
@@ -1447,33 +1449,35 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           {expandedSections.cancelled && (
             <div className="p-4 bg-white">
                {cancelled.length > 0 ? (
-                 <div className="overflow-x-auto">
-                   <table className="w-full text-left text-xs">
-                     <thead>
-                       <tr className="border-b border-slate-100 text-slate-400 uppercase font-bold tracking-wider">
-                         <th className="px-4 py-3">Tipo</th>
-                         <th className="px-4 py-3">Autoescola</th>
-                         <th className="px-4 py-3">Data</th>
-                         <th className="px-4 py-3">Horário</th>
-                         <th className="px-4 py-3">Examinador</th>
-                         <th className="px-4 py-3">Exame</th>
-                         <th className="px-4 py-3">Motivo</th>
-                       </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-50">
-                       {cancelled.map(req => (
-                         <tr key={req.id} className={getRowClass(req)}>
-                           <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
-                           <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
-                           <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
-                           <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
-                           <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
-                           <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
-                           <td className="px-4 py-3 text-slate-600">{req.cancellationReason || '-'}</td>
+                 <div className="border border-slate-200 rounded-lg overflow-hidden">
+                   <div className="overflow-x-auto">
+                     <table className="w-full text-left text-xs">
+                       <thead>
+                         <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
+                           <th className="px-4 py-3">Tipo</th>
+                           <th className="px-4 py-3">Autoescola</th>
+                           <th className="px-4 py-3">Data</th>
+                           <th className="px-4 py-3">Horário</th>
+                           <th className="px-4 py-3">Examinador</th>
+                           <th className="px-4 py-3">Exame</th>
+                           <th className="px-4 py-3">Motivo</th>
                          </tr>
-                       ))}
-                     </tbody>
-                   </table>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50">
+                         {cancelled.map(req => (
+                           <tr key={req.id} className={getRowClass(req)}>
+                             <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
+                             <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
+                             <td className="px-4 py-3 text-slate-600">{formatDate(req.scheduledDate)}</td>
+                             <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
+                             <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
+                             <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
+                             <td className="px-4 py-3 text-slate-600">{req.cancellationReason || '-'}</td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                   </div>
                  </div>
                ) : (
                  <p className="text-center py-4 text-slate-400 text-sm italic">Nenhuma prova cancelada encontrada.</p>
