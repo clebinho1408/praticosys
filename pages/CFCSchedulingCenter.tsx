@@ -1692,7 +1692,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       {/* MODAL: NOVO AGENDAMENTO */}
       {isNewModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className={`bg-white rounded-xl shadow-2xl w-full ${newRequest.requestType === RequestType.FIXA ? 'max-w-2xl' : 'max-w-md'} overflow-hidden animate-in fade-in zoom-in duration-200`}>
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">Novo Agendamento</h2>
               <button onClick={handleCloseNewModal} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -1701,10 +1701,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             </div>
             
             <div className="p-6 space-y-6">
-              <div className="bg-red-50 border border-red-100 rounded-lg p-4 text-center">
-                <p className="text-red-600 font-bold text-sm">Atenção: O número máximo será de 10 vagas por Categoria!</p>
-              </div>
-
               <div className={`grid grid-cols-1 ${newRequest.requestType === RequestType.FIXA ? 'md:grid-cols-2' : ''} gap-6`}>
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Autoescola <span className="text-red-500">*</span></label>
@@ -1722,8 +1718,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     disabled={user.role === UserRole.SCHOOL}
                   >
                     <option value="">Selecione a autoescola</option>
-                    {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    {user.role !== UserRole.SCHOOL && (
+                    {schools
+                      .filter(s => user.role === UserRole.SCHOOL 
+                        ? s.id === user.schoolId 
+                        : (newRequest.requestType !== RequestType.FIXA || s.mainSchedule?.active || s.provisionalSchedule?.active)
+                      )
+                      .map(s => <option key={s.id} value={s.id}>{s.name}</option>)
+                    }
+                    {newRequest.requestType === RequestType.FIXA && user.role !== UserRole.SCHOOL && (
                       <>
                         <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</option>
                         <option value="CNH_BRASIL">CNH DO BRASIL</option>
