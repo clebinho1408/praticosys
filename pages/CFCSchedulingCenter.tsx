@@ -1904,7 +1904,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       {/* MODAL: EDITAR AGENDAMENTO */}
       {isEditModalOpen && selectedRequest && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className={`bg-white rounded-xl shadow-2xl w-full ${isFromDoneCard ? 'max-w-2xl' : 'max-w-md'} overflow-hidden animate-in fade-in zoom-in duration-200`}>
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">
                 {isFromDoneCard ? 'Inserir Resultados' : 'Editar Agendamento'}
@@ -1955,7 +1955,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 <div className="md:col-span-2 space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Autoescola</label>
                   <select 
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-not-allowed"
                     value={selectedRequest.schoolId}
                     onChange={e => {
                       const newSchoolId = e.target.value;
@@ -1965,7 +1965,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         intendedCategory: newSchoolId === 'CNH_BRASIL' ? 'A,B' : ''
                       });
                     }}
-                    disabled={user.role === UserRole.SCHOOL}
+                    disabled={true}
                   >
                     {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     {user.role !== UserRole.SCHOOL && (
@@ -2027,11 +2027,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         }
                         return true;
                       }).map(cat => (
-                        <label key={cat} className="flex items-center gap-2 cursor-pointer group">
+                        <label key={cat} className={`flex items-center gap-2 group ${!isFromDoneCard ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
                           <input 
                             type="checkbox" 
                             className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
                             checked={selectedRequest.intendedCategory?.split(',').includes(cat)}
+                            disabled={!isFromDoneCard}
                             onChange={e => {
                               const currentCats = selectedRequest.intendedCategory ? selectedRequest.intendedCategory.split(',').filter(Boolean) : [];
                               let newCats = e.target.checked 
@@ -2093,7 +2094,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     onChange={e => setSelectedRequest({...selectedRequest, examinerId: e.target.value})}
                   >
                     <option value="">Selecione o examinador</option>
-                    {examiners.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                    {examiners
+                      .filter(e => {
+                        if (!selectedRequest.intendedCategory) return true;
+                        const reqCats = selectedRequest.intendedCategory.split(',').filter(Boolean);
+                        if (reqCats.length === 0) return true;
+                        return e.categories?.some(cat => reqCats.includes(cat));
+                      })
+                      .map(e => <option key={e.id} value={e.id}>{e.name}</option>)
+                    }
                   </select>
                 </div>
               </div>
@@ -2102,10 +2111,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Observações</label>
                     <textarea 
                       rows={3}
-                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
+                      className={`w-full border border-slate-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none ${!isFromDoneCard ? 'bg-slate-100 cursor-not-allowed' : 'bg-slate-50'}`}
                       placeholder="Observações adicionais..."
                       value={selectedRequest.observation || ''}
                       onChange={e => setSelectedRequest({...selectedRequest, observation: e.target.value})}
+                      disabled={!isFromDoneCard}
                     ></textarea>
                   </div>
                 </div>
