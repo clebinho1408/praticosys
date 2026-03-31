@@ -31,8 +31,7 @@ import {
   Save,
   RefreshCw,
   MessageCircle,
-  Copy,
-  Pencil
+  Copy
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -107,6 +106,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [activeEditTab, setActiveEditTab] = useState('dados');
   const [isFromDoneCard, setIsFromDoneCard] = useState(false);
   const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
+  const [allBancaResults, setAllBancaResults] = useState<BancaResult[]>([]);
   
   const [confirmConfig, setConfirmConfig] = useState<{
     title: string;
@@ -283,12 +283,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [reqs, schs, exms, settings, blocked] = await Promise.all([
+      const [reqs, schs, exms, settings, blocked, results] = await Promise.all([
         api.getRequests(),
         api.getSchoolsAsync(),
         api.getExaminersAsync(),
         api.getSettings(),
-        fetch('/api/blocked-dates').then(res => res.ok ? res.json() : [])
+        fetch('/api/blocked-dates').then(res => res.ok ? res.json() : []),
+        api.getBancaResults()
       ]);
       
       // Filter for CFC (COMMON and PCD)
@@ -319,6 +320,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       setExaminers(exms);
       setSystemSettings(settings);
       setBlockedDates(blocked);
+      setAllBancaResults(results);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -1386,23 +1388,37 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                            <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
                            <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
                            <td className="px-4 py-3 text-right">
-                             <button
-                               onClick={() => {
-                                 setSelectedRequest(req);
-                                 setIsFromDoneCard(true);
-                                 setIsEditModalOpen(true);
-                                 // Find first available category tab
-                                 const cats = req.intendedCategory?.split(',') || [];
-                                 if (cats.includes('A')) setActiveEditTab('catA');
-                                 else if (cats.includes('B')) setActiveEditTab('catB');
-                                 else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
-                                 else setActiveEditTab('catA');
-                               }}
-                               className="text-slate-400 hover:text-blue-600 transition-colors p-1 rounded-md hover:bg-blue-50"
-                               title="Inserir Resultado"
-                             >
-                               <Pencil className="h-4 w-4" />
-                             </button>
+                             {(() => {
+                               const targetScheduleId = req.scheduleId || req.id;
+                               const hasResult = allBancaResults.some(r => 
+                                 r.scheduleId === targetScheduleId && 
+                                 r.schoolId === req.schoolId && 
+                                 r.usedSlots > 0
+                               );
+                               
+                               return (
+                                 <button
+                                   onClick={() => {
+                                     setSelectedRequest(req);
+                                     setIsFromDoneCard(true);
+                                     setIsEditModalOpen(true);
+                                     // Find first available category tab
+                                     const cats = req.intendedCategory?.split(',') || [];
+                                     if (cats.includes('A')) setActiveEditTab('catA');
+                                     else if (cats.includes('B')) setActiveEditTab('catB');
+                                     else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
+                                     else setActiveEditTab('catA');
+                                   }}
+                                   className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm hover:shadow-md ${
+                                     hasResult 
+                                       ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                                       : 'bg-red-500 text-white hover:bg-red-600'
+                                   }`}
+                                 >
+                                   {hasResult ? 'Resultado Inserido' : 'Inserir Resultado'}
+                                 </button>
+                               );
+                             })()}
                            </td>
                          </tr>
                        ))}
