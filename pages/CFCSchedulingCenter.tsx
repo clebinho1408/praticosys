@@ -207,7 +207,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     date: '',
     time: '',
     observation: '',
-    requestType: RequestType.FIXA
+    requestType: RequestType.EXTRA
   });
 
   useEffect(() => {
@@ -884,7 +884,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         date: '',
         time: '',
         observation: '',
-        requestType: RequestType.FIXA
+        requestType: RequestType.EXTRA
       });
       fetchData();
     } catch (error) {
@@ -902,7 +902,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       date: '',
       time: '',
       observation: '',
-      requestType: RequestType.FIXA
+      requestType: RequestType.EXTRA
     });
   };
 
@@ -1641,17 +1641,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             <div className="p-6 border-b border-slate-100">
               <h2 className="text-lg font-bold text-slate-800">Tipo de Agendamento</h2>
             </div>
-            <div className="p-6 grid grid-cols-3 gap-4">
-              <button 
-                onClick={() => {
-                  setNewRequest({...newRequest, requestType: RequestType.FIXA, observation: ''});
-                  setIsTypeSelectionModalOpen(false);
-                  setIsNewModalOpen(true);
-                }}
-                className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-bold py-4 rounded-lg transition-all"
-              >
-                Fixo
-              </button>
+            <div className="p-6 grid grid-cols-2 gap-4">
               <button 
                 onClick={() => {
                   setNewRequest({...newRequest, requestType: RequestType.EXTRA, observation: ''});
@@ -1684,7 +1674,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     date: '',
                     time: '',
                     observation: '',
-                    requestType: RequestType.FIXA
+                    requestType: RequestType.EXTRA
                   });
                 }}
                 className="px-4 py-2 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-200 transition-all"
@@ -1914,7 +1904,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           <div className={`bg-white rounded-xl shadow-2xl w-full ${isFromDoneCard ? 'max-w-2xl' : 'max-w-md'} overflow-hidden animate-in fade-in zoom-in duration-200`}>
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">
-                {isFromDoneCard ? 'Inserir Resultados' : 'Inserir Dados Agendamento'}
+                {isFromDoneCard ? `Inserir Resultados da Autoescola ${schools.find(s => s.id === selectedRequest?.schoolId)?.name || ''}` : 'Inserir Dados Agendamento'}
               </h2>
               <button onClick={() => {
                 setIsEditModalOpen(false);
