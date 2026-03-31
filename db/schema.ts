@@ -119,6 +119,7 @@ export const examRequests = pgTable('exam_requests', {
   examinerId: text('examiner_id'),
   
   attendanceConfirmed: boolean('attendance_confirmed').default(false),
+  cancellationReason: text('cancellation_reason'),
   observation: text('observation'),
   
   // Histórico armazenado como JSONB para simplificar migração
@@ -139,6 +140,7 @@ export const systemSettings = pgTable('system_settings', {
   maxDailySlots: integer('max_daily_slots').default(50),
   defaultMaxSlotsA: integer('default_max_slots_a').default(10),
   defaultMaxSlotsB: integer('default_max_slots_b').default(10),
+  defaultMaxSlotsMudanca: integer('default_max_slots_mudanca').default(10),
   whatsappMessageTemplate: text('whatsapp_template'),
   cfcWhatsappMessageTemplate: text('cfc_whatsapp_template'),
   defaultExamAddress: text('default_exam_address'),
@@ -150,6 +152,17 @@ export const systemSettings = pgTable('system_settings', {
   pcdDefaultExamAddress: text('pcd_default_exam_address'),
   pcdDefaultExamAddressLink: text('pcd_default_exam_address_link'),
   pcdMainSchedule: jsonb('pcd_main_schedule'),
+  cnhBrasilMainSchedule: jsonb('cnh_brasil_main_schedule'),
+  blockWeekends: boolean('block_weekends').default(false),
+});
+
+// Tabela de Datas Bloqueadas
+export const blockedDates = pgTable('blocked_dates', {
+  id: text('id').primaryKey(),
+  date: text('date').notNull(), // YYYY-MM-DD
+  description: text('description'),
+  isHoliday: boolean('is_holiday').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 // Tabela de Cidades
@@ -157,4 +170,20 @@ export const cities = pgTable('cities', {
   id: text('id').primaryKey(),
   name: text('name').notNull().unique(),
   createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Tabela de Resultados por Banca e Escola
+export const bancaResults = pgTable('banca_results', {
+  id: text('id').primaryKey(),
+  scheduleId: text('schedule_id').notNull(),
+  schoolId: text('school_id').notNull(),
+  category: text('category').notNull(), // A, B, MUDANCA
+  totalSlots: integer('total_slots').default(0),
+  usedSlots: integer('used_slots').default(0),
+  approved: integer('approved').default(0),
+  failed: integer('failed').default(0),
+  absent: integer('absent').default(0),
+  cancelled: integer('cancelled').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });

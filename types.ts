@@ -42,7 +42,7 @@ export interface User {
 }
 
 export interface SchoolSchedule {
-  frequency: '1_WEEK' | '2_WEEK' | '2_DAY' | '15_DAYS';
+  frequency: '1_WEEK' | '2_WEEK' | '3_WEEK' | '2_DAY' | '15_DAYS';
   days: string[]; // ['SEG', 'TER', ...]
   slots: { time: string; examiner: string; day?: string }[]; 
   active: boolean;
@@ -165,6 +165,7 @@ export interface ExamRequest {
   observation?: string;
   
   attendanceConfirmed?: boolean; // New: Confirmed via WhatsApp/Phone
+  cancellationReason?: string; // Reason for cancellation
   
   createdAt: string;
   updatedAt: string;
@@ -185,6 +186,7 @@ export interface SystemSettings {
   maxDailySlots: number; // Global cap (legacy)
   defaultMaxSlotsA: number; // New: Default slots for Moto
   defaultMaxSlotsB: number; // New: Default slots for Car
+  defaultMaxSlotsMudanca: number; // New: Default slots for Category Change (C, D, E)
   
   whatsappMessageTemplate: string;
   cfcWhatsappMessageTemplate?: string; // New: Template for CFC Practical Exam
@@ -197,12 +199,39 @@ export interface SystemSettings {
   pcdDefaultExamAddress?: string;
   pcdDefaultExamAddressLink?: string;
   pcdMainSchedule?: SchoolSchedule;
+  
+  // CNH Brasil Practical Exam Settings
+  cnhBrasilMainSchedule?: SchoolSchedule;
+  blockWeekends?: boolean;
+}
+
+export interface BlockedDate {
+  id: string;
+  date: string; // YYYY-MM-DD
+  description: string;
+  isHoliday: boolean;
+  createdAt?: string;
 }
 
 export interface City {
   id: string;
   name: string;
   createdAt?: string;
+}
+
+export interface BancaResult {
+  id: string;
+  scheduleId: string;
+  schoolId: string;
+  category: string; // A, B, MUDANCA
+  totalSlots: number;
+  usedSlots: number;
+  approved: number;
+  failed: number;
+  absent: number;
+  cancelled: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthState {

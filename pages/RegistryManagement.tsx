@@ -2765,6 +2765,11 @@ const SchoolsManager: React.FC = () => {
         alert('Frequência "2 vezes na semana" permite apenas 2 horários.');
         return;
       }
+      // Rule: 3_WEEK allows 3 slots
+      if (schedule.frequency === '3_WEEK' && schedule.slots.length >= 3) {
+        alert('Frequência "3 vezes na semana" permite apenas 3 horários.');
+        return;
+      }
       // Rule: 1_WEEK, 15_DAYS allow only 1 slot
       if ((schedule.frequency === '1_WEEK' || schedule.frequency === '15_DAYS') && schedule.slots.length >= 1) {
         const labels: Record<string, string> = {
@@ -2799,6 +2804,8 @@ const SchoolsManager: React.FC = () => {
           updateSchedule({ days: [day] }); // Replace
         } else if (schedule.frequency === '2_WEEK' && current.length >= 2) {
           updateSchedule({ days: [current[1], day] }); // Keep last one and add new
+        } else if (schedule.frequency === '3_WEEK' && current.length >= 3) {
+          updateSchedule({ days: [current[1], current[2], day] }); // Keep last two and add new
         } else {
           updateSchedule({ days: [...current, day] });
         }
@@ -2840,17 +2847,21 @@ const SchoolsManager: React.FC = () => {
                 if (days.length > 1) days = days.length > 0 ? [days[0]] : [];
               } else if (freq === '2_WEEK') {
                 if (days.length > 2) days = days.slice(0, 2);
+              } else if (freq === '3_WEEK') {
+                if (days.length > 3) days = days.slice(0, 3);
               }
 
               // Limit slots based on frequency
               if (freq === '2_DAY' || freq === '2_WEEK') {
                 if (slots.length > 2) slots = slots.slice(0, 2);
+              } else if (freq === '3_WEEK') {
+                if (slots.length > 3) slots = slots.slice(0, 3);
               } else if (freq === '1_WEEK' || freq === '15_DAYS') {
                 if (slots.length > 1) slots = slots.slice(0, 1);
               }
 
-              // Clear day from slots if frequency is not 2_WEEK
-              if (freq !== '2_WEEK') {
+              // Clear day from slots if frequency is not 2_WEEK or 3_WEEK
+              if (freq !== '2_WEEK' && freq !== '3_WEEK') {
                 slots = slots.map(s => ({ ...s, day: '' }));
               }
 
@@ -2859,6 +2870,7 @@ const SchoolsManager: React.FC = () => {
           >
             <option value="1_WEEK">1 vez na semana</option>
             <option value="2_WEEK">2 vezes na semana</option>
+            <option value="3_WEEK">3 vezes na semana</option>
             <option value="2_DAY">2 vezes no dia</option>
             <option value="15_DAYS">A cada 15 dias</option>
           </select>
@@ -2885,6 +2897,7 @@ const SchoolsManager: React.FC = () => {
           <p className="text-[10px] text-gray-400 mt-1">
             {(schedule.frequency === '1_WEEK' || schedule.frequency === '2_DAY' || schedule.frequency === '15_DAYS') && 'Selecione apenas 1 dia.'}
             {schedule.frequency === '2_WEEK' && 'Selecione apenas 2 dias.'}
+            {schedule.frequency === '3_WEEK' && 'Selecione apenas 3 dias.'}
           </p>
         </div>
 
@@ -2901,7 +2914,7 @@ const SchoolsManager: React.FC = () => {
           </div>
           {schedule.slots.map((slot, idx) => (
             <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded border border-gray-200">
-              {schedule.frequency === '2_WEEK' && (
+              {(schedule.frequency === '2_WEEK' || schedule.frequency === '3_WEEK') && (
                 <select
                   className="border rounded p-1 text-sm bg-white"
                   value={slot.day || ''}
@@ -3044,6 +3057,7 @@ const SchoolsManager: React.FC = () => {
                                 <span className="text-xs font-medium text-gray-600">
                                   {activeSchedule.frequency === '1_WEEK' && '1x na Semana'}
                                   {activeSchedule.frequency === '2_WEEK' && '2x na Semana'}
+                                  {activeSchedule.frequency === '3_WEEK' && '3x na Semana'}
                                   {activeSchedule.frequency === '2_DAY' && '2x no Dia'}
                                   {activeSchedule.frequency === '15_DAYS' && 'A cada 15 dias'}
                                 </span>

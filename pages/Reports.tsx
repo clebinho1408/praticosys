@@ -19,6 +19,7 @@ import {
   Printer,
   Search
 } from 'lucide-react';
+import DatePicker from '../components/DatePicker';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
 
@@ -540,18 +541,18 @@ const Reports: React.FC = () => {
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                        <input 
-                            type="date" 
-                            className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                            value={generalDateStart}
-                            onChange={e => setGeneralDateStart(e.target.value)}
+                        <DatePicker 
+                            value={generalDateStart} 
+                            onChange={setGeneralDateStart} 
+                            placeholder="Início"
+                            className="border-none"
                         />
                         <span className="text-gray-400">-</span>
-                        <input 
-                            type="date" 
-                            className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                            value={generalDateEnd}
-                            onChange={e => setGeneralDateEnd(e.target.value)}
+                        <DatePicker 
+                            value={generalDateEnd} 
+                            onChange={setGeneralDateEnd} 
+                            placeholder="Fim"
+                            className="border-none"
                         />
                     </div>
                     <button 
@@ -757,18 +758,18 @@ const Reports: React.FC = () => {
                   
                   <div className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                          <input 
-                              type="date" 
-                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                              value={examHistoryDateStart}
-                              onChange={e => setExamHistoryDateStart(e.target.value)}
+                          <DatePicker 
+                              value={examHistoryDateStart} 
+                              onChange={setExamHistoryDateStart} 
+                              placeholder="Início"
+                              className="border-none"
                           />
                           <span className="text-gray-400">-</span>
-                          <input 
-                              type="date" 
-                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                              value={examHistoryDateEnd}
-                              onChange={e => setExamHistoryDateEnd(e.target.value)}
+                          <DatePicker 
+                              value={examHistoryDateEnd} 
+                              onChange={setExamHistoryDateEnd} 
+                              placeholder="Fim"
+                              className="border-none"
                           />
                       </div>
                       <button 
@@ -1006,18 +1007,18 @@ const Reports: React.FC = () => {
                       </select>
 
                       <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                          <input 
-                              type="date" 
-                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                              value={scheduleDateStart}
-                              onChange={e => setScheduleDateStart(e.target.value)}
+                          <DatePicker 
+                              value={scheduleDateStart} 
+                              onChange={setScheduleDateStart} 
+                              placeholder="Início"
+                              className="border-none"
                           />
                           <span className="text-gray-400">-</span>
-                          <input 
-                              type="date" 
-                              className="py-2 text-sm bg-transparent outline-none text-gray-900"
-                              value={scheduleDateEnd}
-                              onChange={e => setScheduleDateEnd(e.target.value)}
+                          <DatePicker 
+                              value={scheduleDateEnd} 
+                              onChange={setScheduleDateEnd} 
+                              placeholder="Fim"
+                              className="border-none"
                           />
                       </div>
 
