@@ -31,7 +31,8 @@ import {
   Save,
   RefreshCw,
   MessageCircle,
-  Copy
+  Copy,
+  Bell
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -89,6 +90,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [isTypeSelectionModalOpen, setIsTypeSelectionModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const prevWaitingIdsRef = React.useRef<string[]>([]);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelRequest, setCancelRequest] = useState<ExamRequest | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -395,6 +398,19 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const confirmed = filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed);
   const done = filteredRequests.filter(r => r.status === ExamStatus.DONE);
   const cancelled = filteredRequests.filter(r => r.status === ExamStatus.CANCELLED);
+
+  useEffect(() => {
+    if (user.role === UserRole.SCHOOL) {
+      const currentIds = waitingConfirmation.map(r => r.id);
+      const hasNew = currentIds.some(id => !prevWaitingIdsRef.current.includes(id));
+      
+      if (hasNew && prevWaitingIdsRef.current.length > 0) {
+        setIsNotificationModalOpen(true);
+      }
+      
+      prevWaitingIdsRef.current = currentIds;
+    }
+  }, [waitingConfirmation, user.role]);
 
   useEffect(() => {
     if (user.role === UserRole.SCHOOL && waitingConfirmation.length > 0 && !hasAutoExpandedWaiting.current) {
@@ -1723,6 +1739,31 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       )}
 
       {/* MODAL: NOVO AGENDAMENTO */}
+      {/* NOTIFICATION MODAL */}
+      {isNotificationModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300 border-4 border-blue-500">
+            <div className="p-8 text-center space-y-6">
+              <div className="mx-auto h-24 w-24 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 animate-bounce">
+                <Bell className="h-12 w-12" />
+              </div>
+              <div className="space-y-3">
+                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Novo Agendamento!</h3>
+                <p className="text-slate-600 font-medium text-lg">
+                  Existe um novo agendamento aguardando a sua confirmação no sistema.
+                </p>
+              </div>
+              <button 
+                onClick={() => setIsNotificationModalOpen(false)}
+                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wider"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isNewModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className={`bg-white rounded-xl shadow-2xl w-full ${newRequest.requestType === RequestType.FIXA ? 'max-w-2xl' : 'max-w-md'} overflow-hidden animate-in fade-in zoom-in duration-200`}>
