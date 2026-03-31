@@ -16,17 +16,30 @@ import StudentDatabase from './pages/StudentDatabase';
 import CFCSchedulingCenter from './pages/CFCSchedulingCenter';
 
 const App: React.FC = () => {
-  const [auth, setAuth] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false
+  const [auth, setAuth] = useState<AuthState>(() => {
+    const savedAuth = localStorage.getItem('praticosys_auth');
+    if (savedAuth) {
+      try {
+        return JSON.parse(savedAuth);
+      } catch (e) {
+        console.error('Failed to parse saved auth', e);
+      }
+    }
+    return {
+      user: null,
+      isAuthenticated: false
+    };
   });
 
   const handleLogin = (user: User) => {
-    setAuth({ user, isAuthenticated: true });
+    const newAuth = { user, isAuthenticated: true };
+    setAuth(newAuth);
+    localStorage.setItem('praticosys_auth', JSON.stringify(newAuth));
   };
 
   const handleLogout = () => {
     setAuth({ user: null, isAuthenticated: false });
+    localStorage.removeItem('praticosys_auth');
   };
 
   return (
