@@ -1914,7 +1914,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           <div className={`bg-white rounded-xl shadow-2xl w-full ${isFromDoneCard ? 'max-w-2xl' : 'max-w-md'} overflow-hidden animate-in fade-in zoom-in duration-200`}>
             <div className="flex justify-between items-center p-6 border-b border-slate-100">
               <h2 className="text-xl font-bold text-slate-800">
-                {isFromDoneCard ? 'Inserir Resultados' : 'Editar Agendamento'}
+                {isFromDoneCard ? 'Inserir Resultados' : 'Inserir Dados Agendamento'}
               </h2>
               <button onClick={() => {
                 setIsEditModalOpen(false);
@@ -2356,7 +2356,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   onClick={handleUpdateEdit}
                   className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center gap-2"
                 >
-                  <Save className="h-4 w-4" /> Atualizar
+                  <Save className="h-4 w-4" /> Salvar
                 </button>
               </div>
             </div>
