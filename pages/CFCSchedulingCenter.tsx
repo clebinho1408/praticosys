@@ -909,6 +909,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const handleUpdateEdit = async () => {
     if (!selectedRequest) return;
 
+    if (!isFromDoneCard) {
+      if (!selectedRequest.scheduledDate || !selectedRequest.scheduledTime || !selectedRequest.examinerId) {
+        alert('Por favor, preencha a Data, Horário e Examinador.');
+        return;
+      }
+    }
+
     if (selectedRequest.scheduledDate && systemSettings) {
       const check = isDateBlocked(selectedRequest.scheduledDate, blockedDates, systemSettings);
       if (check.blocked) {
@@ -1951,161 +1958,173 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
               {activeEditTab === 'dados' && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Autoescola</label>
-                  <select 
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-not-allowed"
-                    value={selectedRequest.schoolId}
-                    onChange={e => {
-                      const newSchoolId = e.target.value;
-                      setSelectedRequest({
-                        ...selectedRequest, 
-                        schoolId: newSchoolId,
-                        intendedCategory: newSchoolId === 'CNH_BRASIL' ? 'A,B' : ''
-                      });
-                    }}
-                    disabled={true}
-                  >
-                    {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    {user.role !== UserRole.SCHOOL && (
-                      <>
-                        <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</option>
-                        <option value="CNH_BRASIL">CNH DO BRASIL</option>
-                      </>
-                    )}
-                  </select>
-                </div>
+                  {!isFromDoneCard ? (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-2">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                        <span className="text-red-600 font-black uppercase">Autoescola: <span className="text-slate-900">{getSchoolName(selectedRequest.schoolId)}</span></span>
+                        <span className="text-red-600 font-black uppercase">Categoria: <span className="text-slate-900">{selectedRequest.intendedCategory || '-'}</span></span>
+                        <span className="text-red-600 font-black uppercase">Exame: <span className="text-slate-900">{getExamTypeLabel(selectedRequest)}</span></span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2 space-y-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Autoescola</label>
+                        <select 
+                          className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all cursor-not-allowed"
+                          value={selectedRequest.schoolId}
+                          onChange={e => {
+                            const newSchoolId = e.target.value;
+                            setSelectedRequest({
+                              ...selectedRequest, 
+                              schoolId: newSchoolId,
+                              intendedCategory: newSchoolId === 'CNH_BRASIL' ? 'A,B' : ''
+                            });
+                          }}
+                          disabled={true}
+                        >
+                          {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                          {user.role !== UserRole.SCHOOL && (
+                            <>
+                              <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</option>
+                              <option value="CNH_BRASIL">CNH DO BRASIL</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
 
-                <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria <span className="text-red-500">*</span></label>
-                  <div className="flex flex-wrap items-center gap-6 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                    {selectedRequest.schoolId === 'PCD' ? (
-                      <label className="flex items-center gap-2 cursor-pointer group">
-                        <input 
-                          type="checkbox" 
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                          checked={true}
-                          readOnly
-                        />
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                          PCD
-                        </span>
-                      </label>
-                    ) : selectedRequest.schoolId === 'CNH_BRASIL' ? (
-                      <>
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                            checked={true}
-                            readOnly
-                          />
-                          <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                            A
-                          </span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                            checked={true}
-                            readOnly
-                          />
-                          <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                            B
-                          </span>
-                        </label>
-                      </>
-                    ) : (
-                      (selectedRequest.schoolId 
-                        ? schools.find(s => s.id === selectedRequest.schoolId)?.services || [] 
-                        : ['A', 'B', 'C', 'D', 'E', 'PCD']
-                      ).filter(cat => {
-                        if (selectedRequest.requestType === RequestType.FIXA || selectedRequest.requestType === RequestType.REPOSICAO) {
-                          return ['A', 'B'].includes(cat);
-                        }
-                        return true;
-                      }).map(cat => (
-                        <label key={cat} className={`flex items-center gap-2 group ${!isFromDoneCard ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
-                          <input 
-                            type="checkbox" 
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                            checked={selectedRequest.intendedCategory?.split(',').includes(cat)}
-                            disabled={!isFromDoneCard}
-                            onChange={e => {
-                              const currentCats = selectedRequest.intendedCategory ? selectedRequest.intendedCategory.split(',').filter(Boolean) : [];
-                              let newCats = e.target.checked 
-                                ? [...currentCats, cat]
-                                : currentCats.filter(c => c !== cat);
-                              
-                              // Regra: Não permitir A/B junto com C/D/E
-                              const hasAB = newCats.some(c => ['A', 'B'].includes(c));
-                              const hasCDE = newCats.some(c => ['C', 'D', 'E'].includes(c));
-                              if (hasAB && hasCDE) {
-                                alert('Não é permitido selecionar categorias A/B junto com C/D/E.');
-                                return;
+                      <div className="md:col-span-2 space-y-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria <span className="text-red-500">*</span></label>
+                        <div className="flex flex-wrap items-center gap-6 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                          {selectedRequest.schoolId === 'PCD' ? (
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                              <input 
+                                type="checkbox" 
+                                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                                checked={true}
+                                readOnly
+                              />
+                              <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
+                                PCD
+                              </span>
+                            </label>
+                          ) : selectedRequest.schoolId === 'CNH_BRASIL' ? (
+                            <>
+                              <label className="flex items-center gap-2 cursor-pointer group">
+                                <input 
+                                  type="checkbox" 
+                                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                                  checked={true}
+                                  readOnly
+                                />
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
+                                  A
+                                </span>
+                              </label>
+                              <label className="flex items-center gap-2 cursor-pointer group">
+                                <input 
+                                  type="checkbox" 
+                                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                                  checked={true}
+                                  readOnly
+                                />
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
+                                  B
+                                </span>
+                              </label>
+                            </>
+                          ) : (
+                            (selectedRequest.schoolId 
+                              ? schools.find(s => s.id === selectedRequest.schoolId)?.services || [] 
+                              : ['A', 'B', 'C', 'D', 'E', 'PCD']
+                            ).filter(cat => {
+                              if (selectedRequest.requestType === RequestType.FIXA || selectedRequest.requestType === RequestType.REPOSICAO) {
+                                return ['A', 'B'].includes(cat);
                               }
-                              
-                              setSelectedRequest({...selectedRequest, intendedCategory: newCats.join(',')});
-                            }}
-                          />
-                          <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{cat}</span>
-                        </label>
-                      ))
-                    )}
+                              return true;
+                            }).map(cat => (
+                              <label key={cat} className={`flex items-center gap-2 group ${!isFromDoneCard ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}>
+                                <input 
+                                  type="checkbox" 
+                                  className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
+                                  checked={selectedRequest.intendedCategory?.split(',').includes(cat)}
+                                  disabled={!isFromDoneCard}
+                                  onChange={e => {
+                                    const currentCats = selectedRequest.intendedCategory ? selectedRequest.intendedCategory.split(',').filter(Boolean) : [];
+                                    let newCats = e.target.checked 
+                                      ? [...currentCats, cat]
+                                      : currentCats.filter(c => c !== cat);
+                                    
+                                    // Regra: Não permitir A/B junto com C/D/E
+                                    const hasAB = newCats.some(c => ['A', 'B'].includes(c));
+                                    const hasCDE = newCats.some(c => ['C', 'D', 'E'].includes(c));
+                                    if (hasAB && hasCDE) {
+                                      alert('Não é permitido selecionar categorias A/B junto com C/D/E.');
+                                      return;
+                                    }
+                                    
+                                    setSelectedRequest({...selectedRequest, intendedCategory: newCats.join(',')});
+                                  }}
+                                />
+                                <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{cat}</span>
+                              </label>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame</label>
+                        <div className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-600 font-bold">
+                          {getExamTypeLabel(selectedRequest)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Data <span className="text-red-500">*</span></label>
+                      <DatePicker 
+                        value={selectedRequest.scheduledDate || ''} 
+                        onChange={date => setSelectedRequest({...selectedRequest, scheduledDate: date})} 
+                        blockedDates={blockedDates}
+                        settings={systemSettings}
+                        placeholder="Selecione a data"
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Horário <span className="text-red-500">*</span></label>
+                      <input 
+                        type="time" 
+                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        value={selectedRequest.scheduledTime || ''}
+                        onChange={e => setSelectedRequest({...selectedRequest, scheduledTime: e.target.value})}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Examinador <span className="text-red-500">*</span></label>
+                      <select 
+                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        value={selectedRequest.examinerId || ''}
+                        onChange={e => setSelectedRequest({...selectedRequest, examinerId: e.target.value})}
+                      >
+                        <option value="">Selecione o examinador</option>
+                        {examiners
+                          .filter(e => {
+                            if (!selectedRequest.intendedCategory) return true;
+                            const reqCats = selectedRequest.intendedCategory.split(',').filter(Boolean);
+                            if (reqCats.length === 0) return true;
+                            return e.categories?.some(cat => reqCats.includes(cat));
+                          })
+                          .map(e => <option key={e.id} value={e.id}>{e.name}</option>)
+                        }
+                      </select>
+                    </div>
                   </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame</label>
-                  <div className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-600 font-bold">
-                    {getExamTypeLabel(selectedRequest)}
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Data</label>
-                  <DatePicker 
-                    value={selectedRequest.scheduledDate || ''} 
-                    onChange={date => setSelectedRequest({...selectedRequest, scheduledDate: date})} 
-                    blockedDates={blockedDates}
-                    settings={systemSettings}
-                    placeholder="Selecione a data"
-                    className="w-full"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Horário</label>
-                  <input 
-                    type="time" 
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                    value={selectedRequest.scheduledTime || ''}
-                    onChange={e => setSelectedRequest({...selectedRequest, scheduledTime: e.target.value})}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Examinador</label>
-                  <select 
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                    value={selectedRequest.examinerId || ''}
-                    onChange={e => setSelectedRequest({...selectedRequest, examinerId: e.target.value})}
-                  >
-                    <option value="">Selecione o examinador</option>
-                    {examiners
-                      .filter(e => {
-                        if (!selectedRequest.intendedCategory) return true;
-                        const reqCats = selectedRequest.intendedCategory.split(',').filter(Boolean);
-                        if (reqCats.length === 0) return true;
-                        return e.categories?.some(cat => reqCats.includes(cat));
-                      })
-                      .map(e => <option key={e.id} value={e.id}>{e.name}</option>)
-                    }
-                  </select>
-                </div>
-              </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Observações</label>
