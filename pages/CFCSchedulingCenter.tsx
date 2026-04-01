@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { 
   ExamRequest, 
@@ -110,6 +110,20 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [isFromDoneCard, setIsFromDoneCard] = useState(false);
   const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
   const [allBancaResults, setAllBancaResults] = useState<BancaResult[]>([]);
+  
+  const showReposition = useMemo(() => {
+    if (user.role !== UserRole.SCHOOL) return true;
+    
+    const now = new Date();
+    const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
+    
+    return blockedDates.some(bd => {
+      if (!bd.isHoliday) return false;
+      const holidayDate = new Date(bd.date + 'T00:00:00');
+      const diff = Math.abs(now.getTime() - holidayDate.getTime());
+      return diff <= tenDaysInMs;
+    });
+  }, [user.role, blockedDates]);
   
   const [confirmConfig, setConfirmConfig] = useState<{
     title: string;
@@ -1693,7 +1707,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             <div className="p-6 border-b border-slate-100">
               <h2 className="text-lg font-bold text-slate-800">Tipo de Agendamento</h2>
             </div>
-            <div className="p-6 grid grid-cols-2 gap-4">
+            <div className={`p-6 grid ${showReposition ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
               <button 
                 onClick={() => {
                   setNewRequest({...newRequest, requestType: RequestType.EXTRA, observation: ''});
@@ -1704,16 +1718,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               >
                 Extra
               </button>
-              <button 
-                onClick={() => {
-                  setNewRequest({...newRequest, requestType: RequestType.REPOSICAO, observation: ''});
-                  setIsTypeSelectionModalOpen(false);
-                  setIsNewModalOpen(true);
-                }}
-                className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-4 rounded-lg transition-all"
-              >
-                Reposição
-              </button>
+              {showReposition && (
+                <button 
+                  onClick={() => {
+                    setNewRequest({...newRequest, requestType: RequestType.REPOSICAO, observation: ''});
+                    setIsTypeSelectionModalOpen(false);
+                    setIsNewModalOpen(true);
+                  }}
+                  className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold py-4 rounded-lg transition-all"
+                >
+                  Reposição
+                </button>
+              )}
             </div>
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
               <button 
@@ -1742,9 +1758,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       {/* NOTIFICATION MODAL */}
       {isNotificationModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300 border-4 border-blue-500">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-300 border-4 border-red-500">
             <div className="p-8 text-center space-y-6">
-              <div className="mx-auto h-24 w-24 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 animate-bounce">
+              <div className="mx-auto h-24 w-24 rounded-full bg-red-50 flex items-center justify-center text-red-600 animate-bounce">
                 <Bell className="h-12 w-12" />
               </div>
               <div className="space-y-3">
@@ -1755,7 +1771,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               </div>
               <button 
                 onClick={() => setIsNotificationModalOpen(false)}
-                className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wider"
+                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-red-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wider"
               >
                 Entendido
               </button>
