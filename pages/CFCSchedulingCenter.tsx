@@ -420,6 +420,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       
       if (hasNew && prevWaitingIdsRef.current.length > 0) {
         setIsNotificationModalOpen(true);
+        // Play notification sound
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play().catch(e => console.error('Error playing notification sound:', e));
       }
       
       prevWaitingIdsRef.current = currentIds;
@@ -1374,7 +1377,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             <th className="px-4 py-3">Horário</th>
                             <th className="px-4 py-3">Examinador</th>
                             <th className="px-4 py-3">Exame</th>
-                            <th className="px-4 py-3">Ações</th>
+                            {user.role !== UserRole.SCHOOL && <th className="px-4 py-3">Ações</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -1388,9 +1391,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               <td className="px-4 py-3 text-slate-600">
                                 {getExamTypeLabel(req)}
                               </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  {user.role !== UserRole.SCHOOL && (
+                              {user.role !== UserRole.SCHOOL && (
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2">
                                     <button 
                                       onClick={() => handleCancelAction(req)}
                                       className="border border-red-200 text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
@@ -1398,14 +1401,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                     >
                                       <XCircle className="h-4 w-4" />
                                     </button>
-                                  )}
-                                </div>
-                              </td>
+                                  </div>
+                                </td>
+                              )}
                             </tr>
                           ))}
                           {groupedByDayOfWeek[dayName].length === 0 && (
                             <tr>
-                              <td colSpan={7} className="px-4 py-8 text-center text-slate-400 italic">Nenhum agendamento para este dia.</td>
+                              <td colSpan={user.role === UserRole.SCHOOL ? 6 : 7} className="px-4 py-8 text-center text-slate-400 italic">Nenhum agendamento para este dia.</td>
                             </tr>
                           )}
                         </tbody>
@@ -1445,7 +1448,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                            <th className="px-4 py-3">Horário</th>
                            <th className="px-4 py-3">Examinador</th>
                            <th className="px-4 py-3">Exame</th>
-                           <th className="px-4 py-3 text-right">Ações</th>
+                           {user.role !== UserRole.SCHOOL && <th className="px-4 py-3 text-right">Ações</th>}
                          </tr>
                        </thead>
                        <tbody className="divide-y divide-slate-50">
@@ -1457,39 +1460,41 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                              <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
                              <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
                              <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
-                             <td className="px-4 py-3 text-right">
-                               {user.role !== UserRole.SCHOOL && (() => {
-                                 const targetScheduleId = req.scheduleId || req.id;
-                                 const hasResult = allBancaResults.some(r => 
-                                   r.scheduleId === targetScheduleId && 
-                                   r.schoolId === req.schoolId && 
-                                   r.usedSlots > 0
-                                 );
-                                 
-                                 return (
-                                   <button
-                                     onClick={() => {
-                                       setSelectedRequest(req);
-                                       setIsFromDoneCard(true);
-                                       setIsEditModalOpen(true);
-                                       // Find first available category tab
-                                       const cats = req.intendedCategory?.split(',') || [];
-                                       if (cats.includes('A')) setActiveEditTab('catA');
-                                       else if (cats.includes('B')) setActiveEditTab('catB');
-                                       else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
-                                       else setActiveEditTab('catA');
-                                     }}
-                                     className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm hover:shadow-md ${
-                                       hasResult 
-                                         ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
-                                         : 'bg-red-500 text-white hover:bg-red-600'
-                                     }`}
-                                   >
-                                     {hasResult ? 'Resultado Inserido' : 'Inserir Resultado'}
-                                   </button>
-                                 );
-                               })()}
-                             </td>
+                             {user.role !== UserRole.SCHOOL && (
+                               <td className="px-4 py-3 text-right">
+                                 {(() => {
+                                   const targetScheduleId = req.scheduleId || req.id;
+                                   const hasResult = allBancaResults.some(r => 
+                                     r.scheduleId === targetScheduleId && 
+                                     r.schoolId === req.schoolId && 
+                                     r.usedSlots > 0
+                                   );
+                                   
+                                   return (
+                                     <button
+                                       onClick={() => {
+                                         setSelectedRequest(req);
+                                         setIsFromDoneCard(true);
+                                         setIsEditModalOpen(true);
+                                         // Find first available category tab
+                                         const cats = req.intendedCategory?.split(',') || [];
+                                         if (cats.includes('A')) setActiveEditTab('catA');
+                                         else if (cats.includes('B')) setActiveEditTab('catB');
+                                         else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
+                                         else setActiveEditTab('catA');
+                                       }}
+                                       className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm hover:shadow-md ${
+                                         hasResult 
+                                           ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                                           : 'bg-red-500 text-white hover:bg-red-600'
+                                       }`}
+                                     >
+                                       {hasResult ? 'Resultado Inserido' : 'Inserir Resultado'}
+                                     </button>
+                                   );
+                                 })()}
+                               </td>
+                             )}
                            </tr>
                          ))}
                        </tbody>
