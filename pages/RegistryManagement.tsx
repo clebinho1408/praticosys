@@ -2364,9 +2364,16 @@ const UsersManager: React.FC = () => {
     setUsers(u);
     setSchools(s);
     
-    // Simula pegar o usuário atual da sessão
-    const stored = localStorage.getItem('praticosys_user');
-    if (stored) setCurrentUser(JSON.parse(stored));
+    // Get current user from auth state
+    const stored = localStorage.getItem('praticosys_auth');
+    if (stored) {
+      try {
+        const auth = JSON.parse(stored);
+        if (auth.user) setCurrentUser(auth.user);
+      } catch (e) {
+        console.error('Failed to parse auth for UsersManager', e);
+      }
+    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -2504,7 +2511,14 @@ const UsersManager: React.FC = () => {
                       </button>
                   )}
                   <button onClick={() => openModal(u)} className="text-blue-600 hover:text-blue-800" title="Editar"><Edit2 className="h-4 w-4" /></button>
-                  <button onClick={() => handleDelete(u.id)} className="text-red-600 hover:text-red-800" title="Excluir"><Trash2 className="h-4 w-4" /></button>
+                  <button 
+                    onClick={() => handleDelete(u.id)} 
+                    className={`${u.role === UserRole.SCHOOL ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-800'}`} 
+                    title={u.role === UserRole.SCHOOL ? "Exclua a autoescola para remover este usuário" : "Excluir"}
+                    disabled={u.role === UserRole.SCHOOL}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </td>
               </tr>
             ))}
@@ -2683,6 +2697,16 @@ const SchoolsManager: React.FC = () => {
           message: 'Tem certeza que deseja remover esta autoescola?',
           isDestructive: true,
           onConfirm: async () => {
+              try {
+                // Also delete associated user
+                const allUsers = await api.getUsers();
+                const schoolUser = allUsers.find(u => u.schoolId === id);
+                if (schoolUser) {
+                  await api.deleteUser(schoolUser.id);
+                }
+              } catch (err) {
+                console.error("Erro ao excluir usuário da autoescola:", err);
+              }
               await api.deleteSchool(id);
               fetch();
           }

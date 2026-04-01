@@ -46,6 +46,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const getRoleLabel = (role: string) => {
+    switch(role) {
+      case UserRole.ADMIN: return 'Administrador';
+      case UserRole.SUPERVISOR: return 'Supervisor';
+      case UserRole.OPERATOR: return 'Operador';
+      case UserRole.SCHOOL: return 'Autoescola';
+      default: return role;
+    }
+  };
+
   const handleLogout = () => {
     onLogout();
     navigate('/');
@@ -249,7 +259,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 <div className="flex items-center gap-3">
                     <div className="text-right hidden sm:block">
                         <p className="text-sm font-black text-slate-900 leading-tight uppercase tracking-tighter">{user.name}</p>
-                        <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest opacity-80">{user.role}</p>
+                        <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest opacity-80">{getRoleLabel(user.role)}</p>
                     </div>
                     <div className="h-10 w-10 bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center font-black border border-slate-200 shadow-sm">
                         {user.name.charAt(0)}
