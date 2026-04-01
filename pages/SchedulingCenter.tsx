@@ -609,18 +609,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <DatePicker 
-                        value={startDate} 
-                        onChange={setStartDate} 
-                        placeholder="Início"
-                        className="w-32"
+                    <input 
+                        type="date"
+                        className="w-32 border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
                     />
                     <span className="text-gray-400">-</span>
-                    <DatePicker 
-                        value={endDate} 
-                        onChange={setEndDate} 
-                        placeholder="Fim"
-                        className="w-32"
+                    <input 
+                        type="date"
+                        className="w-32 border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
                     />
                 </div>
              </div>
