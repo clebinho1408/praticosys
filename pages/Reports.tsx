@@ -19,7 +19,6 @@ import {
   Printer,
   Search
 } from 'lucide-react';
-import DatePicker from '../components/DatePicker';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
 
@@ -541,18 +540,18 @@ const Reports: React.FC = () => {
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                        <DatePicker 
+                        <input 
+                            type="date"
+                            className="border-none text-sm p-2 outline-none bg-transparent"
                             value={generalDateStart} 
-                            onChange={setGeneralDateStart} 
-                            placeholder="Início"
-                            className="border-none"
+                            onChange={e => setGeneralDateStart(e.target.value)} 
                         />
                         <span className="text-gray-400">-</span>
-                        <DatePicker 
+                        <input 
+                            type="date"
+                            className="border-none text-sm p-2 outline-none bg-transparent"
                             value={generalDateEnd} 
-                            onChange={setGeneralDateEnd} 
-                            placeholder="Fim"
-                            className="border-none"
+                            onChange={e => setGeneralDateEnd(e.target.value)} 
                         />
                     </div>
                     <button 
@@ -758,18 +757,18 @@ const Reports: React.FC = () => {
                   
                   <div className="flex flex-wrap items-center gap-2">
                       <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                          <DatePicker 
+                          <input 
+                              type="date"
+                              className="border-none text-sm p-2 outline-none bg-transparent"
                               value={examHistoryDateStart} 
-                              onChange={setExamHistoryDateStart} 
-                              placeholder="Início"
-                              className="border-none"
+                              onChange={e => setExamHistoryDateStart(e.target.value)} 
                           />
                           <span className="text-gray-400">-</span>
-                          <DatePicker 
+                          <input 
+                              type="date"
+                              className="border-none text-sm p-2 outline-none bg-transparent"
                               value={examHistoryDateEnd} 
-                              onChange={setExamHistoryDateEnd} 
-                              placeholder="Fim"
-                              className="border-none"
+                              onChange={e => setExamHistoryDateEnd(e.target.value)} 
                           />
                       </div>
                       <button 
@@ -1007,18 +1006,18 @@ const Reports: React.FC = () => {
                       </select>
 
                       <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                          <DatePicker 
+                          <input 
+                              type="date"
+                              className="border-none text-sm p-2 outline-none bg-transparent"
                               value={scheduleDateStart} 
-                              onChange={setScheduleDateStart} 
-                              placeholder="Início"
-                              className="border-none"
+                              onChange={e => setScheduleDateStart(e.target.value)} 
                           />
                           <span className="text-gray-400">-</span>
-                          <DatePicker 
+                          <input 
+                              type="date"
+                              className="border-none text-sm p-2 outline-none bg-transparent"
                               value={scheduleDateEnd} 
-                              onChange={setScheduleDateEnd} 
-                              placeholder="Fim"
-                              className="border-none"
+                              onChange={e => setScheduleDateEnd(e.target.value)} 
                           />
                       </div>
 
