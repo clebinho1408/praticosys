@@ -3288,8 +3288,8 @@ const ExaminersManager: React.FC = () => {
         // Create user for the new examiner
         await api.createUser({
           name: newEx.name,
-          login: newEx.registrationNumber,
-          password: newEx.registrationNumber, // Default password is the registration number
+          login: newEx.name.toLowerCase().replace(/\s+/g, '.'),
+          password: '123456', 
           role: UserRole.EXAMINER,
           examinerId: newEx.id
         });
@@ -3303,26 +3303,40 @@ const ExaminersManager: React.FC = () => {
   };
 
   const handleSyncUsers = async () => {
-    if (!confirm('Deseja criar usuários para todos os examinadores que ainda não possuem acesso? O login e senha serão a matrícula.')) return;
+    if (!confirm('Deseja atualizar/criar usuários para todos os examinadores? O login será o nome em minúsculo e a senha padrão será 123456.')) return;
     
     try {
       const users = await api.getUsers();
-      const examinerLogins = new Set(users.filter(u => u.role === UserRole.EXAMINER).map(u => u.login));
+      const examinerUsers = users.filter(u => u.role === UserRole.EXAMINER);
       
       let createdCount = 0;
+      let updatedCount = 0;
+      
       for (const ex of examiners) {
-        if (!examinerLogins.has(ex.registrationNumber)) {
+        const login = ex.name.toLowerCase().replace(/\s+/g, '.');
+        const existingUser = examinerUsers.find(u => u.examinerId === ex.id || u.login === ex.registrationNumber);
+        
+        if (existingUser) {
+          // Update existing user
+          await api.updateUser(existingUser.id, {
+            login: login,
+            password: '123456',
+            name: ex.name
+          });
+          updatedCount++;
+        } else {
+          // Create new user
           await api.createUser({
             name: ex.name,
-            login: ex.registrationNumber,
-            password: ex.registrationNumber,
+            login: login,
+            password: '123456',
             role: UserRole.EXAMINER,
             examinerId: ex.id
           });
           createdCount++;
         }
       }
-      alert(`${createdCount} usuários criados com sucesso.`);
+      alert(`${createdCount} usuários criados e ${updatedCount} atualizados com sucesso.`);
     } catch (error) {
       console.error('Error syncing examiner users:', error);
       alert('Erro ao sincronizar usuários.');

@@ -20,6 +20,7 @@ import {
   Filter, 
   ChevronDown, 
   ChevronUp, 
+  Calendar,
   AlertTriangle,
   Clock,
   CheckCircle2,
@@ -32,7 +33,9 @@ import {
   RefreshCw,
   MessageCircle,
   Copy,
-  Bell
+  Bell,
+  MapPin,
+  ExternalLink
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -135,6 +138,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   } | null>(null);
 
   const [selectedRequest, setSelectedRequest] = useState<ExamRequest | null>(null);
+  const [selectedSchoolForAddress, setSelectedSchoolForAddress] = useState<DrivingSchool | null>(null);
 
   const updateBancaResult = (category: string, field: string, value: number) => {
     setBancaResults(prev => {
@@ -1192,36 +1196,74 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               <CheckCircle2 className="h-5 w-5" />
               <span className="font-bold">Minhas Provas Confirmadas ({confirmed.length})</span>
             </div>
-            <div className="p-4 bg-white space-y-4">
+            <div className="p-4 bg-white space-y-6">
               {confirmed.length > 0 ? (
-                <div className="grid grid-cols-1 gap-3">
-                  {confirmed.map(req => (
-                    <div key={req.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-3 shadow-sm">
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Autoescola</span>
-                          <span className="font-black text-slate-800 uppercase text-sm">{getSchoolName(req.schoolId)}</span>
+                <div className="space-y-6">
+                  {(() => {
+                    const daysOfWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+                    
+                    // Group by date
+                    const groups: Record<string, typeof confirmed> = {};
+                    confirmed.forEach(req => {
+                      const date = req.scheduledDate;
+                      if (!date) return;
+                      if (!groups[date]) groups[date] = [];
+                      groups[date].push(req);
+                    });
+                    
+                    // Sort dates
+                    const sortedDates = Object.keys(groups).sort();
+                    
+                    return sortedDates.map(date => {
+                      const dateObj = new Date(date + 'T12:00:00');
+                      const dayName = daysOfWeek[dateObj.getDay()];
+                      const reqs = groups[date];
+                      
+                      return (
+                        <div key={date} className="space-y-3">
+                          <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                            <Calendar className="h-4 w-4 text-green-600" />
+                            <h3 className="font-bold text-slate-700 uppercase text-xs tracking-wider">
+                              {dayName} - {formatDate(date)}
+                            </h3>
+                          </div>
+                          <div className="grid grid-cols-1 gap-3">
+                            {reqs.map(req => (
+                              <div key={req.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-3 shadow-sm">
+                                <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Autoescola</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-black text-slate-800 uppercase text-sm">{getSchoolName(req.schoolId)}</span>
+                                      {req.schoolId && !['PCD', 'CNH_BRASIL'].includes(req.schoolId) && (
+                                        <button 
+                                          onClick={() => {
+                                            const school = schools.find(s => s.id === req.schoolId);
+                                            if (school) setSelectedSchoolForAddress(school);
+                                          }}
+                                          className="p-1 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                          title="Consultar Endereços"
+                                        >
+                                          <MapPin className="h-3.5 w-3.5" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold uppercase">
+                                    Confirmada
+                                  </div>
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exame</span>
+                                  <span className="text-slate-700 font-bold text-sm">{getExamTypeLabel(req)}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold uppercase">
-                          Confirmada
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Data</span>
-                          <span className="text-slate-700 font-bold text-sm">{formatDate(req.scheduledDate)}</span>
-                        </div>
-                        <div className="flex flex-col text-right">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Horário</span>
-                          <span className="text-slate-700 font-bold text-sm">{req.scheduledTime || '08:00'}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col pt-1 border-t border-slate-100 mt-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exame</span>
-                        <span className="text-slate-700 font-bold text-sm">{getExamTypeLabel(req)}</span>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    });
+                  })()}
                 </div>
               ) : (
                 <div className="py-12 text-center">
@@ -2731,6 +2773,151 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold shadow-sm transition-colors"
               >
                 Confirmar Cancelamento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONSULTAR ENDEREÇOS DA AUTOESCOLA */}
+      {selectedSchoolForAddress && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-4 bg-blue-600 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                <h2 className="font-bold uppercase tracking-tight">Endereços: {selectedSchoolForAddress.name}</h2>
+              </div>
+              <button 
+                onClick={() => setSelectedSchoolForAddress(null)}
+                className="p-1 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+              {/* Endereço Principal */}
+              {selectedSchoolForAddress.address && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <div className="p-1.5 bg-blue-100 rounded-lg">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <span className="font-bold text-xs uppercase tracking-wider">Dados Principais (Sede)</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                      {selectedSchoolForAddress.address}
+                    </p>
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSchoolForAddress.address)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Ver no Google Maps
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Pátio Categoria A */}
+              {selectedSchoolForAddress.motoYardAddress && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-orange-700">
+                    <div className="p-1.5 bg-orange-100 rounded-lg">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <span className="font-bold text-xs uppercase tracking-wider">Pátio Categoria A (Moto)</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                      {selectedSchoolForAddress.motoYardAddress}
+                    </p>
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSchoolForAddress.motoYardAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Ver no Google Maps
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Pátio Categoria B */}
+              {selectedSchoolForAddress.carYardAddress && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <div className="p-1.5 bg-green-100 rounded-lg">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <span className="font-bold text-xs uppercase tracking-wider">Pátio Categoria B (Carro)</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                      {selectedSchoolForAddress.carYardAddress}
+                    </p>
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSchoolForAddress.carYardAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Ver no Google Maps
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Pátio Mudança de Categoria */}
+              {selectedSchoolForAddress.categoryChangeYardAddress && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-purple-700">
+                    <div className="p-1.5 bg-purple-100 rounded-lg">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <span className="font-bold text-xs uppercase tracking-wider">Pátio Mudança (C, D, E)</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                      {selectedSchoolForAddress.categoryChangeYardAddress}
+                    </p>
+                    <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSchoolForAddress.categoryChangeYardAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Ver no Google Maps
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {!selectedSchoolForAddress.address && 
+               !selectedSchoolForAddress.motoYardAddress && 
+               !selectedSchoolForAddress.carYardAddress && 
+               !selectedSchoolForAddress.categoryChangeYardAddress && (
+                <div className="py-12 text-center">
+                  <MapPin className="h-12 w-12 text-slate-200 mx-auto mb-3" />
+                  <p className="text-slate-400 italic">Nenhum endereço cadastrado para esta autoescola.</p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 bg-slate-50 border-t border-slate-100">
+              <button 
+                onClick={() => setSelectedSchoolForAddress(null)}
+                className="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition-colors"
+              >
+                Fechar
               </button>
             </div>
           </div>

@@ -41,6 +41,7 @@ export interface User {
   schoolId?: string; // If role is SCHOOL
   examinerId?: string; // If role is EXAMINER
   login: string;
+  password?: string;
 }
 
 export interface SchoolSchedule {
