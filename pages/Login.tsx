@@ -86,7 +86,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       {/* Background Decor */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-900 to-slate-900 z-0"></div>
       
@@ -105,7 +105,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="bg-white py-8 px-4 shadow-2xl shadow-black/20 sm:rounded-xl sm:px-10 border border-white/10">
+        <div className="bg-white py-8 px-4 shadow-2xl shadow-black/20 rounded-xl sm:px-10 border border-white/10">
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="login" className="block text-sm font-medium text-gray-700">

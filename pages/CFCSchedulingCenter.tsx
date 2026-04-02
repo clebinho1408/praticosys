@@ -1162,7 +1162,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
       {/* FILTROS */}
       {user.role !== UserRole.EXAMINER && (
-        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-visible">
+        <div className="max-w-5xl mx-auto w-full bg-white rounded-lg border border-slate-200 shadow-sm overflow-visible mb-6">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-400" />
             <h2 className="font-bold text-slate-700 text-sm">Filtros</h2>
@@ -1238,34 +1238,34 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       <div className="space-y-4">
         {user.role === UserRole.EXAMINER ? (
           <div className="border border-green-200 rounded-lg overflow-hidden shadow-sm">
-            <div className="p-4 bg-green-600 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-6 bg-green-600 text-white flex flex-col items-center text-center gap-5">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5" />
-                <span className="font-bold">Minhas Provas Confirmadas ({confirmed.length})</span>
+                <CheckCircle2 className="h-6 w-6" />
+                <span className="font-black text-lg uppercase tracking-tight">Minhas Provas Confirmadas ({confirmed.length})</span>
               </div>
               
-              <div className="flex bg-green-700/50 p-1 rounded-lg self-start sm:self-auto">
+              <div className="flex flex-wrap justify-center bg-green-700/60 p-1.5 rounded-xl shadow-inner gap-1">
                 <button 
                   onClick={() => setExaminerFilter('DAY')}
-                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'DAY' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${examinerFilter === 'DAY' ? 'bg-white text-green-700 shadow-md transform scale-105' : 'text-green-100 hover:bg-green-600/50'}`}
                 >
                   Hoje
                 </button>
                 <button 
                   onClick={() => setExaminerFilter('TOMORROW')}
-                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'TOMORROW' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${examinerFilter === 'TOMORROW' ? 'bg-white text-green-700 shadow-md transform scale-105' : 'text-green-100 hover:bg-green-600/50'}`}
                 >
                   Amanhã
                 </button>
                 <button 
                   onClick={() => setExaminerFilter('WEEK')}
-                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'WEEK' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${examinerFilter === 'WEEK' ? 'bg-white text-green-700 shadow-md transform scale-105' : 'text-green-100 hover:bg-green-600/50'}`}
                 >
                   Semana
                 </button>
                 <button 
                   onClick={() => setExaminerFilter('MONTH')}
-                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'MONTH' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
+                  className={`px-4 sm:px-6 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${examinerFilter === 'MONTH' ? 'bg-white text-green-700 shadow-md transform scale-105' : 'text-green-100 hover:bg-green-600/50'}`}
                 >
                   Mês
                 </button>
