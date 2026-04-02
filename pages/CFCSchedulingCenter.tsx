@@ -1253,9 +1253,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                     Confirmada
                                   </div>
                                 </div>
-                                <div className="flex flex-col">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exame</span>
-                                  <span className="text-slate-700 font-bold text-sm">{getExamTypeLabel(req)}</span>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exame</span>
+                                    <span className="text-slate-700 font-bold text-sm">{getExamTypeLabel(req)}</span>
+                                  </div>
+                                  <div className="flex flex-col text-right">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Horário</span>
+                                    <span className="text-slate-700 font-bold text-sm">{req.scheduledTime || '08:00'}</span>
+                                  </div>
                                 </div>
                               </div>
                             ))}
