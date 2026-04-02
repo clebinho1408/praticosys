@@ -139,7 +139,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const [selectedRequest, setSelectedRequest] = useState<ExamRequest | null>(null);
   const [selectedSchoolForAddress, setSelectedSchoolForAddress] = useState<DrivingSchool | null>(null);
-  const [examinerFilter, setExaminerFilter] = useState<'DAY' | 'TOMORROW' | 'WEEK' | 'MONTH'>('WEEK');
+  const [examinerFilter, setExaminerFilter] = useState<'DAY' | 'TOMORROW' | 'WEEK'>('WEEK');
 
   const updateBancaResult = (category: string, field: string, value: number) => {
     setBancaResults(prev => {
@@ -453,12 +453,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         if (!r.scheduledDate) return false;
         const d = new Date(r.scheduledDate + 'T12:00:00');
         return d >= startOfWeek && d <= endOfWeek;
-      } else if (examinerFilter === 'MONTH') {
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
-        if (!r.scheduledDate) return false;
-        const d = new Date(r.scheduledDate + 'T12:00:00');
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       }
     }
     return true;
@@ -1241,7 +1235,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             <div className="p-6 bg-green-600 text-white flex flex-col items-center text-center gap-5">
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="h-6 w-6" />
-                <span className="font-black text-lg uppercase tracking-tight">Minhas Provas Confirmadas ({confirmed.length})</span>
+                <span className="font-black text-lg uppercase tracking-tight">({confirmed.length})</span>
               </div>
               
               <div className="flex flex-wrap justify-center bg-green-700/60 p-1.5 rounded-xl shadow-inner gap-1">
@@ -1262,12 +1256,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   className={`px-4 sm:px-6 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${examinerFilter === 'WEEK' ? 'bg-white text-green-700 shadow-md transform scale-105' : 'text-green-100 hover:bg-green-600/50'}`}
                 >
                   Semana
-                </button>
-                <button 
-                  onClick={() => setExaminerFilter('MONTH')}
-                  className={`px-4 sm:px-6 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${examinerFilter === 'MONTH' ? 'bg-white text-green-700 shadow-md transform scale-105' : 'text-green-100 hover:bg-green-600/50'}`}
-                >
-                  Mês
                 </button>
               </div>
             </div>
