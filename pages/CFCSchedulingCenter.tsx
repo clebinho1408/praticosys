@@ -80,7 +80,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [filters, setFilters] = useState({
     status: 'ALL',
     schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : 'ALL',
-    examinerId: 'ALL',
+    examinerId: user.role === UserRole.EXAMINER ? user.examinerId || '' : 'ALL',
     startDate: '',
     endDate: ''
   });
@@ -374,6 +374,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   // Logic to group and filter data
   const filteredRequests = requests.filter(r => {
     if (user.role === UserRole.SCHOOL && r.schoolId !== user.schoolId) return false;
+    if (user.role === UserRole.EXAMINER && r.examinerId !== user.examinerId) return false;
     if (filters.schoolId !== 'ALL' && r.schoolId !== filters.schoolId) return false;
     
     // Status filter logic
@@ -1090,7 +1091,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           <p className="text-slate-500 text-sm">Gerencie os agendamentos de provas práticas</p>
         </div>
         <div className="flex items-center gap-3">
-          {user.role !== UserRole.SCHOOL && (
+          {user.role !== UserRole.SCHOOL && user.role !== UserRole.EXAMINER && (
             <button 
               onClick={() => setIsAutoGenerateModalOpen(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md flex items-center gap-2 font-bold text-sm shadow-sm transition-colors"
@@ -1098,91 +1099,141 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               <RefreshCw className="h-4 w-4" /> Gerar Escalas Fixas Automaticamente
             </button>
           )}
-          <button 
-            onClick={() => setIsTypeSelectionModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 font-bold text-sm shadow-sm transition-colors"
-          >
-            <Plus className="h-4 w-4" /> Novo Agendamento
-          </button>
+          {user.role !== UserRole.EXAMINER && (
+            <button 
+              onClick={() => setIsTypeSelectionModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 font-bold text-sm shadow-sm transition-colors"
+            >
+              <Plus className="h-4 w-4" /> Novo Agendamento
+            </button>
+          )}
         </div>
       </div>
 
       {/* FILTROS */}
-      <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-visible">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
-          <Filter className="h-4 w-4 text-slate-400" />
-          <h2 className="font-bold text-slate-700 text-sm">Filtros</h2>
+      {user.role !== UserRole.EXAMINER && (
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-visible">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
+            <Filter className="h-4 w-4 text-slate-400" />
+            <h2 className="font-bold text-slate-700 text-sm">Filtros</h2>
+          </div>
+          <div className="p-5 grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
+              <select 
+                className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                value={filters.status}
+                onChange={e => setFilters({...filters, status: e.target.value})}
+              >
+                <option value="ALL">Todos</option>
+                <option value="WAITING_SCHEDULING">Solicitações de Provas Extras</option>
+                <option value="WAITING_CONFIRMATION">Aguardando Confirmação</option>
+                <option value="CONFIRMED">Provas Confirmadas</option>
+                <option value="DONE">Provas Realizadas</option>
+                <option value="CANCELLED">Provas Canceladas</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Autoescola</label>
+              <select 
+                className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                disabled={user.role === UserRole.SCHOOL}
+                value={filters.schoolId}
+                onChange={e => setFilters({...filters, schoolId: e.target.value})}
+              >
+                <option value="ALL">Todas</option>
+                {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                {user.role !== UserRole.SCHOOL && (
+                  <>
+                    <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</option>
+                    <option value="CNH_BRASIL">CNH DO BRASIL</option>
+                  </>
+                )}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Examinador</label>
+              <select 
+                className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                value={filters.examinerId}
+                onChange={e => setFilters({...filters, examinerId: e.target.value})}
+              >
+                <option value="ALL">Todos</option>
+                {examiners.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Data Início</label>
+              <input 
+                type="date"
+                className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                value={filters.startDate}
+                onChange={e => setFilters({...filters, startDate: e.target.value})}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Data Fim</label>
+              <input 
+                type="date"
+                className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                value={filters.endDate}
+                onChange={e => setFilters({...filters, endDate: e.target.value})}
+              />
+            </div>
+          </div>
         </div>
-        <div className="p-5 grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</label>
-            <select 
-              className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-              value={filters.status}
-              onChange={e => setFilters({...filters, status: e.target.value})}
-            >
-              <option value="ALL">Todos</option>
-              <option value="WAITING_SCHEDULING">Solicitações de Provas Extras</option>
-              <option value="WAITING_CONFIRMATION">Aguardando Confirmação</option>
-              <option value="CONFIRMED">Provas Confirmadas</option>
-              <option value="DONE">Provas Realizadas</option>
-              <option value="CANCELLED">Provas Canceladas</option>
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Autoescola</label>
-            <select 
-              className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-              disabled={user.role === UserRole.SCHOOL}
-              value={filters.schoolId}
-              onChange={e => setFilters({...filters, schoolId: e.target.value})}
-            >
-              <option value="ALL">Todas</option>
-              {schools.filter(s => s.mainSchedule?.active || s.provisionalSchedule?.active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              {user.role !== UserRole.SCHOOL && (
-                <>
-                  <option value="PCD">{systemSettings?.pcdExamName || 'PROVA DIRECAO PCD'}</option>
-                  <option value="CNH_BRASIL">CNH DO BRASIL</option>
-                </>
-              )}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Examinador</label>
-            <select 
-              className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-              value={filters.examinerId}
-              onChange={e => setFilters({...filters, examinerId: e.target.value})}
-            >
-              <option value="ALL">Todos</option>
-              {examiners.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Data Início</label>
-            <input 
-              type="date"
-              className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-              value={filters.startDate}
-              onChange={e => setFilters({...filters, startDate: e.target.value})}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Data Fim</label>
-            <input 
-              type="date"
-              className="w-full border border-slate-200 rounded-md p-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-              value={filters.endDate}
-              onChange={e => setFilters({...filters, endDate: e.target.value})}
-            />
-          </div>
-        </div>
-      </div>
+      )}
 
       {/* ACCORDIONS */}
       <div className="space-y-4">
-        
-        {/* SECTION: EXTRAS */}
+        {user.role === UserRole.EXAMINER ? (
+          <div className="border border-green-200 rounded-lg overflow-hidden shadow-sm">
+            <div className="p-4 bg-green-600 text-white flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="font-bold">Minhas Provas Confirmadas ({confirmed.length})</span>
+            </div>
+            <div className="p-4 bg-white space-y-4">
+              {confirmed.length > 0 ? (
+                <div className="grid grid-cols-1 gap-3">
+                  {confirmed.map(req => (
+                    <div key={req.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-3 shadow-sm">
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Autoescola</span>
+                          <span className="font-black text-slate-800 uppercase text-sm">{getSchoolName(req.schoolId)}</span>
+                        </div>
+                        <div className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold uppercase">
+                          Confirmada
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Data</span>
+                          <span className="text-slate-700 font-bold text-sm">{formatDate(req.scheduledDate)}</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Horário</span>
+                          <span className="text-slate-700 font-bold text-sm">{req.scheduledTime || '08:00'}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col pt-1 border-t border-slate-100 mt-1">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exame</span>
+                        <span className="text-slate-700 font-bold text-sm">{getExamTypeLabel(req)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <CheckCircle className="h-12 w-12 text-slate-200 mx-auto mb-3" />
+                  <p className="text-slate-400 italic">Nenhuma prova confirmada para você no momento.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* SECTION: EXTRAS */}
         <div className="border border-orange-200 rounded-lg overflow-hidden shadow-sm">
           <button 
             onClick={() => toggleSection('extras')}
@@ -1595,8 +1646,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             </div>
           )}
         </div>
-
-      </div>
+      </>
+    )}
+  </div>
 
       {/* MODAL: GERAR ESCALAS AUTOMATICAMENTE */}
       {isAutoGenerateModalOpen && (

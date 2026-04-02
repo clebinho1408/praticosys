@@ -52,6 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       case UserRole.SUPERVISOR: return 'Supervisor';
       case UserRole.OPERATOR: return 'Operador';
       case UserRole.SCHOOL: return 'Autoescola';
+      case UserRole.EXAMINER: return 'Examinador';
       default: return role;
     }
   };
@@ -93,7 +94,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const getNavItems = (): NavItem[] => {
     const items: NavItem[] = [];
 
-    if (user.role === UserRole.SCHOOL) {
+    if (user.role === UserRole.SCHOOL || user.role === UserRole.EXAMINER) {
        items.push({
          icon: CalendarCheck,
          label: 'Agendamentos',

@@ -152,6 +152,7 @@ export default async function handler(req: any, res: any) {
       sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS code text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`,
+      sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`,
 
       // Garantir colunas extras em instructors (FIX: Adicionado plate e cpf)
       sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS category text`,

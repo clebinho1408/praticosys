@@ -18,6 +18,7 @@ import testHandler from './server-api/test.js';
 import usersHandler from './server-api/users.js';
 import blockedDatesHandler from './server-api/blocked-dates.js';
 import citiesHandler from './server-api/cities.js';
+import riskAreaHandler from './server-api/risk-area.js';
 import { db } from '../db/index.js';
 
 export const app = express();
@@ -68,6 +69,7 @@ app.all('/api/test', wrap(testHandler));
 app.all('/api/users', wrap(usersHandler));
 app.all('/api/blocked-dates', wrap(blockedDatesHandler));
 app.all('/api/cities', wrap(citiesHandler));
+app.all('/api/risk-area', wrap(riskAreaHandler));
 
 export async function setupVite() {
   if (process.env.NODE_ENV !== 'production') {

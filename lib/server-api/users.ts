@@ -21,6 +21,7 @@ export default async function handler(req: any, res: any) {
       try {
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`);
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`);
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`);
       } catch (e) {
         console.warn("[API Users] Schema sync warning:", e);
       }

@@ -112,4 +112,7 @@ export const api = {
         attendanceConfirmed: false 
       }) 
     }),
+  
+  // --- RISK AREA ---
+  resetData: () => request<void>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'RESET_DATA' }) }),
 };

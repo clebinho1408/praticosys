@@ -6,7 +6,7 @@ import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2,
 import { AlertModal } from '../components/CustomModals';
 import DatePicker from '../components/DatePicker';
 
-type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC';
+type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'RISK_AREA';
 
 const Settings: React.FC = () => {
   const [settings, setSettings] = useState<SystemSettings | null>(null);
@@ -306,6 +306,37 @@ const Settings: React.FC = () => {
     });
   };
 
+  const handleResetData = async () => {
+    if (!confirm('ATENÇÃO: Esta ação irá apagar TODOS os agendamentos, escalas e resultados do sistema. Os dados de cadastros (Escolas, Examinadores, Instrutores, Veículos, Usuários) e configurações serão mantidos. Deseja continuar?')) {
+      return;
+    }
+
+    if (!confirm('CONFIRMAÇÃO FINAL: Você tem certeza absoluta? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.resetData();
+      setAlertConfig({
+        isOpen: true,
+        title: 'Dados Resetados',
+        message: 'Todos os dados operacionais foram apagados com sucesso.',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Error resetting data:', error);
+      setAlertConfig({
+        isOpen: true,
+        title: 'Erro ao resetar',
+        message: 'Ocorreu um erro ao tentar resetar os dados.',
+        type: 'error'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading || !settings) {
     return <div className="p-8 text-center text-gray-500">Carregando configurações...</div>;
   }
@@ -331,6 +362,7 @@ const Settings: React.FC = () => {
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('CNH_BRASIL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'CNH_BRASIL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> CNH DO BRASIL</button>
            <button type="button" onClick={() => setActiveTab('PROVA_PRATICA_CFC')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'PROVA_PRATICA_CFC' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> PROVA PRÁTICA CFC</button>
+           <button type="button" onClick={() => setActiveTab('RISK_AREA')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RISK_AREA' ? 'bg-white border-t-2 border-red-600 text-red-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> ÁREA DE RISCO</button>
         </div>
 
         <div className="p-8">
@@ -1199,6 +1231,44 @@ const Settings: React.FC = () => {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {activeTab === 'RISK_AREA' && (
+                <div className="space-y-8 animate-fadeIn">
+                    <div className="bg-red-50 border border-red-200 p-6 rounded-xl space-y-4">
+                        <div className="flex items-start gap-4">
+                            <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                                <AlertOctagon className="h-6 w-6 text-red-600" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-bold text-red-800">Zona de Perigo: Reset de Dados</h3>
+                                <p className="text-sm text-red-700 leading-relaxed">
+                                    Esta ação irá <strong>apagar permanentemente</strong> todos os dados operacionais do sistema, incluindo:
+                                </p>
+                                <ul className="list-disc list-inside text-sm text-red-700 space-y-1 ml-2">
+                                    <li>Todos os Agendamentos (Solicitações)</li>
+                                    <li>Todas as Escalas de Provas (Bancas)</li>
+                                    <li>Todos os Resultados de Provas</li>
+                                </ul>
+                                <p className="text-sm text-red-700 pt-2">
+                                    <strong>O que NÃO será apagado:</strong> Cadastros de Autoescolas, Examinadores, Instrutores, Veículos, Usuários, Cidades e Configurações do Sistema.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div className="pt-4 flex justify-center">
+                            <button 
+                                type="button"
+                                onClick={handleResetData}
+                                disabled={saving}
+                                className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg shadow-red-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Trash2 className="h-6 w-6" />
+                                ZERAR E RESETAR SISTEMA
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

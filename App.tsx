@@ -61,7 +61,7 @@ const App: React.FC = () => {
                   <Route 
                     path="/" 
                     element={
-                      auth.user?.role === UserRole.SCHOOL 
+                      auth.user?.role === UserRole.SCHOOL || auth.user?.role === UserRole.EXAMINER
                         ? <Navigate to="/admin/scheduling/cfc" replace /> 
                         : <AdminDashboard user={auth.user!} />
                     } 
