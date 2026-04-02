@@ -139,6 +139,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const [selectedRequest, setSelectedRequest] = useState<ExamRequest | null>(null);
   const [selectedSchoolForAddress, setSelectedSchoolForAddress] = useState<DrivingSchool | null>(null);
+  const [examinerFilter, setExaminerFilter] = useState<'DAY' | 'WEEK' | 'MONTH'>('WEEK');
 
   const updateBancaResult = (category: string, field: string, value: number) => {
     setBancaResults(prev => {
@@ -416,7 +417,37 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
   const waitingConfirmation = filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed);
-  const confirmed = filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed);
+  const confirmed = filteredRequests.filter(r => {
+    if (r.status !== ExamStatus.SCHEDULED || !r.attendanceConfirmed) return false;
+    
+    if (user.role === UserRole.EXAMINER) {
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      
+      if (examinerFilter === 'DAY') {
+        return r.scheduledDate === todayStr;
+      } else if (examinerFilter === 'WEEK') {
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        
+        if (!r.scheduledDate) return false;
+        const d = new Date(r.scheduledDate + 'T12:00:00');
+        return d >= startOfWeek && d <= endOfWeek;
+      } else if (examinerFilter === 'MONTH') {
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+        if (!r.scheduledDate) return false;
+        const d = new Date(r.scheduledDate + 'T12:00:00');
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      }
+    }
+    return true;
+  });
   const done = filteredRequests.filter(r => r.status === ExamStatus.DONE);
   const cancelled = filteredRequests.filter(r => r.status === ExamStatus.CANCELLED);
 
@@ -1192,9 +1223,32 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       <div className="space-y-4">
         {user.role === UserRole.EXAMINER ? (
           <div className="border border-green-200 rounded-lg overflow-hidden shadow-sm">
-            <div className="p-4 bg-green-600 text-white flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5" />
-              <span className="font-bold">Minhas Provas Confirmadas ({confirmed.length})</span>
+            <div className="p-4 bg-green-600 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle2 className="h-5 w-5" />
+                <span className="font-bold">Minhas Provas Confirmadas ({confirmed.length})</span>
+              </div>
+              
+              <div className="flex bg-green-700/50 p-1 rounded-lg self-start sm:self-auto">
+                <button 
+                  onClick={() => setExaminerFilter('DAY')}
+                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'DAY' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
+                >
+                  Dia
+                </button>
+                <button 
+                  onClick={() => setExaminerFilter('WEEK')}
+                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'WEEK' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
+                >
+                  Semana
+                </button>
+                <button 
+                  onClick={() => setExaminerFilter('MONTH')}
+                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'MONTH' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
+                >
+                  Mês
+                </button>
+              </div>
             </div>
             <div className="p-4 bg-white space-y-6">
               {confirmed.length > 0 ? (
