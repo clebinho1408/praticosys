@@ -29,6 +29,14 @@ export default async function handler(req: any, res: any) {
     
     console.log(`Tentativa de login para: ${login}`);
 
+    // Hotfix: Garantir que a coluna examiner_id existe
+    try {
+        const { sql } = await import('drizzle-orm');
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`);
+    } catch (e) {
+        console.warn("[Auth API] Schema sync warning:", e);
+    }
+
     const result = await db.select().from(users).where(eq(users.login, login));
     
     if (result.length === 0) {
