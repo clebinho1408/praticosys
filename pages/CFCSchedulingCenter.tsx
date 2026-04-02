@@ -1232,12 +1232,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       <div className="space-y-4">
         {user.role === UserRole.EXAMINER ? (
           <div className="border border-green-200 rounded-lg overflow-hidden shadow-sm">
-            <div className="p-6 bg-green-600 text-white flex flex-col items-center text-center gap-5">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-6 w-6" />
-                <span className="font-black text-lg uppercase tracking-tight">({confirmed.length})</span>
-              </div>
-              
+            <div className="p-4 bg-green-600 text-white flex justify-center">
               <div className="flex flex-wrap justify-center bg-green-700/60 p-1.5 rounded-xl shadow-inner gap-1">
                 <button 
                   onClick={() => setExaminerFilter('DAY')}
