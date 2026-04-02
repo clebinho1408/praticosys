@@ -139,7 +139,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const [selectedRequest, setSelectedRequest] = useState<ExamRequest | null>(null);
   const [selectedSchoolForAddress, setSelectedSchoolForAddress] = useState<DrivingSchool | null>(null);
-  const [examinerFilter, setExaminerFilter] = useState<'DAY' | 'WEEK' | 'MONTH'>('WEEK');
+  const [examinerFilter, setExaminerFilter] = useState<'DAY' | 'TOMORROW' | 'WEEK' | 'MONTH'>('WEEK');
 
   const updateBancaResult = (category: string, field: string, value: number) => {
     setBancaResults(prev => {
@@ -422,10 +422,25 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     
     if (user.role === UserRole.EXAMINER) {
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
+      
+      // Helper to get local YYYY-MM-DD
+      const getLocalDateStr = (date: Date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
+      const todayStr = getLocalDateStr(now);
+      
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      const tomorrowStr = getLocalDateStr(tomorrow);
       
       if (examinerFilter === 'DAY') {
         return r.scheduledDate === todayStr;
+      } else if (examinerFilter === 'TOMORROW') {
+        return r.scheduledDate === tomorrowStr;
       } else if (examinerFilter === 'WEEK') {
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
@@ -1234,7 +1249,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   onClick={() => setExaminerFilter('DAY')}
                   className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'DAY' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
                 >
-                  Dia
+                  Hoje
+                </button>
+                <button 
+                  onClick={() => setExaminerFilter('TOMORROW')}
+                  className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${examinerFilter === 'TOMORROW' ? 'bg-white text-green-700 shadow-sm' : 'text-green-100 hover:bg-green-600/50'}`}
+                >
+                  Amanhã
                 </button>
                 <button 
                   onClick={() => setExaminerFilter('WEEK')}
