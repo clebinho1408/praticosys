@@ -709,28 +709,46 @@ const Reports: React.FC = () => {
   // Logic for Exam History
   const examHistoryList = useMemo(() => {
       const list: any[] = [];
-      requests.forEach(req => {
-          // 1. Add past history
+      // Only include requests from the CFC module (SCHOOL source)
+      const cfcRequests = requests.filter(r => r.source === RequestSource.SCHOOL);
+
+      cfcRequests.forEach(req => {
+          const school = schools.find(s => s.id === req.schoolId);
+          const schoolName = school ? school.name : 'Desconhecida';
+          
+          const getExameType = (cat?: string) => {
+              if (!cat) return 'N/A';
+              const c = cat.toUpperCase();
+              if (c === 'A' || c === 'B') return '1º Habilitação';
+              if (c === 'MUDANCA' || c === 'C' || c === 'D' || c === 'E') return 'Mudança Categoria';
+              return 'Outros';
+          };
+
+          // 1. Add past history (Realized)
           if (req.examHistory && Array.isArray(req.examHistory)) {
               req.examHistory.forEach((h: any) => {
                   const schedule = schedules.find(s => s.id === h.scheduleId);
+                  const examiner = examiners.find(e => e.id === h.examinerId);
                   list.push({
                       id: `${req.id}-${h.date}-${h.time}`,
-                      studentName: req.socialName || req.studentName,
-                      cpf: req.cpf,
                       date: schedule ? schedule.date : h.date,
                       time: schedule ? schedule.time : (h.time || '00:00'),
                       result: h.result,
-                      category: h.category || req.intendedCategory || 'N/A',
+                      exameType: getExameType(h.category || req.intendedCategory),
                       scheduleCode: h.scheduleCode || (schedule?.code ? `#${schedule.code}` : 'Sem Banca'),
-                      type: 'HISTORY'
+                      type: 'HISTORY',
+                      requestType: req.requestType || 'N/A',
+                      schoolName: schoolName,
+                      examinerName: examiner ? examiner.name : (h.examiners || 'N/A'),
+                      status: 'REALIZADA'
                   });
               });
           }
 
-          // 2. Add current exam if finished
+          // 2. Add current exam if finished (Realized)
           if (req.status === 'DONE' && req.result) {
                const schedule = schedules.find(s => s.id === req.scheduleId);
+               const examiner = examiners.find(e => e.id === req.examinerId);
                const date = schedule ? schedule.date : (req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]));
                
                // Avoid duplicates if history already contains this date
@@ -742,20 +760,43 @@ const Reports: React.FC = () => {
                if (!isDuplicate) {
                    list.push({
                        id: req.id,
-                       studentName: req.socialName || req.studentName,
-                       cpf: req.cpf,
                        date: date,
                        time: schedule ? schedule.time : (req.scheduledTime || '00:00'),
                        result: req.result,
-                       category: req.scheduledCategory || req.intendedCategory || 'N/A',
+                       exameType: getExameType(req.scheduledCategory || req.intendedCategory),
                        scheduleCode: schedule?.code ? `#${schedule.code}` : 'Sem Banca',
-                       type: 'CURRENT'
+                       type: 'CURRENT',
+                       requestType: req.requestType || 'N/A',
+                       schoolName: schoolName,
+                       examinerName: examiner ? examiner.name : 'N/A',
+                       status: 'REALIZADA'
                    });
                }
           }
+
+          // 3. Add cancelled exams
+          if (req.status === 'CANCELLED') {
+              const schedule = schedules.find(s => s.id === req.scheduleId);
+              const examiner = examiners.find(e => e.id === req.examinerId);
+              const date = schedule ? schedule.date : (req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]));
+
+              list.push({
+                  id: `cancelled-${req.id}`,
+                  date: date,
+                  time: schedule ? schedule.time : (req.scheduledTime || '00:00'),
+                  result: 'CANCELADO',
+                  exameType: getExameType(req.scheduledCategory || req.intendedCategory),
+                  scheduleCode: schedule?.code ? `#${schedule.code}` : 'Sem Banca',
+                  type: 'CANCELLED',
+                  requestType: req.requestType || 'N/A',
+                  schoolName: schoolName,
+                  examinerName: examiner ? examiner.name : 'N/A',
+                  status: 'CANCELADA'
+              });
+          }
       });
       return list;
-  }, [requests, schedules]);
+  }, [requests, schedules, schools, examiners]);
 
   const groupedExamHistory = useMemo(() => {
       const groups: Record<string, Record<string, any[]>> = {};
@@ -771,9 +812,9 @@ const Reports: React.FC = () => {
       if (examHistorySearch) {
           const lower = examHistorySearch.toLowerCase();
           filtered = filtered.filter(i => 
-              i.studentName.toLowerCase().includes(lower) || 
-              i.cpf.includes(lower) || 
-              i.scheduleCode.toLowerCase().includes(lower)
+              i.scheduleCode.toLowerCase().includes(lower) ||
+              i.schoolName.toLowerCase().includes(lower) ||
+              i.exameType.toLowerCase().includes(lower)
           );
       }
       if (examHistoryResultFilter !== 'ALL') {
@@ -784,13 +825,13 @@ const Reports: React.FC = () => {
       filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
       filtered.forEach(item => {
-          const code = item.scheduleCode;
-          const category = item.category;
+          const mainGroup = item.status === 'REALIZADA' ? 'Provas Realizadas' : 'Provas Canceladas';
+          const school = item.schoolName;
 
-          if (!groups[code]) groups[code] = {};
-          if (!groups[code][category]) groups[code][category] = [];
+          if (!groups[mainGroup]) groups[mainGroup] = {};
+          if (!groups[mainGroup][school]) groups[mainGroup][school] = [];
           
-          groups[code][category].push(item);
+          groups[mainGroup][school].push(item);
       });
 
       return groups;
@@ -1289,45 +1330,45 @@ const Reports: React.FC = () => {
                                   {Object.keys(groupedExamHistory).length === 0 ? (
                                       <div className="p-10 text-center text-gray-400">Nenhum histórico encontrado.</div>
                                   ) : (
-                                      Object.entries(groupedExamHistory).map(([code, categories]) => (
-                                          <div key={code} className="border-b last:border-b-0 print:border-black">
-                                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
-                                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
-                                                  Banca: {code} ({Object.values(categories).flat().length})
+                                      Object.entries(groupedExamHistory).map(([mainGroup, schools]) => (
+                                          <div key={mainGroup} className="border-b last:border-b-0 print:border-black">
+                                              <div className="bg-blue-600 px-6 py-3 font-black text-white uppercase tracking-wider text-sm flex items-center gap-2 print:bg-gray-200 print:text-black print:border-b print:border-black print:mt-4 print:py-1">
+                                                  {mainGroup} ({Object.values(schools).flat().length})
                                               </div>
                                               
-                                              {Object.entries(categories).map(([category, items]) => (
-                                                  <div key={`${code}-${category}`}>
+                                              {Object.entries(schools).map(([schoolName, items]) => (
+                                                  <div key={`${mainGroup}-${schoolName}`}>
                                                       <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
                                                           <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
-                                                          Categoria {category} ({items.length})
+                                                          Autoescola: {schoolName} ({items.length})
                                                       </div>
                                                       <table className="w-full text-sm text-left">
                                                           <thead>
                                                               <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[40%]">Nome</th>
-                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">CPF</th>
-                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Data/Hora</th>
-                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Resultado</th>
+                                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[15%]">Tipo</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[35%]">Exame</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Data</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[10%]">Hora</th>
+                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[25%]">Examinador</th>
                                                               </tr>
                                                           </thead>
                                                           <tbody className="divide-y divide-gray-100 print:divide-gray-200">
                                                               {items.map((item: any) => (
                                                                   <tr key={item.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                                      <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
-                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
-                                                                      <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
-                                                                          {new Date(item.date).toLocaleDateString()} às {item.time}
+                                                                      <td className="px-6 py-3 font-medium text-gray-600 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          <span className="px-2 py-0.5 bg-gray-100 rounded text-[10px] font-bold print:bg-transparent print:p-0">{item.requestType}</span>
                                                                       </td>
-                                                                      <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
-                                                                          {item.result ? (
-                                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                                                  item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
-                                                                                  item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
-                                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
-                                                                                  {item.result}
-                                                                              </span>
-                                                                          ) : <span className="text-gray-400 print:text-black">-</span>}
+                                                                      <td className="px-6 py-3 font-medium text-gray-800 uppercase print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          {item.exameType}
+                                                                      </td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          {new Date(item.date).toLocaleDateString()}
+                                                                      </td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          {item.time}
+                                                                      </td>
+                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          {item.examinerName}
                                                                       </td>
                                                                   </tr>
                                                               ))}
