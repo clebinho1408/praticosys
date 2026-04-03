@@ -1,19 +1,21 @@
 
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthState, ExamType, User, UserRole } from './types';
+import { AuthState, User, UserRole } from './types';
 import Layout from './components/Layout';
 
 // Pages
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
-import RequestManager from './pages/RequestManager';
-import RegistryManagement from './pages/RegistryManagement';
-import Settings from './pages/Settings';
-import SchedulingCenter from './pages/SchedulingCenter';
-import Reports from './pages/Reports';
+import CnhDoBrasil from './pages/CnhDoBrasil';
+import CnhDoBrasilReport from './pages/CnhDoBrasilReport';
+import ProvaPraticaCFC from './pages/ProvaPraticaCFC';
+import ProvaPraticaCFCReport from './pages/ProvaPraticaCFCReport';
+import ProvaPraticaPCD from './pages/ProvaPraticaPCD';
+import ProvaPraticaPCDReport from './pages/ProvaPraticaPCDReport';
+import Cadastros from './pages/Cadastros';
+import Configuracoes from './pages/Configuracoes';
 import StudentDatabase from './pages/StudentDatabase';
-import CFCSchedulingCenter from './pages/CFCSchedulingCenter';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>(() => {
@@ -66,27 +68,28 @@ const App: React.FC = () => {
                         : <AdminDashboard user={auth.user!} />
                     } 
                   />
-                  <Route path="dashboard/:tab" element={<AdminDashboard user={auth.user} />} />
                   
-                  {/* Common Routes for specific filters */}
-                  <Route path="requests" element={<RequestManager user={auth.user} />} /> 
-                  <Route path="requests/common" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
-                  <Route path="requests/pcd" element={<RequestManager user={auth.user} typeFilter={ExamType.PCD} />} />
-                  <Route path="requests/cfc" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
-                  
-                  {/* Scheduling Center */}
-                  <Route path="scheduling/common" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
-                  <Route path="scheduling/cfc" element={<CFCSchedulingCenter user={auth.user} />} />
-                  <Route path="scheduling/pcd" element={<SchedulingCenter user={auth.user} type={ExamType.PCD} />} />
+                  {/* CNH do Brasil */}
+                  <Route path="dashboard/cnh" element={<CnhDoBrasil user={auth.user} view="dashboard" />} />
+                  <Route path="requests/common" element={<CnhDoBrasil user={auth.user} view="requests" />} />
+                  <Route path="scheduling/common" element={<CnhDoBrasil user={auth.user} view="scheduling" />} />
+                  <Route path="reports/cnh" element={<CnhDoBrasilReport />} />
 
-                  {/* Reports */}
-                  <Route path="reports/:reportType" element={<Reports />} />
+                  {/* Prova Prática CFC */}
+                  <Route path="scheduling/cfc" element={<ProvaPraticaCFC user={auth.user} />} />
+                  <Route path="reports/cfc" element={<ProvaPraticaCFCReport />} />
 
-                  {/* Registries */}
-                  <Route path="users" element={<RegistryManagement />} />
+                  {/* Prova Prática PCD */}
+                  <Route path="dashboard/pcd" element={<ProvaPraticaPCD user={auth.user} view="dashboard" />} />
+                  <Route path="requests/pcd" element={<ProvaPraticaPCD user={auth.user} view="requests" />} />
+                  <Route path="scheduling/pcd" element={<ProvaPraticaPCD user={auth.user} view="scheduling" />} />
+                  <Route path="reports/pcd" element={<ProvaPraticaPCDReport />} />
+
+                  {/* Cadastros */}
+                  <Route path="users" element={<Cadastros />} />
                   
-                  {/* Settings */}
-                  <Route path="settings" element={<Settings />} />
+                  {/* Configurações */}
+                  <Route path="settings" element={<Configuracoes />} />
                   
                   {/* Student Database */}
                   <Route path="students" element={<StudentDatabase />} />

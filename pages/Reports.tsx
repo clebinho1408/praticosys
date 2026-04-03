@@ -94,8 +94,9 @@ const CustomLegend = (props: any) => {
 
 type ReportView = 'general-stats' | 'schedules-list' | 'instructors-list' | 'exam-history';
 
-const Reports: React.FC = () => {
-  const { reportType } = useParams<{ reportType: string }>();
+const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
+  const { reportType: paramReportType } = useParams<{ reportType: string }>();
+  const reportType = reportTypeProp || paramReportType;
   const [activeView, setActiveView] = useState<ReportView>('general-stats');
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
