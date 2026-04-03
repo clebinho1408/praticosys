@@ -451,19 +451,6 @@ const Reports: React.FC = () => {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    let filteredResults = bancaResults.filter(br => {
-        const sch = schedules.find(s => s.id === br.scheduleId);
-        if (!sch) return false;
-        if (generalDateStart && sch.date < generalDateStart) return false;
-        if (generalDateEnd && sch.date > generalDateEnd) return false;
-        return true;
-    });
-
-    const monthlySchedules = schedules.filter(s => {
-        const d = new Date(s.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).length;
-
     let totalExams = 0;
     let totalCancelled = 0;
     let totalApproved = 0;
@@ -472,72 +459,162 @@ const Reports: React.FC = () => {
     
     const byExaminer: Record<string, number> = {};
     const bySchool: Record<string, number> = {};
+    const recentSchedulesList: any[] = [];
 
-    filteredResults.forEach(br => {
-        const sch = schedules.find(s => s.id === br.scheduleId);
-        
-        // Provas Realizadas (only for concluded schedules)
-        if (sch?.status === 'CONCLUDED') {
-            totalExams += (br.usedSlots || 0);
-            totalApproved += (br.approved || 0);
-        }
-        
-        // Provas Canceladas
-        totalCancelled += (br.cancelled || 0);
+    // Build a map of all unique "CFC Events" (Real Schedules + Virtual Schedules from Requests)
+    const cfcEvents = new Map<string, {
+        id: string;
+        date: string;
+        status: string;
+        examinerIds: string[];
+        maxSlots: number;
+        isRealSchedule: boolean;
+        code?: string;
+    }>();
 
-        // Vagas Utilizadas (all non-cancelled schedules)
-        if (sch?.status !== 'CANCELLED') {
-            totalUsed += (br.usedSlots || 0);
-            totalSlots += (br.totalSlots || 0);
-        }
+    // Add real schedules that are in the filtered list (which already includes those with CFC data)
+    schedules.forEach(s => {
+        cfcEvents.set(s.id, {
+            id: s.id,
+            date: s.date,
+            status: s.status,
+            examinerIds: s.examinerIds,
+            maxSlots: (s.maxSlotsA || 0) + (s.maxSlotsB || 0),
+            isRealSchedule: true,
+            code: s.code
+        });
+    });
 
-        const school = schools.find(s => s.id === br.schoolId);
-        const schoolName = school ? school.name : 'Desconhecida';
-        bySchool[schoolName] = (bySchool[schoolName] || 0) + (br.usedSlots || 0);
-
-        if (sch) {
-            sch.examinerIds.forEach(id => {
-                const examiner = examiners.find(e => e.id === id);
-                const name = examiner ? examiner.name : 'Sem examinador';
-                byExaminer[name] = (byExaminer[name] || 0) + (br.usedSlots || 0);
-            });
-            if (sch.examinerIds.length === 0) {
-                byExaminer['Sem examinador'] = (byExaminer['Sem examinador'] || 0) + (br.usedSlots || 0);
+    // Add virtual schedules from requests that might not be linked to a real schedule record
+    requests.forEach(r => {
+        if (r.source === RequestSource.SCHOOL && r.scheduledDate) {
+            const eventId = r.scheduleId || r.id;
+            if (!cfcEvents.has(eventId)) {
+                cfcEvents.set(eventId, {
+                    id: eventId,
+                    date: r.scheduledDate,
+                    status: r.status === 'DONE' ? 'CONCLUDED' : (r.status === 'CANCELLED' ? 'CANCELLED' : 'OPEN'),
+                    examinerIds: r.examinerId ? [r.examinerId] : [],
+                    maxSlots: 0, 
+                    isRealSchedule: false
+                });
             }
         }
     });
 
-    const confirmedSchedules = schedules.filter(s => s.status === 'OPEN' || s.status === 'CLOSED').length;
+    const eventList = Array.from(cfcEvents.values());
+
+    const monthlySchedules = eventList.filter(e => {
+        const d = new Date(e.date + 'T12:00:00'); // Use noon to avoid timezone shifts
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).length;
+
+    eventList.forEach(event => {
+        if (generalDateStart && event.date < generalDateStart) return;
+        if (generalDateEnd && event.date > generalDateEnd) return;
+
+        const eventRequests = requests.filter(r => r.scheduleId === event.id || r.id === event.id);
+        const eventResults = bancaResults.filter(br => br.scheduleId === event.id);
+
+        // Stats for Concluded Exams
+        if (event.status === 'CONCLUDED' || eventResults.length > 0) {
+            if (eventResults.length > 0) {
+                eventResults.forEach(br => {
+                    totalExams += (br.usedSlots || 0);
+                    totalApproved += (br.approved || 0);
+                    totalCancelled += (br.cancelled || 0);
+                });
+            } else {
+                totalExams += eventRequests.length;
+                totalApproved += eventRequests.filter(r => r.result === 'APTO').length;
+                totalCancelled += eventRequests.filter(r => r.status === 'CANCELLED').length;
+            }
+        } else if (event.status === 'CANCELLED') {
+            totalCancelled += eventRequests.filter(r => r.status === 'CANCELLED').length;
+        }
+
+        // Slot Usage (for all non-cancelled events)
+        if (event.status !== 'CANCELLED') {
+            // Determine total slots
+            let eventTotalSlots = event.maxSlots;
+            if (eventTotalSlots === 0 && eventResults.length > 0) {
+                eventTotalSlots = eventResults.reduce((acc, br) => acc + (br.totalSlots || 0), 0);
+            }
+            // Fallback to used slots if total is still 0
+            if (eventTotalSlots === 0) {
+                eventTotalSlots = eventResults.length > 0 
+                    ? eventResults.reduce((acc, br) => acc + (br.usedSlots || 0), 0)
+                    : eventRequests.length;
+            }
+            
+            totalSlots += eventTotalSlots;
+            
+            if (eventResults.length > 0) {
+                totalUsed += eventResults.reduce((acc, br) => acc + (br.usedSlots || 0), 0);
+            } else {
+                totalUsed += eventRequests.length;
+            }
+        }
+
+        // Grouping by School
+        if (eventResults.length > 0) {
+            eventResults.forEach(br => {
+                const school = schools.find(s => s.id === br.schoolId);
+                const schoolName = school ? school.name : 'Desconhecida';
+                bySchool[schoolName] = (bySchool[schoolName] || 0) + (br.usedSlots || 0);
+            });
+        } else {
+            eventRequests.forEach(r => {
+                const school = schools.find(s => s.id === r.schoolId);
+                const schoolName = school ? school.name : 'Desconhecida';
+                bySchool[schoolName] = (bySchool[schoolName] || 0) + 1;
+            });
+        }
+
+        // Grouping by Examiner
+        const count = eventResults.length > 0 
+            ? eventResults.reduce((acc, br) => acc + (br.usedSlots || 0), 0)
+            : eventRequests.length;
+
+        if (event.examinerIds.length > 0) {
+            event.examinerIds.forEach(id => {
+                const examiner = examiners.find(e => e.id === id);
+                const name = examiner ? examiner.name : 'Sem examinador';
+                byExaminer[name] = (byExaminer[name] || 0) + count;
+            });
+        } else {
+            byExaminer['Sem examinador'] = (byExaminer['Sem examinador'] || 0) + count;
+        }
+
+        // Recent Schedules List
+        const examinerNames = event.examinerIds.map(id => examiners.find(e => e.id === id)?.name).filter(Boolean).join(', ') || 'Sem examinador';
+        recentSchedulesList.push({
+            id: event.id,
+            location: event.code || 'BARRA',
+            date: event.date,
+            examiner: examinerNames,
+            status: event.status
+        });
+    });
+
+    const confirmedSchedules = eventList.filter(e => e.status === 'OPEN' || e.status === 'CLOSED').length;
 
     const slotUsagePercent = totalSlots > 0 ? Math.round((totalUsed / totalSlots) * 100) : 0;
     const approvalRate = totalExams > 0 ? Math.round((totalApproved / totalExams) * 100) : 0;
-
-    const recentSchedules = [...schedules]
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 5)
-        .map(s => {
-            const examinerNames = s.examinerIds.map(id => examiners.find(e => e.id === id)?.name).filter(Boolean).join(', ') || 'Sem examinador';
-            return {
-                id: s.id,
-                location: s.code || 'BARRA',
-                date: s.date,
-                examiner: examinerNames,
-                status: s.status
-            };
-        });
 
     return {
         monthlySchedules,
         totalExams,
         totalCancelled,
         confirmedSchedules,
+        totalApproved,
         slotUsagePercent,
         approvalRate,
         byExaminer: Object.entries(byExaminer).sort((a, b) => b[1] - a[1]),
         bySchool: Object.entries(bySchool).sort((a, b) => b[1] - a[1]),
-        recentSchedules
+        recentSchedules: recentSchedulesList.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10)
     };
-  }, [reportType, bancaResults, schedules, schools, examiners, generalDateStart, generalDateEnd]);
+  }, [reportType, bancaResults, schedules, requests, schools, examiners, generalDateStart, generalDateEnd]);
 
   // Logic for Instructors List
   const filteredInstructors = useMemo(() => {
