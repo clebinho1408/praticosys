@@ -2,7 +2,7 @@
 // Scheduling Center Page
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate } from '../types';
+import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate, RequestSource } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
 import { 
   Calendar, 
@@ -515,7 +515,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   });
 
   const scheduledStudents = allScheduledInThisBanca.filter(r => 
-    user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId
+    (user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId) &&
+    r.source === RequestSource.STUDENT_DIRECT
   );
   
   // Logic for Available Students (Modal)
@@ -525,8 +526,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         const matchesType = r.examType === selectedSchedule?.type;
         const matchesSearch = (r.socialName || r.studentName).toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch);
         const matchesSchool = user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId;
+        const matchesSource = r.source === RequestSource.STUDENT_DIRECT;
         
-        return matchesStatus && matchesType && matchesSearch && matchesSchool;
+        return matchesStatus && matchesType && matchesSearch && matchesSchool && matchesSource;
     })
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
 

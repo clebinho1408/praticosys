@@ -12,7 +12,8 @@ import {
   RequestType,
   SystemSettings,
   BlockedDate,
-  BancaResult
+  BancaResult,
+  RequestSource
 } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
 import { 
@@ -378,6 +379,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   // Logic to group and filter data
   const filteredRequests = requests.filter(r => {
+    if (r.source !== RequestSource.SCHOOL) return false;
     if (user.role === UserRole.SCHOOL && r.schoolId !== user.schoolId) return false;
     if (user.role === UserRole.EXAMINER && r.examinerId !== user.examinerId) return false;
     if (filters.schoolId !== 'ALL' && r.schoolId !== filters.schoolId) return false;
@@ -1156,7 +1158,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
       {/* FILTROS */}
       {user.role !== UserRole.EXAMINER && (
-        <div className="max-w-5xl mx-auto w-full bg-white rounded-lg border border-slate-200 shadow-sm overflow-visible mb-6">
+        <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-visible mb-6">
           <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-400" />
             <h2 className="font-bold text-slate-700 text-sm">Filtros</h2>

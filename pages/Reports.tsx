@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
-import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor } from '../types';
+import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor, BancaResult, RequestSource } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend
@@ -100,6 +100,7 @@ const Reports: React.FC = () => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -145,28 +146,42 @@ const Reports: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [reqs, scheds, instrs, sysSettings] = await Promise.all([
+            const [reqs, scheds, instrs, sysSettings, results] = await Promise.all([
                 api.getRequests(),
                 api.getSchedules(),
                 api.getInstructorsAsync(),
-                api.getSettings()
+                api.getSettings(),
+                api.getBancaResults()
             ]);
 
             let filteredReqs = reqs;
             let filteredScheds = scheds;
 
             if (reportType === 'pcd') {
-                filteredReqs = filteredReqs.filter(r => r.examType === 'PCD');
+                filteredReqs = filteredReqs.filter(r => r.examType === 'PCD' && r.source === RequestSource.STUDENT_DIRECT);
                 filteredScheds = filteredScheds.filter(s => s.type === 'PCD');
-            } else if (reportType === 'cnh' || reportType === 'cfc') {
-                filteredReqs = filteredReqs.filter(r => r.examType === 'COMMON');
-                filteredScheds = filteredScheds.filter(s => s.type === 'COMMON');
+            } else if (reportType === 'cfc') {
+                // Prova Prática CFC is for SCHOOL source
+                filteredReqs = filteredReqs.filter(r => r.source === RequestSource.SCHOOL);
+                // Schedules for CFC are those that have banca results or are assigned to school requests
+                filteredScheds = filteredScheds.filter(s => 
+                    results.some(br => br.scheduleId === s.id) || 
+                    reqs.some(r => r.scheduleId === s.id && r.source === RequestSource.SCHOOL)
+                );
+            } else if (reportType === 'cnh') {
+                filteredReqs = filteredReqs.filter(r => r.examType === 'COMMON' && r.source === RequestSource.STUDENT_DIRECT);
+                filteredScheds = filteredScheds.filter(s => 
+                    s.type === 'COMMON' && 
+                    !results.some(br => br.scheduleId === s.id) &&
+                    !reqs.some(r => r.scheduleId === s.id && r.source === RequestSource.SCHOOL)
+                );
             }
 
             setRequests(filteredReqs);
             setSchedules(filteredScheds);
             setInstructors(instrs);
             setSettings(sysSettings);
+            setBancaResults(results);
         } catch (error) {
             console.error("Error fetching report data", error);
         } finally {
@@ -221,6 +236,66 @@ const Reports: React.FC = () => {
 
   // 1. Índice de Reprovação e Aprovação
   const approvalStats = useMemo(() => {
+    if (reportType === 'cfc') {
+        // Use BancaResult for CFC
+        let filteredResults = bancaResults;
+        
+        // Filter by date using associated schedule
+        filteredResults = filteredResults.filter(br => {
+            const sch = schedules.find(s => s.id === br.scheduleId);
+            if (!sch) return false;
+            if (generalDateStart && sch.date < generalDateStart) return false;
+            if (generalDateEnd && sch.date > generalDateEnd) return false;
+            return true;
+        });
+
+        let apto = 0;
+        let inapto = 0;
+        let faltou = 0;
+        let cancelado = 0;
+        
+        const monthlyData: Record<string, { name: string, sortKey: string, apto: number, inapto: number }> = {};
+
+        filteredResults.forEach(br => {
+            apto += br.approved || 0;
+            inapto += br.failed || 0;
+            faltou += br.absent || 0;
+            cancelado += br.cancelled || 0;
+
+            const sch = schedules.find(s => s.id === br.scheduleId);
+            if (sch && sch.date) {
+                const dateParts = sch.date.split('-');
+                const year = dateParts[0];
+                const month = dateParts[1];
+                const sortKey = `${year}-${month}`;
+                const monthIndex = parseInt(month) - 1;
+                
+                let monthName = '';
+                try {
+                    monthName = new Date(parseInt(year), monthIndex, 1).toLocaleString('pt-BR', { month: 'short' });
+                } catch (e) {
+                    monthName = `${month}/${year}`;
+                }
+                const label = `${monthName}/${year.substr(2)}`;
+
+                if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, apto: 0, inapto: 0 };
+                monthlyData[sortKey].apto += (br.approved || 0);
+                monthlyData[sortKey].inapto += (br.failed || 0);
+            }
+        });
+
+        const total = apto + inapto + faltou;
+        const rate = total > 0 ? ((apto / total) * 100).toFixed(1) : '0';
+        const pieData = [
+            { name: 'Apto', value: apto },
+            { name: 'Inapto', value: inapto },
+            { name: 'Faltou', value: faltou }
+        ];
+        const chartData = Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+
+        return { total, apto, inapto, faltou, rate, pieData, chartData };
+    }
+
     let filtered = allExamResults;
 
     if (generalDateStart) {
@@ -341,15 +416,23 @@ const Reports: React.FC = () => {
           
           if (!monthlyData[sortKey]) monthlyData[sortKey] = { name: label, sortKey, total: 0, used: 0 };
           
-          const totalSlots = (sch.maxSlotsA || 0) + (sch.maxSlotsB || 0);
-          const usedSlots = requests.filter(r => r.scheduleId === sch.id).length;
-          
-          monthlyData[sortKey].total += totalSlots;
-          monthlyData[sortKey].used += usedSlots;
+          if (reportType === 'cfc') {
+              const results = bancaResults.filter(br => br.scheduleId === sch.id);
+              results.forEach(br => {
+                  monthlyData[sortKey].total += (br.totalSlots || 0);
+                  monthlyData[sortKey].used += (br.usedSlots || 0);
+              });
+          } else {
+              const totalSlots = (sch.maxSlotsA || 0) + (sch.maxSlotsB || 0);
+              const usedSlots = requests.filter(r => r.scheduleId === sch.id).length;
+              
+              monthlyData[sortKey].total += totalSlots;
+              monthlyData[sortKey].used += usedSlots;
+          }
       });
       
       return Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
-  }, [schedules, requests, generalDateStart, generalDateEnd]);
+  }, [schedules, requests, bancaResults, reportType, generalDateStart, generalDateEnd]);
 
   // Logic for Instructors List
   const filteredInstructors = useMemo(() => {

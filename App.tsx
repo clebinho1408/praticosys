@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthState, ExamType, User, UserRole } from './types';
+import { AuthState, ExamType, User, UserRole, RequestSource } from './types';
 import Layout from './components/Layout';
 
 // Pages
@@ -70,9 +70,9 @@ const App: React.FC = () => {
                   
                   {/* Common Routes for specific filters */}
                   <Route path="requests" element={<RequestManager user={auth.user} />} /> 
-                  <Route path="requests/common" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
-                  <Route path="requests/pcd" element={<RequestManager user={auth.user} typeFilter={ExamType.PCD} />} />
-                  <Route path="requests/cfc" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} />} />
+                  <Route path="requests/common" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} sourceFilter={RequestSource.STUDENT_DIRECT} />} />
+                  <Route path="requests/pcd" element={<RequestManager user={auth.user} typeFilter={ExamType.PCD} sourceFilter={RequestSource.STUDENT_DIRECT} />} />
+                  <Route path="requests/cfc" element={<RequestManager user={auth.user} typeFilter={ExamType.COMMON} sourceFilter={RequestSource.SCHOOL} />} />
                   
                   {/* Scheduling Center */}
                   <Route path="scheduling/common" element={<SchedulingCenter user={auth.user} type={ExamType.COMMON} />} />
