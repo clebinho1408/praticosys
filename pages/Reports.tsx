@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
-import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor, BancaResult, RequestSource, Examiner, DrivingSchool } from '../types';
+import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor, BancaResult, RequestSource, Examiner, DrivingSchool, RequestType } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend
@@ -457,6 +457,15 @@ const Reports: React.FC = () => {
     let totalUsed = 0;
     let totalSlots = 0;
     
+    let aptos = 0;
+    let inaptos = 0;
+    let faltas = 0;
+    let cancelados = 0;
+
+    let fixas = 0;
+    let extras = 0;
+    let reposicao = 0;
+    
     const byExaminer: Record<string, number> = {};
     const bySchool: Record<string, number> = {};
     const recentSchedulesList: any[] = [];
@@ -523,15 +532,34 @@ const Reports: React.FC = () => {
                     totalExams += (br.usedSlots || 0);
                     totalApproved += (br.approved || 0);
                     totalCancelled += (br.cancelled || 0);
+
+                    aptos += (br.approved || 0);
+                    inaptos += (br.failed || 0);
+                    faltas += (br.absent || 0);
+                    cancelados += (br.cancelled || 0);
                 });
             } else {
                 totalExams += eventRequests.length;
                 totalApproved += eventRequests.filter(r => r.result === 'APTO').length;
                 totalCancelled += eventRequests.filter(r => r.status === 'CANCELLED').length;
+
+                aptos += eventRequests.filter(r => r.result === 'APTO').length;
+                inaptos += eventRequests.filter(r => r.result === 'INAPTO').length;
+                faltas += eventRequests.filter(r => r.result === 'FALTOU').length;
+                cancelados += eventRequests.filter(r => r.status === 'CANCELLED').length;
             }
         } else if (event.status === 'CANCELLED') {
-            totalCancelled += eventRequests.filter(r => r.status === 'CANCELLED').length;
+            const cCount = eventRequests.filter(r => r.status === 'CANCELLED').length;
+            totalCancelled += cCount;
+            cancelados += cCount;
         }
+
+        // Request Types
+        eventRequests.forEach(r => {
+            if (r.requestType === RequestType.FIXA) fixas++;
+            else if (r.requestType === RequestType.EXTRA) extras++;
+            else if (r.requestType === RequestType.REPOSICAO) reposicao++;
+        });
 
         // Slot Usage (for all non-cancelled events)
         if (event.status !== 'CANCELLED') {
@@ -612,7 +640,18 @@ const Reports: React.FC = () => {
         approvalRate,
         byExaminer: Object.entries(byExaminer).sort((a, b) => b[1] - a[1]),
         bySchool: Object.entries(bySchool).sort((a, b) => b[1] - a[1]),
-        recentSchedules: recentSchedulesList.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10)
+        recentSchedules: recentSchedulesList.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10),
+        resultsPieData: [
+            { name: 'Aptos', value: aptos },
+            { name: 'Inaptos', value: inaptos },
+            { name: 'Faltas', value: faltas },
+            { name: 'Cancelados', value: cancelados }
+        ],
+        typesPieData: [
+            { name: 'Provas Fixas', value: fixas },
+            { name: 'Provas Extras', value: extras },
+            { name: 'Reposição de Provas', value: reposicao }
+        ]
     };
   }, [reportType, bancaResults, schedules, requests, schools, examiners, generalDateStart, generalDateEnd]);
 
@@ -891,6 +930,85 @@ const Reports: React.FC = () => {
                                         style={{ width: `${cfcStats.approvalRate}%` }}
                                     ></div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Charts Section */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-2">
+                            {/* Results Distribution */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                                <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                                    <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
+                                </h3>
+                                <div className="flex-1 w-full print:h-[120px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart margin={{ bottom: 20 }}>
+                                            <Pie
+                                                data={cfcStats.resultsPieData}
+                                                cx="50%"
+                                                cy="40%"
+                                                innerRadius={45}
+                                                outerRadius={65}
+                                                paddingAngle={8}
+                                                dataKey="value"
+                                            >
+                                                {cfcStats.resultsPieData.map((_, index) => (
+                                                    <Cell 
+                                                        key={`cell-${index}`} 
+                                                        fill={COLORS[index % COLORS.length]} 
+                                                        fillOpacity={0.8}
+                                                        stroke={COLORS[index % COLORS.length]}
+                                                        strokeWidth={1}
+                                                    />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                            <Legend content={<CustomLegend />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <PrintStatsTable 
+                                    title="Distribuição de Resultados" 
+                                    data={cfcStats.resultsPieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
+                                />
+                            </div>
+
+                            {/* Request Types Distribution */}
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-green-50/30">
+                                <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                                    <Layout className="h-5 w-5 text-green-600 print:hidden" /> Tipos de Provas
+                                </h3>
+                                <div className="flex-1 w-full print:h-[120px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart margin={{ bottom: 20 }}>
+                                            <Pie
+                                                data={cfcStats.typesPieData}
+                                                cx="50%"
+                                                cy="40%"
+                                                innerRadius={45}
+                                                outerRadius={65}
+                                                paddingAngle={8}
+                                                dataKey="value"
+                                            >
+                                                {cfcStats.typesPieData.map((_, index) => (
+                                                    <Cell 
+                                                        key={`cell-${index}`} 
+                                                        fill={['#3B82F6', '#10B981', '#F59E0B'][index % 3]} 
+                                                        fillOpacity={0.8}
+                                                        stroke={['#3B82F6', '#10B981', '#F59E0B'][index % 3]}
+                                                        strokeWidth={1}
+                                                    />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                            <Legend content={<CustomLegend />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <PrintStatsTable 
+                                    title="Tipos de Provas" 
+                                    data={cfcStats.typesPieData.map((d, i) => ({ label: d.name, value: d.value, color: ['#3B82F6', '#10B981', '#F59E0B'][i % 3] }))} 
+                                />
                             </div>
                         </div>
 
