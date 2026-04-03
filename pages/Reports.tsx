@@ -126,8 +126,9 @@ const Reports: React.FC = () => {
   const [instructorSearch, setInstructorSearch] = useState<string>('');
 
   // Filters for Exam History
-  const [examHistorySearch, setExamHistorySearch] = useState<string>('');
-  const [examHistoryResultFilter, setExamHistoryResultFilter] = useState<string>('ALL');
+  const [examHistoryStatusFilter, setExamHistoryStatusFilter] = useState<string>('ALL');
+  const [examHistorySchoolFilter, setExamHistorySchoolFilter] = useState<string>('ALL');
+  const [examHistoryExaminerFilter, setExamHistoryExaminerFilter] = useState<string>('ALL');
   const [examHistoryDateStart, setExamHistoryDateStart] = useState(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
@@ -739,22 +740,25 @@ const Reports: React.FC = () => {
                       type: 'HISTORY',
                       requestType: req.requestType || 'N/A',
                       schoolName: schoolName,
+                      schoolId: req.schoolId,
                       examinerName: examiner ? examiner.name : (h.examiners || 'N/A'),
+                      examinerId: h.examinerId || req.examinerId,
                       status: 'REALIZADA'
                   });
               });
           }
 
-          // 2. Add current exam if finished (Realized)
-          if (req.status === 'DONE' && req.result) {
+          // 2. Add current exam if finished or waiting result (Realized)
+          const isRealized = req.status === 'DONE' || req.status === 'WAITING_RESULT' || req.result;
+          if (isRealized && req.status !== 'CANCELLED') {
                const schedule = schedules.find(s => s.id === req.scheduleId);
                const examiner = examiners.find(e => e.id === req.examinerId);
                const date = schedule ? schedule.date : (req.scheduledDate || (req.updatedAt ? req.updatedAt.split('T')[0] : req.createdAt.split('T')[0]));
                
                // Avoid duplicates if history already contains this date
                const isDuplicate = req.examHistory?.some((h: any) => {
-                   const schedule = schedules.find(s => s.id === h.scheduleId);
-                   const hDate = schedule ? schedule.date : h.date;
+                   const hSchedule = schedules.find(s => s.id === h.scheduleId);
+                   const hDate = hSchedule ? hSchedule.date : h.date;
                    return hDate === date;
                });
                if (!isDuplicate) {
@@ -762,13 +766,15 @@ const Reports: React.FC = () => {
                        id: req.id,
                        date: date,
                        time: schedule ? schedule.time : (req.scheduledTime || '00:00'),
-                       result: req.result,
+                       result: req.result || (req.status === 'WAITING_RESULT' ? 'PENDENTE' : 'N/A'),
                        exameType: getExameType(req.scheduledCategory || req.intendedCategory),
                        scheduleCode: schedule?.code ? `#${schedule.code}` : 'Sem Banca',
                        type: 'CURRENT',
                        requestType: req.requestType || 'N/A',
                        schoolName: schoolName,
+                       schoolId: req.schoolId,
                        examinerName: examiner ? examiner.name : 'N/A',
+                       examinerId: req.examinerId,
                        status: 'REALIZADA'
                    });
                }
@@ -790,7 +796,9 @@ const Reports: React.FC = () => {
                   type: 'CANCELLED',
                   requestType: req.requestType || 'N/A',
                   schoolName: schoolName,
+                  schoolId: req.schoolId,
                   examinerName: examiner ? examiner.name : 'N/A',
+                  examinerId: req.examinerId,
                   status: 'CANCELADA'
               });
           }
@@ -809,16 +817,14 @@ const Reports: React.FC = () => {
       if (examHistoryDateEnd) {
           filtered = filtered.filter(i => new Date(i.date) <= new Date(examHistoryDateEnd));
       }
-      if (examHistorySearch) {
-          const lower = examHistorySearch.toLowerCase();
-          filtered = filtered.filter(i => 
-              i.scheduleCode.toLowerCase().includes(lower) ||
-              i.schoolName.toLowerCase().includes(lower) ||
-              i.exameType.toLowerCase().includes(lower)
-          );
+      if (examHistoryStatusFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.status === examHistoryStatusFilter);
       }
-      if (examHistoryResultFilter !== 'ALL') {
-          filtered = filtered.filter(i => i.result === examHistoryResultFilter);
+      if (examHistorySchoolFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.schoolId === examHistorySchoolFilter);
+      }
+      if (examHistoryExaminerFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.examinerId === examHistoryExaminerFilter);
       }
 
       // Sort by Date DESC
@@ -835,7 +841,7 @@ const Reports: React.FC = () => {
       });
 
       return groups;
-  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch, examHistoryResultFilter]);
+  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistoryStatusFilter, examHistorySchoolFilter, examHistoryExaminerFilter]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -1255,42 +1261,68 @@ const Reports: React.FC = () => {
       {/* VIEW: Histórico de Provas */}
       {activeView === 'exam-history' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
-              <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <div className="flex-1 max-w-md flex gap-2">
-                      <input 
-                          type="text" 
-                          placeholder="Buscar por Nome, CPF ou Banca..." 
-                          className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={examHistorySearch}
-                          onChange={e => setExamHistorySearch(e.target.value)}
-                      />
-                      <select 
-                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={examHistoryResultFilter}
-                          onChange={e => setExamHistoryResultFilter(e.target.value)}
-                      >
-                          <option value="ALL">Todos Resultados</option>
-                          <option value="APTO">Apto</option>
-                          <option value="INAPTO">Inapto</option>
-                          <option value="FALTOU">Faltou</option>
-                      </select>
+              <div className="p-6 border-b border-gray-100 flex flex-col gap-4 print:hidden">
+                  <div className="flex flex-wrap items-center gap-4">
+                      <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-400 uppercase">Provas:</span>
+                          <select 
+                              className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={examHistoryStatusFilter}
+                              onChange={e => setExamHistoryStatusFilter(e.target.value)}
+                          >
+                              <option value="ALL">Todas</option>
+                              <option value="REALIZADA">Realizadas</option>
+                              <option value="CANCELADA">Canceladas</option>
+                          </select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-400 uppercase">Autoescola:</span>
+                          <select 
+                              className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none max-w-[200px]"
+                              value={examHistorySchoolFilter}
+                              onChange={e => setExamHistorySchoolFilter(e.target.value)}
+                          >
+                              <option value="ALL">Todas</option>
+                              {schools.map(s => (
+                                  <option key={s.id} value={s.id}>{s.name}</option>
+                              ))}
+                          </select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-400 uppercase">Examinadores:</span>
+                          <select 
+                              className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none max-w-[200px]"
+                              value={examHistoryExaminerFilter}
+                              onChange={e => setExamHistoryExaminerFilter(e.target.value)}
+                          >
+                              <option value="ALL">Todos</option>
+                              {examiners.map(e => (
+                                  <option key={e.id} value={e.id}>{e.name}</option>
+                              ))}
+                          </select>
+                      </div>
                   </div>
                   
-                  <div className="flex flex-wrap items-center gap-2">
-                      <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                          <input 
-                              type="date"
-                              className="border-none text-sm p-2 outline-none bg-transparent"
-                              value={examHistoryDateStart} 
-                              onChange={e => setExamHistoryDateStart(e.target.value)} 
-                          />
-                          <span className="text-gray-400">-</span>
-                          <input 
-                              type="date"
-                              className="border-none text-sm p-2 outline-none bg-transparent"
-                              value={examHistoryDateEnd} 
-                              onChange={e => setExamHistoryDateEnd(e.target.value)} 
-                          />
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-400 uppercase">Período:</span>
+                          <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                              <input 
+                                  type="date"
+                                  className="border-none text-sm p-2 outline-none bg-transparent"
+                                  value={examHistoryDateStart} 
+                                  onChange={e => setExamHistoryDateStart(e.target.value)} 
+                              />
+                              <span className="text-gray-400">-</span>
+                              <input 
+                                  type="date"
+                                  className="border-none text-sm p-2 outline-none bg-transparent"
+                                  value={examHistoryDateEnd} 
+                                  onChange={e => setExamHistoryDateEnd(e.target.value)} 
+                              />
+                          </div>
                       </div>
                       <button 
                           onClick={() => window.print()} 
