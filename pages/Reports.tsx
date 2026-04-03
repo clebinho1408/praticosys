@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
-import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor, BancaResult, RequestSource } from '../types';
+import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor, BancaResult, RequestSource, Examiner, DrivingSchool } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend
@@ -17,7 +17,10 @@ import {
   Users,
   Layout,
   Printer,
-  Search
+  Search,
+  CheckCircle,
+  Clock,
+  MapPin
 } from 'lucide-react';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
@@ -34,7 +37,8 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
                        color.includes('green') ? '#f0fdf4' : 
                        color.includes('red') ? '#fef2f2' : 
                        color.includes('yellow') ? '#fffbeb' : 
-                       color.includes('gray') ? '#f9fafb' : '#ffffff';
+                       color.includes('gray') ? '#f9fafb' : 
+                       color.includes('orange') ? '#fff7ed' : '#ffffff';
 
   return (
     <div 
@@ -100,6 +104,8 @@ const Reports: React.FC = () => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [examiners, setExaminers] = useState<Examiner[]>([]);
+  const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,10 +152,12 @@ const Reports: React.FC = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [reqs, scheds, instrs, sysSettings, results] = await Promise.all([
+            const [reqs, scheds, instrs, exms, schs, sysSettings, results] = await Promise.all([
                 api.getRequests(),
                 api.getSchedules(),
                 api.getInstructorsAsync(),
+                api.getExaminersAsync(),
+                api.getSchools(),
                 api.getSettings(),
                 api.getBancaResults()
             ]);
@@ -180,6 +188,8 @@ const Reports: React.FC = () => {
             setRequests(filteredReqs);
             setSchedules(filteredScheds);
             setInstructors(instrs);
+            setExaminers(exms);
+            setSchools(schs);
             setSettings(sysSettings);
             setBancaResults(results);
         } catch (error) {
@@ -434,6 +444,101 @@ const Reports: React.FC = () => {
       return Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [schedules, requests, bancaResults, reportType, generalDateStart, generalDateEnd]);
 
+  const cfcStats = useMemo(() => {
+    if (reportType !== 'cfc') return null;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    let filteredResults = bancaResults.filter(br => {
+        const sch = schedules.find(s => s.id === br.scheduleId);
+        if (!sch) return false;
+        if (generalDateStart && sch.date < generalDateStart) return false;
+        if (generalDateEnd && sch.date > generalDateEnd) return false;
+        return true;
+    });
+
+    const monthlySchedules = schedules.filter(s => {
+        const d = new Date(s.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).length;
+
+    let totalExams = 0;
+    let totalCancelled = 0;
+    let totalApproved = 0;
+    let totalUsed = 0;
+    let totalSlots = 0;
+    
+    const byExaminer: Record<string, number> = {};
+    const bySchool: Record<string, number> = {};
+
+    filteredResults.forEach(br => {
+        const sch = schedules.find(s => s.id === br.scheduleId);
+        
+        // Provas Realizadas (only for concluded schedules)
+        if (sch?.status === 'CONCLUDED') {
+            totalExams += (br.usedSlots || 0);
+            totalApproved += (br.approved || 0);
+        }
+        
+        // Provas Canceladas
+        totalCancelled += (br.cancelled || 0);
+
+        // Vagas Utilizadas (all non-cancelled schedules)
+        if (sch?.status !== 'CANCELLED') {
+            totalUsed += (br.usedSlots || 0);
+            totalSlots += (br.totalSlots || 0);
+        }
+
+        const school = schools.find(s => s.id === br.schoolId);
+        const schoolName = school ? school.name : 'Desconhecida';
+        bySchool[schoolName] = (bySchool[schoolName] || 0) + (br.usedSlots || 0);
+
+        if (sch) {
+            sch.examinerIds.forEach(id => {
+                const examiner = examiners.find(e => e.id === id);
+                const name = examiner ? examiner.name : 'Sem examinador';
+                byExaminer[name] = (byExaminer[name] || 0) + (br.usedSlots || 0);
+            });
+            if (sch.examinerIds.length === 0) {
+                byExaminer['Sem examinador'] = (byExaminer['Sem examinador'] || 0) + (br.usedSlots || 0);
+            }
+        }
+    });
+
+    const confirmedSchedules = schedules.filter(s => s.status === 'OPEN' || s.status === 'CLOSED').length;
+
+    const slotUsagePercent = totalSlots > 0 ? Math.round((totalUsed / totalSlots) * 100) : 0;
+    const approvalRate = totalExams > 0 ? Math.round((totalApproved / totalExams) * 100) : 0;
+
+    const recentSchedules = [...schedules]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 5)
+        .map(s => {
+            const examinerNames = s.examinerIds.map(id => examiners.find(e => e.id === id)?.name).filter(Boolean).join(', ') || 'Sem examinador';
+            return {
+                id: s.id,
+                location: s.code || 'BARRA',
+                date: s.date,
+                examiner: examinerNames,
+                status: s.status
+            };
+        });
+
+    return {
+        monthlySchedules,
+        totalExams,
+        totalCancelled,
+        confirmedSchedules,
+        slotUsagePercent,
+        approvalRate,
+        byExaminer: Object.entries(byExaminer).sort((a, b) => b[1] - a[1]),
+        bySchool: Object.entries(bySchool).sort((a, b) => b[1] - a[1]),
+        recentSchedules
+    };
+  }, [reportType, bancaResults, schedules, schools, examiners, generalDateStart, generalDateEnd]);
+
   // Logic for Instructors List
   const filteredInstructors = useMemo(() => {
     let filtered = instructors;
@@ -665,146 +770,264 @@ const Reports: React.FC = () => {
             </div>
 
             <div className="space-y-4 print:space-y-2">
-                <h3 className="text-lg font-bold print:text-sm print:mb-1">Estatísticas de Aprovação</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
-                    <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
-                    <SummaryCard title="Taxa de Aprovação" value={`${approvalStats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos" />
-                    <SummaryCard title="Reprovações" value={approvalStats.inapto} icon={XCircle} color="bg-red-600" subtitle="Candidatos Inaptos" />
-                    <SummaryCard title="Faltas" value={approvalStats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Não compareceram" />
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1 print:h-auto">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
-                            <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
-                        </h3>
-                        <div className="flex-1 w-full print:h-[90px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ bottom: 20 }}>
-                                    <Pie
-                                        data={approvalStats.pieData}
-                                        cx="50%"
-                                        cy="40%"
-                                        innerRadius={45}
-                                        outerRadius={65}
-                                        paddingAngle={8}
-                                        dataKey="value"
-                                    >
-                                        {approvalStats.pieData.map((_, index) => (
-                                            <Cell 
-                                                key={`cell-${index}`} 
-                                                fill={COLORS[index % COLORS.length]} 
-                                                fillOpacity={0.8}
-                                                stroke={COLORS[index % COLORS.length]}
-                                                strokeWidth={1}
-                                            />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                    <Legend content={<CustomLegend />} />
-                                </PieChart>
-                            </ResponsiveContainer>
+                {reportType === 'cfc' && cfcStats ? (
+                    <div className="space-y-6 animate-fadeIn">
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <SummaryCard title="Agendamentos do Mês" value={cfcStats.monthlySchedules} icon={Calendar} color="bg-blue-600" />
+                            <SummaryCard title="Provas Realizadas" value={cfcStats.totalExams} icon={CheckCircle} color="bg-green-600" />
+                            <SummaryCard title="Provas Canceladas" value={cfcStats.totalCancelled} icon={XCircle} color="bg-red-600" />
+                            <SummaryCard title="Agendamentos Confirmados" value={cfcStats.confirmedSchedules} icon={Clock} color="bg-orange-500" />
                         </div>
-                        <PrintStatsTable 
-                            title="Dados de Distribuição" 
-                            data={approvalStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
-                        />
-                    </div>
 
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
-                            <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
-                        </h3>
-                        <div className="flex-1 w-full print:h-[90px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={approvalStats.chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
-                                    <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                    <Bar dataKey="apto" fill="#10B981" radius={[4, 4, 0, 0]} name="Aptos" />
-                                    <Bar dataKey="inapto" fill="#EF4444" radius={[4, 4, 0, 0]} name="Inaptos" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        {/* Indices */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                                <div className="flex items-center gap-2 mb-8">
+                                    <Layout className="h-5 w-5 text-blue-600" />
+                                    <h3 className="text-lg font-bold text-gray-800">Índice de Vagas Utilizadas</h3>
+                                </div>
+                                <div className="text-center mb-6">
+                                    <span className="text-4xl font-black text-blue-600">{cfcStats.slotUsagePercent}%</span>
+                                    <p className="text-sm text-gray-500 mt-2 font-medium">Das vagas disponíveis foram utilizadas</p>
+                                </div>
+                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                    <div 
+                                        className="bg-blue-600 h-full transition-all duration-1000" 
+                                        style={{ width: `${Math.min(cfcStats.slotUsagePercent, 100)}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                                <div className="flex items-center gap-2 mb-8">
+                                    <CheckCircle className="h-5 w-5 text-green-600" />
+                                    <h3 className="text-lg font-bold text-gray-800">Índice de Aprovação</h3>
+                                </div>
+                                <div className="text-center mb-6">
+                                    <span className="text-4xl font-black text-green-600">{cfcStats.approvalRate}%</span>
+                                    <p className="text-sm text-gray-500 mt-2 font-medium">Dos exames realizados foram aprovados</p>
+                                </div>
+                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                    <div 
+                                        className="bg-green-600 h-full transition-all duration-1000" 
+                                        style={{ width: `${cfcStats.approvalRate}%` }}
+                                    ></div>
+                                </div>
+                            </div>
                         </div>
-                        <PrintStatsTable 
-                            title="Dados Mensais" 
-                            data={approvalStats.chartData.map(d => ({ label: d.name, value: `Aptos: ${d.apto} | Inaptos: ${d.inapto}`, color: '#3B82F6' }))} 
-                        />
+
+                        {/* Lists */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                <div className="flex items-center gap-2 mb-6">
+                                    <Users className="h-5 w-5 text-blue-600" />
+                                    <h3 className="text-lg font-bold text-gray-800">Agendamentos por Examinador</h3>
+                                </div>
+                                <div className="space-y-4">
+                                    {cfcStats.byExaminer.map(([name, count]) => (
+                                        <div key={name} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                                            <span className="text-sm font-medium text-gray-600 uppercase">{name}</span>
+                                            <span className="text-sm font-bold text-gray-900">{count}</span>
+                                        </div>
+                                    ))}
+                                    {cfcStats.byExaminer.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Nenhum dado disponível</p>}
+                                </div>
+                            </div>
+
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                                <div className="flex items-center gap-2 mb-6">
+                                    <MapPin className="h-5 w-5 text-blue-600" />
+                                    <h3 className="text-lg font-bold text-gray-800">Agendamentos por Autoescola</h3>
+                                </div>
+                                <div className="space-y-4">
+                                    {cfcStats.bySchool.map(([name, count]) => (
+                                        <div key={name} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                                            <span className="text-sm font-medium text-gray-600 uppercase">{name}</span>
+                                            <span className="text-sm font-bold text-gray-900">{count}</span>
+                                        </div>
+                                    ))}
+                                    {cfcStats.bySchool.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Nenhum dado disponível</p>}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Recent Schedules */}
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex items-center gap-2 mb-6">
+                                <Calendar className="h-5 w-5 text-blue-600" />
+                                <h3 className="text-lg font-bold text-gray-800">Agendamentos Recentes</h3>
+                            </div>
+                            <div className="space-y-4">
+                                {cfcStats.recentSchedules.map((sch) => (
+                                    <div key={sch.id} className="flex justify-between items-center py-4 border-b border-gray-50 last:border-0">
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-900 uppercase">{sch.location}</p>
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {new Date(sch.date).toLocaleDateString()} • {sch.examiner}
+                                            </p>
+                                        </div>
+                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                            sch.status === 'CONCLUDED' ? 'bg-green-100 text-green-700' :
+                                            sch.status === 'OPEN' ? 'bg-blue-100 text-blue-700' :
+                                            sch.status === 'CLOSED' ? 'bg-yellow-100 text-yellow-700' :
+                                            'bg-red-100 text-red-700'
+                                        }`}>
+                                            {sch.status === 'CONCLUDED' ? 'Confirmado' : 
+                                             sch.status === 'OPEN' ? 'Aguardando Confirmação' :
+                                             sch.status === 'CLOSED' ? 'Fechada' : 'Cancelado'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
-                </div>
+                ) : (
+                    <>
+                        <h3 className="text-lg font-bold print:text-sm print:mb-1">Estatísticas de Aprovação</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
+                            <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
+                            <SummaryCard title="Taxa de Aprovação" value={`${approvalStats.rate}%`} icon={Trophy} color="bg-green-600" subtitle="Candidatos Aptos" />
+                            <SummaryCard title="Reprovações" value={approvalStats.inapto} icon={XCircle} color="bg-red-600" subtitle="Candidatos Inaptos" />
+                            <SummaryCard title="Faltas" value={approvalStats.faltou} icon={UserMinus} color="bg-gray-600" subtitle="Não compareceram" />
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1 print:h-auto">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                                <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                                    <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
+                                </h3>
+                                <div className="flex-1 w-full print:h-[90px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart margin={{ bottom: 20 }}>
+                                            <Pie
+                                                data={approvalStats.pieData}
+                                                cx="50%"
+                                                cy="40%"
+                                                innerRadius={45}
+                                                outerRadius={65}
+                                                paddingAngle={8}
+                                                dataKey="value"
+                                            >
+                                                {approvalStats.pieData.map((_, index) => (
+                                                    <Cell 
+                                                        key={`cell-${index}`} 
+                                                        fill={COLORS[index % COLORS.length]} 
+                                                        fillOpacity={0.8}
+                                                        stroke={COLORS[index % COLORS.length]}
+                                                        strokeWidth={1}
+                                                    />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                            <Legend content={<CustomLegend />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <PrintStatsTable 
+                                    title="Dados de Distribuição" 
+                                    data={approvalStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
+                                />
+                            </div>
+
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                                <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                                    <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
+                                </h3>
+                                <div className="flex-1 w-full print:h-[90px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={approvalStats.chartData}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                            <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                            <Bar dataKey="apto" fill="#10B981" radius={[4, 4, 0, 0]} name="Aptos" />
+                                            <Bar dataKey="inapto" fill="#EF4444" radius={[4, 4, 0, 0]} name="Inaptos" />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <PrintStatsTable 
+                                    title="Dados Mensais" 
+                                    data={approvalStats.chartData.map(d => ({ label: d.name, value: `Aptos: ${d.apto} | Inaptos: ${d.inapto}`, color: '#3B82F6' }))} 
+                                />
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
 
-            <div className="border-t pt-6 mt-10 print:mt-1 print:pt-1 print:border-black">
-                <h3 className="text-lg font-bold mb-4 print:text-sm print:mb-1">Estatísticas de Bancas</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
-                    <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
-                    <SummaryCard title="Realizadas" value={scheduleStats.concluded} icon={Trophy} color="bg-green-600" />
-                    <SummaryCard title="Canceladas" value={scheduleStats.cancelled} icon={XCircle} color="bg-red-600" />
-                    <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:grid-cols-2 print:gap-1 print:mt-1 print:h-auto">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
-                            <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
-                        </h3>
-                        <div className="flex-1 w-full print:h-[90px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ bottom: 20 }}>
-                                    <Pie
-                                        data={scheduleStats.pieData}
-                                        cx="50%"
-                                        cy="40%"
-                                        innerRadius={45}
-                                        outerRadius={65}
-                                        paddingAngle={8}
-                                        dataKey="value"
-                                    >
-                                        {scheduleStats.pieData.map((_, index) => (
-                                            <Cell 
-                                                key={`cell-${index}`} 
-                                                fill={COLORS[index % COLORS.length]} 
-                                                fillOpacity={0.8}
-                                                stroke={COLORS[index % COLORS.length]}
-                                                strokeWidth={1}
-                                            />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                    <Legend content={<CustomLegend />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <PrintStatsTable 
-                            title="Dados de Status" 
-                            data={scheduleStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
-                        />
+            {(!reportType || reportType !== 'cfc') && (
+                <div className="border-t pt-6 mt-10 print:mt-1 print:pt-1 print:border-black">
+                    <h3 className="text-lg font-bold mb-4 print:text-sm print:mb-1">Estatísticas de Bancas</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
+                        <SummaryCard title="Total de Bancas" value={scheduleStats.total} icon={Layout} color="bg-blue-600" />
+                        <SummaryCard title="Realizadas" value={scheduleStats.concluded} icon={Trophy} color="bg-green-600" />
+                        <SummaryCard title="Canceladas" value={scheduleStats.cancelled} icon={XCircle} color="bg-red-600" />
+                        <SummaryCard title="Abertas" value={scheduleStats.open} icon={Calendar} color="bg-yellow-500" />
                     </div>
 
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
-                            <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
-                        </h3>
-                        <div className="flex-1 w-full print:h-[90px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={slotUsageStats}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
-                                    <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                                    <Bar dataKey="total" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="Vagas Totais" />
-                                    <Bar dataKey="used" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Vagas Utilizadas" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:grid-cols-2 print:gap-1 print:mt-1 print:h-auto">
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                                <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
+                            </h3>
+                            <div className="flex-1 w-full print:h-[90px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart margin={{ bottom: 20 }}>
+                                        <Pie
+                                            data={scheduleStats.pieData}
+                                            cx="50%"
+                                            cy="40%"
+                                            innerRadius={45}
+                                            outerRadius={65}
+                                            paddingAngle={8}
+                                            dataKey="value"
+                                        >
+                                            {scheduleStats.pieData.map((_, index) => (
+                                                <Cell 
+                                                    key={`cell-${index}`} 
+                                                    fill={COLORS[index % COLORS.length]} 
+                                                    fillOpacity={0.8}
+                                                    stroke={COLORS[index % COLORS.length]}
+                                                    strokeWidth={1}
+                                                />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                        <Legend content={<CustomLegend />} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <PrintStatsTable 
+                                title="Dados de Status" 
+                                data={scheduleStats.pieData.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
+                            />
                         </div>
-                        <PrintStatsTable 
-                            title="Dados de Ocupação" 
-                            data={slotUsageStats.map(d => ({ label: d.name, value: `Total: ${d.total} | Uso: ${d.used}`, color: '#3B82F6' }))} 
-                        />
+
+                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+                            <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                                <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
+                            </h3>
+                            <div className="flex-1 w-full print:h-[90px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={slotUsageStats}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#000', fontSize: 10}} />
+                                        <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                                        <Bar dataKey="total" fill="#E5E7EB" radius={[4, 4, 0, 0]} name="Vagas Totais" />
+                                        <Bar dataKey="used" fill="#3B82F6" radius={[4, 4, 0, 0]} name="Vagas Utilizadas" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <PrintStatsTable 
+                                title="Dados de Ocupação" 
+                                data={slotUsageStats.map(d => ({ label: d.name, value: `Total: ${d.total} | Uso: ${d.used}`, color: '#3B82F6' }))} 
+                            />
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Print Footer (Visible only in print) */}
             <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
