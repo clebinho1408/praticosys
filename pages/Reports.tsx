@@ -829,28 +829,28 @@ const Reports: React.FC = () => {
             </div>
 
             {/* Print Header (Visible only in print) */}
-            <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-6">
-                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-4 print:mb-2 print:gap-6">
+            <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
+                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1 print:gap-6">
                     {settings?.logoUrl ? (
-                        <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
+                        <img src={settings.logoUrl} className="h-16 w-auto print:h-12" />
                     ) : (
-                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-12 print:w-12 print:text-[8px]">LOGO</div>
                     )}
                     <div>
-                        <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-black uppercase text-black print:text-2xl">RELATÓRIO GERAL DE ÍNDICES</h2>
+                        <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-lg">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                        <h2 className="text-2xl font-black uppercase text-black print:text-xl">RELATÓRIO GERAL DE ÍNDICES</h2>
                     </div>
                 </div>
-                <div className="text-center text-xs font-bold uppercase text-black print:text-sm">
+                <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
                     <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
 
             <div className="space-y-4 print:space-y-2">
                 {reportType === 'cfc' && cfcStats ? (
-                    <div className="space-y-6 animate-fadeIn">
+                    <div className="space-y-6 animate-fadeIn print:space-y-2">
                         {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-2">
                             <SummaryCard title="Agendamentos do Mês" value={cfcStats.monthlySchedules} icon={Calendar} color="bg-blue-600" />
                             <SummaryCard title="Provas Realizadas" value={cfcStats.totalExams} icon={CheckCircle} color="bg-green-600" />
                             <SummaryCard title="Provas Canceladas" value={cfcStats.totalCancelled} icon={XCircle} color="bg-red-600" />
@@ -858,17 +858,17 @@ const Reports: React.FC = () => {
                         </div>
 
                         {/* Indices */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                                <div className="flex items-center gap-2 mb-8">
-                                    <Layout className="h-5 w-5 text-blue-600" />
-                                    <h3 className="text-lg font-bold text-gray-800">Índice de Vagas Utilizadas</h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-2">
+                            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 print:p-2 print:shadow-none print:border-black print:border print:bg-blue-50/20">
+                                <div className="flex items-center gap-2 mb-8 print:mb-2">
+                                    <Layout className="h-5 w-5 text-blue-600 print:h-3 print:w-3" />
+                                    <h3 className="text-lg font-bold text-gray-800 print:text-[10px]">Índice de Vagas Utilizadas</h3>
                                 </div>
-                                <div className="text-center mb-6">
-                                    <span className="text-4xl font-black text-blue-600">{cfcStats.slotUsagePercent}%</span>
-                                    <p className="text-sm text-gray-500 mt-2 font-medium">Das vagas disponíveis foram utilizadas</p>
+                                <div className="text-center mb-6 print:mb-1">
+                                    <span className="text-4xl font-black text-blue-600 print:text-xl">{cfcStats.slotUsagePercent}%</span>
+                                    <p className="text-sm text-gray-500 mt-2 font-medium print:text-[8px] print:mt-0">Das vagas disponíveis foram utilizadas</p>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden print:h-1.5">
                                     <div 
                                         className="bg-blue-600 h-full transition-all duration-1000" 
                                         style={{ width: `${Math.min(cfcStats.slotUsagePercent, 100)}%` }}
@@ -876,16 +876,16 @@ const Reports: React.FC = () => {
                                 </div>
                             </div>
 
-                            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
-                                <div className="flex items-center gap-2 mb-8">
-                                    <CheckCircle className="h-5 w-5 text-green-600" />
-                                    <h3 className="text-lg font-bold text-gray-800">Índice de Aprovação</h3>
+                            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 print:p-2 print:shadow-none print:border-black print:border print:bg-green-50/20">
+                                <div className="flex items-center gap-2 mb-8 print:mb-2">
+                                    <CheckCircle className="h-5 w-5 text-green-600 print:h-3 print:w-3" />
+                                    <h3 className="text-lg font-bold text-gray-800 print:text-[10px]">Índice de Aprovação</h3>
                                 </div>
-                                <div className="text-center mb-6">
-                                    <span className="text-4xl font-black text-green-600">{cfcStats.approvalRate}%</span>
-                                    <p className="text-sm text-gray-500 mt-2 font-medium">Dos exames realizados foram aprovados</p>
+                                <div className="text-center mb-6 print:mb-1">
+                                    <span className="text-4xl font-black text-green-600 print:text-xl">{cfcStats.approvalRate}%</span>
+                                    <p className="text-sm text-gray-500 mt-2 font-medium print:text-[8px] print:mt-0">Dos exames realizados foram aprovados</p>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden print:h-1.5">
                                     <div 
                                         className="bg-green-600 h-full transition-all duration-1000" 
                                         style={{ width: `${cfcStats.approvalRate}%` }}
@@ -895,13 +895,13 @@ const Reports: React.FC = () => {
                         </div>
 
                         {/* Lists */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                <div className="flex items-center gap-2 mb-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-2">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 print:p-0 print:shadow-none print:border-none">
+                                <div className="flex items-center gap-2 mb-6 print:hidden">
                                     <Users className="h-5 w-5 text-blue-600" />
                                     <h3 className="text-lg font-bold text-gray-800">Agendamentos por Examinador</h3>
                                 </div>
-                                <div className="space-y-4">
+                                <div className="space-y-4 print:hidden">
                                     {cfcStats.byExaminer.map(([name, count]) => (
                                         <div key={name} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                                             <span className="text-sm font-medium text-gray-600 uppercase">{name}</span>
@@ -910,14 +910,18 @@ const Reports: React.FC = () => {
                                     ))}
                                     {cfcStats.byExaminer.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Nenhum dado disponível</p>}
                                 </div>
+                                <PrintStatsTable 
+                                    title="Agendamentos por Examinador" 
+                                    data={cfcStats.byExaminer.map(([name, count]) => ({ label: name, value: count, color: '#3B82F6' }))} 
+                                />
                             </div>
 
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                <div className="flex items-center gap-2 mb-6">
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 print:p-0 print:shadow-none print:border-none">
+                                <div className="flex items-center gap-2 mb-6 print:hidden">
                                     <MapPin className="h-5 w-5 text-blue-600" />
                                     <h3 className="text-lg font-bold text-gray-800">Agendamentos por Autoescola</h3>
                                 </div>
-                                <div className="space-y-4">
+                                <div className="space-y-4 print:hidden">
                                     {cfcStats.bySchool.map(([name, count]) => (
                                         <div key={name} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                                             <span className="text-sm font-medium text-gray-600 uppercase">{name}</span>
@@ -926,38 +930,13 @@ const Reports: React.FC = () => {
                                     ))}
                                     {cfcStats.bySchool.length === 0 && <p className="text-sm text-gray-400 text-center py-4">Nenhum dado disponível</p>}
                                 </div>
+                                <PrintStatsTable 
+                                    title="Agendamentos por Autoescola" 
+                                    data={cfcStats.bySchool.map(([name, count]) => ({ label: name, value: count, color: '#10B981' }))} 
+                                />
                             </div>
                         </div>
 
-                        {/* Recent Schedules */}
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <div className="flex items-center gap-2 mb-6">
-                                <Calendar className="h-5 w-5 text-blue-600" />
-                                <h3 className="text-lg font-bold text-gray-800">Agendamentos Recentes</h3>
-                            </div>
-                            <div className="space-y-4">
-                                {cfcStats.recentSchedules.map((sch) => (
-                                    <div key={sch.id} className="flex justify-between items-center py-4 border-b border-gray-50 last:border-0">
-                                        <div>
-                                            <p className="text-sm font-bold text-gray-900 uppercase">{sch.location}</p>
-                                            <p className="text-xs text-gray-500 mt-1">
-                                                {new Date(sch.date).toLocaleDateString()} • {sch.examiner}
-                                            </p>
-                                        </div>
-                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                                            sch.status === 'CONCLUDED' ? 'bg-green-100 text-green-700' :
-                                            sch.status === 'OPEN' ? 'bg-blue-100 text-blue-700' :
-                                            sch.status === 'CLOSED' ? 'bg-yellow-100 text-yellow-700' :
-                                            'bg-red-100 text-red-700'
-                                        }`}>
-                                            {sch.status === 'CONCLUDED' ? 'Confirmado' : 
-                                             sch.status === 'OPEN' ? 'Aguardando Confirmação' :
-                                             sch.status === 'CLOSED' ? 'Fechada' : 'Cancelado'}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 ) : (
                     <>
