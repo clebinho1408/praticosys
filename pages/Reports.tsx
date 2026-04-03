@@ -940,7 +940,7 @@ const Reports: React.FC = () => {
                                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                                     <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                                 </h3>
-                                <div className="flex-1 w-full print:h-[120px]">
+                                <div className="flex-1 w-full print:h-[90px]">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart margin={{ bottom: 20 }}>
                                             <Pie
@@ -978,7 +978,7 @@ const Reports: React.FC = () => {
                                 <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                                     <Layout className="h-5 w-5 text-green-600 print:hidden" /> Tipos de Provas
                                 </h3>
-                                <div className="flex-1 w-full print:h-[120px]">
+                                <div className="flex-1 w-full print:h-[90px]">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart margin={{ bottom: 20 }}>
                                             <Pie
