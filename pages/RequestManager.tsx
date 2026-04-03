@@ -38,10 +38,9 @@ const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({ re
 interface RequestManagerProps {
   user: User;
   typeFilter?: ExamType;
-  sourceFilter?: RequestSource;
 }
 
-const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourceFilter }) => {
+const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
@@ -96,11 +95,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
       // Prop Type Filtering
       if (typeFilter) {
         filtered = filtered.filter(r => r.examType === typeFilter);
-      }
-
-      // Source Filtering
-      if (sourceFilter) {
-        filtered = filtered.filter(r => r.source === sourceFilter);
       }
       
       // Sort by updatedAt ASC (oldest first, newest at the bottom)
@@ -232,7 +226,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                 instructor: motoInstructor,
                 vehiclePlate: motoPlate,
                 schoolId: user.schoolId,
-                source: sourceFilter || (user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT),
+                source: user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT,
                 status: ExamStatus.WAITING_SCHEDULING
             });
 
@@ -243,14 +237,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                 instructor: carInstructor,
                 vehiclePlate: carPlate,
                 schoolId: user.schoolId,
-                source: sourceFilter || (user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT),
+                source: user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT,
                 status: ExamStatus.WAITING_SCHEDULING
             });
         } else {
             await api.createRequest({
               ...formData,
               schoolId: user.schoolId,
-              source: sourceFilter || (user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT),
+              source: user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT,
               status: ExamStatus.WAITING_SCHEDULING
             });
         }
