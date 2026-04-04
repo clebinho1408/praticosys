@@ -17,7 +17,12 @@ import {
   Users,
   Layout,
   Printer,
-  Search
+  Search,
+  CheckCircle2,
+  Clock,
+  Car,
+  User,
+  Building
 } from 'lucide-react';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
@@ -94,6 +99,173 @@ const CustomLegend = (props: any) => {
 
 type ReportView = 'general-stats' | 'schedules-list' | 'instructors-list' | 'exam-history';
 
+const CFCGeneralStats: React.FC<{
+  schedules: ExamSchedule[];
+  bancaResults: BancaResult[];
+  requests: ExamRequest[];
+  schools: any[];
+  examiners: any[];
+  generalDateStart: string;
+  generalDateEnd: string;
+}> = ({ schedules, bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd }) => {
+  const stats = useMemo(() => {
+    let filteredSchedules = schedules;
+    if (generalDateStart) {
+        filteredSchedules = filteredSchedules.filter(s => s.date >= generalDateStart);
+    }
+    if (generalDateEnd) {
+        filteredSchedules = filteredSchedules.filter(s => s.date <= generalDateEnd);
+    }
+
+    const scheduleIds = filteredSchedules.map(s => s.id);
+    const filteredResults = bancaResults.filter(br => scheduleIds.includes(br.scheduleId));
+
+    let totalVagasDisponiveis = 0;
+    let totalVagasUtilizadas = 0;
+    let totalAprovados = 0;
+    let totalReprovados = 0;
+    let provasRealizadas = 0;
+    let provasCanceladas = 0;
+
+    filteredResults.forEach(br => {
+        totalVagasDisponiveis += br.totalSlots || 0;
+        totalVagasUtilizadas += br.usedSlots || 0;
+        totalAprovados += br.approved || 0;
+        totalReprovados += br.failed || 0;
+        provasRealizadas += (br.approved || 0) + (br.failed || 0) + (br.absent || 0);
+        provasCanceladas += br.cancelled || 0;
+    });
+
+    const agendamentosDoMes = totalVagasUtilizadas;
+    const agendamentosConfirmados = totalVagasUtilizadas - provasRealizadas - provasCanceladas;
+
+    const indiceVagasUtilizadas = totalVagasDisponiveis > 0 ? Math.round((totalVagasUtilizadas / totalVagasDisponiveis) * 100) : 0;
+    const totalRealizadasParaAprovacao = totalAprovados + totalReprovados;
+    const indiceAprovacao = totalRealizadasParaAprovacao > 0 ? Math.round((totalAprovados / totalRealizadasParaAprovacao) * 100) : 0;
+
+    const examinerCounts: Record<string, number> = {};
+    const schoolCounts: Record<string, number> = {};
+
+    filteredResults.forEach(br => {
+        if (br.schoolId) {
+            schoolCounts[br.schoolId] = (schoolCounts[br.schoolId] || 0) + (br.usedSlots || 0);
+        }
+        
+        const schedule = filteredSchedules.find(s => s.id === br.scheduleId);
+        if (schedule && schedule.examinerIds && schedule.examinerIds.length > 0) {
+            schedule.examinerIds.forEach(exId => {
+                // Distribute slots evenly among examiners, or just add to all? Let's add to all for simplicity, or divide.
+                // The image shows integers. Let's just add the used slots to each examiner.
+                examinerCounts[exId] = (examinerCounts[exId] || 0) + (br.usedSlots || 0);
+            });
+        } else {
+            examinerCounts['SEM_EXAMINADOR'] = (examinerCounts['SEM_EXAMINADOR'] || 0) + (br.usedSlots || 0);
+        }
+    });
+
+    const examinerList = Object.entries(examinerCounts).map(([id, count]) => {
+        if (id === 'SEM_EXAMINADOR') return { name: 'Sem examinador', count };
+        const ex = examiners.find(e => e.id === id);
+        return { name: ex ? ex.name : 'Desconhecido', count };
+    }).sort((a, b) => b.count - a.count);
+
+    const schoolList = Object.entries(schoolCounts).map(([id, count]) => {
+        const sch = schools.find(s => s.id === id);
+        return { name: sch ? sch.name : 'Desconhecida', count };
+    }).sort((a, b) => b.count - a.count);
+
+    return {
+        agendamentosDoMes,
+        provasRealizadas,
+        provasCanceladas,
+        agendamentosConfirmados,
+        indiceVagasUtilizadas,
+        indiceAprovacao,
+        examinerList,
+        schoolList
+    };
+  }, [schedules, bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd]);
+
+  return (
+    <div className="space-y-6 animate-fadeIn print:space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
+          <SummaryCard title="Agendamentos do Mês" value={stats.agendamentosDoMes} icon={Calendar} color="bg-blue-600" />
+          <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
+          <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
+          <SummaryCard title="Agendamentos Confirmados" value={stats.agendamentosConfirmados} icon={Clock} color="bg-orange-600" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                  <Car className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Vagas Utilizadas
+              </h3>
+              <div className="flex flex-col items-center justify-center flex-1">
+                  <span className="text-4xl font-black text-blue-600 mb-2">{stats.indiceVagasUtilizadas}%</span>
+                  <span className="text-sm text-gray-500 mb-6">Das vagas disponíveis foram utilizadas</span>
+                  <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div className="bg-blue-600 h-4 rounded-full" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
+                  </div>
+              </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                  <CheckCircle2 className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Aprovação
+              </h3>
+              <div className="flex flex-col items-center justify-center flex-1">
+                  <span className="text-4xl font-black text-green-600 mb-2">{stats.indiceAprovacao}%</span>
+                  <span className="text-sm text-gray-500 mb-6">Dos exames realizados foram aprovados</span>
+                  <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div className="bg-green-600 h-4 rounded-full" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                  <User className="h-5 w-5 text-gray-800 print:hidden" /> Agendamentos por Examinador
+              </h3>
+              <div className="flex-1 overflow-y-auto max-h-64 pr-2">
+                  <ul className="space-y-3">
+                      {stats.examinerList.map((item, idx) => (
+                          <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0">
+                              <span className="text-gray-600 uppercase">{item.name}</span>
+                              <span className="font-bold text-gray-900">{item.count}</span>
+                          </li>
+                      ))}
+                      {stats.examinerList.length === 0 && (
+                          <li className="text-sm text-gray-500 text-center py-4">Nenhum dado encontrado</li>
+                      )}
+                  </ul>
+              </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                  <Building className="h-5 w-5 text-gray-800 print:hidden" /> Agendamentos por Autoescola
+              </h3>
+              <div className="flex-1 overflow-y-auto max-h-64 pr-2">
+                  <ul className="space-y-3">
+                      {stats.schoolList.map((item, idx) => (
+                          <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0">
+                              <span className="text-gray-600 uppercase">{item.name}</span>
+                              <span className="font-bold text-gray-900">{item.count}</span>
+                          </li>
+                      ))}
+                      {stats.schoolList.length === 0 && (
+                          <li className="text-sm text-gray-500 text-center py-4">Nenhum dado encontrado</li>
+                      )}
+                  </ul>
+              </div>
+          </div>
+      </div>
+    </div>
+  );
+};
+
 const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
   const { reportType: paramReportType } = useParams<{ reportType: string }>();
   const reportType = reportTypeProp || paramReportType;
@@ -102,6 +274,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
+  const [schools, setSchools] = useState<any[]>([]);
+  const [examiners, setExaminers] = useState<any[]>([]);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -147,12 +321,14 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [reqs, scheds, instrs, sysSettings, results] = await Promise.all([
+            const [reqs, scheds, instrs, sysSettings, results, schs, exams] = await Promise.all([
                 api.getRequests(),
                 api.getSchedules(),
                 api.getInstructorsAsync(),
                 api.getSettings(),
-                api.getBancaResults()
+                api.getBancaResults(),
+                api.getSchoolsAsync(),
+                api.getExaminersAsync()
             ]);
 
             let filteredReqs = reqs;
@@ -175,6 +351,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             setInstructors(instrs);
             setSettings(sysSettings);
             setBancaResults(results);
+            setSchools(schs);
+            setExaminers(exams);
         } catch (error) {
             console.error("Error fetching report data", error);
         } finally {
@@ -611,6 +789,17 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
       {/* VIEW: Índice Geral (Unificado) */}
       {activeView === 'general-stats' && (
+        reportType === 'cfc' ? (
+          <CFCGeneralStats 
+            schedules={schedules}
+            bancaResults={bancaResults}
+            requests={requests}
+            schools={schools}
+            examiners={examiners}
+            generalDateStart={generalDateStart}
+            generalDateEnd={generalDateEnd}
+          />
+        ) : (
           <div className="space-y-6 animate-fadeIn print:space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
@@ -805,6 +994,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                 <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
           </div>
+        )
       )}
 
       {/* VIEW: Histórico de Provas */}
