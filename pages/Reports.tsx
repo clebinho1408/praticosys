@@ -107,7 +107,10 @@ const CFCGeneralStats: React.FC<{
   examiners: any[];
   generalDateStart: string;
   generalDateEnd: string;
-}> = ({ schedules, bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd }) => {
+  setGeneralDateStart: (date: string) => void;
+  setGeneralDateEnd: (date: string) => void;
+  settings: SystemSettings | null;
+}> = ({ schedules, bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd, setGeneralDateStart, setGeneralDateEnd, settings }) => {
   const stats = useMemo(() => {
     let filteredSchedules = schedules;
     if (generalDateStart) {
@@ -119,11 +122,14 @@ const CFCGeneralStats: React.FC<{
 
     const scheduleIds = filteredSchedules.map(s => s.id);
     const filteredResults = bancaResults.filter(br => scheduleIds.includes(br.scheduleId));
+    const requestsInPeriod = requests.filter(r => scheduleIds.includes(r.scheduleId || ''));
 
     let totalVagasDisponiveis = 0;
     let totalVagasUtilizadas = 0;
     let totalAprovados = 0;
     let totalReprovados = 0;
+    let totalFaltas = 0;
+    let totalCancelados = 0;
     let provasRealizadas = 0;
     let provasCanceladas = 0;
 
@@ -132,6 +138,8 @@ const CFCGeneralStats: React.FC<{
         totalVagasUtilizadas += br.usedSlots || 0;
         totalAprovados += br.approved || 0;
         totalReprovados += br.failed || 0;
+        totalFaltas += br.absent || 0;
+        totalCancelados += br.cancelled || 0;
         provasRealizadas += (br.approved || 0) + (br.failed || 0) + (br.absent || 0);
         provasCanceladas += br.cancelled || 0;
     });
@@ -154,8 +162,6 @@ const CFCGeneralStats: React.FC<{
         const schedule = filteredSchedules.find(s => s.id === br.scheduleId);
         if (schedule && schedule.examinerIds && schedule.examinerIds.length > 0) {
             schedule.examinerIds.forEach(exId => {
-                // Distribute slots evenly among examiners, or just add to all? Let's add to all for simplicity, or divide.
-                // The image shows integers. Let's just add the used slots to each examiner.
                 examinerCounts[exId] = (examinerCounts[exId] || 0) + (br.usedSlots || 0);
             });
         } else {
@@ -174,6 +180,29 @@ const CFCGeneralStats: React.FC<{
         return { name: sch ? sch.name : 'Desconhecida', count };
     }).sort((a, b) => b.count - a.count);
 
+    const resultDistribution = [
+      { name: 'Aptos', value: totalAprovados },
+      { name: 'Inaptos', value: totalReprovados },
+      { name: 'Faltas', value: totalFaltas },
+      { name: 'Cancelados', value: totalCancelados }
+    ];
+
+    let provasFixas = 0;
+    let provasExtras = 0;
+    let provasReposicao = 0;
+
+    requestsInPeriod.forEach(req => {
+       if (req.requestType === 'FIXA') provasFixas++;
+       else if (req.requestType === 'EXTRA') provasExtras++;
+       else if (req.requestType === 'REPOSICAO') provasReposicao++;
+    });
+
+    const requestTypeDistribution = [
+      { name: 'Provas Fixas', value: provasFixas },
+      { name: 'Provas Extras', value: provasExtras },
+      { name: 'Reposição', value: provasReposicao }
+    ];
+
     return {
         agendamentosDoMes,
         provasRealizadas,
@@ -182,12 +211,59 @@ const CFCGeneralStats: React.FC<{
         indiceVagasUtilizadas,
         indiceAprovacao,
         examinerList,
-        schoolList
+        schoolList,
+        resultDistribution,
+        requestTypeDistribution
     };
   }, [schedules, bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd]);
 
   return (
     <div className="space-y-6 animate-fadeIn print:space-y-4">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+          <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
+          <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                  <input 
+                      type="date"
+                      className="border-none text-sm p-2 outline-none bg-transparent"
+                      value={generalDateStart} 
+                      onChange={e => setGeneralDateStart(e.target.value)} 
+                  />
+                  <span className="text-gray-400">-</span>
+                  <input 
+                      type="date"
+                      className="border-none text-sm p-2 outline-none bg-transparent"
+                      value={generalDateEnd} 
+                      onChange={e => setGeneralDateEnd(e.target.value)} 
+                  />
+              </div>
+              <button 
+                  onClick={() => window.print()} 
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+              >
+                  <Printer className="h-4 w-4" /> Imprimir
+              </button>
+          </div>
+      </div>
+
+      {/* Print Header (Visible only in print) */}
+      <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-6">
+          <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-4 print:mb-2 print:gap-6">
+              {settings?.logoUrl ? (
+                  <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
+              ) : (
+                  <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+              )}
+              <div>
+                  <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                  <h2 className="text-2xl font-black uppercase text-black print:text-2xl">RELATÓRIO GERAL DE ÍNDICES</h2>
+              </div>
+          </div>
+          <div className="text-center text-xs font-bold uppercase text-black print:text-sm">
+              <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
+          </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
           <SummaryCard title="Agendamentos do Mês" value={stats.agendamentosDoMes} icon={Calendar} color="bg-blue-600" />
           <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
@@ -220,6 +296,82 @@ const CFCGeneralStats: React.FC<{
                       <div className="bg-green-600 h-4 rounded-full" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
                   </div>
               </div>
+          </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                  <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
+              </h3>
+              <div className="flex-1 w-full print:h-[90px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <PieChart margin={{ bottom: 20 }}>
+                          <Pie
+                              data={stats.resultDistribution}
+                              cx="50%"
+                              cy="40%"
+                              innerRadius={45}
+                              outerRadius={65}
+                              paddingAngle={8}
+                              dataKey="value"
+                          >
+                              {stats.resultDistribution.map((_, index) => (
+                                  <Cell 
+                                      key={`cell-${index}`} 
+                                      fill={COLORS[index % COLORS.length]} 
+                                      fillOpacity={0.8}
+                                      stroke={COLORS[index % COLORS.length]}
+                                      strokeWidth={1}
+                                  />
+                              ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                          <Legend content={<CustomLegend />} />
+                      </PieChart>
+                  </ResponsiveContainer>
+              </div>
+              <PrintStatsTable 
+                  title="Dados de Distribuição" 
+                  data={stats.resultDistribution.map((d, i) => ({ label: d.name, value: d.value, color: COLORS[i % COLORS.length] }))} 
+              />
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                  <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Tipos de Prova
+              </h3>
+              <div className="flex-1 w-full print:h-[90px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <PieChart margin={{ bottom: 20 }}>
+                          <Pie
+                              data={stats.requestTypeDistribution}
+                              cx="50%"
+                              cy="40%"
+                              innerRadius={45}
+                              outerRadius={65}
+                              paddingAngle={8}
+                              dataKey="value"
+                          >
+                              {stats.requestTypeDistribution.map((_, index) => (
+                                  <Cell 
+                                      key={`cell-${index}`} 
+                                      fill={['#3B82F6', '#8B5CF6', '#14B8A6'][index]} 
+                                      fillOpacity={0.8}
+                                      stroke={['#3B82F6', '#8B5CF6', '#14B8A6'][index]}
+                                      strokeWidth={1}
+                                  />
+                              ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                          <Legend content={<CustomLegend />} />
+                      </PieChart>
+                  </ResponsiveContainer>
+              </div>
+              <PrintStatsTable 
+                  title="Dados de Tipos de Prova" 
+                  data={stats.requestTypeDistribution.map((d, i) => ({ label: d.name, value: d.value, color: ['#3B82F6', '#8B5CF6', '#14B8A6'][i] }))} 
+              />
           </div>
       </div>
 
@@ -798,6 +950,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             examiners={examiners}
             generalDateStart={generalDateStart}
             generalDateEnd={generalDateEnd}
+            setGeneralDateStart={setGeneralDateStart}
+            setGeneralDateEnd={setGeneralDateEnd}
+            settings={settings}
           />
         ) : (
           <div className="space-y-6 animate-fadeIn print:space-y-4">
