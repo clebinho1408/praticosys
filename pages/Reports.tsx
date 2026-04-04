@@ -462,6 +462,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
   // Filters for Exam History
   const [examHistorySearch, setExamHistorySearch] = useState<string>('');
   const [examHistoryResultFilter, setExamHistoryResultFilter] = useState<string>('ALL');
+  const [examHistorySchoolFilter, setExamHistorySchoolFilter] = useState<string>('ALL');
+  const [examHistoryExaminerFilter, setExamHistoryExaminerFilter] = useState<string>('ALL');
   const [examHistoryDateStart, setExamHistoryDateStart] = useState(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
@@ -838,7 +840,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       result: h.result,
                       category: h.category || req.intendedCategory || 'N/A',
                       scheduleCode: h.scheduleCode || (schedule?.code ? `#${schedule.code}` : 'Sem Banca'),
-                      type: 'HISTORY'
+                      type: 'HISTORY',
+                      schoolId: req.schoolId,
+                      examinerIds: schedule?.examinerIds || []
                   });
               });
           }
@@ -864,7 +868,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                        result: req.result,
                        category: req.scheduledCategory || req.intendedCategory || 'N/A',
                        scheduleCode: schedule?.code ? `#${schedule.code}` : 'Sem Banca',
-                       type: 'CURRENT'
+                       type: 'CURRENT',
+                       schoolId: req.schoolId,
+                       examinerIds: schedule?.examinerIds || []
                    });
                }
           }
@@ -894,6 +900,12 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       if (examHistoryResultFilter !== 'ALL') {
           filtered = filtered.filter(i => i.result === examHistoryResultFilter);
       }
+      if (examHistorySchoolFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.schoolId === examHistorySchoolFilter);
+      }
+      if (examHistoryExaminerFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.examinerIds && i.examinerIds.includes(examHistoryExaminerFilter));
+      }
 
       // Sort by Date DESC
       filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -909,7 +921,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       });
 
       return groups;
-  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch, examHistoryResultFilter]);
+  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch, examHistoryResultFilter, examHistorySchoolFilter, examHistoryExaminerFilter]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -1168,14 +1180,16 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       {activeView === 'exam-history' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <div className="flex-1 max-w-md flex gap-2">
-                      <input 
-                          type="text" 
-                          placeholder="Buscar por Nome, CPF ou Banca..." 
-                          className="w-full border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={examHistorySearch}
-                          onChange={e => setExamHistorySearch(e.target.value)}
-                      />
+                  <div className="flex-1 flex gap-2">
+                      {reportType !== 'cfc' && (
+                          <input 
+                              type="text" 
+                              placeholder="Buscar por Nome, CPF ou Banca..." 
+                              className="w-full max-w-md border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={examHistorySearch}
+                              onChange={e => setExamHistorySearch(e.target.value)}
+                          />
+                      )}
                       {reportType !== 'cfc' && (
                           <select 
                               className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -1187,6 +1201,30 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                               <option value="INAPTO">Inapto</option>
                               <option value="FALTOU">Faltou</option>
                           </select>
+                      )}
+                      {reportType === 'cfc' && (
+                          <>
+                              <select 
+                                  className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                  value={examHistorySchoolFilter}
+                                  onChange={e => setExamHistorySchoolFilter(e.target.value)}
+                              >
+                                  <option value="ALL">Todas Autoescolas</option>
+                                  {schools.map(school => (
+                                      <option key={school.id} value={school.id}>{school.name}</option>
+                                  ))}
+                              </select>
+                              <select 
+                                  className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                  value={examHistoryExaminerFilter}
+                                  onChange={e => setExamHistoryExaminerFilter(e.target.value)}
+                              >
+                                  <option value="ALL">Todos Examinadores</option>
+                                  {examiners.map(examiner => (
+                                      <option key={examiner.id} value={examiner.id}>{examiner.name}</option>
+                                  ))}
+                              </select>
+                          </>
                       )}
                   </div>
                   
