@@ -1176,16 +1176,18 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                           value={examHistorySearch}
                           onChange={e => setExamHistorySearch(e.target.value)}
                       />
-                      <select 
-                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={examHistoryResultFilter}
-                          onChange={e => setExamHistoryResultFilter(e.target.value)}
-                      >
-                          <option value="ALL">Todos Resultados</option>
-                          <option value="APTO">Apto</option>
-                          <option value="INAPTO">Inapto</option>
-                          <option value="FALTOU">Faltou</option>
-                      </select>
+                      {reportType !== 'cfc' && (
+                          <select 
+                              className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                              value={examHistoryResultFilter}
+                              onChange={e => setExamHistoryResultFilter(e.target.value)}
+                          >
+                              <option value="ALL">Todos Resultados</option>
+                              <option value="APTO">Apto</option>
+                              <option value="INAPTO">Inapto</option>
+                              <option value="FALTOU">Faltou</option>
+                          </select>
+                      )}
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
