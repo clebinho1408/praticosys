@@ -203,6 +203,12 @@ const CFCGeneralStats: React.FC<{
       { name: 'Reposição', value: provasReposicao }
     ];
 
+    const uniqueDays = new Set(filteredResults.map(br => {
+        const req = filteredRequests.find(r => r.id === br.scheduleId || r.scheduleId === br.scheduleId);
+        return req?.scheduledDate;
+    }).filter(Boolean)).size;
+    const mediaPorDia = uniqueDays > 0 ? Math.round(provasRealizadas / uniqueDays) : 0;
+
     return {
         agendamentosDoMes,
         provasRealizadas,
@@ -213,7 +219,8 @@ const CFCGeneralStats: React.FC<{
         examinerList,
         schoolList,
         resultDistribution,
-        requestTypeDistribution
+        requestTypeDistribution,
+        mediaPorDia
     };
   }, [requests, bancaResults, schools, examiners, generalDateStart, generalDateEnd]);
 
@@ -268,7 +275,7 @@ const CFCGeneralStats: React.FC<{
           <SummaryCard title="Agendamentos do Mês" value={stats.agendamentosDoMes} icon={Calendar} color="bg-blue-600" />
           <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
           <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
-          <SummaryCard title="Agendamentos Confirmados" value={stats.agendamentosConfirmados} icon={Clock} color="bg-orange-600" />
+          <SummaryCard title="Média por dia" value={stats.mediaPorDia} icon={Clock} color="bg-orange-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
@@ -278,9 +285,9 @@ const CFCGeneralStats: React.FC<{
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
                   <span className="text-4xl font-black text-blue-600 mb-2">{stats.indiceVagasUtilizadas}%</span>
-                  <span className="text-sm text-gray-500 mb-6">Das vagas disponíveis foram utilizadas</span>
-                  <div className="w-full bg-gray-200 rounded-full h-4">
-                      <div className="bg-blue-600 h-4 rounded-full" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
+                  <span className="text-sm text-gray-500 mb-6 print:mb-2">Das vagas disponíveis foram utilizadas</span>
+                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-2">
+                      <div className="bg-blue-600 h-4 rounded-full print:h-2" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
                   </div>
               </div>
           </div>
@@ -291,9 +298,9 @@ const CFCGeneralStats: React.FC<{
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
                   <span className="text-4xl font-black text-green-600 mb-2">{stats.indiceAprovacao}%</span>
-                  <span className="text-sm text-gray-500 mb-6">Dos exames realizados foram aprovados</span>
-                  <div className="w-full bg-gray-200 rounded-full h-4">
-                      <div className="bg-green-600 h-4 rounded-full" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
+                  <span className="text-sm text-gray-500 mb-6 print:mb-2">Dos exames realizados foram aprovados</span>
+                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-2">
+                      <div className="bg-green-600 h-4 rounded-full print:h-2" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
                   </div>
               </div>
           </div>
@@ -304,13 +311,13 @@ const CFCGeneralStats: React.FC<{
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                   <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
               </h3>
-              <div className="flex-1 w-full print:h-[90px]">
+              <div className="flex-1 w-full print:h-[60px]">
                   <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ bottom: 20 }}>
+                      <PieChart margin={{ bottom: 0 }}>
                           <Pie
                               data={stats.resultDistribution}
                               cx="50%"
-                              cy="40%"
+                              cy="50%"
                               innerRadius={45}
                               outerRadius={65}
                               paddingAngle={8}
@@ -341,13 +348,13 @@ const CFCGeneralStats: React.FC<{
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                   <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Tipos de Prova
               </h3>
-              <div className="flex-1 w-full print:h-[90px]">
+              <div className="flex-1 w-full print:h-[60px]">
                   <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ bottom: 20 }}>
+                      <PieChart margin={{ bottom: 0 }}>
                           <Pie
                               data={stats.requestTypeDistribution}
                               cx="50%"
-                              cy="40%"
+                              cy="50%"
                               innerRadius={45}
                               outerRadius={65}
                               paddingAngle={8}
@@ -380,16 +387,16 @@ const CFCGeneralStats: React.FC<{
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                   <User className="h-5 w-5 text-gray-800 print:hidden" /> Agendamentos por Examinador
               </h3>
-              <div className="flex-1 overflow-y-auto max-h-64 pr-2">
-                  <ul className="space-y-3">
+              <div className="flex-1 overflow-y-auto max-h-64 pr-2 print:max-h-none print:overflow-visible">
+                  <ul className="space-y-3 print:space-y-1">
                       {stats.examinerList.map((item, idx) => (
-                          <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0">
-                              <span className="text-gray-600 uppercase">{item.name}</span>
-                              <span className="font-bold text-gray-900">{item.count}</span>
+                          <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0 print:text-[10px] print:pb-1 print:border-gray-200">
+                              <span className="text-gray-600 uppercase print:text-black">{item.name}</span>
+                              <span className="font-bold text-gray-900 print:text-black">{item.count}</span>
                           </li>
                       ))}
                       {stats.examinerList.length === 0 && (
-                          <li className="text-sm text-gray-500 text-center py-4">Nenhum dado encontrado</li>
+                          <li className="text-sm text-gray-500 text-center py-4 print:text-[10px]">Nenhum dado encontrado</li>
                       )}
                   </ul>
               </div>
@@ -399,20 +406,26 @@ const CFCGeneralStats: React.FC<{
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                   <Building className="h-5 w-5 text-gray-800 print:hidden" /> Agendamentos por Autoescola
               </h3>
-              <div className="flex-1 overflow-y-auto max-h-64 pr-2">
-                  <ul className="space-y-3">
+              <div className="flex-1 overflow-y-auto max-h-64 pr-2 print:max-h-none print:overflow-visible">
+                  <ul className="space-y-3 print:space-y-1">
                       {stats.schoolList.map((item, idx) => (
-                          <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0">
-                              <span className="text-gray-600 uppercase">{item.name}</span>
-                              <span className="font-bold text-gray-900">{item.count}</span>
+                          <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0 print:text-[10px] print:pb-1 print:border-gray-200">
+                              <span className="text-gray-600 uppercase print:text-black">{item.name}</span>
+                              <span className="font-bold text-gray-900 print:text-black">{item.count}</span>
                           </li>
                       ))}
                       {stats.schoolList.length === 0 && (
-                          <li className="text-sm text-gray-500 text-center py-4">Nenhum dado encontrado</li>
+                          <li className="text-sm text-gray-500 text-center py-4 print:text-[10px]">Nenhum dado encontrado</li>
                       )}
                   </ul>
               </div>
           </div>
+      </div>
+
+      {/* Print Footer */}
+      <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+          <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+          <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
       </div>
     </div>
   );
