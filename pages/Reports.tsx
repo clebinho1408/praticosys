@@ -100,7 +100,6 @@ const CustomLegend = (props: any) => {
 type ReportView = 'general-stats' | 'schedules-list' | 'instructors-list' | 'exam-history';
 
 const CFCGeneralStats: React.FC<{
-  schedules: ExamSchedule[];
   bancaResults: BancaResult[];
   requests: ExamRequest[];
   schools: any[];
@@ -110,19 +109,22 @@ const CFCGeneralStats: React.FC<{
   setGeneralDateStart: (date: string) => void;
   setGeneralDateEnd: (date: string) => void;
   settings: SystemSettings | null;
-}> = ({ schedules, bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd, setGeneralDateStart, setGeneralDateEnd, settings }) => {
+}> = ({ bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd, setGeneralDateStart, setGeneralDateEnd, settings }) => {
   const stats = useMemo(() => {
-    let filteredSchedules = schedules;
+    let filteredRequests = requests.filter(r => r.examType === 'COMMON' || r.examType === 'PCD');
+    
     if (generalDateStart) {
-        filteredSchedules = filteredSchedules.filter(s => s.date >= generalDateStart);
+        filteredRequests = filteredRequests.filter(r => r.scheduledDate && r.scheduledDate >= generalDateStart);
     }
     if (generalDateEnd) {
-        filteredSchedules = filteredSchedules.filter(s => s.date <= generalDateEnd);
+        filteredRequests = filteredRequests.filter(r => r.scheduledDate && r.scheduledDate <= generalDateEnd);
     }
 
-    const scheduleIds = filteredSchedules.map(s => s.id);
-    const filteredResults = bancaResults.filter(br => scheduleIds.includes(br.scheduleId));
-    const requestsInPeriod = requests.filter(r => scheduleIds.includes(r.scheduleId || ''));
+    const requestIds = filteredRequests.map(r => r.id);
+    const requestScheduleIds = filteredRequests.map(r => r.scheduleId).filter(Boolean) as string[];
+    const allValidIds = [...requestIds, ...requestScheduleIds];
+
+    const filteredResults = bancaResults.filter(br => allValidIds.includes(br.scheduleId));
 
     let totalVagasDisponiveis = 0;
     let totalVagasUtilizadas = 0;
@@ -159,11 +161,9 @@ const CFCGeneralStats: React.FC<{
             schoolCounts[br.schoolId] = (schoolCounts[br.schoolId] || 0) + (br.usedSlots || 0);
         }
         
-        const schedule = filteredSchedules.find(s => s.id === br.scheduleId);
-        if (schedule && schedule.examinerIds && schedule.examinerIds.length > 0) {
-            schedule.examinerIds.forEach(exId => {
-                examinerCounts[exId] = (examinerCounts[exId] || 0) + (br.usedSlots || 0);
-            });
+        const req = filteredRequests.find(r => r.id === br.scheduleId || r.scheduleId === br.scheduleId);
+        if (req && req.examinerId) {
+            examinerCounts[req.examinerId] = (examinerCounts[req.examinerId] || 0) + (br.usedSlots || 0);
         } else {
             examinerCounts['SEM_EXAMINADOR'] = (examinerCounts['SEM_EXAMINADOR'] || 0) + (br.usedSlots || 0);
         }
@@ -191,7 +191,7 @@ const CFCGeneralStats: React.FC<{
     let provasExtras = 0;
     let provasReposicao = 0;
 
-    requestsInPeriod.forEach(req => {
+    filteredRequests.forEach(req => {
        if (req.requestType === 'FIXA') provasFixas++;
        else if (req.requestType === 'EXTRA') provasExtras++;
        else if (req.requestType === 'REPOSICAO') provasReposicao++;
@@ -215,7 +215,7 @@ const CFCGeneralStats: React.FC<{
         resultDistribution,
         requestTypeDistribution
     };
-  }, [schedules, bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd]);
+  }, [requests, bancaResults, schools, examiners, generalDateStart, generalDateEnd]);
 
   return (
     <div className="space-y-6 animate-fadeIn print:space-y-4">
@@ -943,7 +943,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       {activeView === 'general-stats' && (
         reportType === 'cfc' ? (
           <CFCGeneralStats 
-            schedules={schedules}
             bancaResults={bancaResults}
             requests={requests}
             schools={schools}
