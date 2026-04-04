@@ -1609,7 +1609,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
               {/* Print Header (Visible only in print) */}
               <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+                  <div className={`flex items-center gap-6 ${reportType !== 'cfc' ? 'border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1' : 'pb-2 mb-1 print:pb-1'}`}>
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto" />
                       ) : (
@@ -1684,7 +1684,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                                                           {school.mainSchedule.slots.map((slot: any, idx: number) => (
                                                                               <li key={idx} className="flex items-center gap-1.5 text-xs">
                                                                                   <span className="font-mono font-medium bg-gray-100 px-1 rounded print:bg-transparent print:p-0">{slot.time}</span>
-                                                                                  <span className="text-gray-500 print:text-black">{examiners.find(e => e.id === slot.examiner)?.name || 'Desconhecido'}</span>
+                                                                                  <span className="text-gray-500 print:text-black">{slot.examiner ? (examiners.find(e => e.id === slot.examiner || e.name === slot.examiner)?.name || 'A Definir') : 'A Definir'}</span>
                                                                               </li>
                                                                           ))}
                                                                       </ul>
