@@ -1002,7 +1002,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             onClick={() => setActiveView('schedules-list')}
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'schedules-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-              Lista de Bancas
+              {reportType === 'cfc' ? 'Lista Autoescolas' : 'Lista de Bancas'}
           </button>
           <button 
             onClick={() => setActiveView('instructors-list')}
@@ -1560,39 +1560,43 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           </div>
       )}
 
-      {/* VIEW: Lista de Candidatos */}
+      {/* VIEW: Lista de Candidatos / Autoescolas */}
       {activeView === 'schedules-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <h3 className="text-lg font-bold">Todas as Bancas</h3>
+                  <h3 className="text-lg font-bold">{reportType === 'cfc' ? 'Lista de Autoescolas' : 'Todas as Bancas'}</h3>
                   
                   <div className="flex flex-wrap items-center gap-2">
-                      <select 
-                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={scheduleStatusFilter}
-                          onChange={e => setScheduleStatusFilter(e.target.value)}
-                      >
-                          <option value="ALL">Todos Status</option>
-                          {Object.entries(SCHEDULE_STATUS_TRANSLATION).map(([key, label]) => (
-                              <option key={key} value={key}>{label}</option>
-                          ))}
-                      </select>
+                      {reportType !== 'cfc' && (
+                          <>
+                              <select 
+                                  className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                  value={scheduleStatusFilter}
+                                  onChange={e => setScheduleStatusFilter(e.target.value)}
+                              >
+                                  <option value="ALL">Todos Status</option>
+                                  {Object.entries(SCHEDULE_STATUS_TRANSLATION).map(([key, label]) => (
+                                      <option key={key} value={key}>{label}</option>
+                                  ))}
+                              </select>
 
-                      <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                          <input 
-                              type="date"
-                              className="border-none text-sm p-2 outline-none bg-transparent"
-                              value={scheduleDateStart} 
-                              onChange={e => setScheduleDateStart(e.target.value)} 
-                          />
-                          <span className="text-gray-400">-</span>
-                          <input 
-                              type="date"
-                              className="border-none text-sm p-2 outline-none bg-transparent"
-                              value={scheduleDateEnd} 
-                              onChange={e => setScheduleDateEnd(e.target.value)} 
-                          />
-                      </div>
+                              <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
+                                  <input 
+                                      type="date"
+                                      className="border-none text-sm p-2 outline-none bg-transparent"
+                                      value={scheduleDateStart} 
+                                      onChange={e => setScheduleDateStart(e.target.value)} 
+                                  />
+                                  <span className="text-gray-400">-</span>
+                                  <input 
+                                      type="date"
+                                      className="border-none text-sm p-2 outline-none bg-transparent"
+                                      value={scheduleDateEnd} 
+                                      onChange={e => setScheduleDateEnd(e.target.value)} 
+                                  />
+                              </div>
+                          </>
+                      )}
 
                       <button 
                           onClick={() => window.print()} 
@@ -1613,12 +1617,14 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       )}
                       <div>
                           <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO DE BANCAS</h2>
+                          <h2 className="text-2xl font-black uppercase text-black">{reportType === 'cfc' ? 'RELATÓRIO DE AUTOESCOLAS' : 'RELATÓRIO DE BANCAS'}</h2>
                       </div>
                   </div>
-                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
-                      <span>Data: {new Date(scheduleDateStart).toLocaleDateString()} até {new Date(scheduleDateEnd).toLocaleDateString()}</span>
-                  </div>
+                  {reportType !== 'cfc' && (
+                      <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                          <span>Data: {new Date(scheduleDateStart).toLocaleDateString()} até {new Date(scheduleDateEnd).toLocaleDateString()}</span>
+                      </div>
+                  )}
               </div>
 
               <div className="overflow-x-auto print:overflow-visible">
@@ -1629,48 +1635,114 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       <tbody>
                           <tr>
                               <td>
-                                  {Object.keys(groupedSchedules).length === 0 ? (
-                                      <div className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</div>
-                                  ) : (
-                                      Object.entries(groupedSchedules).map(([status, types]) => (
-                                          <div key={status} className="border-b last:border-b-0 print:border-black">
-                                              <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
-                                                  <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
-                                                  {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
-                                              </div>
-                                              
-                                              {Object.entries(types).map(([code, scheds]) => (
-                                                  <div key={`${status}-${code}`}>
-                                                      <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
-                                                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
-                                                          {code}
+                                  {reportType === 'cfc' ? (
+                                      // CFC View: List of Schools
+                                      <div className="divide-y divide-gray-100 print:divide-gray-200">
+                                          {schools.length === 0 ? (
+                                              <div className="p-10 text-center text-gray-400">Nenhuma autoescola encontrada.</div>
+                                          ) : (
+                                              schools.map(school => (
+                                                  <div key={school.id} className="p-6 print:p-2 print:border-b print:border-black">
+                                                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                                          <div>
+                                                              <h4 className="text-lg font-bold text-gray-800 uppercase print:text-sm print:text-black">{school.name}</h4>
+                                                              <div className="text-sm text-gray-500 mt-1 print:text-[10px] print:text-black">
+                                                                  <p><strong>Contato:</strong> {school.phone} {school.email ? `| ${school.email}` : ''}</p>
+                                                                  <p><strong>Serviços:</strong> {school.services?.join(', ') || 'Nenhum'}</p>
+                                                              </div>
+                                                          </div>
+                                                          {school.mainSchedule?.active && (
+                                                              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-transparent print:border-none print:p-0">
+                                                                  <h5 className="text-sm font-bold text-blue-800 mb-2 print:text-black print:text-[10px] print:mb-1">Escala Ativa (Principal)</h5>
+                                                                  <div className="text-sm text-gray-700 print:text-[10px] print:text-black">
+                                                                      <p><strong>Frequência:</strong> {
+                                                                          school.mainSchedule.frequency === '1_WEEK' ? '1x na Semana' :
+                                                                          school.mainSchedule.frequency === '2_WEEK' ? '2x na Semana' :
+                                                                          school.mainSchedule.frequency === '3_WEEK' ? '3x na Semana' :
+                                                                          school.mainSchedule.frequency === '2_DAY' ? '2x no Dia' :
+                                                                          school.mainSchedule.frequency === '15_DAYS' ? 'A cada 15 dias' : school.mainSchedule.frequency
+                                                                      }</p>
+                                                                      <p><strong>Dias:</strong> {school.mainSchedule.days?.join(', ') || 'Nenhum'}</p>
+                                                                      {school.mainSchedule.slots?.length > 0 && (
+                                                                          <div className="mt-2">
+                                                                              <p className="font-semibold text-xs text-gray-500 uppercase mb-1 print:text-black">Horários:</p>
+                                                                              <ul className="space-y-1">
+                                                                                  {school.mainSchedule.slots.map((slot: any, idx: number) => (
+                                                                                      <li key={idx} className="flex items-center gap-2 text-xs">
+                                                                                          <span className="bg-white px-2 py-1 rounded border font-mono print:bg-transparent print:p-0 print:border-none">{slot.time}</span>
+                                                                                          <span>- Examinador: {examiners.find(e => e.id === slot.examiner)?.name || 'Desconhecido'}</span>
+                                                                                      </li>
+                                                                                  ))}
+                                                                              </ul>
+                                                                          </div>
+                                                                      )}
+                                                                  </div>
+                                                              </div>
+                                                          )}
                                                       </div>
-                                                      <table className="w-full text-sm text-left">
-                                                          <thead>
-                                                              <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                                  <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px]">Data</th>
-                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horário</th>
-                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Examinadores</th>
-                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Utilizadas</th>
-                                                                  <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Totais</th>
-                                                              </tr>
-                                                          </thead>
-                                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                                                              {scheds.map(sch => (
-                                                                  <tr key={sch.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                                      <td className="px-6 py-3 font-bold text-gray-800 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{new Date(sch.date).toLocaleDateString()}</td>
-                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.time}</td>
-                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.examinerIds.length}</td>
-                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{requests.filter(r => r.scheduleId === sch.id).length}</td>
-                                                                      <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{sch.maxSlotsA} / {sch.maxSlotsB}</td>
-                                                                  </tr>
-                                                              ))}
-                                                          </tbody>
-                                                      </table>
                                                   </div>
-                                              ))}
-                                          </div>
-                                      ))
+                                              ))
+                                          )}
+                                      </div>
+                                  ) : (
+                                      // Original View: List of Schedules
+                                      Object.keys(groupedSchedules).length === 0 ? (
+                                          <div className="p-10 text-center text-gray-400">Nenhuma banca encontrada.</div>
+                                      ) : (
+                                          Object.entries(groupedSchedules).map(([status, types]) => (
+                                              <div key={status} className="border-b last:border-b-0 print:border-black">
+                                                  <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                                      <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
+                                                      {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
+                                                  </div>
+                                                  
+                                                  {Object.entries(types).map(([code, scheds]) => (
+                                                      <div key={`${status}-${code}`}>
+                                                          <div className="bg-gray-50 px-6 py-2 font-bold text-blue-600 text-xs border-y border-gray-100 pl-10 flex items-center gap-2 print:bg-white print:text-black print:border-black print:border-b print:pl-6 print:py-1">
+                                                              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 print:hidden"></span>
+                                                              {code}
+                                                          </div>
+                                                          <table className="w-full text-sm text-left">
+                                                              <thead>
+                                                                  <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
+                                                                      <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px]">Data</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horário</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Examinadores</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Utilizadas</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Totais</th>
+                                                                  </tr>
+                                                              </thead>
+                                                              <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                                                  {scheds.map((schedule: any) => (
+                                                                      <tr key={schedule.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                                          <td className="px-6 py-3 font-medium text-gray-800 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                              {new Date(schedule.date).toLocaleDateString()} às {schedule.time}
+                                                                          </td>
+                                                                          <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                              {schedule.examinerIds.map((id: string) => examiners.find(e => e.id === id)?.name || 'Desconhecido').join(', ')}
+                                                                          </td>
+                                                                          <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                              {schedule.examRequests?.length || 0} / {schedule.maxCandidates}
+                                                                          </td>
+                                                                          <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
+                                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                                                  schedule.status === 'OPEN' ? 'bg-green-100 text-green-700' : 
+                                                                                  schedule.status === 'CLOSED' ? 'bg-gray-100 text-gray-700' : 
+                                                                                  schedule.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 
+                                                                                  'bg-gray-100 text-gray-600'
+                                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
+                                                                                  {SCHEDULE_STATUS_TRANSLATION[schedule.status] || schedule.status}
+                                                                              </span>
+                                                                          </td>
+                                                                      </tr>
+                                                                  ))}
+                                                              </tbody>
+                                                          </table>
+                                                      </div>
+                                                  ))}
+                                              </div>
+                                          ))
+                                      )
                                   )}
                               </td>
                           </tr>
