@@ -1637,51 +1637,63 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                               <td>
                                   {reportType === 'cfc' ? (
                                       // CFC View: List of Schools
-                                      <div className="divide-y divide-gray-100 print:divide-gray-200">
+                                      <div className="print:mt-2">
                                           {schools.length === 0 ? (
                                               <div className="p-10 text-center text-gray-400">Nenhuma autoescola encontrada.</div>
                                           ) : (
-                                              schools.map(school => (
-                                                  <div key={school.id} className="p-6 print:p-2 print:border-b print:border-black">
-                                                      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                                                          <div>
-                                                              <h4 className="text-lg font-bold text-gray-800 uppercase print:text-sm print:text-black">{school.name}</h4>
-                                                              <div className="text-sm text-gray-500 mt-1 print:text-[10px] print:text-black">
-                                                                  <p><strong>Contato:</strong> {school.phone} {school.email ? `| ${school.email}` : ''}</p>
-                                                                  <p><strong>Serviços:</strong> {school.services?.join(', ') || 'Nenhum'}</p>
-                                                              </div>
-                                                          </div>
-                                                          {school.mainSchedule?.active && (
-                                                              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 print:bg-transparent print:border-none print:p-0">
-                                                                  <h5 className="text-sm font-bold text-blue-800 mb-2 print:text-black print:text-[10px] print:mb-1">Escala Ativa (Principal)</h5>
-                                                                  <div className="text-sm text-gray-700 print:text-[10px] print:text-black">
-                                                                      <p><strong>Frequência:</strong> {
-                                                                          school.mainSchedule.frequency === '1_WEEK' ? '1x na Semana' :
-                                                                          school.mainSchedule.frequency === '2_WEEK' ? '2x na Semana' :
-                                                                          school.mainSchedule.frequency === '3_WEEK' ? '3x na Semana' :
-                                                                          school.mainSchedule.frequency === '2_DAY' ? '2x no Dia' :
-                                                                          school.mainSchedule.frequency === '15_DAYS' ? 'A cada 15 dias' : school.mainSchedule.frequency
-                                                                      }</p>
-                                                                      <p><strong>Dias:</strong> {school.mainSchedule.days?.join(', ') || 'Nenhum'}</p>
-                                                                      {school.mainSchedule.slots?.length > 0 && (
-                                                                          <div className="mt-2">
-                                                                              <p className="font-semibold text-xs text-gray-500 uppercase mb-1 print:text-black">Horários:</p>
-                                                                              <ul className="space-y-1">
-                                                                                  {school.mainSchedule.slots.map((slot: any, idx: number) => (
-                                                                                      <li key={idx} className="flex items-center gap-2 text-xs">
-                                                                                          <span className="bg-white px-2 py-1 rounded border font-mono print:bg-transparent print:p-0 print:border-none">{slot.time}</span>
-                                                                                          <span>- Examinador: {examiners.find(e => e.id === slot.examiner)?.name || 'Desconhecido'}</span>
-                                                                                      </li>
-                                                                                  ))}
-                                                                              </ul>
-                                                                          </div>
-                                                                      )}
-                                                                  </div>
-                                                              </div>
-                                                          )}
-                                                      </div>
-                                                  </div>
-                                              ))
+                                              <table className="w-full text-sm text-left">
+                                                  <thead>
+                                                      <tr className="text-xs text-gray-400 border-b bg-gray-50 print:bg-transparent print:text-black print:border-black">
+                                                          <th className="px-4 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Autoescola</th>
+                                                          <th className="px-4 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Contato</th>
+                                                          <th className="px-4 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Serviços</th>
+                                                          <th className="px-4 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Escala Ativa</th>
+                                                          <th className="px-4 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horários / Examinadores</th>
+                                                      </tr>
+                                                  </thead>
+                                                  <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                                      {schools.map(school => (
+                                                          <tr key={school.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                              <td className="px-4 py-2 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-[10px] print:text-black align-top">
+                                                                  {school.name}
+                                                              </td>
+                                                              <td className="px-4 py-2 text-gray-600 print:px-2 print:py-1 print:text-[10px] print:text-black align-top">
+                                                                  <div>{school.phone}</div>
+                                                                  {school.email && <div className="text-xs text-gray-400 print:text-black">{school.email}</div>}
+                                                              </td>
+                                                              <td className="px-4 py-2 text-gray-600 print:px-2 print:py-1 print:text-[10px] print:text-black align-top">
+                                                                  {school.services?.join(', ') || '-'}
+                                                              </td>
+                                                              <td className="px-4 py-2 text-gray-600 print:px-2 print:py-1 print:text-[10px] print:text-black align-top">
+                                                                  {school.mainSchedule?.active ? (
+                                                                      <>
+                                                                          <div className="font-medium text-blue-700 print:text-black">{
+                                                                              school.mainSchedule.frequency === '1_WEEK' ? '1x na Semana' :
+                                                                              school.mainSchedule.frequency === '2_WEEK' ? '2x na Semana' :
+                                                                              school.mainSchedule.frequency === '3_WEEK' ? '3x na Semana' :
+                                                                              school.mainSchedule.frequency === '2_DAY' ? '2x no Dia' :
+                                                                              school.mainSchedule.frequency === '15_DAYS' ? 'A cada 15 dias' : school.mainSchedule.frequency
+                                                                          }</div>
+                                                                          <div className="text-xs mt-0.5">{school.mainSchedule.days?.join(', ') || '-'}</div>
+                                                                      </>
+                                                                  ) : <span className="text-gray-400 print:text-black">-</span>}
+                                                              </td>
+                                                              <td className="px-4 py-2 text-gray-600 print:px-2 print:py-1 print:text-[10px] print:text-black align-top">
+                                                                  {school.mainSchedule?.active && school.mainSchedule.slots?.length > 0 ? (
+                                                                      <ul className="space-y-1">
+                                                                          {school.mainSchedule.slots.map((slot: any, idx: number) => (
+                                                                              <li key={idx} className="flex items-center gap-1.5 text-xs">
+                                                                                  <span className="font-mono font-medium bg-gray-100 px-1 rounded print:bg-transparent print:p-0">{slot.time}</span>
+                                                                                  <span className="text-gray-500 print:text-black">{examiners.find(e => e.id === slot.examiner)?.name || 'Desconhecido'}</span>
+                                                                              </li>
+                                                                          ))}
+                                                                      </ul>
+                                                                  ) : <span className="text-gray-400 print:text-black">-</span>}
+                                                              </td>
+                                                          </tr>
+                                                      ))}
+                                                  </tbody>
+                                              </table>
                                           )}
                                       </div>
                                   ) : (
