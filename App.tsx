@@ -16,6 +16,7 @@ import ProvaPraticaPCDReport from './pages/ProvaPraticaPCDReport';
 import Cadastros from './pages/Cadastros';
 import Configuracoes from './pages/Configuracoes';
 import StudentDatabase from './pages/StudentDatabase';
+import ProvaPraticaCFCDashboard from './pages/ProvaPraticaCFCDashboard';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>(() => {
@@ -76,6 +77,7 @@ const App: React.FC = () => {
                   <Route path="reports/cnh" element={<CnhDoBrasilReport />} />
 
                   {/* Prova Prática CFC */}
+                  <Route path="dashboard/cfc" element={<ProvaPraticaCFCDashboard user={auth.user} />} />
                   <Route path="scheduling/cfc" element={<ProvaPraticaCFC user={auth.user} />} />
                   <Route path="reports/cfc" element={<ProvaPraticaCFCReport />} />
 

@@ -165,24 +165,7 @@ export const CfcModule: React.FC<{ stats?: any; title?: string }> = () => {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
-          <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
-                  <input 
-                      type="date"
-                      className="border-none text-sm p-2 outline-none bg-transparent"
-                      value={generalDateStart} 
-                      onChange={e => setGeneralDateStart(e.target.value)} 
-                  />
-                  <span className="text-gray-400">-</span>
-                  <input 
-                      type="date"
-                      className="border-none text-sm p-2 outline-none bg-transparent"
-                      value={generalDateEnd} 
-                      onChange={e => setGeneralDateEnd(e.target.value)} 
-                  />
-              </div>
-          </div>
+          <h3 className="text-lg font-bold">Resumo Geral de Estatísticas (Últimos 12 meses)</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -276,7 +276,7 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
       )}
 
       {activeTab === 'cnh' && <CnhModule stats={cnhBrasilStats} title="CNH do Brasil" />}
-      {activeTab === 'cfc' && <CfcModule stats={cfcStats} title="Prova Prática CFC" />}
+      {activeTab === 'cfc' && <CfcModule />}
       {activeTab === 'pcd' && <PcdModule stats={pcdStats} title="Prova Prática PCD" />}
     </div>
   );
