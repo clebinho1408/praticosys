@@ -1019,8 +1019,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       </div>
 
       {/* VIEW: Índice Geral (Unificado) */}
-      {activeView === 'general-stats' && 
-        reportType === 'cfc' ? 
+      {activeView === 'general-stats' && (
+        reportType === 'cfc' ? (
           <CFCGeneralStats 
             bancaResults={bancaResults}
             requests={requests}
@@ -1032,8 +1032,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             setGeneralDateEnd={setGeneralDateEnd}
             settings={settings}
           />
-         : 
-          <div className="space-y-6 animate-fadeIn print:space-y-4">
+        ) : (
+          <>
+            <div className="space-y-6 animate-fadeIn print:space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
@@ -1220,17 +1221,19 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                     </div>
                 </div>
             </div>
+            </div>
 
             {/* Print Footer (Visible only in print) */}
             <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
                 <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                 <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
-          
-      }
+          </>
+        )
+      )}
 
       {/* VIEW: Histórico de Provas */}
-      {activeView === 'exam-history' && 
+      {activeView === 'exam-history' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-wrap items-center gap-4 print:hidden">
                   <div className="flex flex-wrap items-center gap-2 flex-1">
@@ -1473,10 +1476,10 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
-      }
+      )}
 
       {/* VIEW: Lista de Instrutores / Examinadores */}
-      {activeView === 'instructors-list' && 
+      {activeView === 'instructors-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md">
@@ -1624,10 +1627,10 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
-      }
+      )}
 
       {/* VIEW: Lista de Candidatos / Autoescolas */}
-      {activeView === 'schedules-list' && 
+      {activeView === 'schedules-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 flex flex-col md:flex-row items-center gap-4">
@@ -1853,7 +1856,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
-      }
+      )}
     </div>
   );
 };
