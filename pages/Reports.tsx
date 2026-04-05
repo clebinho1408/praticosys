@@ -1778,7 +1778,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                                                   <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
                                                                       <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px]">Data</th>
                                                                       <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Horário</th>
-                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Examinadores</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] w-[40%]">Examinadores</th>
                                                                       <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Utilizadas</th>
                                                                       <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px]">Vagas Totais</th>
                                                                   </tr>
