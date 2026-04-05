@@ -20,9 +20,7 @@ import {
   Search,
   CheckCircle2,
   Clock,
-  Car,
-  User,
-  Building
+  Car
 } from 'lucide-react';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B']; // Apto, Inapto, Faltou, Outros
@@ -49,9 +47,9 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
       <div className="print:bg-[var(--print-bg)] absolute inset-0 hidden print:block -z-10"></div>
       <div className="flex justify-between items-start relative z-10">
         <div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[7px] print:mb-0 print:text-black">{title}</p>
-          <h3 className="text-2xl font-black text-gray-900 print:text-sm print:text-black">{value}</h3>
-          {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[7px] print:mt-0 print:text-black">{subtitle}</p>}
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[10px] print:mb-1 print:text-black">{title}</p>
+          <h3 className="text-2xl font-black text-gray-900 print:text-xl print:text-black">{value}</h3>
+          {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[10px] print:mt-1 print:text-black">{subtitle}</p>}
         </div>
         <div className={`p-3 rounded-lg ${color} bg-opacity-10 print:hidden`}>
           <Icon className={`h-6 w-6 ${color.replace('bg-', 'text-')}`} />
@@ -62,19 +60,19 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
 };
 
 const PrintStatsTable: React.FC<{ title: string; data: { label: string; value: string | number; color?: string }[] }> = ({ title, data }) => (
-    <div className="hidden print:block mt-2 border border-black rounded-lg overflow-hidden">
-        <div className="bg-gray-100 px-2 py-1 font-bold text-[9px] uppercase border-b border-black text-black">{title}</div>
-        <table className="w-full text-[9px] text-left">
+    <div className="hidden print:block mt-4 border border-black rounded-lg overflow-hidden">
+        <div className="bg-gray-100 px-3 py-2 font-bold text-xs uppercase border-b border-black text-black">{title}</div>
+        <table className="w-full text-xs text-left">
             <tbody className="divide-y divide-black">
                 {data.map((item, idx) => (
                     <tr key={idx} style={item.color ? { backgroundColor: `${item.color}15` } : undefined}>
-                        <td className="px-2 py-0.5 font-bold uppercase text-black w-2/3">
-                            <div className="flex items-center gap-1">
-                                {item.color && <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }}></div>}
+                        <td className="px-3 py-1 font-bold uppercase text-black w-2/3">
+                            <div className="flex items-center gap-2">
+                                {item.color && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>}
                                 {item.label}
                             </div>
                         </td>
-                        <td className="px-2 py-0.5 text-black text-right font-bold">{item.value}</td>
+                        <td className="px-3 py-1 text-black text-right font-bold">{item.value}</td>
                     </tr>
                 ))}
             </tbody>
@@ -225,7 +223,7 @@ const CFCGeneralStats: React.FC<{
   }, [requests, bancaResults, schools, examiners, generalDateStart, generalDateEnd]);
 
   return (
-    <div className="space-y-6 animate-fadeIn print:space-y-4">
+    <div className="space-y-6 animate-fadeIn print:space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
           <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
           <div className="flex items-center gap-2">
@@ -271,47 +269,47 @@ const CFCGeneralStats: React.FC<{
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
           <SummaryCard title="Agendamentos do Mês" value={stats.agendamentosDoMes} icon={Calendar} color="bg-blue-600" />
           <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
           <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
           <SummaryCard title="Média por dia" value={stats.mediaPorDia} icon={Clock} color="bg-orange-600" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-4 print:shadow-none print:border-black print:border">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
                   <Car className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Vagas Utilizadas
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
-                  <span className="text-4xl font-black text-blue-600 mb-2">{stats.indiceVagasUtilizadas}%</span>
-                  <span className="text-sm text-gray-500 mb-6 print:mb-2">Das vagas disponíveis foram utilizadas</span>
-                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-2">
-                      <div className="bg-blue-600 h-4 rounded-full print:h-2" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
+                  <span className="text-4xl font-black text-blue-600 mb-2 print:text-5xl">{stats.indiceVagasUtilizadas}%</span>
+                  <span className="text-sm text-gray-500 mb-6 print:mb-4 print:text-base">Das vagas disponíveis foram utilizadas</span>
+                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-4">
+                      <div className="bg-blue-600 h-4 rounded-full print:h-4" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
                   </div>
               </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-4 print:shadow-none print:border-black print:border">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
                   <CheckCircle2 className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Aprovação
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
-                  <span className="text-4xl font-black text-green-600 mb-2">{stats.indiceAprovacao}%</span>
-                  <span className="text-sm text-gray-500 mb-6 print:mb-2">Dos exames realizados foram aprovados</span>
-                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-2">
-                      <div className="bg-green-600 h-4 rounded-full print:h-2" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
+                  <span className="text-4xl font-black text-green-600 mb-2 print:text-5xl">{stats.indiceAprovacao}%</span>
+                  <span className="text-sm text-gray-500 mb-6 print:mb-4 print:text-base">Dos exames realizados foram aprovados</span>
+                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-4">
+                      <div className="bg-green-600 h-4 rounded-full print:h-4" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
                   </div>
               </div>
           </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-4 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
                   <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
               </h3>
-              <div className="flex-1 w-full print:h-[60px]">
+              <div className="flex-1 w-full print:h-[120px]">
                   <ResponsiveContainer width="100%" height="100%">
                       <PieChart margin={{ bottom: 0 }}>
                           <Pie
@@ -344,11 +342,11 @@ const CFCGeneralStats: React.FC<{
               />
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-4 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
                   <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Tipos de Prova
               </h3>
-              <div className="flex-1 w-full print:h-[60px]">
+              <div className="flex-1 w-full print:h-[120px]">
                   <ResponsiveContainer width="100%" height="100%">
                       <PieChart margin={{ bottom: 0 }}>
                           <Pie
@@ -379,46 +377,6 @@ const CFCGeneralStats: React.FC<{
                   title="Dados de Tipos de Prova" 
                   data={stats.requestTypeDistribution.map((d, i) => ({ label: d.name, value: d.value, color: ['#3B82F6', '#8B5CF6', '#14B8A6'][i] }))} 
               />
-          </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
-                  <User className="h-5 w-5 text-gray-800 print:hidden" /> Agendamentos por Examinador
-              </h3>
-              <div className="flex-1 overflow-y-auto max-h-64 pr-2 print:max-h-none print:overflow-visible">
-                  <ul className="space-y-3 print:space-y-1">
-                      {stats.examinerList.map((item, idx) => (
-                          <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0 print:text-[10px] print:pb-1 print:border-gray-200">
-                              <span className="text-gray-600 uppercase print:text-black">{item.name}</span>
-                              <span className="font-bold text-gray-900 print:text-black">{item.count}</span>
-                          </li>
-                      ))}
-                      {stats.examinerList.length === 0 && (
-                          <li className="text-sm text-gray-500 text-center py-4 print:text-[10px]">Nenhum dado encontrado</li>
-                      )}
-                  </ul>
-              </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
-                  <Building className="h-5 w-5 text-gray-800 print:hidden" /> Agendamentos por Autoescola
-              </h3>
-              <div className="flex-1 overflow-y-auto max-h-64 pr-2 print:max-h-none print:overflow-visible">
-                  <ul className="space-y-3 print:space-y-1">
-                      {stats.schoolList.map((item, idx) => (
-                          <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2 last:border-0 print:text-[10px] print:pb-1 print:border-gray-200">
-                              <span className="text-gray-600 uppercase print:text-black">{item.name}</span>
-                              <span className="font-bold text-gray-900 print:text-black">{item.count}</span>
-                          </li>
-                      ))}
-                      {stats.schoolList.length === 0 && (
-                          <li className="text-sm text-gray-500 text-center py-4 print:text-[10px]">Nenhum dado encontrado</li>
-                      )}
-                  </ul>
-              </div>
           </div>
       </div>
 
@@ -464,6 +422,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
   const [examHistoryResultFilter, setExamHistoryResultFilter] = useState<string>('ALL');
   const [examHistorySchoolFilter, setExamHistorySchoolFilter] = useState<string>('ALL');
   const [examHistoryExaminerFilter, setExamHistoryExaminerFilter] = useState<string>('ALL');
+  const [examHistoryTypeFilter, setExamHistoryTypeFilter] = useState<string>('ALL');
+  const [examHistoryExamTypeFilter, setExamHistoryExamTypeFilter] = useState<string>('ALL');
   const [examHistoryDateStart, setExamHistoryDateStart] = useState(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
@@ -948,6 +908,12 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       if (examHistoryExaminerFilter !== 'ALL') {
           filtered = filtered.filter(i => i.examinerIds && i.examinerIds.includes(examHistoryExaminerFilter));
       }
+      if (examHistoryTypeFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.requestType === examHistoryTypeFilter);
+      }
+      if (examHistoryExamTypeFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.examType === examHistoryExamTypeFilter);
+      }
 
       // Sort by Date DESC
       filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -963,7 +929,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       });
 
       return groups;
-  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch, examHistoryResultFilter, examHistorySchoolFilter, examHistoryExaminerFilter]);
+  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch, examHistoryResultFilter, examHistorySchoolFilter, examHistoryExaminerFilter, examHistoryTypeFilter, examHistoryExamTypeFilter]);
 
   const groupedExamHistoryCfc = useMemo(() => {
       const groups: Record<string, Record<string, any[]>> = {
@@ -985,6 +951,12 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       if (examHistoryExaminerFilter !== 'ALL') {
           filtered = filtered.filter(i => i.examinerIds && i.examinerIds.includes(examHistoryExaminerFilter));
       }
+      if (examHistoryTypeFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.requestType === examHistoryTypeFilter);
+      }
+      if (examHistoryExamTypeFilter !== 'ALL') {
+          filtered = filtered.filter(i => i.examType === examHistoryExamTypeFilter);
+      }
 
       // Sort by Date DESC
       filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -1003,7 +975,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       if (Object.keys(groups['Provas Canceladas']).length === 0) delete groups['Provas Canceladas'];
 
       return groups;
-  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySchoolFilter, examHistoryExaminerFilter, schools]);
+  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySchoolFilter, examHistoryExaminerFilter, schools, examHistoryTypeFilter, examHistoryExamTypeFilter]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -1047,8 +1019,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       </div>
 
       {/* VIEW: Índice Geral (Unificado) */}
-      {activeView === 'general-stats' && (
-        reportType === 'cfc' ? (
+      {activeView === 'general-stats' && 
+        reportType === 'cfc' ? 
           <CFCGeneralStats 
             bancaResults={bancaResults}
             requests={requests}
@@ -1060,7 +1032,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             setGeneralDateEnd={setGeneralDateEnd}
             settings={settings}
           />
-        ) : (
+         : 
           <div className="space-y-6 animate-fadeIn print:space-y-4">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
@@ -1254,20 +1226,19 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                 <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                 <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
-          </div>
-        )
-      )}
+          
+      }
 
       {/* VIEW: Histórico de Provas */}
-      {activeView === 'exam-history' && (
+      {activeView === 'exam-history' && 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
-              <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <div className="flex-1 flex gap-2">
+              <div className="p-6 border-b border-gray-100 flex flex-wrap items-center gap-4 print:hidden">
+                  <div className="flex flex-wrap items-center gap-2 flex-1">
                       {reportType !== 'cfc' && (
                           <input 
                               type="text" 
                               placeholder="Buscar por Nome, CPF ou Banca..." 
-                              className="w-full max-w-md border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                              className="border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none min-w-[200px]"
                               value={examHistorySearch}
                               onChange={e => setExamHistorySearch(e.target.value)}
                           />
@@ -1308,9 +1279,28 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                               </select>
                           </>
                       )}
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-2">
+                      
+                      <select 
+                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={examHistoryTypeFilter}
+                          onChange={e => setExamHistoryTypeFilter(e.target.value)}
+                      >
+                          <option value="ALL">Todos Tipos</option>
+                          <option value="FIXA">Fixa</option>
+                          <option value="EXTRA">Extra</option>
+                          <option value="REPOSICAO">Reposição</option>
+                      </select>
+
+                      <select 
+                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={examHistoryExamTypeFilter}
+                          onChange={e => setExamHistoryExamTypeFilter(e.target.value)}
+                      >
+                          <option value="ALL">Todos Exames</option>
+                          <option value="COMMON">Comum</option>
+                          <option value="PCD">PCD</option>
+                      </select>
+
                       <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
                           <input 
                               type="date"
@@ -1326,6 +1316,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                               onChange={e => setExamHistoryDateEnd(e.target.value)} 
                           />
                       </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
                       <button 
                           onClick={() => window.print()} 
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
@@ -1480,10 +1473,10 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
-      )}
+      }
 
       {/* VIEW: Lista de Instrutores / Examinadores */}
-      {activeView === 'instructors-list' && (
+      {activeView === 'instructors-list' && 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md">
@@ -1631,14 +1624,16 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
-      )}
+      }
 
       {/* VIEW: Lista de Candidatos / Autoescolas */}
-      {activeView === 'schedules-list' && (
+      {activeView === 'schedules-list' && 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 flex flex-col md:flex-row items-center gap-4">
-                      <h3 className="text-lg font-bold whitespace-nowrap">{reportType === 'cfc' ? 'Lista de Autoescolas' : 'Todas as Bancas'}</h3>
+                      {reportType !== 'cfc' && (
+                          <h3 className="text-lg font-bold whitespace-nowrap">Todas as Bancas</h3>
+                      )}
                       {reportType === 'cfc' && (
                           <div className="relative w-full max-w-xs">
                               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1858,7 +1853,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
-      )}
+      }
     </div>
   );
 };
