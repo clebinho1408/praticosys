@@ -1787,13 +1787,19 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                                                   {scheds.map((schedule: any) => (
                                                                       <tr key={schedule.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
                                                                           <td className="px-6 py-3 font-medium text-gray-800 pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">
-                                                                              {new Date(schedule.date).toLocaleDateString()} às {schedule.time}
+                                                                              {new Date(schedule.date).toLocaleDateString()}
+                                                                           </td>
+                                                                           <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                               {schedule.time}
                                                                           </td>
                                                                           <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
                                                                               {schedule.examinerIds.map((id: string) => examiners.find(e => e.id === id)?.name || 'Desconhecido').join(', ')}
                                                                           </td>
                                                                           <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
-                                                                              {schedule.examRequests?.length || 0} / {schedule.maxCandidates}
+                                                                              {requests.filter(r => r.scheduleId === schedule.id).length}
+                                                                           </td>
+                                                                           <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                               {schedule.maxSlotsA + schedule.maxSlotsB}
                                                                           </td>
                                                                           <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
                                                                               <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
