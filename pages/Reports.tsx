@@ -422,8 +422,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
   const [examHistoryResultFilter, setExamHistoryResultFilter] = useState<string>('ALL');
   const [examHistorySchoolFilter, setExamHistorySchoolFilter] = useState<string>('ALL');
   const [examHistoryExaminerFilter, setExamHistoryExaminerFilter] = useState<string>('ALL');
-  const [examHistoryTypeFilter, setExamHistoryTypeFilter] = useState<string>('ALL');
-  const [examHistoryExamTypeFilter, setExamHistoryExamTypeFilter] = useState<string>('ALL');
   const [examHistoryDateStart, setExamHistoryDateStart] = useState(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
@@ -896,7 +894,10 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           filtered = filtered.filter(i => 
               i.studentName.toLowerCase().includes(lower) || 
               i.cpf.includes(lower) || 
-              i.scheduleCode.toLowerCase().includes(lower)
+              i.scheduleCode.toLowerCase().includes(lower) ||
+              (i.requestType && i.requestType.toLowerCase().includes(lower)) ||
+              (i.exameLabel && i.exameLabel.toLowerCase().includes(lower)) ||
+              (i.examType && i.examType.toLowerCase().includes(lower))
           );
       }
       if (examHistoryResultFilter !== 'ALL') {
@@ -907,18 +908,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       }
       if (examHistoryExaminerFilter !== 'ALL') {
           filtered = filtered.filter(i => i.examinerIds && i.examinerIds.includes(examHistoryExaminerFilter));
-      }
-      if (examHistoryTypeFilter !== 'ALL') {
-          filtered = filtered.filter(i => i.requestType === examHistoryTypeFilter);
-      }
-      if (examHistoryExamTypeFilter !== 'ALL') {
-          if (examHistoryExamTypeFilter === 'PCD') {
-              filtered = filtered.filter(i => i.examType === 'PCD');
-          } else if (examHistoryExamTypeFilter === 'FIRST') {
-              filtered = filtered.filter(i => i.exameLabel === '1º Habilitação' && i.examType !== 'PCD');
-          } else if (examHistoryExamTypeFilter === 'CHANGE') {
-              filtered = filtered.filter(i => i.exameLabel === 'Mudança Categoria' && i.examType !== 'PCD');
-          }
       }
 
       // Sort by Date DESC
@@ -935,7 +924,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       });
 
       return groups;
-  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch, examHistoryResultFilter, examHistorySchoolFilter, examHistoryExaminerFilter, examHistoryTypeFilter, examHistoryExamTypeFilter]);
+  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySearch, examHistoryResultFilter, examHistorySchoolFilter, examHistoryExaminerFilter]);
 
   const groupedExamHistoryCfc = useMemo(() => {
       const groups: Record<string, Record<string, any[]>> = {
@@ -951,23 +940,22 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       if (examHistoryDateEnd) {
           filtered = filtered.filter(i => new Date(i.date) <= new Date(examHistoryDateEnd));
       }
+      if (examHistorySearch) {
+          const lower = examHistorySearch.toLowerCase();
+          filtered = filtered.filter(i => 
+              i.studentName.toLowerCase().includes(lower) || 
+              i.cpf.includes(lower) || 
+              i.scheduleCode.toLowerCase().includes(lower) ||
+              (i.requestType && i.requestType.toLowerCase().includes(lower)) ||
+              (i.exameLabel && i.exameLabel.toLowerCase().includes(lower)) ||
+              (i.examType && i.examType.toLowerCase().includes(lower))
+          );
+      }
       if (examHistorySchoolFilter !== 'ALL') {
           filtered = filtered.filter(i => i.schoolId === examHistorySchoolFilter);
       }
       if (examHistoryExaminerFilter !== 'ALL') {
           filtered = filtered.filter(i => i.examinerIds && i.examinerIds.includes(examHistoryExaminerFilter));
-      }
-      if (examHistoryTypeFilter !== 'ALL') {
-          filtered = filtered.filter(i => i.requestType === examHistoryTypeFilter);
-      }
-      if (examHistoryExamTypeFilter !== 'ALL') {
-          if (examHistoryExamTypeFilter === 'PCD') {
-              filtered = filtered.filter(i => i.examType === 'PCD');
-          } else if (examHistoryExamTypeFilter === 'FIRST') {
-              filtered = filtered.filter(i => i.exameLabel === '1º Habilitação' && i.examType !== 'PCD');
-          } else if (examHistoryExamTypeFilter === 'CHANGE') {
-              filtered = filtered.filter(i => i.exameLabel === 'Mudança Categoria' && i.examType !== 'PCD');
-          }
       }
 
       // Sort by Date DESC
@@ -987,7 +975,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       if (Object.keys(groups['Provas Canceladas']).length === 0) delete groups['Provas Canceladas'];
 
       return groups;
-  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySchoolFilter, examHistoryExaminerFilter, schools, examHistoryTypeFilter, examHistoryExamTypeFilter]);
+  }, [examHistoryList, examHistoryDateStart, examHistoryDateEnd, examHistorySchoolFilter, examHistoryExaminerFilter, schools, examHistorySearch]);
 
   if (loading) return <div className="p-10 text-center text-gray-500">Gerando relatórios...</div>;
 
@@ -1249,15 +1237,13 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-wrap items-center gap-4 print:hidden">
                   <div className="flex flex-wrap items-center gap-2 flex-1">
-                      {reportType !== 'cfc' && (
-                          <input 
-                              type="text" 
-                              placeholder="Buscar por Nome, CPF ou Banca..." 
-                              className="border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none min-w-[200px]"
-                              value={examHistorySearch}
-                              onChange={e => setExamHistorySearch(e.target.value)}
-                          />
-                      )}
+                      <input 
+                          type="text" 
+                          placeholder="Buscar por Nome, CPF, Banca, Tipo ou Exame..." 
+                          className="border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none min-w-[200px]"
+                          value={examHistorySearch}
+                          onChange={e => setExamHistorySearch(e.target.value)}
+                      />
                       {reportType !== 'cfc' && (
                           <select 
                               className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -1295,28 +1281,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                           </>
                       )}
                       
-                      <select 
-                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={examHistoryTypeFilter}
-                          onChange={e => setExamHistoryTypeFilter(e.target.value)}
-                      >
-                          <option value="ALL">Todos Tipos</option>
-                          <option value="FIXA">Fixa</option>
-                          <option value="EXTRA">Extra</option>
-                          <option value="REPOSICAO">Reposição</option>
-                      </select>
-
-                      <select 
-                          className="border rounded-md px-3 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={examHistoryExamTypeFilter}
-                          onChange={e => setExamHistoryExamTypeFilter(e.target.value)}
-                      >
-                          <option value="ALL">Todos Exames</option>
-                          <option value="FIRST">1º Habilitação</option>
-                          <option value="CHANGE">Mudança Categoria</option>
-                          <option value="PCD">PCD</option>
-                      </select>
-
                       <div className="flex items-center gap-2 border rounded-md px-2 bg-white">
                           <input 
                               type="date"
