@@ -473,6 +473,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
   
   // Filters for Schedules List
   const [scheduleStatusFilter, setScheduleStatusFilter] = useState<string>('ALL');
+  const [schoolSearch, setSchoolSearch] = useState<string>('');
   const [scheduleDateStart, setScheduleDateStart] = useState(() => {
       const date = new Date();
       date.setDate(date.getDate() - 30);
@@ -788,6 +789,39 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
     return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
   }, [instructors, instructorSearch]);
 
+  // Logic for Examiners List (CFC)
+  const filteredExaminers = useMemo(() => {
+    let filtered = examiners;
+
+    if (instructorSearch) {
+        const searchLower = instructorSearch.toLowerCase();
+        filtered = filtered.filter(e => 
+            e.name.toLowerCase().includes(searchLower) || 
+            (e.registrationNumber && e.registrationNumber.toLowerCase().includes(searchLower))
+        );
+    }
+
+    // Sort by name
+    return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+  }, [examiners, instructorSearch]);
+
+  // Logic for Schools List (CFC)
+  const filteredSchools = useMemo(() => {
+    let filtered = schools;
+
+    if (schoolSearch) {
+        const searchLower = schoolSearch.toLowerCase();
+        filtered = filtered.filter(s => 
+            s.name.toLowerCase().includes(searchLower) || 
+            (s.email && s.email.toLowerCase().includes(searchLower)) ||
+            (s.phone && s.phone.includes(searchLower))
+        );
+    }
+
+    // Sort by name
+    return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
+  }, [schools, schoolSearch]);
+
   // Grouping logic for Schedules List
   const groupedSchedules = useMemo(() => {
     const groups: Record<string, Record<string, ExamSchedule[]>> = {};
@@ -1002,13 +1036,13 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             onClick={() => setActiveView('schedules-list')}
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'schedules-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-              {reportType === 'cfc' ? 'Lista Autoescolas' : 'Lista de Bancas'}
+              {reportType === 'cfc' ? 'Lista de Autoescolas' : 'Lista de Bancas'}
           </button>
           <button 
             onClick={() => setActiveView('instructors-list')}
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'instructors-list' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-              Lista de Instrutores
+              {reportType === 'cfc' ? 'Lista de Examinadores' : 'Lista de Instrutores'}
           </button>
       </div>
 
@@ -1448,7 +1482,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           </div>
       )}
 
-      {/* VIEW: Lista de Instrutores */}
+      {/* VIEW: Lista de Instrutores / Examinadores */}
       {activeView === 'instructors-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
@@ -1457,7 +1491,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                           <input 
                               type="text" 
-                              placeholder="Buscar Instrutor por Nome ou CPF..." 
+                              placeholder={reportType === 'cfc' ? "Buscar Examinador por Nome ou Matrícula..." : "Buscar Instrutor por Nome ou CPF..."} 
                               className="w-full border rounded-md pl-10 pr-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                               value={instructorSearch}
                               onChange={e => setInstructorSearch(e.target.value)}
@@ -1485,7 +1519,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       )}
                       <div>
                           <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">RELATÓRIO DE INSTRUTORES</h2>
+                          <h2 className="text-2xl font-black uppercase text-black">{reportType === 'cfc' ? 'RELATÓRIO DE EXAMINADORES' : 'RELATÓRIO DE INSTRUTORES'}</h2>
                       </div>
                   </div>
                   <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
@@ -1501,47 +1535,86 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       <tbody>
                           <tr>
                               <td>
-                                  {filteredInstructors.length === 0 ? (
-                                      <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
-                                  ) : (
-                                      <table className="w-full text-sm text-left">
-                                          <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
-                                              <tr>
-                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
-                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">CPF</th>
-                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Telefone</th>
-                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
-                                                  <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Veículos</th>
-                                              </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                                              {filteredInstructors.map(inst => (
-                                                  <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                      <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{inst.name}</td>
-                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.cpf}</td>
-                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.phone}</td>
-                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
-                                                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0">
-                                                              {inst.category || 'N/A'}
-                                                          </span>
-                                                      </td>
-                                                      <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
-                                                          {inst.vehicles && inst.vehicles.length > 0 ? (
-                                                              <div className="flex flex-col gap-1">
-                                                                  {inst.vehicles.filter(v => v.active).map(v => (
-                                                                      <span key={v.id} className="text-xs">
-                                                                          {v.type === 'CAR' ? '🚗' : '🏍️'} {v.model} ({v.plate})
-                                                                      </span>
-                                                                  ))}
-                                                              </div>
-                                                          ) : (
-                                                              <span className="text-gray-400 print:text-black">-</span>
-                                                          )}
-                                                      </td>
+                                  {reportType === 'cfc' ? (
+                                      // CFC View: List of Examiners
+                                      filteredExaminers.length === 0 ? (
+                                          <div className="p-10 text-center text-gray-400">Nenhum examinador encontrado.</div>
+                                      ) : (
+                                          <table className="w-full text-sm text-left">
+                                              <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
+                                                  <tr>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Matrícula</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
                                                   </tr>
-                                              ))}
-                                          </tbody>
-                                      </table>
+                                              </thead>
+                                              <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                                  {filteredExaminers.map(ex => (
+                                                      <tr key={ex.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                          <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{ex.name}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{ex.registrationNumber || '-'}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                                              <div className="flex gap-1 flex-wrap">
+                                                                  {ex.categories && ex.categories.length > 0 ? (
+                                                                      ex.categories.map((cat: string) => (
+                                                                          <span key={cat} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0 print:after:content-[','] print:last:after:content-['']">
+                                                                              {cat}
+                                                                          </span>
+                                                                      ))
+                                                                  ) : (
+                                                                      <span className="text-gray-400 print:text-black">-</span>
+                                                                  )}
+                                                              </div>
+                                                          </td>
+                                                      </tr>
+                                                  ))}
+                                              </tbody>
+                                          </table>
+                                      )
+                                  ) : (
+                                      // Original View: List of Instructors
+                                      filteredInstructors.length === 0 ? (
+                                          <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
+                                      ) : (
+                                          <table className="w-full text-sm text-left">
+                                              <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
+                                                  <tr>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">CPF</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Telefone</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Veículos</th>
+                                                  </tr>
+                                              </thead>
+                                              <tbody className="divide-y divide-gray-100 print:divide-gray-200">
+                                                  {filteredInstructors.map(inst => (
+                                                      <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
+                                                          <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{inst.name}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.cpf}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.phone}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0">
+                                                                  {inst.category || 'N/A'}
+                                                              </span>
+                                                          </td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                                              {inst.vehicles && inst.vehicles.length > 0 ? (
+                                                                  <div className="flex flex-col gap-1">
+                                                                      {inst.vehicles.filter(v => v.active).map(v => (
+                                                                          <span key={v.id} className="text-xs">
+                                                                              {v.type === 'CAR' ? '🚗' : '🏍️'} {v.model} ({v.plate})
+                                                                          </span>
+                                                                      ))}
+                                                                  </div>
+                                                              ) : (
+                                                                  <span className="text-gray-400 print:text-black">-</span>
+                                                              )}
+                                                          </td>
+                                                      </tr>
+                                                  ))}
+                                              </tbody>
+                                          </table>
+                                      )
                                   )}
                               </td>
                           </tr>
@@ -1564,7 +1637,21 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       {activeView === 'schedules-list' && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-                  <h3 className="text-lg font-bold">{reportType === 'cfc' ? 'Lista de Autoescolas' : 'Todas as Bancas'}</h3>
+                  <div className="flex-1 flex flex-col md:flex-row items-center gap-4">
+                      <h3 className="text-lg font-bold whitespace-nowrap">{reportType === 'cfc' ? 'Lista de Autoescolas' : 'Todas as Bancas'}</h3>
+                      {reportType === 'cfc' && (
+                          <div className="relative w-full max-w-xs">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                              <input 
+                                  type="text" 
+                                  placeholder="Buscar Autoescola..." 
+                                  className="w-full border rounded-md pl-10 pr-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                  value={schoolSearch}
+                                  onChange={e => setSchoolSearch(e.target.value)}
+                              />
+                          </div>
+                      )}
+                  </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
                       {reportType !== 'cfc' && (
@@ -1638,7 +1725,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                   {reportType === 'cfc' ? (
                                       // CFC View: List of Schools
                                       <div className="print:mt-2">
-                                          {schools.length === 0 ? (
+                                          {filteredSchools.length === 0 ? (
                                               <div className="p-10 text-center text-gray-400">Nenhuma autoescola encontrada.</div>
                                           ) : (
                                               <table className="w-full text-sm text-left">
@@ -1652,7 +1739,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                                       </tr>
                                                   </thead>
                                                   <tbody className="divide-y divide-gray-100 print:divide-gray-200">
-                                                      {schools.map(school => (
+                                                      {filteredSchools.map(school => (
                                                           <tr key={school.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
                                                               <td className="px-4 py-2 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-[10px] print:text-black align-top">
                                                                   {school.name}
