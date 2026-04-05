@@ -1801,16 +1801,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                                                            <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
                                                                                {schedule.maxSlotsA + schedule.maxSlotsB}
                                                                           </td>
-                                                                          <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
-                                                                              <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                                                                  schedule.status === 'OPEN' ? 'bg-green-100 text-green-700' : 
-                                                                                  schedule.status === 'CLOSED' ? 'bg-gray-100 text-gray-700' : 
-                                                                                  schedule.status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' : 
-                                                                                  'bg-gray-100 text-gray-600'
-                                                                              } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
-                                                                                  {SCHEDULE_STATUS_TRANSLATION[schedule.status] || schedule.status}
-                                                                              </span>
-                                                                          </td>
                                                                       </tr>
                                                                   ))}
                                                               </tbody>
