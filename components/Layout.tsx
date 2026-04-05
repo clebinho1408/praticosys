@@ -94,7 +94,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const getNavItems = (): NavItem[] => {
     const items: NavItem[] = [];
 
-    if (user.role === UserRole.SCHOOL || user.role === UserRole.EXAMINER) {
+    if (user.role === UserRole.SCHOOL) {
+       items.push({
+         icon: Car,
+         label: 'Prova Prática CFC',
+         subItems: [
+           { label: 'Dashboard', path: '/admin/dashboard/cfc', icon: LayoutDashboard },
+           { label: 'Agendamentos', path: '/admin/scheduling/cfc', icon: CalendarCheck }
+         ]
+       });
+    } else if (user.role === UserRole.EXAMINER) {
        items.push({
          icon: CalendarCheck,
          label: 'Agendamentos',

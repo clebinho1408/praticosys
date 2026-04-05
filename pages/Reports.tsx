@@ -252,8 +252,8 @@ const CFCGeneralStats: React.FC<{
       </div>
 
       {/* Print Header (Visible only in print) */}
-      <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-6">
-          <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-4 print:mb-2 print:gap-6">
+      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+          <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
               {settings?.logoUrl ? (
                   <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
               ) : (
@@ -264,7 +264,7 @@ const CFCGeneralStats: React.FC<{
                   <h2 className="text-2xl font-black uppercase text-black print:text-2xl">RELATÓRIO GERAL DE ÍNDICES</h2>
               </div>
           </div>
-          <div className="text-center text-xs font-bold uppercase text-black print:text-sm">
+          <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
               <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
           </div>
       </div>
@@ -1060,8 +1060,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             </div>
 
             {/* Print Header (Visible only in print) */}
-            <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-6">
-                <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-4 print:mb-2 print:gap-6">
+            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+                <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
                     {settings?.logoUrl ? (
                         <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                     ) : (
@@ -1072,7 +1072,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h2 className="text-2xl font-black uppercase text-black print:text-2xl">RELATÓRIO GERAL DE ÍNDICES</h2>
                     </div>
                 </div>
-                <div className="text-center text-xs font-bold uppercase text-black print:text-sm">
+                <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
                     <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
@@ -1306,19 +1306,19 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
                       {settings?.logoUrl ? (
-                          <img src={settings.logoUrl} className="h-16 w-auto" />
+                          <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
-                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
                       )}
                       <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">{reportType === 'cfc' ? 'PROVAS REALIZADAS/CANCELADAS' : 'HISTÓRICO DE PROVAS'}</h2>
+                          <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'PROVAS REALIZADAS/CANCELADAS' : 'HISTÓRICO DE PROVAS'}</h2>
                       </div>
                   </div>
-                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                  <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
                       <span>Data: {new Date(examHistoryDateStart).toLocaleDateString()} até {new Date(examHistoryDateEnd).toLocaleDateString()}</span>
                   </div>
               </div>
@@ -1480,19 +1480,19 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
                       {settings?.logoUrl ? (
-                          <img src={settings.logoUrl} className="h-16 w-auto" />
+                          <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
-                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
                       )}
                       <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">{reportType === 'cfc' ? 'RELATÓRIO DE EXAMINADORES' : 'RELATÓRIO DE INSTRUTORES'}</h2>
+                          <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'RELATÓRIO DE EXAMINADORES' : 'RELATÓRIO DE INSTRUTORES'}</h2>
                       </div>
                   </div>
-                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                  <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
                       <span>Data de Emissão: {new Date().toLocaleDateString()}</span>
                   </div>
               </div>
@@ -1667,21 +1667,25 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
-                  <div className={`flex items-center gap-6 ${reportType !== 'cfc' ? 'border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1' : 'pb-2 mb-1 print:pb-1'}`}>
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
                       {settings?.logoUrl ? (
-                          <img src={settings.logoUrl} className="h-16 w-auto" />
+                          <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
-                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
                       )}
                       <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">{reportType === 'cfc' ? 'RELATÓRIO DE AUTOESCOLAS' : 'RELATÓRIO DE BANCAS'}</h2>
+                          <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'RELATÓRIO DE AUTOESCOLAS' : 'RELATÓRIO DE BANCAS'}</h2>
                       </div>
                   </div>
-                  {reportType !== 'cfc' && (
-                      <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                  {reportType !== 'cfc' ? (
+                      <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
                           <span>Data: {new Date(scheduleDateStart).toLocaleDateString()} até {new Date(scheduleDateEnd).toLocaleDateString()}</span>
+                      </div>
+                  ) : (
+                      <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
+                          <span>Data de Emissão: {new Date().toLocaleDateString()}</span>
                       </div>
                   )}
               </div>
