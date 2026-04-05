@@ -912,7 +912,13 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           filtered = filtered.filter(i => i.requestType === examHistoryTypeFilter);
       }
       if (examHistoryExamTypeFilter !== 'ALL') {
-          filtered = filtered.filter(i => i.examType === examHistoryExamTypeFilter);
+          if (examHistoryExamTypeFilter === 'PCD') {
+              filtered = filtered.filter(i => i.examType === 'PCD');
+          } else if (examHistoryExamTypeFilter === 'FIRST') {
+              filtered = filtered.filter(i => i.exameLabel === '1º Habilitação' && i.examType !== 'PCD');
+          } else if (examHistoryExamTypeFilter === 'CHANGE') {
+              filtered = filtered.filter(i => i.exameLabel === 'Mudança Categoria' && i.examType !== 'PCD');
+          }
       }
 
       // Sort by Date DESC
@@ -955,7 +961,13 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           filtered = filtered.filter(i => i.requestType === examHistoryTypeFilter);
       }
       if (examHistoryExamTypeFilter !== 'ALL') {
-          filtered = filtered.filter(i => i.examType === examHistoryExamTypeFilter);
+          if (examHistoryExamTypeFilter === 'PCD') {
+              filtered = filtered.filter(i => i.examType === 'PCD');
+          } else if (examHistoryExamTypeFilter === 'FIRST') {
+              filtered = filtered.filter(i => i.exameLabel === '1º Habilitação' && i.examType !== 'PCD');
+          } else if (examHistoryExamTypeFilter === 'CHANGE') {
+              filtered = filtered.filter(i => i.exameLabel === 'Mudança Categoria' && i.examType !== 'PCD');
+          }
       }
 
       // Sort by Date DESC
@@ -1300,7 +1312,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                           onChange={e => setExamHistoryExamTypeFilter(e.target.value)}
                       >
                           <option value="ALL">Todos Exames</option>
-                          <option value="COMMON">Comum</option>
+                          <option value="FIRST">1º Habilitação</option>
+                          <option value="CHANGE">Mudança Categoria</option>
                           <option value="PCD">PCD</option>
                       </select>
 
