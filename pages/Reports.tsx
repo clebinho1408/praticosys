@@ -892,9 +892,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       if (examHistorySearch) {
           const lower = examHistorySearch.toLowerCase();
           filtered = filtered.filter(i => 
-              i.studentName.toLowerCase().includes(lower) || 
-              i.cpf.includes(lower) || 
-              i.scheduleCode.toLowerCase().includes(lower) ||
+              (i.studentName && i.studentName.toLowerCase().includes(lower)) || 
+              (i.cpf && i.cpf.includes(lower)) || 
+              (i.scheduleCode && i.scheduleCode.toLowerCase().includes(lower)) ||
               (i.requestType && i.requestType.toLowerCase().includes(lower)) ||
               (i.exameLabel && i.exameLabel.toLowerCase().includes(lower)) ||
               (i.examType && i.examType.toLowerCase().includes(lower))
@@ -943,9 +943,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
       if (examHistorySearch) {
           const lower = examHistorySearch.toLowerCase();
           filtered = filtered.filter(i => 
-              i.studentName.toLowerCase().includes(lower) || 
-              i.cpf.includes(lower) || 
-              i.scheduleCode.toLowerCase().includes(lower) ||
               (i.requestType && i.requestType.toLowerCase().includes(lower)) ||
               (i.exameLabel && i.exameLabel.toLowerCase().includes(lower)) ||
               (i.examType && i.examType.toLowerCase().includes(lower))
@@ -1239,7 +1236,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   <div className="flex flex-wrap items-center gap-2 flex-1">
                       <input 
                           type="text" 
-                          placeholder="Buscar por Nome, CPF, Banca, Tipo ou Exame..." 
+                          placeholder={reportType === 'cfc' ? "Buscar por Tipo ou Exame..." : "Buscar por Nome, CPF, Banca, Tipo ou Exame..."} 
                           className="border rounded-md px-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none min-w-[200px]"
                           value={examHistorySearch}
                           onChange={e => setExamHistorySearch(e.target.value)}
