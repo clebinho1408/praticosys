@@ -452,10 +452,10 @@ const PcdReports: React.FC = () => {
 
               <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-0">
                   <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-1 print:mb-1">
-                      {settings?.logoUrl ? <img src={settings.logoUrl} className="h-16 w-auto" /> : <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>}
+                      {settings?.logoUrl ? <img src={settings.logoUrl} className="h-16 w-auto" /> : <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black">LOGO</div>}
                       <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">HISTÓRICO DE PROVAS - PCD</h2>
+                          <h1 className="text-xl font-bold uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-bold uppercase text-black">HISTÓRICO DE PROVAS - PCD</h2>
                       </div>
                   </div>
                   <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
@@ -504,7 +504,7 @@ const PcdReports: React.FC = () => {
                                                               <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.time}</td>
                                                               <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black uppercase">{item.examinerName}</td>
                                                               <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
-                                                                  <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider print:p-0 ${
+                                                                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider print:p-0 ${
                                                                       item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
                                                                       item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 
                                                                       item.result === 'FALTOU' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'
@@ -525,7 +525,7 @@ const PcdReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
@@ -609,7 +609,7 @@ const PcdReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
@@ -670,7 +670,7 @@ const PcdReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>

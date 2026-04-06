@@ -48,7 +48,7 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
       <div className="flex justify-between items-start relative z-10">
         <div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[10px] print:mb-1 print:text-black">{title}</p>
-          <h3 className="text-2xl font-black text-gray-900 print:text-xl print:text-black">{value}</h3>
+          <h3 className="text-2xl font-bold text-gray-900 print:text-xl print:text-black">{value}</h3>
           {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[10px] print:mt-1 print:text-black">{subtitle}</p>}
         </div>
         <div className={`p-3 rounded-lg ${color} bg-opacity-10 print:hidden`}>
@@ -257,11 +257,11 @@ const CFCGeneralStats: React.FC<{
               {settings?.logoUrl ? (
                   <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
               ) : (
-                  <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+                  <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
               )}
               <div>
-                  <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                  <h2 className="text-2xl font-black uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
+                  <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                  <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
               </div>
           </div>
           <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
@@ -282,7 +282,7 @@ const CFCGeneralStats: React.FC<{
                   <Car className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Vagas Utilizadas
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
-                  <span className="text-4xl font-black text-blue-600 mb-2 print:text-5xl">{stats.indiceVagasUtilizadas}%</span>
+                  <span className="text-4xl font-bold text-blue-600 mb-2 print:text-5xl">{stats.indiceVagasUtilizadas}%</span>
                   <span className="text-sm text-gray-500 mb-6 print:mb-4 print:text-base">Das vagas disponíveis foram utilizadas</span>
                   <div className="w-full bg-gray-200 rounded-full h-4 print:h-4">
                       <div className="bg-blue-600 h-4 rounded-full print:h-4" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
@@ -295,7 +295,7 @@ const CFCGeneralStats: React.FC<{
                   <CheckCircle2 className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Aprovação
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
-                  <span className="text-4xl font-black text-green-600 mb-2 print:text-5xl">{stats.indiceAprovacao}%</span>
+                  <span className="text-4xl font-bold text-green-600 mb-2 print:text-5xl">{stats.indiceAprovacao}%</span>
                   <span className="text-sm text-gray-500 mb-6 print:mb-4 print:text-base">Dos exames realizados foram aprovados</span>
                   <div className="w-full bg-gray-200 rounded-full h-4 print:h-4">
                       <div className="bg-green-600 h-4 rounded-full print:h-4" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
@@ -381,7 +381,7 @@ const CFCGeneralStats: React.FC<{
       </div>
 
       {/* Print Footer */}
-      <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 pt-2 pb-2 px-10 justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
+      <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 pt-2 pb-2 px-10 justify-between items-start text-[10px] font-bold text-black flex-wrap gap-x-4">
           <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
           <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
       </div>
@@ -1065,11 +1065,11 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                     {settings?.logoUrl ? (
                         <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                     ) : (
-                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
                     )}
                     <div>
-                        <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-black uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
+                        <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                        <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
                     </div>
                 </div>
                 <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
@@ -1221,7 +1221,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             </div>
 
             {/* Print Footer (Visible only in print) */}
-            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 pt-2 pb-2 px-10 justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
+            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 pt-2 pb-2 px-10 justify-between items-start text-[10px] font-bold text-black flex-wrap gap-x-4">
                 <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                 <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
@@ -1311,11 +1311,11 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
-                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
                       )}
                       <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'HISTÓRICO DE PROVAS PRÁTICAS' : 'HISTÓRICO DE PROVAS'}</h2>
+                          <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'HISTÓRICO DE PROVAS PRÁTICAS' : 'HISTÓRICO DE PROVAS'}</h2>
                       </div>
                   </div>
                   <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
@@ -1421,7 +1421,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                                                           </td>
                                                                           <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
                                                                               {item.result ? (
-                                                                                  <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                                                                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                                                                                       item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
                                                                                       item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
                                                                                   } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
@@ -1445,7 +1445,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
@@ -1485,11 +1485,11 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
-                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
                       )}
                       <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE EXAMINADORES' : 'RELATÓRIO DE INSTRUTORES'}</h2>
+                          <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE EXAMINADORES' : 'RELATÓRIO DE INSTRUTORES'}</h2>
                       </div>
                   </div>
                   {reportType !== 'cfc' && (
@@ -1598,7 +1598,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
@@ -1674,11 +1674,11 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
-                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
                       )}
                       <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE AUTOESCOLAS' : 'RELATÓRIO DE BANCAS'}</h2>
+                          <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE AUTOESCOLAS' : 'RELATÓRIO DE BANCAS'}</h2>
                       </div>
                   </div>
                   {reportType !== 'cfc' && (
@@ -1823,7 +1823,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>

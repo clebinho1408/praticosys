@@ -676,7 +676,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     </div>
                   </div>
                   <div className="bg-gray-50 px-5 py-3 border-t flex justify-between items-center rounded-b-xl">
-                      <div className="flex gap-4 text-[10px] font-black uppercase text-gray-400">
+                      <div className="flex gap-4 text-[10px] font-bold uppercase text-gray-400">
                           <span>Moto: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A').length}/{s.maxSlotsA}</span>
                           <span>Carro: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length}/{s.maxSlotsB}</span>
                       </div>
@@ -732,11 +732,11 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         {settings?.logoUrl ? (
                             <img src={settings.logoUrl} className="h-16 w-auto" />
                         ) : (
-                            <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-black text-xs print:!text-black">DETRAN</div>
+                            <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-bold text-xs print:!text-black">DETRAN</div>
                         )}
                         <div>
-                            <h1 className="text-xl font-black uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                            <h2 className="text-2xl font-black uppercase print:!text-black">
+                            <h1 className="text-xl font-bold uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                            <h2 className="text-2xl font-bold uppercase print:!text-black">
                                 LISTA DE CHAMADA - {selectedSchedule.type === ExamType.PCD ? 'PCD' : '1ª HABILITAÇÃO'}
                             </h2>
                         </div>
@@ -777,7 +777,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                     <div className="bg-blue-50 text-blue-600 p-2 rounded-md print:hidden">
                                         <Layers className="h-5 w-5" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-gray-800 print:text-sm print:font-black">Categoria {cat}</h3>
+                                    <h3 className="text-lg font-bold text-gray-800 print:text-sm print:font-bold">Categoria {cat}</h3>
                                     <span className="text-sm text-gray-500 ml-auto print:hidden">
                                         {students.length} candidatos agendados
                                     </span>
@@ -868,7 +868,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 {/* TABELA ORIGINAL (Apenas Impressão - COM as colunas de marcação) */}
                                 <table className="hidden print:table w-full text-left border-collapse border-2 border-black">
                                     <thead>
-                                        <tr className="bg-white text-black font-black border-b-2 border-black text-[9px]">
+                                        <tr className="bg-white text-black font-bold border-b-2 border-black text-[9px]">
                                             <th className="px-2 py-1 w-10 text-center border-r border-black uppercase">#</th>
                                             <th className="px-3 py-1 w-32 border-r border-black uppercase">CPF</th>
                                             <th className="px-3 py-1 border-r border-black uppercase">Nome do Candidato</th>
@@ -881,9 +881,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                     <tbody className="divide-y-2 divide-black">
                                         {students.map((req, idx) => (
                                             <tr key={req.id} className="border-b-2 border-black print:!text-black">
-                                                <td className="px-2 py-1 text-center font-black border-r border-black text-[11px]">{idx + 1}</td>
-                                                <td className="px-3 py-1 font-black text-[12px] border-r border-black">{req.cpf}</td>
-                                                <td className="px-3 py-1 font-black uppercase text-[12px] border-r border-black truncate">{req.socialName || req.studentName}</td>
+                                                <td className="px-2 py-1 text-center font-bold border-r border-black text-[11px]">{idx + 1}</td>
+                                                <td className="px-3 py-1 font-bold text-[12px] border-r border-black">{req.cpf}</td>
+                                                <td className="px-3 py-1 font-bold uppercase text-[12px] border-r border-black truncate">{req.socialName || req.studentName}</td>
                                                 <td className="px-3 py-1 text-center font-bold text-[10px] border-r border-black">{req.cnhRestriction || '-'}</td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
@@ -907,11 +907,11 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 {/* Assinatura do Examinador (Print Only) */}
                 <div className="hidden print:flex flex-col items-center mt-24 mb-20 break-inside-avoid">
                     <div className="w-96 border-b-2 border-black mb-2"></div>
-                    <span className="text-sm font-black uppercase tracking-widest text-black">Assinatura do Examinador</span>
+                    <span className="text-sm font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
                 
                 {/* Print Footer (Fixed at bottom) */}
-                <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+                <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                     <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                     <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
                 </div>

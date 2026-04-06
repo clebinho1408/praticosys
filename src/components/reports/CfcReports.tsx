@@ -690,10 +690,10 @@ const CfcReports: React.FC = () => {
 
               <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-0">
                   <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-1 print:mb-1">
-                      {settings?.logoUrl ? <img src={settings.logoUrl} className="h-16 w-auto" /> : <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>}
+                      {settings?.logoUrl ? <img src={settings.logoUrl} className="h-16 w-auto" /> : <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black">LOGO</div>}
                       <div>
-                          <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black">HISTÓRICO DE PROVAS - CFC</h2>
+                          <h1 className="text-xl font-bold uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-bold uppercase text-black">HISTÓRICO DE PROVAS - CFC</h2>
                       </div>
                   </div>
                   <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
@@ -718,7 +718,7 @@ const CfcReports: React.FC = () => {
                                   ) : (
                                       Object.entries(groupedExamHistory).map(([mainGroup, schools]) => (
                                           <div key={mainGroup} className="border-b last:border-b-0 print:border-black">
-                                              <div className="bg-blue-600 px-6 py-3 font-black text-white uppercase tracking-wider text-sm flex items-center gap-2 print:bg-gray-200 print:text-black print:border-b print:border-black print:mt-4 print:py-1">
+                                              <div className="bg-blue-600 px-6 py-3 font-bold text-white uppercase tracking-wider text-sm flex items-center gap-2 print:bg-gray-200 print:text-black print:border-b print:border-black print:mt-4 print:py-1">
                                                   {mainGroup} ({Object.values(schools).flat().length})
                                               </div>
                                               {Object.entries(schools).map(([schoolName, items]) => (
@@ -760,7 +760,7 @@ const CfcReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
@@ -844,7 +844,7 @@ const CfcReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
@@ -905,7 +905,7 @@ const CfcReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
                   <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
                   <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
