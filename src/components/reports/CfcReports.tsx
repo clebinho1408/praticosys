@@ -876,7 +876,7 @@ const CfcReports: React.FC = () => {
           </div>
       )}
 
-      <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
+      <div className="hidden print:flex fixed bottom-4 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
           <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
           <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
       </div>
