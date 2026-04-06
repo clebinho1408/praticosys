@@ -252,8 +252,8 @@ const CFCGeneralStats: React.FC<{
       </div>
 
       {/* Print Header (Visible only in print) */}
-      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
-          <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
+      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-0 print:-mt-6">
+          <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
               {settings?.logoUrl ? (
                   <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
               ) : (
@@ -264,7 +264,7 @@ const CFCGeneralStats: React.FC<{
                   <h2 className="text-2xl font-black uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
               </div>
           </div>
-          <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
+          <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
               <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
           </div>
       </div>
@@ -1060,8 +1060,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             </div>
 
             {/* Print Header (Visible only in print) */}
-            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
-                <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
+            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-0 print:-mt-6">
+                <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
                     {settings?.logoUrl ? (
                         <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                     ) : (
@@ -1072,7 +1072,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h2 className="text-2xl font-black uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
                     </div>
                 </div>
-                <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
+                <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
                     <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
@@ -1306,8 +1306,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-0 print:-mt-6">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
@@ -1318,16 +1318,13 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                           <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'HISTÓRICO DE PROVAS PRÁTICAS' : 'HISTÓRICO DE PROVAS'}</h2>
                       </div>
                   </div>
-                  <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
+                  <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
                       <span>Data: {new Date(examHistoryDateStart).toLocaleDateString()} até {new Date(examHistoryDateEnd).toLocaleDateString()}</span>
                   </div>
               </div>
 
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
-                      <thead className="hidden print:table-header-group">
-                          <tr><td><div className="h-2"></div></td></tr>
-                      </thead>
                       <tbody>
                           <tr>
                               <td>
@@ -1337,7 +1334,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                       ) : (
                                           Object.entries(groupedExamHistoryCfc).map(([statusGroup, schoolsGroup]) => (
                                               <div key={statusGroup} className="border-b last:border-b-0 print:border-black">
-                                                  <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-sm flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                                  <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-sm flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:py-1">
                                                       <div className={`w-2 h-2 rounded-full ${statusGroup === 'Provas Canceladas' ? 'bg-red-500' : 'bg-green-500'} print:hidden`}></div>
                                                       {statusGroup} ({Object.values(schoolsGroup).flat().length})
                                                   </div>
@@ -1387,7 +1384,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                       ) : (
                                           Object.entries(groupedExamHistory).map(([code, categories]) => (
                                               <div key={code} className="border-b last:border-b-0 print:border-black">
-                                                  <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                                  <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:py-1">
                                                       <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
                                                       Banca: {code} ({Object.values(categories).flat().length})
                                                   </div>
@@ -1438,9 +1435,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                               </td>
                           </tr>
                       </tbody>
-                      <tfoot className="hidden print:table-footer-group">
-                          <tr><td><div className="h-16"></div></td></tr>
-                      </tfoot>
                   </table>
               </div>
 
@@ -1480,8 +1474,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-0 print:-mt-6">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
@@ -1493,7 +1487,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       </div>
                   </div>
                   {reportType !== 'cfc' && (
-                      <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
+                      <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
                           <span>Data de Emissão: {new Date().toLocaleDateString()}</span>
                       </div>
                   )}
@@ -1501,9 +1495,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
-                      <thead className="hidden print:table-header-group">
-                          <tr><td><div className="h-2"></div></td></tr>
-                      </thead>
                       <tbody>
                           <tr>
                               <td>
@@ -1591,9 +1582,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                               </td>
                           </tr>
                       </tbody>
-                      <tfoot className="hidden print:table-footer-group">
-                          <tr><td><div className="h-16"></div></td></tr>
-                      </tfoot>
                   </table>
               </div>
 
@@ -1669,8 +1657,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-0 print:-mt-6">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
                       ) : (
@@ -1682,7 +1670,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       </div>
                   </div>
                   {reportType !== 'cfc' && (
-                      <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
+                      <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
                           <span>Data: {new Date(scheduleDateStart).toLocaleDateString()} até {new Date(scheduleDateEnd).toLocaleDateString()}</span>
                       </div>
                   )}
@@ -1690,15 +1678,12 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
-                      <thead className="hidden print:table-header-group">
-                          <tr><td><div className="h-2"></div></td></tr>
-                      </thead>
                       <tbody>
                           <tr>
                               <td>
                                   {reportType === 'cfc' ? (
                                       // CFC View: List of Schools
-                                      <div className="print:mt-2">
+                                      <div>
                                           {filteredSchools.length === 0 ? (
                                               <div className="p-10 text-center text-gray-400">Nenhuma autoescola encontrada.</div>
                                           ) : (
@@ -1764,7 +1749,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                       ) : (
                                           Object.entries(groupedSchedules).map(([status, types]) => (
                                               <div key={status} className="border-b last:border-b-0 print:border-black">
-                                                  <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:mt-2 print:py-1">
+                                                  <div className="bg-gray-100 px-6 py-3 font-bold text-gray-700 uppercase tracking-wider text-xs flex items-center gap-2 print:bg-white print:text-black print:border-b print:border-black print:py-1">
                                                       <div className="w-2 h-2 rounded-full bg-gray-400 print:hidden"></div>
                                                       {SCHEDULE_STATUS_TRANSLATION[status] || status} ({Object.values(types).flat().length})
                                                   </div>
@@ -1816,9 +1801,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                               </td>
                           </tr>
                       </tbody>
-                      <tfoot className="hidden print:table-footer-group">
-                          <tr><td><div className="h-16"></div></td></tr>
-                      </tfoot>
                   </table>
               </div>
 

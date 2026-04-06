@@ -450,8 +450,8 @@ const PcdReports: React.FC = () => {
                   </div>
               </div>
 
-              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-2">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-2 print:mb-1">
+              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-0">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-1 print:mb-1">
                       {settings?.logoUrl ? <img src={settings.logoUrl} className="h-16 w-auto" /> : <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-black text-xs border border-black">LOGO</div>}
                       <div>
                           <h1 className="text-xl font-black uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
@@ -465,7 +465,6 @@ const PcdReports: React.FC = () => {
 
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
-                      <thead className="hidden print:table-header-group"><tr><td><div className="h-2"></div></td></tr></thead>
                       <tbody>
                           <tr>
                               <td>
@@ -516,7 +515,6 @@ const PcdReports: React.FC = () => {
                               </td>
                           </tr>
                       </tbody>
-                      <tfoot className="hidden print:table-footer-group"><tr><td><div className="h-16"></div></td></tr></tfoot>
                   </table>
               </div>
           </div>
@@ -546,7 +544,6 @@ const PcdReports: React.FC = () => {
               </div>
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
-                      <thead className="hidden print:table-header-group"><tr><td><div className="h-2"></div></td></tr></thead>
                       <tbody>
                           <tr>
                               <td>
@@ -590,7 +587,6 @@ const PcdReports: React.FC = () => {
                               </td>
                           </tr>
                       </tbody>
-                      <tfoot className="hidden print:table-footer-group"><tr><td><div className="h-16"></div></td></tr></tfoot>
                   </table>
               </div>
           </div>
@@ -604,7 +600,6 @@ const PcdReports: React.FC = () => {
               </div>
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
-                      <thead className="hidden print:table-header-group"><tr><td><div className="h-2"></div></td></tr></thead>
                       <tbody>
                           <tr>
                               <td>
@@ -641,7 +636,6 @@ const PcdReports: React.FC = () => {
                               </td>
                           </tr>
                       </tbody>
-                      <tfoot className="hidden print:table-footer-group"><tr><td><div className="h-16"></div></td></tr></tfoot>
                   </table>
               </div>
           </div>
