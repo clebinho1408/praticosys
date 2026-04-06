@@ -999,7 +999,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             onClick={() => setActiveView('exam-history')}
             className={`px-4 py-2 rounded-t-lg font-bold text-sm transition-colors ${activeView === 'exam-history' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}
           >
-              {reportType === 'cfc' ? 'Provas Realizadas/Canceladas' : 'Histórico de Provas'}
+              Histórico de Provas
           </button>
           <button 
             onClick={() => setActiveView('schedules-list')}
@@ -1315,7 +1315,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       )}
                       <div>
                           <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'PROVAS REALIZADAS/CANCELADAS' : 'HISTÓRICO DE PROVAS'}</h2>
+                          <h2 className="text-2xl font-black uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'HISTÓRICO DE PROVAS PRÁTICAS' : 'HISTÓRICO DE PROVAS'}</h2>
                       </div>
                   </div>
                   <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
