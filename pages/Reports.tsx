@@ -381,9 +381,9 @@ const CFCGeneralStats: React.FC<{
       </div>
 
       {/* Print Footer */}
-      <div className="hidden print:flex fixed bottom-4 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
-          <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-          <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
+      <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 pt-2 pb-2 px-10 justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
+          <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+          <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
       </div>
     </div>
   );
@@ -1221,9 +1221,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             </div>
 
             {/* Print Footer (Visible only in print) */}
-            <div className="hidden print:flex fixed bottom-4 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
-                <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
+            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 pt-2 pb-2 px-10 justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
+                <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
           </>
         )
@@ -1325,6 +1325,16 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr>
+                              <td colSpan={10} className="pt-8">
+                                  <div className="w-full border-t border-gray-300 pt-2 pb-2 flex justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
+                                      <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                                      <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
+                                  </div>
+                              </td>
+                          </tr>
+                      </tfoot>
                       <tbody>
                           <tr>
                               <td>
@@ -1437,12 +1447,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       </tbody>
                   </table>
               </div>
-
-              {/* Print Footer (Visible only in print) */}
-              <div className="hidden print:flex fixed bottom-4 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
-                  <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                  <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
-              </div>
           </div>
       )}
 
@@ -1495,6 +1499,16 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
               <div className="overflow-x-auto print:overflow-visible print:mt-1 print:mb-1">
                   <table className="w-full">
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr>
+                              <td colSpan={10} className="pt-8">
+                                  <div className="w-full border-t border-gray-300 pt-2 pb-2 flex justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
+                                      <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                                      <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
+                                  </div>
+                              </td>
+                          </tr>
+                      </tfoot>
                       <tbody>
                           <tr>
                               <td>
@@ -1584,12 +1598,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       </tbody>
                   </table>
               </div>
-
-              {/* Print Footer (Visible only in print) */}
-              <div className="hidden print:flex fixed bottom-4 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
-                  <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                  <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
-              </div>
           </div>
       )}
 
@@ -1678,6 +1686,16 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
               <div className="overflow-x-auto print:overflow-visible print:mt-1 print:mb-1">
                   <table className="w-full">
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr>
+                              <td colSpan={10} className="pt-8">
+                                  <div className="w-full border-t border-gray-300 pt-2 pb-2 flex justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
+                                      <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                                      <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
+                                  </div>
+                              </td>
+                          </tr>
+                      </tfoot>
                       <tbody>
                           <tr>
                               <td>
@@ -1802,12 +1820,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                           </tr>
                       </tbody>
                   </table>
-              </div>
-
-              {/* Print Footer (Visible only in print) */}
-              <div className="hidden print:flex fixed bottom-4 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
-                  <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                  <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
       )}

@@ -604,6 +604,16 @@ const CnhReports: React.FC = () => {
               </div>
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr>
+                              <td colSpan={10} className="pt-8">
+                                  <div className="w-full border-t border-gray-300 pt-2 pb-2 flex justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
+                                      <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                                      <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
+                                  </div>
+                              </td>
+                          </tr>
+                      </tfoot>
                       <tbody>
                           <tr>
                               <td>
@@ -644,11 +654,6 @@ const CnhReports: React.FC = () => {
               </div>
           </div>
       )}
-
-      <div className="hidden print:flex fixed bottom-4 left-0 w-full bg-white border-t-2 border-black pt-2 pb-4 px-10 justify-between items-center text-[10px] font-black text-black">
-          <div className="uppercase">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-          <div>IMPRESSÃO: {new Date().toLocaleString()}</div>
-      </div>
     </div>
   );
 };

@@ -151,11 +151,6 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     s => s.type === 'COMMON'
   ), [requests, schedules]);
 
-  const cfcStats = useMemo(() => getModuleStats(
-    r => r.examType === 'COMMON' && r.source === 'SCHOOL', 
-    s => s.type === 'COMMON'
-  ), [requests, schedules]);
-
   const pcdStats = useMemo(() => getModuleStats(
     r => r.examType === 'PCD', 
     s => s.type === 'PCD'

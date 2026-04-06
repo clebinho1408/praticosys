@@ -44,12 +44,12 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
   const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [generalDateStart, setGeneralDateStart] = useState(() => {
+  const [generalDateStart] = useState(() => {
       const date = new Date();
       date.setMonth(date.getMonth() - 12);
       return date.toISOString().split('T')[0];
   });
-  const [generalDateEnd, setGeneralDateEnd] = useState(() => {
+  const [generalDateEnd] = useState(() => {
       const date = new Date();
       return date.toISOString().split('T')[0];
   });
