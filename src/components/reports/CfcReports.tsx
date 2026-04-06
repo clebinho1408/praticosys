@@ -760,9 +760,9 @@ const CfcReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-end text-[10px] font-black text-black">
-                  <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                  <div className="whitespace-nowrap text-right">IMPRESSÃO:<br/>{new Date().toLocaleString()}</div>
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+                  <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
       )}
@@ -844,9 +844,9 @@ const CfcReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-end text-[10px] font-black text-black">
-                  <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                  <div className="whitespace-nowrap text-right">IMPRESSÃO:<br/>{new Date().toLocaleString()}</div>
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+                  <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
       )}
@@ -905,9 +905,9 @@ const CfcReports: React.FC = () => {
                   </table>
               </div>
               {/* Print Footer (Fixed at bottom) */}
-              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-end text-[10px] font-black text-black">
-                  <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                  <div className="whitespace-nowrap text-right">IMPRESSÃO:<br/>{new Date().toLocaleString()}</div>
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-black text-black">
+                  <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
               </div>
           </div>
       )}
