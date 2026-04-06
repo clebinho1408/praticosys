@@ -252,7 +252,7 @@ const CFCGeneralStats: React.FC<{
       </div>
 
       {/* Print Header (Visible only in print) */}
-      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
           <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
               {settings?.logoUrl ? (
                   <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
@@ -261,7 +261,7 @@ const CFCGeneralStats: React.FC<{
               )}
               <div>
                   <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                  <h2 className="text-2xl font-black uppercase text-black print:text-2xl">RELATÓRIO GERAL DE ÍNDICES</h2>
+                  <h2 className="text-2xl font-black uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
               </div>
           </div>
           <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
@@ -1060,7 +1060,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             </div>
 
             {/* Print Header (Visible only in print) */}
-            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
                 <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
                     {settings?.logoUrl ? (
                         <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
@@ -1069,7 +1069,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                     )}
                     <div>
                         <h1 className="text-xl font-black uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-black uppercase text-black print:text-2xl">RELATÓRIO GERAL DE ÍNDICES</h2>
+                        <h2 className="text-2xl font-black uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
                     </div>
                 </div>
                 <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-2">
@@ -1306,7 +1306,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
                   <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
@@ -1480,7 +1480,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
                   <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
@@ -1667,7 +1667,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
                   <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-4 print:gap-6">
                       {settings?.logoUrl ? (
                           <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
