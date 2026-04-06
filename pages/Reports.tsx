@@ -269,7 +269,7 @@ const CFCGeneralStats: React.FC<{
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4 print:mt-1 print:mb-1">
           <SummaryCard title="Agendamentos do Mês" value={stats.agendamentosDoMes} icon={Calendar} color="bg-blue-600" />
           <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
           <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
@@ -1077,7 +1077,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                 </div>
             </div>
 
-            <div className="space-y-4 print:space-y-2">
+            <div className="space-y-4 print:space-y-2 print:mt-1 print:mb-1">
                 <h3 className="text-lg font-bold print:text-sm print:mb-1">Estatísticas de Aprovação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
                     <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
@@ -1493,7 +1493,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   )}
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible">
+              <div className="overflow-x-auto print:overflow-visible print:mt-1 print:mb-1">
                   <table className="w-full">
                       <tbody>
                           <tr>
@@ -1676,7 +1676,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   )}
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible">
+              <div className="overflow-x-auto print:overflow-visible print:mt-1 print:mb-1">
                   <table className="w-full">
                       <tbody>
                           <tr>

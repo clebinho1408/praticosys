@@ -352,7 +352,7 @@ const PcdReports: React.FC = () => {
       </div>
 
       {activeView === 'general-stats' && (
-          <div className="space-y-6 animate-fadeIn print:space-y-4">
+          <div className="space-y-6 animate-fadeIn print:space-y-4 print:mt-1 print:mb-1">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
@@ -425,7 +425,7 @@ const PcdReports: React.FC = () => {
       )}
 
       {activeView === 'exam-history' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent print:mt-1 print:mb-1">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md flex gap-2">
                       <div className="relative flex-1">
@@ -521,7 +521,7 @@ const PcdReports: React.FC = () => {
       )}
 
       {activeView === 'schedules-list' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent print:mt-1 print:mb-1">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex items-center gap-2">
                       <Filter className="h-4 w-4 text-gray-400" />
@@ -593,7 +593,7 @@ const PcdReports: React.FC = () => {
       )}
 
       {activeView === 'instructors-list' && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn print:shadow-none print:border-none print:rounded-none print:overflow-visible print:animate-none print:bg-transparent print:mt-1 print:mb-1">
               <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                   <div className="flex-1 max-w-md"><div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" /><input type="text" placeholder="Buscar Instrutor por Nome ou CPF..." className="w-full border rounded-md pl-10 pr-4 py-2 text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none" value={instructorSearch} onChange={e => setInstructorSearch(e.target.value)} /></div></div>
                   <div className="flex flex-wrap items-center gap-2"><button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"><Printer className="h-4 w-4" /> Imprimir</button></div>
