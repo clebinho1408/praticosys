@@ -469,6 +469,13 @@ const CnhReports: React.FC = () => {
 
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr>
+                              <td colSpan={10}>
+                                  <div className="h-24"></div>
+                              </td>
+                          </tr>
+                      </tfoot>
                       <tbody>
                           <tr>
                               <td>
@@ -521,6 +528,11 @@ const CnhReports: React.FC = () => {
                       </tbody>
                   </table>
               </div>
+              {/* Print Footer (Fixed at bottom) */}
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-end text-[10px] font-black text-black">
+                  <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div className="whitespace-nowrap text-right">IMPRESSÃO:<br/>{new Date().toLocaleString()}</div>
+              </div>
           </div>
       )}
 
@@ -548,6 +560,13 @@ const CnhReports: React.FC = () => {
               </div>
               <div className="overflow-x-auto print:overflow-visible">
                   <table className="w-full">
+                      <tfoot className="hidden print:table-footer-group">
+                          <tr>
+                              <td colSpan={10}>
+                                  <div className="h-24"></div>
+                              </td>
+                          </tr>
+                      </tfoot>
                       <tbody>
                           <tr>
                               <td>
@@ -593,6 +612,11 @@ const CnhReports: React.FC = () => {
                       </tbody>
                   </table>
               </div>
+              {/* Print Footer (Fixed at bottom) */}
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-end text-[10px] font-black text-black">
+                  <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div className="whitespace-nowrap text-right">IMPRESSÃO:<br/>{new Date().toLocaleString()}</div>
+              </div>
           </div>
       )}
 
@@ -606,11 +630,8 @@ const CnhReports: React.FC = () => {
                   <table className="w-full">
                       <tfoot className="hidden print:table-footer-group">
                           <tr>
-                              <td colSpan={10} className="pt-8">
-                                  <div className="w-full border-t border-gray-300 pt-2 pb-2 flex justify-between items-start text-[10px] font-black text-black flex-wrap gap-x-4">
-                                      <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                                      <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
-                                  </div>
+                              <td colSpan={10}>
+                                  <div className="h-24"></div>
                               </td>
                           </tr>
                       </tfoot>
@@ -651,6 +672,11 @@ const CnhReports: React.FC = () => {
                           </tr>
                       </tbody>
                   </table>
+              </div>
+              {/* Print Footer (Fixed at bottom) */}
+              <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-end text-[10px] font-black text-black">
+                  <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                  <div className="whitespace-nowrap text-right">IMPRESSÃO:<br/>{new Date().toLocaleString()}</div>
               </div>
           </div>
       )}
