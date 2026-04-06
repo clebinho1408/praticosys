@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, CheckCircle2, XCircle, Clock, Car, Filter } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { api } from '../../services/api';
-import { ExamRequest, BancaResult } from '../../types';
+import { ExamRequest, BancaResult, User } from '../../types';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B'];
 
@@ -39,7 +39,7 @@ const CustomLegend = (props: any) => {
     );
 };
 
-export const CfcModule: React.FC<{ stats?: any; title?: string }> = () => {
+export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | null }> = ({ user }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +76,10 @@ export const CfcModule: React.FC<{ stats?: any; title?: string }> = () => {
   const stats = useMemo(() => {
     let filteredRequests = requests.filter(r => r.examType === 'COMMON' || r.examType === 'PCD');
     
+    if (user?.role === 'SCHOOL' && user.schoolId) {
+        filteredRequests = filteredRequests.filter(r => r.schoolId === user.schoolId);
+    }
+
     if (generalDateStart) {
         filteredRequests = filteredRequests.filter(r => r.scheduledDate && r.scheduledDate >= generalDateStart);
     }
