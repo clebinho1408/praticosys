@@ -561,6 +561,20 @@ const CfcReports: React.FC = () => {
 
       {activeView === 'general-stats' && (
           <div className="space-y-6 animate-fadeIn print:space-y-4 print:mt-1 print:mb-1">
+              {/* Print Header */}
+              <div className="hidden print:block p-6 border-b-2 border-black mb-4 print:p-0 print:mb-0">
+                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 mb-2 print:pb-1 print:mb-1">
+                      {settings?.logoUrl ? <img src={settings.logoUrl} className="h-16 w-auto" /> : <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black">LOGO</div>}
+                      <div>
+                          <h1 className="text-xl font-bold uppercase tracking-tight text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-bold uppercase text-black">ÍNDICE GERAL - CFC</h2>
+                      </div>
+                  </div>
+                  <div className="text-center text-xs font-bold uppercase text-black print:text-[10px]">
+                      <span>Período: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
+                  </div>
+              </div>
+
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
@@ -644,6 +658,12 @@ const CfcReports: React.FC = () => {
                         ))}
                     </div>
                 </div>
+            </div>
+            
+            {/* Print Footer (Fixed at bottom) */}
+            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
+                <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
           </div>
       )}
