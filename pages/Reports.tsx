@@ -1328,7 +1328,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       <tfoot className="hidden print:table-footer-group">
                           <tr>
                               <td colSpan={10}>
-                                  <div className="h-24"></div>
+                                  <div className="h-16"></div>
                               </td>
                           </tr>
                       </tfoot>
@@ -1504,7 +1504,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       <tfoot className="hidden print:table-footer-group">
                           <tr>
                               <td colSpan={10}>
-                                  <div className="h-24"></div>
+                                  <div className="h-16"></div>
                               </td>
                           </tr>
                       </tfoot>
@@ -1693,7 +1693,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       <tfoot className="hidden print:table-footer-group">
                           <tr>
                               <td colSpan={10}>
-                                  <div className="h-24"></div>
+                                  <div className="h-16"></div>
                               </td>
                           </tr>
                       </tfoot>
