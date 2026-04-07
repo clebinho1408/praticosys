@@ -223,7 +223,7 @@ const CFCGeneralStats: React.FC<{
   }, [requests, bancaResults, schools, examiners, generalDateStart, generalDateEnd]);
 
   return (
-    <div className="space-y-6 animate-fadeIn print:space-y-8">
+    <div className="space-y-6 animate-fadeIn print:space-y-0">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
           <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
           <div className="flex items-center gap-2">
@@ -269,14 +269,14 @@ const CFCGeneralStats: React.FC<{
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4 print:mt-1 print:mb-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4 print:mt-4 print:mb-1">
           <SummaryCard title="Agendamentos do Mês" value={stats.agendamentosDoMes} icon={Calendar} color="bg-blue-600" />
           <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
           <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
           <SummaryCard title="Média por dia" value={stats.mediaPorDia} icon={Clock} color="bg-orange-600" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:mt-4">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-4 print:shadow-none print:border-black print:border">
               <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
                   <Car className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Vagas Utilizadas
@@ -1031,7 +1031,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           />
         ) : (
           <>
-            <div className="space-y-6 animate-fadeIn print:space-y-4">
+            <div className="space-y-6 animate-fadeIn print:space-y-0">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
@@ -1077,7 +1077,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                 </div>
             </div>
 
-            <div className="space-y-4 print:space-y-2 print:mt-1 print:mb-1">
+            <div className="space-y-4 print:space-y-2 print:mt-4 print:mb-1">
                 <h3 className="text-lg font-bold print:text-sm print:mb-1">Estatísticas de Aprovação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
                     <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />

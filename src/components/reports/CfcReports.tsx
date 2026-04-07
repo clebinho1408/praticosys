@@ -560,7 +560,7 @@ const CfcReports: React.FC = () => {
       </div>
 
       {activeView === 'general-stats' && (
-          <div className="space-y-6 animate-fadeIn print:space-y-4 print:mt-1 print:mb-1">
+          <div className="space-y-6 animate-fadeIn print:space-y-0 print:mt-1 print:mb-1">
               {/* Print Header */}
               <div className="hidden print:block border-b-2 border-black mb-4 print:mb-0 print:-mt-6">
                   <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
@@ -587,14 +587,14 @@ const CfcReports: React.FC = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4 print:gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 print:grid-cols-4 print:gap-2 print:mt-4">
                 <SummaryCard title="Total de Exames" value={cfcStats.totalExams} icon={FileText} color="bg-blue-500" subtitle="Exames realizados no período" />
                 <SummaryCard title="Taxa de Aprovação" value={`${cfcStats.approvalRate}%`} icon={Trophy} color="bg-green-500" subtitle={`${cfcStats.totalApproved} alunos aprovados`} />
                 <SummaryCard title="Ocupação de Vagas" value={`${cfcStats.slotUsagePercent}%`} icon={Users} color="bg-orange-500" subtitle="Uso das vagas disponibilizadas" />
                 <SummaryCard title="Exames Cancelados" value={cfcStats.totalCancelled} icon={XCircle} color="bg-red-500" subtitle="Pela agência ou autoescola" />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:mt-4">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 print:p-2 print:border-black">
                     <h4 className="text-sm font-bold text-gray-400 uppercase mb-6 print:mb-2 print:text-[10px] print:text-black">Resultado dos Exames</h4>
                     <div className="h-64 print:h-40">
