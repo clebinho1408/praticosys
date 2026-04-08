@@ -223,7 +223,25 @@ const CFCGeneralStats: React.FC<{
   }, [requests, bancaResults, schools, examiners, generalDateStart, generalDateEnd]);
 
   return (
-    <div className="space-y-6 animate-fadeIn print:space-y-8">
+    <div className="space-y-6 animate-fadeIn print:space-y-4">
+      {/* Print Header (Visible only in print) */}
+      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-4 print:-mt-6">
+          <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
+              {settings?.logoUrl ? (
+                  <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
+              ) : (
+                  <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+              )}
+              <div>
+                  <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                  <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
+              </div>
+          </div>
+          <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
+              <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
+          </div>
+      </div>
+
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
           <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
           <div className="flex items-center gap-2">
@@ -248,24 +266,6 @@ const CFCGeneralStats: React.FC<{
               >
                   <Printer className="h-4 w-4" /> Imprimir
               </button>
-          </div>
-      </div>
-
-      {/* Print Header (Visible only in print) */}
-      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6 print:-mt-12">
-          <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
-              {settings?.logoUrl ? (
-                  <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
-              ) : (
-                  <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
-              )}
-              <div>
-                  <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                  <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
-              </div>
-          </div>
-          <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
-              <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
           </div>
       </div>
 
@@ -1032,6 +1032,24 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
         ) : (
           <>
             <div className="space-y-6 animate-fadeIn print:space-y-4">
+            {/* Print Header (Visible only in print) */}
+            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-4 print:-mt-6">
+                <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
+                    {settings?.logoUrl ? (
+                        <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
+                    ) : (
+                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+                    )}
+                    <div>
+                        <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                        <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
+                    </div>
+                </div>
+                <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
+                    <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
+                </div>
+            </div>
+
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                 <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
                 <div className="flex items-center gap-2">
@@ -1056,24 +1074,6 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                     >
                         <Printer className="h-4 w-4" /> Imprimir
                     </button>
-                </div>
-            </div>
-
-            {/* Print Header (Visible only in print) */}
-            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6 print:-mt-12">
-                <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
-                    {settings?.logoUrl ? (
-                        <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
-                    ) : (
-                        <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
-                    )}
-                    <div>
-                        <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
-                    </div>
-                </div>
-                <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
-                    <span>Data: {new Date(generalDateStart).toLocaleDateString()} até {new Date(generalDateEnd).toLocaleDateString()}</span>
                 </div>
             </div>
 

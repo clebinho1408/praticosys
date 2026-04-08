@@ -562,7 +562,7 @@ const CfcReports: React.FC = () => {
       {activeView === 'general-stats' && (
           <div className="space-y-6 animate-fadeIn print:space-y-4 print:mt-1 print:mb-1">
               {/* Print Header */}
-              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-6 print:-mt-12">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-4 print:-mt-6">
                   <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
                       {settings?.logoUrl ? <img src={settings.logoUrl} className="h-16 w-auto print:h-16" /> : <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>}
                       <div>
