@@ -1031,7 +1031,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           />
         ) : (
           <>
-            <div className="space-y-6 animate-fadeIn print:space-y-2">
+            <div className="space-y-6 animate-fadeIn print:space-y-2 print:pb-12">
             {/* Print Header (Visible only in print) */}
             <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
                 <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
@@ -1042,7 +1042,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                     )}
                     <div>
                         <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS DO CNH BRASIL</h2>
+                        <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS DO CNH DO BRASIL</h2>
                     </div>
                 </div>
                 <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
@@ -1091,7 +1091,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                         </h3>
-                        <div className="flex-1 w-full print:h-[70px]">
+                        <div className="flex-1 w-full print:h-[60px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ bottom: 0 }}>
                                     <Pie
@@ -1128,7 +1128,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
                         </h3>
-                        <div className="flex-1 w-full print:h-[70px]">
+                        <div className="flex-1 w-full print:h-[60px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={approvalStats.chartData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -1162,7 +1162,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
                         </h3>
-                        <div className="flex-1 w-full print:h-[70px]">
+                        <div className="flex-1 w-full print:h-[60px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ bottom: 0 }}>
                                     <Pie
@@ -1199,7 +1199,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
                         </h3>
-                        <div className="flex-1 w-full print:h-[70px]">
+                        <div className="flex-1 w-full print:h-[60px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={slotUsageStats}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
