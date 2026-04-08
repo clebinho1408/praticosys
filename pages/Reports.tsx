@@ -223,9 +223,9 @@ const CFCGeneralStats: React.FC<{
   }, [requests, bancaResults, schools, examiners, generalDateStart, generalDateEnd]);
 
   return (
-    <div className="space-y-6 animate-fadeIn print:space-y-4">
+    <div className="space-y-6 animate-fadeIn print:space-y-1">
       {/* Print Header (Visible only in print) */}
-      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-4 print:-mt-6">
+      <div className="hidden print:block border-b-2 border-black mb-4 print:mb-1 print:-mt-6">
           <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
               {settings?.logoUrl ? (
                   <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
@@ -234,7 +234,7 @@ const CFCGeneralStats: React.FC<{
               )}
               <div>
                   <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                  <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
+                  <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS DO CNH BRASIL</h2>
               </div>
           </div>
           <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
@@ -269,55 +269,55 @@ const CFCGeneralStats: React.FC<{
           </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-4 print:mt-1 print:mb-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1 print:mt-1 print:mb-1">
           <SummaryCard title="Agendamentos do Mês" value={stats.agendamentosDoMes} icon={Calendar} color="bg-blue-600" />
           <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
           <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
           <SummaryCard title="Média por dia" value={stats.mediaPorDia} icon={Clock} color="bg-orange-600" />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-4 print:shadow-none print:border-black print:border">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                   <Car className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Vagas Utilizadas
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
-                  <span className="text-4xl font-bold text-blue-600 mb-2 print:text-5xl">{stats.indiceVagasUtilizadas}%</span>
-                  <span className="text-sm text-gray-500 mb-6 print:mb-4 print:text-base">Das vagas disponíveis foram utilizadas</span>
-                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-4">
-                      <div className="bg-blue-600 h-4 rounded-full print:h-4" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
+                  <span className="text-4xl font-bold text-blue-600 mb-2 print:text-3xl">{stats.indiceVagasUtilizadas}%</span>
+                  <span className="text-sm text-gray-500 mb-6 print:mb-1 print:text-[10px]">Das vagas disponíveis foram utilizadas</span>
+                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-2">
+                      <div className="bg-blue-600 h-4 rounded-full print:h-2" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
                   </div>
               </div>
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-4 print:shadow-none print:border-black print:border">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col print:p-1 print:shadow-none print:border-black print:border">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                   <CheckCircle2 className="h-5 w-5 text-gray-800 print:hidden" /> Índice de Aprovação
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
-                  <span className="text-4xl font-bold text-green-600 mb-2 print:text-5xl">{stats.indiceAprovacao}%</span>
-                  <span className="text-sm text-gray-500 mb-6 print:mb-4 print:text-base">Dos exames realizados foram aprovados</span>
-                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-4">
-                      <div className="bg-green-600 h-4 rounded-full print:h-4" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
+                  <span className="text-4xl font-bold text-green-600 mb-2 print:text-3xl">{stats.indiceAprovacao}%</span>
+                  <span className="text-sm text-gray-500 mb-6 print:mb-1 print:text-[10px]">Dos exames realizados foram aprovados</span>
+                  <div className="w-full bg-gray-200 rounded-full h-4 print:h-2">
+                      <div className="bg-green-600 h-4 rounded-full print:h-2" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
                   </div>
               </div>
           </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-4 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                   <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
               </h3>
-              <div className="flex-1 w-full print:h-[120px]">
+              <div className="flex-1 w-full print:h-[70px]">
                   <ResponsiveContainer width="100%" height="100%">
                       <PieChart margin={{ bottom: 0 }}>
                           <Pie
                               data={stats.resultDistribution}
                               cx="50%"
                               cy="50%"
-                              innerRadius={45}
-                              outerRadius={65}
+                              innerRadius={30}
+                              outerRadius={45}
                               paddingAngle={8}
                               dataKey="value"
                           >
@@ -342,19 +342,19 @@ const CFCGeneralStats: React.FC<{
               />
           </div>
 
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-4 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-sm print:mb-4">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
+              <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                   <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Tipos de Prova
               </h3>
-              <div className="flex-1 w-full print:h-[120px]">
+              <div className="flex-1 w-full print:h-[70px]">
                   <ResponsiveContainer width="100%" height="100%">
                       <PieChart margin={{ bottom: 0 }}>
                           <Pie
                               data={stats.requestTypeDistribution}
                               cx="50%"
                               cy="50%"
-                              innerRadius={45}
-                              outerRadius={65}
+                              innerRadius={30}
+                              outerRadius={45}
                               paddingAngle={8}
                               dataKey="value"
                           >
@@ -1031,9 +1031,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
           />
         ) : (
           <>
-            <div className="space-y-6 animate-fadeIn print:space-y-4">
+            <div className="space-y-6 animate-fadeIn print:space-y-2">
             {/* Print Header (Visible only in print) */}
-            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-4 print:-mt-6">
+            <div className="hidden print:block border-b-2 border-black mb-4 print:mb-2 print:-mt-6">
                 <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
                     {settings?.logoUrl ? (
                         <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
@@ -1042,7 +1042,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                     )}
                     <div>
                         <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                        <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
+                        <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS DO CNH BRASIL</h2>
                     </div>
                 </div>
                 <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
@@ -1077,7 +1077,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                 </div>
             </div>
 
-            <div className="space-y-4 print:space-y-2 print:mt-1 print:mb-1">
+            <div className="space-y-4 print:space-y-1 print:mt-1 print:mb-1">
                 <h3 className="text-lg font-bold print:text-sm print:mb-1">Estatísticas de Aprovação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 print:grid-cols-4 print:gap-1">
                     <SummaryCard title="Total Finalizados" value={approvalStats.total} icon={FileText} color="bg-blue-600" subtitle="Provas realizadas" />
@@ -1091,15 +1091,15 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                         </h3>
-                        <div className="flex-1 w-full print:h-[90px]">
+                        <div className="flex-1 w-full print:h-[70px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ bottom: 20 }}>
+                                <PieChart margin={{ bottom: 0 }}>
                                     <Pie
                                         data={approvalStats.pieData}
                                         cx="50%"
-                                        cy="40%"
-                                        innerRadius={45}
-                                        outerRadius={65}
+                                        cy="50%"
+                                        innerRadius={30}
+                                        outerRadius={45}
                                         paddingAngle={8}
                                         dataKey="value"
                                     >
@@ -1128,7 +1128,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
                         </h3>
-                        <div className="flex-1 w-full print:h-[90px]">
+                        <div className="flex-1 w-full print:h-[70px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={approvalStats.chartData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -1162,15 +1162,15 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
                         </h3>
-                        <div className="flex-1 w-full print:h-[90px]">
+                        <div className="flex-1 w-full print:h-[70px]">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ bottom: 20 }}>
+                                <PieChart margin={{ bottom: 0 }}>
                                     <Pie
                                         data={scheduleStats.pieData}
                                         cx="50%"
-                                        cy="40%"
-                                        innerRadius={45}
-                                        outerRadius={65}
+                                        cy="50%"
+                                        innerRadius={30}
+                                        outerRadius={45}
                                         paddingAngle={8}
                                         dataKey="value"
                                     >
@@ -1199,7 +1199,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                         <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
                             <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
                         </h3>
-                        <div className="flex-1 w-full print:h-[90px]">
+                        <div className="flex-1 w-full print:h-[70px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={slotUsageStats}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -1221,9 +1221,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             </div>
 
             {/* Print Footer (Visible only in print) */}
-            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t border-gray-300 pt-2 pb-2 px-10 justify-between items-start text-[10px] font-bold text-black flex-wrap gap-x-4">
-                <div className="uppercase max-w-[70%] break-words">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
-                <div className="whitespace-nowrap">IMPRESSÃO: {new Date().toLocaleString()}</div>
+            <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-1 px-10 justify-between items-start text-[10px] font-bold text-black flex-wrap gap-x-2">
+                <div className="uppercase max-w-[60%] break-words whitespace-normal">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                <div className="whitespace-normal">IMPRESSÃO: {new Date().toLocaleString()}</div>
             </div>
           </>
         )
