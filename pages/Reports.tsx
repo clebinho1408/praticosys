@@ -234,7 +234,7 @@ const CFCGeneralStats: React.FC<{
               )}
               <div>
                   <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                  <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS DO CNH BRASIL</h2>
+                  <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">ÍNDICES GERAL DE PROVAS PRÁTICAS</h2>
               </div>
           </div>
           <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
