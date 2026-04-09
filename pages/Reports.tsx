@@ -47,9 +47,9 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
       <div className="print:bg-[var(--print-bg)] absolute inset-0 hidden print:block -z-10"></div>
       <div className="flex justify-between items-start relative z-10">
         <div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[10px] print:mb-1 print:text-black">{title}</p>
-          <h3 className="text-2xl font-bold text-gray-900 print:text-xl print:text-black">{value}</h3>
-          {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[10px] print:mt-1 print:text-black">{subtitle}</p>}
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1 print:text-[9px] print:mb-0 print:text-black">{title}</p>
+          <h3 className="text-2xl font-bold text-gray-900 print:text-lg print:text-black">{value}</h3>
+          {subtitle && <p className="text-xs text-gray-500 mt-1 print:text-[9px] print:mt-0 print:text-black">{subtitle}</p>}
         </div>
         <div className={`p-3 rounded-lg ${color} bg-opacity-10 print:hidden`}>
           <Icon className={`h-6 w-6 ${color.replace('bg-', 'text-')}`} />
@@ -60,9 +60,9 @@ const SummaryCard: React.FC<{ title: string; value: string | number; icon: React
 };
 
 const PrintStatsTable: React.FC<{ title: string; data: { label: string; value: string | number; color?: string }[] }> = ({ title, data }) => (
-    <div className="hidden print:block mt-4 border border-black rounded-lg overflow-hidden">
-        <div className="bg-gray-100 px-3 py-2 font-bold text-xs uppercase border-b border-black text-black">{title}</div>
-        <table className="w-full text-xs text-left">
+    <div className="hidden print:block mt-4 print:mt-1 border border-black rounded-lg overflow-hidden">
+        <div className="bg-gray-100 px-3 py-2 print:py-1 font-bold text-xs print:text-[10px] uppercase border-b border-black text-black">{title}</div>
+        <table className="w-full text-xs print:text-[10px] text-left">
             <tbody className="divide-y divide-black">
                 {data.map((item, idx) => (
                     <tr key={idx} style={item.color ? { backgroundColor: `${item.color}15` } : undefined}>
@@ -84,7 +84,7 @@ const CustomLegend = (props: any) => {
     const { payload } = props;
     if (!payload) return null;
     return (
-        <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-4 print:hidden">
+        <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-4 print:mt-1 print:hidden">
             {payload.map((entry: any, index: number) => (
                 <li key={`item-${index}`} className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider" style={{ color: entry.color }}>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
@@ -1088,10 +1088,10 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 print:grid-cols-2 print:gap-1 print:h-auto">
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-[10px] print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Distribuição de Resultados
                         </h3>
-                        <div className="flex-1 w-full print:h-[60px]">
+                        <div className="flex-1 w-full print:h-[40px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ bottom: 0 }}>
                                     <Pie
@@ -1125,10 +1125,10 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                     </div>
 
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-[10px] print:mb-1">
                             <Calendar className="h-5 w-5 text-blue-600 print:hidden" /> Evolução Mensal
                         </h3>
-                        <div className="flex-1 w-full print:h-[60px]">
+                        <div className="flex-1 w-full print:h-[40px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={approvalStats.chartData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -1159,10 +1159,10 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 print:grid-cols-2 print:gap-1 print:mt-1 print:h-auto">
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-[10px] print:mb-1">
                             <Filter className="h-5 w-5 text-blue-600 print:hidden" /> Status das Bancas
                         </h3>
-                        <div className="flex-1 w-full print:h-[60px]">
+                        <div className="flex-1 w-full print:h-[40px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ bottom: 0 }}>
                                     <Pie
@@ -1196,10 +1196,10 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                     </div>
 
                     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col h-96 print:h-auto print:p-1 print:shadow-none print:border-black print:border print:bg-blue-50/30">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-xs print:mb-1">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 print:text-[10px] print:mb-1">
                             <Users className="h-5 w-5 text-blue-600 print:hidden" /> Ocupação de Vagas
                         </h3>
-                        <div className="flex-1 w-full print:h-[60px]">
+                        <div className="flex-1 w-full print:h-[40px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={slotUsageStats}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
