@@ -866,8 +866,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 </div>
 
                                 {/* TABELA ORIGINAL (Apenas Impressão - COM as colunas de marcação) */}
-                                <table className="hidden print:table w-full text-left border-collapse border-2 border-black">
-                                    <thead>
+                                <table className="hidden print:table w-full text-left border-collapse">
+                                    <thead className="border-2 border-black">
                                         <tr className="bg-white text-black font-bold border-b-2 border-black text-[9px]">
                                             <th className="px-2 py-1 w-10 text-center border-r border-black uppercase">#</th>
                                             <th className="px-3 py-1 w-32 border-r border-black uppercase">CPF</th>
@@ -878,7 +878,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                             <th className="px-2 py-1 w-14 text-center uppercase">Inapto</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y-2 divide-black">
+                                    <tbody className="divide-y-2 divide-black border-2 border-black">
                                         {students.map((req, idx) => (
                                             <tr key={req.id} className="border-b-2 border-black print:!text-black">
                                                 <td className="px-2 py-1 text-center font-bold border-r border-black text-[11px]">{idx + 1}</td>
@@ -891,9 +891,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                             </tr>
                                         ))}
                                     </tbody>
-                                    <tfoot className="hidden print:table-footer-group">
+                                    <tfoot className="hidden print:table-footer-group border-none">
                                         <tr>
-                                            <td colSpan={10}>
+                                            <td colSpan={10} className="border-none">
                                                 <div className="h-24"></div>
                                             </td>
                                         </tr>
