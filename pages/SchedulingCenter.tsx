@@ -573,7 +573,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   </div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 print:space-y-0 print:m-0 print:p-0 print:-mt-4">
       {!selectedSchedule ? (
         <>
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
@@ -728,21 +728,21 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
                 {/* Cabeçalho de Impressão e UI */}
                 <div className="p-6 bg-white border-b print:p-0 print:border-none">
-                    <div className="hidden print:flex items-center gap-4 border-b-2 border-black pb-1 mb-1">
+                    <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-2 mb-2">
                         {settings?.logoUrl ? (
-                            <img src={settings.logoUrl} className="h-10 w-auto" />
+                            <img src={settings.logoUrl} className="h-16 w-auto" />
                         ) : (
-                            <div className="h-10 w-10 bg-red-600 flex items-center justify-center text-white font-bold text-[10px] print:!text-black">DETRAN</div>
+                            <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-bold text-xs print:!text-black">DETRAN</div>
                         )}
                         <div>
-                            <h1 className="text-base font-bold uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                            <h2 className="text-lg font-bold uppercase print:!text-black">
+                            <h1 className="text-xl font-bold uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                            <h2 className="text-2xl font-bold uppercase print:!text-black">
                                 LISTA DE CHAMADA - {selectedSchedule.type === ExamType.PCD ? 'PCD' : '1ª HABILITAÇÃO'}
                             </h2>
                         </div>
                     </div>
 
-                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-0.5 mb-1 print:!text-black">
+                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-2 print:!text-black">
                         <div className="flex gap-8">
                             {selectedSchedule.code && <span className="text-sm uppercase font-bold">BANCA: <span className="font-normal">{selectedSchedule.code}</span></span>}
                             <span className="text-sm uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
@@ -766,18 +766,24 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     </div>
                 </div>
 
-                <div className="p-6 space-y-8 print:p-0 print:space-y-1">
+                <div className="p-6 space-y-8 print:p-0 print:space-y-4 print:mt-4">
                     {['A', 'B'].map(cat => {
-                        const students = scheduledStudents.filter(s => s.scheduledCategory === cat);
+                        const students = scheduledStudents
+                            .filter(s => s.scheduledCategory === cat)
+                            .sort((a, b) => {
+                                const instA = a.instructor || '';
+                                const instB = b.instructor || '';
+                                return instA.localeCompare(instB);
+                            });
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
                         
                         return (
                             <div key={cat} className="break-inside-avoid print:mb-0 mb-4">
-                                <div className="flex items-center gap-3 border-b pb-2 mb-4 print:mb-0.5 print:pb-1 print:border-black print:!text-black">
+                                <div className="flex items-center gap-3 border-b pb-2 mb-4 print:mb-2 print:pb-1 print:border-black print:!text-black">
                                     <div className="bg-blue-50 text-blue-600 p-2 rounded-md print:hidden">
                                         <Layers className="h-5 w-5" />
                                     </div>
-                                    <h3 className="text-lg font-bold text-gray-800 print:text-xs print:font-bold">Categoria {cat}</h3>
+                                    <h3 className="text-lg font-bold text-gray-800 print:text-sm print:font-bold">Categoria {cat}</h3>
                                     <span className="text-sm text-gray-500 ml-auto print:hidden">
                                         {students.length} candidatos agendados
                                     </span>
