@@ -1315,7 +1315,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       )}
                       <div>
                           <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'HISTÓRICO DE PROVAS PRÁTICAS' : 'HISTÓRICO DE PROVAS'}</h2>
+                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'HISTÓRICO DE PROVAS PRÁTICAS' : 'HISTÓRICO DE PROVAS DA CNH DO BRASIL'}</h2>
                       </div>
                   </div>
                   <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
@@ -1489,14 +1489,9 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       )}
                       <div>
                           <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE EXAMINADORES' : 'RELATÓRIO DE INSTRUTORES'}</h2>
+                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE EXAMINADORES' : 'LISTA GERAL DE INSTRUTORES DA CNH DO BRASIL'}</h2>
                       </div>
                   </div>
-                  {reportType !== 'cfc' && (
-                      <div className="text-center text-xs font-bold uppercase text-black print:text-sm print:py-0.5">
-                          <span>Data de Emissão: {new Date().toLocaleDateString()}</span>
-                      </div>
-                  )}
               </div>
 
               <div className="overflow-x-auto print:overflow-visible print:mt-1 print:mb-1">
@@ -1678,7 +1673,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                       )}
                       <div>
                           <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE AUTOESCOLAS' : 'RELATÓRIO DE BANCAS'}</h2>
+                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE AUTOESCOLAS' : 'LISTA GERAL DE BANCAS DA CNH DO BRASIL'}</h2>
                       </div>
                   </div>
                   {reportType !== 'cfc' && (
