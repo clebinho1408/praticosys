@@ -766,14 +766,14 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     </div>
                 </div>
 
-                <div className="p-6 space-y-8 print:p-0">
+                <div className="p-6 space-y-8 print:p-0 print:space-y-2">
                     {['A', 'B'].map(cat => {
                         const students = scheduledStudents.filter(s => s.scheduledCategory === cat);
                         if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
                         
                         return (
-                            <div key={cat} className="break-inside-avoid print:mb-2 mb-4">
-                                <div className="flex items-center gap-3 border-b pb-2 mb-4 print:border-black print:!text-black">
+                            <div key={cat} className="break-inside-avoid print:mb-0 mb-4">
+                                <div className="flex items-center gap-3 border-b pb-2 mb-4 print:mb-1 print:border-black print:!text-black">
                                     <div className="bg-blue-50 text-blue-600 p-2 rounded-md print:hidden">
                                         <Layers className="h-5 w-5" />
                                     </div>
@@ -870,9 +870,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                     <thead className="border-2 border-black">
                                         <tr className="bg-white text-black font-bold border-b-2 border-black text-[9px]">
                                             <th className="px-2 py-1 w-10 text-center border-r border-black uppercase">#</th>
-                                            <th className="px-3 py-1 w-32 border-r border-black uppercase">CPF</th>
+                                            <th className="px-3 py-1 w-28 border-r border-black uppercase">CPF</th>
                                             <th className="px-3 py-1 border-r border-black uppercase">Nome do Candidato</th>
                                             <th className="px-3 py-1 w-20 text-center border-r border-black uppercase">Restr.</th>
+                                            <th className="px-2 py-1 w-14 text-center border-r border-black uppercase">Canc.</th>
                                             <th className="px-2 py-1 w-14 text-center border-r border-black uppercase">Faltou</th>
                                             <th className="px-2 py-1 w-14 text-center border-r border-black uppercase">Apto</th>
                                             <th className="px-2 py-1 w-14 text-center uppercase">Inapto</th>
@@ -885,6 +886,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                 <td className="px-3 py-1 font-bold text-[12px] border-r border-black">{req.cpf}</td>
                                                 <td className="px-3 py-1 font-bold uppercase text-[12px] border-r border-black truncate">{req.socialName || req.studentName}</td>
                                                 <td className="px-3 py-1 text-center font-bold text-[10px] border-r border-black">{req.cnhRestriction || '-'}</td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
                                                 <td className="px-2 py-1"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
