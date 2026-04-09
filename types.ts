@@ -32,7 +32,7 @@ export enum ExamStatus {
   CANCELLED = 'CANCELLED'                    // Cancelado
 }
 
-export type ExamResult = 'APTO' | 'INAPTO' | 'FALTOU';
+export type ExamResult = 'APTO' | 'INAPTO' | 'FALTOU' | 'CANCELADO';
 
 export interface User {
   id: string;

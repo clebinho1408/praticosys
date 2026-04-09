@@ -29,7 +29,8 @@ const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({ re
   const colors: Record<string, string> = {
     'APTO': 'bg-green-100 text-green-800',
     'INAPTO': 'bg-red-100 text-red-800',
-    'FALTOU': 'bg-gray-100 text-gray-800'
+    'FALTOU': 'bg-orange-100 text-orange-800',
+    'CANCELADO': 'bg-gray-100 text-gray-800'
   };
   
   return <span className={`text-xs px-2 py-1 rounded font-bold ${colors[result] || 'bg-gray-100'}`}>{result}</span>;
@@ -942,7 +943,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                                                 hist.result === 'APTO' ? 'bg-green-100 text-green-700' :
                                                                 hist.result === 'INAPTO' ? 'bg-red-100 text-red-700' :
-                                                                'bg-gray-100 text-gray-700'
+                                                                hist.result === 'CANCELADO' ? 'bg-gray-100 text-gray-700' :
+                                                                'bg-orange-100 text-orange-700'
                                                             }`}>
                                                                 {hist.result}
                                                             </span>
@@ -1009,6 +1011,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                <option value="APTO">APTO</option>
                                <option value="INAPTO">INAPTO</option>
                                <option value="FALTOU">FALTOU</option>
+                               <option value="CANCELADO">CANCELADO</option>
                            </select>
                        </div>
                        <div>
@@ -1044,7 +1047,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                        </div>
                        
                        <div className="w-full space-y-3 mb-6">
-                           {['APTO', 'INAPTO', 'FALTOU'].map((res) => (
+                           {['APTO', 'INAPTO', 'FALTOU', 'CANCELADO'].map((res) => (
                                <button
                                    key={res}
                                    onClick={() => submitChangeResult(res)}

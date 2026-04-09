@@ -161,12 +161,14 @@ const CnhReports: React.FC = () => {
     const apto = filtered.filter(r => r.result === 'APTO').length;
     const inapto = filtered.filter(r => r.result === 'INAPTO').length;
     const faltou = filtered.filter(r => r.result === 'FALTOU').length;
+    const cancelado = filtered.filter(r => r.result === 'CANCELADO').length;
     const rate = total > 0 ? ((apto / total) * 100).toFixed(1) : '0';
 
     const pieData = [
       { name: 'Apto', value: apto },
       { name: 'Inapto', value: inapto },
-      { name: 'Faltou', value: faltou }
+      { name: 'Faltou', value: faltou },
+      { name: 'Cancelado', value: cancelado }
     ];
 
     const monthlyData: Record<string, { name: string, sortKey: string, apto: number, inapto: number }> = {};
@@ -511,7 +513,8 @@ const CnhReports: React.FC = () => {
                                                                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider print:p-0 ${
                                                                       item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
                                                                       item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 
-                                                                      item.result === 'FALTOU' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-700'
+                                                                      item.result === 'CANCELADO' ? 'bg-gray-100 text-gray-700' : 
+                                                                      item.result === 'FALTOU' ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'
                                                                   }`}>
                                                                       {item.result}
                                                                   </span>

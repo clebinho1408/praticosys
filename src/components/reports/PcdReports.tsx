@@ -437,7 +437,6 @@ const PcdReports: React.FC = () => {
                           <option value="APTO">Apto</option>
                           <option value="INAPTO">Inapto</option>
                           <option value="FALTOU">Faltou</option>
-                          <option value="CANCELADO">Cancelado</option>
                       </select>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">

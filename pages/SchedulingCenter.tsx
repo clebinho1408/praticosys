@@ -811,7 +811,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                                 req.result && (
                                                                     <>
                                                                         <span className="text-gray-300">|</span>
-                                                                        <span className={`font-bold ${req.result === 'APTO' ? 'text-green-600' : req.result === 'INAPTO' ? 'text-red-600' : 'text-orange-600'}`}>
+                                                                        <span className={`font-bold ${req.result === 'APTO' ? 'text-green-600' : req.result === 'INAPTO' ? 'text-red-600' : req.result === 'CANCELADO' ? 'text-gray-600' : 'text-orange-600'}`}>
                                                                             {req.result}
                                                                         </span>
                                                                     </>

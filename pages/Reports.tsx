@@ -607,12 +607,14 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
     const apto = filtered.filter(r => r.result === 'APTO').length;
     const inapto = filtered.filter(r => r.result === 'INAPTO').length;
     const faltou = filtered.filter(r => r.result === 'FALTOU').length;
+    const cancelado = filtered.filter(r => r.result === 'CANCELADO').length;
     const rate = total > 0 ? ((apto / total) * 100).toFixed(1) : '0';
 
     const pieData = [
       { name: 'Apto', value: apto },
       { name: 'Inapto', value: inapto },
-      { name: 'Faltou', value: faltou }
+      { name: 'Faltou', value: faltou },
+      { name: 'Cancelado', value: cancelado }
     ];
 
     // Improved Grouping Logic (YYYY-MM sortable)
@@ -1251,6 +1253,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                               <option value="APTO">Apto</option>
                               <option value="INAPTO">Inapto</option>
                               <option value="FALTOU">Faltou</option>
+                              <option value="CANCELADO">Cancelado</option>
                           </select>
                       )}
                       {reportType === 'cfc' && (
@@ -1423,7 +1426,8 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                                                                               {item.result ? (
                                                                                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                                                                                       item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
-                                                                                      item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                                                                                      item.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 
+                                                                                      item.result === 'CANCELADO' ? 'bg-gray-100 text-gray-700' : 'bg-orange-100 text-orange-700'
                                                                                   } print:bg-transparent print:text-black print:p-0 print:font-bold print:text-[10px]`}>
                                                                                       {item.result}
                                                                                   </span>
