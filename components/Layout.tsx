@@ -118,7 +118,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          label: 'CNH do Brasil',
          subItems: [
            { label: 'Dashboard', path: '/admin/dashboard/cnh', icon: LayoutDashboard },
-           { label: 'Agendamentos', path: '/admin/scheduling/common', icon: CalendarCheck },
+           { label: 'Bancas', path: '/admin/scheduling/common', icon: CalendarCheck },
            { label: 'Candidatos', path: '/admin/requests/common', icon: FileText },
            { label: 'Relatórios', path: '/admin/reports/cnh', icon: BarChart3 }
          ]
