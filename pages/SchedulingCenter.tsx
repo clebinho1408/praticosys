@@ -893,13 +893,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                             </tr>
                                         ))}
                                     </tbody>
-                                    <tfoot className="hidden print:table-footer-group border-none">
-                                        <tr>
-                                            <td colSpan={10} className="border-none">
-                                                <div className="h-24"></div>
-                                            </td>
-                                        </tr>
-                                    </tfoot>
                                 </table>
                             </div>
                         );
