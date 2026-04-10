@@ -7,9 +7,10 @@ export const users = pgTable('users', {
   name: text('name').notNull(),
   login: text('login').notNull().unique(),
   password: text('password'), // Nova coluna de senha
-  role: text('role').notNull(), // ADMIN, SUPERVISOR, OPERATOR, SCHOOL, EXAMINER
+  role: text('role').notNull(), // ADMIN, SUPERVISOR, OPERATOR, SCHOOL, EXAMINER, INSTRUCTOR
   schoolId: text('school_id'), // Opcional, link para autoescola
   examinerId: text('examiner_id'), // Opcional, link para examinador
+  instructorId: text('instructor_id'), // Opcional, link para instrutor
   createdAt: timestamp('created_at').defaultNow(),
 });
 

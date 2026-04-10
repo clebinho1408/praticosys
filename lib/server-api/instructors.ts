@@ -1,6 +1,6 @@
 
 import { db } from '../../db/index.js';
-import { instructors, vehicles } from '../../db/schema.js';
+import { instructors, vehicles, users } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -32,6 +32,21 @@ export default async function handler(req: any, res: any) {
         id: newInstructorId,
         ...instructorData
       }).returning();
+      
+      // Cria o usuário para o instrutor
+      if (instructorData.cpf) {
+        const cpfNumbers = instructorData.cpf.replace(/\D/g, '');
+        if (cpfNumbers) {
+          await db.insert(users).values({
+            id: crypto.randomUUID(),
+            name: instructorData.name,
+            login: cpfNumbers,
+            password: '123456',
+            role: 'INSTRUCTOR',
+            instructorId: newInstructorId
+          });
+        }
+      }
       
       // Cria os veículos se houver
       if (vehiclesList && Array.isArray(vehiclesList)) {

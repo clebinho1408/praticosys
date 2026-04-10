@@ -68,6 +68,8 @@ const App: React.FC = () => {
                         ? <Navigate to="/admin/dashboard/cfc" replace />
                         : auth.user?.role === UserRole.EXAMINER
                         ? <Navigate to="/admin/scheduling/cfc" replace /> 
+                        : auth.user?.role === UserRole.INSTRUCTOR
+                        ? <Navigate to="/admin/requests/common" replace />
                         : <AdminDashboard user={auth.user!} />
                     } 
                   />

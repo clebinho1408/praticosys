@@ -92,6 +92,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
       // Role Filtering
       if (user.role === UserRole.SCHOOL) {
         filtered = filtered.filter(r => r.schoolId === user.schoolId);
+      } else if (user.role === UserRole.INSTRUCTOR && user.instructorId) {
+        const myInstructor = instructorsData.find(i => i.id === user.instructorId);
+        if (myInstructor) {
+          filtered = filtered.filter(r => r.instructor?.includes(myInstructor.name));
+        } else {
+          filtered = []; // Se não encontrar o instrutor, não mostra nada
+        }
       }
       
       // Prop Type Filtering
@@ -598,14 +605,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
          </div>
 
          {/* Action Button (Right Side) */}
-         <div className="w-full md:w-auto flex justify-end">
-            <button 
-                onClick={() => openCreateModal()} 
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
-            >
-                <Plus className="h-4 w-4" /> Novo Candidato
-            </button>
-         </div>
+         {user.role !== UserRole.INSTRUCTOR && (
+             <div className="w-full md:w-auto flex justify-end">
+                <button 
+                    onClick={() => openCreateModal()} 
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
+                >
+                    <Plus className="h-4 w-4" /> Novo Candidato
+                </button>
+             </div>
+         )}
        </div>
 
        {/* Grupos Expansíveis (Acordeões) */}
@@ -667,7 +676,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Candidato</th>
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Categoria</th>
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Histórico</th>
-                                           <th className="px-6 py-3 font-bold text-xs uppercase text-right">Ações</th>
+                                           {user.role !== UserRole.INSTRUCTOR && (
+                                               <th className="px-6 py-3 font-bold text-xs uppercase text-right">Ações</th>
+                                           )}
                                        </tr>
                                    </thead>
                                    <tbody className="divide-y divide-gray-50">
@@ -701,46 +712,48 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                                <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                                    {(req.examHistory?.filter(h => h.result === 'INAPTO').length || 0)} tentativas
                                                </td>
-                                               <td className="px-6 py-4 align-middle text-right">
-                                                    <div className="flex justify-end items-center space-x-2">
-                                                        <button onClick={() => openCreateModal(req)} className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500" title="Editar">
-                                                            <Edit className="h-4 w-4" />
-                                                        </button>
+                                               {user.role !== UserRole.INSTRUCTOR && (
+                                                   <td className="px-6 py-4 align-middle text-right">
+                                                        <div className="flex justify-end items-center space-x-2">
+                                                            <button onClick={() => openCreateModal(req)} className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500" title="Editar">
+                                                                <Edit className="h-4 w-4" />
+                                                            </button>
 
-                                                        {user.role !== UserRole.SCHOOL && (
-                                                        <>
-                                                            {(req.status === ExamStatus.WAITING_SCHEDULING || req.status === ExamStatus.RETEST) && (
-                                                                <button onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)} className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600" title="Cancelar"><X className="h-4 w-4"/></button>
-                                                            )}
-                                                            
-                                                            {req.status === ExamStatus.SCHEDULED && (
-                                                                <button onClick={() => handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)} className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600" title="Enviar para Aguardando Resultado"><CheckSquare className="h-4 w-4"/></button>
-                                                            )}
+                                                            {user.role !== UserRole.SCHOOL && (
+                                                            <>
+                                                                {(req.status === ExamStatus.WAITING_SCHEDULING || req.status === ExamStatus.RETEST) && (
+                                                                    <button onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)} className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600" title="Cancelar"><X className="h-4 w-4"/></button>
+                                                                )}
+                                                                
+                                                                {req.status === ExamStatus.SCHEDULED && (
+                                                                    <button onClick={() => handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)} className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600" title="Enviar para Aguardando Resultado"><CheckSquare className="h-4 w-4"/></button>
+                                                                )}
 
-                                                            {req.status === ExamStatus.WAITING_RESULT && (
-                                                                <button onClick={() => openResultModal(req)} className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1" title="Lançar Resultado">
-                                                                    <Gavel className="h-3 w-3" /> Resultado
-                                                                </button>
-                                                            )}
+                                                                {req.status === ExamStatus.WAITING_RESULT && (
+                                                                    <button onClick={() => openResultModal(req)} className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1" title="Lançar Resultado">
+                                                                        <Gavel className="h-3 w-3" /> Resultado
+                                                                    </button>
+                                                                )}
 
-                                                            {req.status === ExamStatus.DONE && req.result === 'INAPTO' && (
-                                                                <button 
-                                                                    onClick={() => handleUpdateStatus(req.id, ExamStatus.RETEST)} 
-                                                                    className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 border border-orange-200 text-xs font-bold"
-                                                                >
-                                                                    Reteste
-                                                                </button>
-                                                            )}
+                                                                {req.status === ExamStatus.DONE && req.result === 'INAPTO' && (
+                                                                    <button 
+                                                                        onClick={() => handleUpdateStatus(req.id, ExamStatus.RETEST)} 
+                                                                        className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 border border-orange-200 text-xs font-bold"
+                                                                    >
+                                                                        Reteste
+                                                                    </button>
+                                                                )}
 
-                                                            {user.role === UserRole.ADMIN && (
-                                                                <button onClick={() => handleDeleteRequest(req.id)} className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600" title="Excluir Candidato">
-                                                                    <Trash2 className="h-4 w-4"/>
-                                                                </button>
+                                                                {user.role === UserRole.ADMIN && (
+                                                                    <button onClick={() => handleDeleteRequest(req.id)} className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600" title="Excluir Candidato">
+                                                                        <Trash2 className="h-4 w-4"/>
+                                                                    </button>
+                                                                )}
+                                                            </>
                                                             )}
-                                                        </>
-                                                        )}
-                                                    </div>
-                                               </td>
+                                                        </div>
+                                                   </td>
+                                               )}
                                            </tr>
                                        ))}
                                        {items.length === 0 && (

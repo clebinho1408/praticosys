@@ -4,7 +4,8 @@ export enum UserRole {
   SUPERVISOR = 'SUPERVISOR',
   OPERATOR = 'OPERATOR',
   SCHOOL = 'SCHOOL',
-  EXAMINER = 'EXAMINER'
+  EXAMINER = 'EXAMINER',
+  INSTRUCTOR = 'INSTRUCTOR'
 }
 
 export enum ExamType {
@@ -40,6 +41,7 @@ export interface User {
   role: UserRole;
   schoolId?: string; // If role is SCHOOL
   examinerId?: string; // If role is EXAMINER
+  instructorId?: string; // If role is INSTRUCTOR
   login: string;
   password?: string;
 }
