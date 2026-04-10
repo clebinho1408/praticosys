@@ -25,6 +25,7 @@ export enum RequestType {
 }
 
 export enum ExamStatus {
+  IN_ANALYSIS = 'IN_ANALYSIS',               // Cadastros em Análise
   WAITING_SCHEDULING = 'WAITING_SCHEDULING', // Aguardando Agendamento
   SCHEDULED = 'SCHEDULED',                   // Agendado
   WAITING_RESULT = 'WAITING_RESULT',         // Aguardando Resultado

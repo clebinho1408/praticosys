@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult, Instructor, Examiner, ExamSchedule } from '../types';
-import { Plus, Search, Edit, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter, Trash2 } from 'lucide-react';
+import { Plus, Search, Edit, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter, Trash2, AlertCircle, Check, Ban } from 'lucide-react';
 
 const validateCPF = (cpf: string) => {
     cpf = cpf.replace(/[^\d]+/g, '');
@@ -53,6 +53,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
   
   // Estado para controlar quais grupos estão expandidos
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+      [ExamStatus.IN_ANALYSIS]: false,
       [ExamStatus.WAITING_SCHEDULING]: false,
       [ExamStatus.SCHEDULED]: false,
       [ExamStatus.WAITING_RESULT]: false,
@@ -241,7 +242,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                 vehiclePlate: motoPlate,
                 schoolId: user.schoolId,
                 source: sourceFilter || (user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT),
-                status: ExamStatus.WAITING_SCHEDULING
+                status: user.role === UserRole.INSTRUCTOR ? ExamStatus.IN_ANALYSIS : ExamStatus.WAITING_SCHEDULING
             });
 
             // Create B
@@ -252,14 +253,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                 vehiclePlate: carPlate,
                 schoolId: user.schoolId,
                 source: sourceFilter || (user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT),
-                status: ExamStatus.WAITING_SCHEDULING
+                status: user.role === UserRole.INSTRUCTOR ? ExamStatus.IN_ANALYSIS : ExamStatus.WAITING_SCHEDULING
             });
         } else {
             await api.createRequest({
               ...formData,
               schoolId: user.schoolId,
               source: sourceFilter || (user.role === UserRole.SCHOOL ? RequestSource.SCHOOL : RequestSource.STUDENT_DIRECT),
-              status: ExamStatus.WAITING_SCHEDULING
+              status: user.role === UserRole.INSTRUCTOR ? ExamStatus.IN_ANALYSIS : ExamStatus.WAITING_SCHEDULING
             });
         }
       }
@@ -536,6 +537,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
 
   // Group requests by status
   const groupedRequests = {
+      [ExamStatus.IN_ANALYSIS]: filteredRequests.filter(r => r.status === ExamStatus.IN_ANALYSIS),
       [ExamStatus.WAITING_SCHEDULING]: filteredRequests.filter(r => r.status === ExamStatus.WAITING_SCHEDULING),
       [ExamStatus.SCHEDULED]: filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED),
       [ExamStatus.WAITING_RESULT]: filteredRequests.filter(r => r.status === ExamStatus.WAITING_RESULT),
@@ -545,16 +547,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
 
   // Determine visible statuses based on filter
   const allStatuses = [
+      ExamStatus.IN_ANALYSIS,
       ExamStatus.WAITING_SCHEDULING,
       ExamStatus.SCHEDULED,
       ExamStatus.WAITING_RESULT,
       ExamStatus.DONE,
       ExamStatus.CANCELLED
-  ];
+  ].filter(s => {
+      if (user.role === UserRole.INSTRUCTOR && s === ExamStatus.WAITING_RESULT) return false;
+      return true;
+  });
 
   const visibleStatuses = statusFilter === 'ALL' ? allStatuses : [statusFilter];
 
   const groupConfig = {
+      [ExamStatus.IN_ANALYSIS]: { label: 'Cadastros em Análise', color: 'indigo', icon: AlertCircle },
       [ExamStatus.WAITING_SCHEDULING]: { label: 'Aguardando Agendamento', color: 'yellow', icon: Clock },
       [ExamStatus.SCHEDULED]: { label: 'Agendado', color: 'blue', icon: Calendar },
       [ExamStatus.WAITING_RESULT]: { label: 'Aguardando Resultado', color: 'purple', icon: AlertOctagon },
@@ -592,9 +599,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                     onChange={(e) => handleStatusFilterChange(e.target.value)}
                 >
                     <option value="ALL">Todos os Status</option>
+                    <option value={ExamStatus.IN_ANALYSIS}>Cadastros em Análise</option>
                     <option value={ExamStatus.WAITING_SCHEDULING}>Aguardando Agendamento</option>
                     <option value={ExamStatus.SCHEDULED}>Agendado</option>
-                    <option value={ExamStatus.WAITING_RESULT}>Aguardando Resultado</option>
+                    {user.role !== UserRole.INSTRUCTOR && (
+                        <option value={ExamStatus.WAITING_RESULT}>Aguardando Resultado</option>
+                    )}
                     <option value={ExamStatus.DONE}>Realizado</option>
                     <option value={ExamStatus.CANCELLED}>Cancelado</option>
                 </select>
@@ -605,16 +615,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
          </div>
 
          {/* Action Button (Right Side) */}
-         {user.role !== UserRole.INSTRUCTOR && (
-             <div className="w-full md:w-auto flex justify-end">
-                <button 
-                    onClick={() => openCreateModal()} 
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
-                >
-                    <Plus className="h-4 w-4" /> Novo Candidato
-                </button>
-             </div>
-         )}
+         <div className="w-full md:w-auto flex justify-end">
+            <button 
+                onClick={() => openCreateModal()} 
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
+            >
+                <Plus className="h-4 w-4" /> Novo Candidato
+            </button>
+         </div>
        </div>
 
        {/* Grupos Expansíveis (Acordeões) */}
@@ -627,21 +635,24 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
 
                // Tailwind colors mapping
                const bgColors: Record<string, string> = {
-                   yellow: 'bg-orange-50',
+                   indigo: 'bg-indigo-50',
+                    yellow: 'bg-orange-50',
                    blue: 'bg-blue-50',
                    purple: 'bg-purple-50',
                    green: 'bg-green-50',
                    red: 'bg-red-50'
                };
                const textColors: Record<string, string> = {
-                   yellow: 'text-orange-700',
+                   indigo: 'text-indigo-700',
+                    yellow: 'text-orange-700',
                    blue: 'text-blue-700',
                    purple: 'text-purple-700',
                    green: 'text-green-700',
                    red: 'text-red-700'
                };
                const borderColors: Record<string, string> = {
-                   yellow: 'border-l-4 border-l-orange-400',
+                   indigo: 'border-l-4 border-l-indigo-400',
+                    yellow: 'border-l-4 border-l-orange-400',
                    blue: 'border-l-4 border-l-blue-400',
                    purple: 'border-l-4 border-l-purple-400',
                    green: 'border-l-4 border-l-green-400',
@@ -718,6 +729,25 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                                             <button onClick={() => openCreateModal(req)} className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500" title="Editar">
                                                                 <Edit className="h-4 w-4" />
                                                             </button>
+
+                                                            {req.status === ExamStatus.IN_ANALYSIS && (user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR) && (
+                                                                <>
+                                                                    <button 
+                                                                        onClick={() => handleUpdateStatus(req.id, ExamStatus.WAITING_SCHEDULING)} 
+                                                                        className="p-1.5 border border-green-200 rounded hover:bg-green-50 text-green-600" 
+                                                                        title="Aprovar"
+                                                                    >
+                                                                        <Check className="h-4 w-4" />
+                                                                    </button>
+                                                                    <button 
+                                                                        onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)} 
+                                                                        className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600" 
+                                                                        title="Recusar"
+                                                                    >
+                                                                        <Ban className="h-4 w-4" />
+                                                                    </button>
+                                                                </>
+                                                            )}
 
                                                             {user.role !== UserRole.SCHOOL && (
                                                             <>
