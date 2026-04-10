@@ -140,8 +140,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     "personal",
   );
 
-  const fetchRequests = async () => {
-    setLoading(true);
+  const fetchRequests = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [data, instructorsData, examinersData, schedulesData, citiesData] =
         await Promise.all([
@@ -194,7 +194,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -383,7 +383,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         }
       }
       setIsModalOpen(false);
-      fetchRequests();
+      fetchRequests(true);
     } catch (err) {
       alert("Erro ao salvar");
     }
@@ -400,7 +400,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       attendanceConfirmed: true,
       updatedAt: new Date().toISOString()
     });
-    fetchRequests();
+    fetchRequests(true);
   };
 
   const handleCancelAttendance = async (id: string) => {
@@ -418,13 +418,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     });
-    fetchRequests();
+    fetchRequests(true);
   };
 
   const handleUpdateStatus = async (id: string, status: ExamStatus) => {
     if (!window.confirm("Tem certeza que deseja alterar o status?")) return;
     await api.updateRequest(id, { status });
-    fetchRequests();
+    fetchRequests(true);
   };
 
   const renderActions = (req: ExamRequest, statusGroup: string) => {
@@ -554,7 +554,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       )
     ) {
       await api.deleteRequest(id);
-      fetchRequests();
+      fetchRequests(true);
     }
   };
 
@@ -620,7 +620,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     await api.updateRequest(editingRequest.id, updates);
 
     setIsResultModalOpen(false);
-    fetchRequests();
+    fetchRequests(true);
   };
 
   const openChangeResultModal = (
@@ -652,7 +652,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     setIsChangeResultModalOpen(false);
     setChangeResultData(null);
-    fetchRequests();
+    fetchRequests(true);
   };
 
   // Helper functions for filtering instructors and vehicles
@@ -1168,14 +1168,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             <span className="font-bold text-gray-800 uppercase text-sm">
                               {req.socialName || req.studentName}
                             </span>
-                            {req.city && (
+                            {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && req.city && (
                               <span className="text-xs text-blue-600 font-medium">
                                 {req.city}
                               </span>
                             )}
-                            <span className="text-xs text-gray-500">
-                              {req.cpf}
-                            </span>
+                            {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                              <span className="text-xs text-gray-500">
+                                {req.cpf}
+                              </span>
+                            )}
                           </div>
                           <div className="flex flex-col items-end gap-1">
                             <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-[10px]">
@@ -1190,30 +1192,39 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         </div>
 
                         <div className="text-[10px] text-gray-500 bg-gray-50 p-2 rounded mb-3">
-                          <div className="flex justify-between">
-                            <span>
-                              Instr:{" "}
-                              <span className="font-medium text-gray-700">
-                                {req.instructor || "-"}
+                          {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                            <div className="flex justify-between">
+                              <span>
+                                Instr:{" "}
+                                <span className="font-medium text-gray-700">
+                                  {req.instructor || "-"}
+                                </span>
                               </span>
-                            </span>
-                            <span>
-                              Placa:{" "}
-                              <span className="font-medium text-gray-700">
-                                {req.vehiclePlate || "-"}
+                              <span>
+                                Placa:{" "}
+                                <span className="font-medium text-gray-700">
+                                  {req.vehiclePlate || "-"}
+                                </span>
                               </span>
-                            </span>
-                          </div>
+                            </div>
+                          )}
                           <div className="flex justify-between mt-1">
                             <span>
                               Data: {new Date(req.createdAt).toLocaleDateString()}
                             </span>
-                            <span>
-                              Tentativas:{" "}
-                              {req.examHistory?.filter(
-                                (h) => h.result === "INAPTO",
-                              ).length || 0}
-                            </span>
+                            {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR ? (
+                              <>
+                                <span>CPF: {req.cpf}</span>
+                                <span>Cidade: {req.city || "-"}</span>
+                              </>
+                            ) : (
+                              <span>
+                                Tentativas:{" "}
+                                {req.examHistory?.filter(
+                                  (h) => h.result === "INAPTO",
+                                ).length || 0}
+                              </span>
+                            )}
                           </div>
                           {req.result && req.status === ExamStatus.DONE && (
                             <div className="mt-2">
@@ -1254,15 +1265,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           <th className="px-6 py-3 font-bold text-xs uppercase">
                             Data Cadastro
                           </th>
+                          {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase">
+                              CPF
+                            </th>
+                          )}
                           <th className="px-6 py-3 font-bold text-xs uppercase">
                             Candidato
                           </th>
+                          {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase">
+                              Cidade
+                            </th>
+                          )}
                           <th className="px-6 py-3 font-bold text-xs uppercase">
                             Categoria
                           </th>
-                          <th className="px-6 py-3 font-bold text-xs uppercase">
-                            Histórico
-                          </th>
+                          {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase">
+                              Histórico
+                            </th>
+                          )}
                           {(user.role !== UserRole.INSTRUCTOR ||
                             status === "WAITING_CONFIRMATION") && (
                             <th className="px-6 py-3 font-bold text-xs uppercase text-right">
@@ -1293,36 +1316,52 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 </div>
                               )}
                             </td>
+                            {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
+                              <td className="px-6 py-4 align-middle text-xs text-gray-500">
+                                {req.cpf}
+                              </td>
+                            )}
                             <td className="px-6 py-4 align-middle">
                               <div className="flex flex-col">
                                 <span className="font-bold text-gray-800 uppercase">
                                   {req.socialName || req.studentName}
                                 </span>
-                                {req.city && (
+                                {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && req.city && (
                                   <span className="text-xs text-blue-600 font-medium">
                                     {req.city}
                                   </span>
                                 )}
-                                <span className="text-xs text-gray-500">
-                                  {req.cpf}
-                                </span>
-                                <span className="text-[10px] text-gray-400 mt-0.5">
-                                  Instr: {req.instructor || "-"} | Placa:{" "}
-                                  {req.vehiclePlate || "-"}
-                                </span>
+                                {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                                  <span className="text-xs text-gray-500">
+                                    {req.cpf}
+                                  </span>
+                                )}
+                                {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                                  <span className="text-[10px] text-gray-400 mt-0.5">
+                                    Instr: {req.instructor || "-"} | Placa:{" "}
+                                    {req.vehiclePlate || "-"}
+                                  </span>
+                                )}
                               </div>
                             </td>
+                            {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
+                              <td className="px-6 py-4 align-middle text-xs text-gray-500">
+                                {req.city || "-"}
+                              </td>
+                            )}
                             <td className="px-6 py-4 align-middle">
                               <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
                                 {req.intendedCategory}
                               </span>
                             </td>
-                            <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                              {req.examHistory?.filter(
-                                (h) => h.result === "INAPTO",
-                              ).length || 0}{" "}
-                              tentativas
-                            </td>
+                            {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                              <td className="px-6 py-4 align-middle text-xs text-gray-500">
+                                {req.examHistory?.filter(
+                                  (h) => h.result === "INAPTO",
+                                ).length || 0}{" "}
+                                tentativas
+                              </td>
+                            )}
                             {(user.role !== UserRole.INSTRUCTOR ||
                               status === "WAITING_CONFIRMATION") && (
                               <td className="px-6 py-4 align-middle text-right">

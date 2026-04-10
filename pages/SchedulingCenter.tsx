@@ -159,8 +159,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
     type: type || ExamType.COMMON
   });
 
-  const refreshData = async () => {
-    setLoading(true);
+  const refreshData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [scheds, exams, sysSettings, requests, blocked] = await Promise.all([
         api.getSchedules(), 
@@ -179,7 +179,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -302,7 +302,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       attendanceConfirmed: !req.attendanceConfirmed,
       updatedAt: new Date().toISOString()
     });
-    refreshData();
+    refreshData(true);
   };
 
   const handleOpenModal = (sched?: ExamSchedule) => {
@@ -358,7 +358,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
           );
           await Promise.all(updates);
           setIsAddStudentOpen(false);
-          refreshData();
+          refreshData(true);
       } catch (err) {
           alert('Erro ao agendar candidatos.');
       } finally {
@@ -408,7 +408,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         await api.createSchedule({ ...scheduleForm, status: 'OPEN' });
       }
       setIsModalOpen(false);
-      refreshData();
+      refreshData(true);
     } catch (error) {
       console.error(error);
       alert("Erro ao salvar banca.");
@@ -431,7 +431,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       setIsCancelScheduleOpen(false);
       setScheduleToCancel(null);
       setCancelReason('');
-      refreshData();
+      refreshData(true);
     } else {
         alert("Informe o motivo do cancelamento.");
     }
@@ -451,7 +451,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         await api.deleteSchedule(scheduleToDelete);
         setIsDeleteScheduleOpen(false);
         setScheduleToDelete(null);
-        refreshData();
+        refreshData(true);
     }
   };
 
@@ -465,7 +465,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         await api.removeStudentFromSchedule(candidateToRemove.id);
         setIsRemoveConfirmOpen(false);
         setCandidateToRemove(null);
-        refreshData();
+        refreshData(true);
     }
   };
 
