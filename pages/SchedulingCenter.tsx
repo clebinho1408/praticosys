@@ -737,7 +737,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         <div>
                             <h1 className="text-xl font-bold uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
                             <h2 className="text-2xl font-bold uppercase print:!text-black">
-                                LISTA DE CANDIDATOS PROVA PRÁTICA DA CNH DO BRASIL
+                                LISTA PROVA PRÁTICA DA CNH DO BRASIL
                             </h2>
                         </div>
                     </div>
