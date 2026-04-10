@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
-const formatDateDisplay = (dateString: string) => {
+const formatDateDisplay = (dateString: string | null | undefined) => {
   if (!dateString) return '-';
   const cleanDate = dateString.split('T')[0];
   const parts = cleanDate.split('-');
@@ -298,7 +298,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   };
 
   const toggleAttendance = async (req: ExamRequest) => {
-    await api.updateRequest(req.id, { attendanceConfirmed: !req.attendanceConfirmed });
+    await api.updateRequest(req.id, { 
+      attendanceConfirmed: !req.attendanceConfirmed,
+      updatedAt: new Date().toISOString()
+    });
     refreshData();
   };
 
@@ -792,7 +795,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 {/* LISTA CLEAN (Apenas Web - SEM as colunas de marcação) */}
                                 <div className="space-y-2 print:hidden">
                                     {students.map((req, idx) => (
-                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-3 rounded-md border transition-all hover:border-blue-200 bg-white ${req.attendanceConfirmed ? 'border-green-200 bg-green-50' : 'border-gray-200'}`}>
+                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-3 rounded-md border transition-all hover:border-blue-200 bg-white ${req.attendanceConfirmed ? 'border-green-300 bg-green-100/40 shadow-sm' : 'border-gray-200'}`}>
                                             <div className="flex items-center gap-4 flex-1 w-full">
                                                 <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 text-sm shrink-0">
                                                     {idx + 1}

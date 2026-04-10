@@ -537,18 +537,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
   });
 
-  const getSchoolName = (id?: string) => {
+  const getSchoolName = (id?: string | null) => {
     if (id === 'PCD') return systemSettings?.pcdExamName || 'PROVA DIRECAO PCD';
     if (id === 'CNH_BRASIL') return 'CNH DO BRASIL';
     return schools.find(s => s.id === id)?.name || 'N/A';
   };
-  const getExaminerName = (idOrName?: string) => {
+  const getExaminerName = (idOrName?: string | null) => {
     if (!idOrName) return 'SEM IDENTIFICAÇÃO';
     const examiner = examiners.find(e => e.id === idOrName || e.name === idOrName);
     return examiner ? examiner.name : idOrName;
   };
 
-  const formatDate = (dateStr?: string) => {
+  const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return 'Não definida';
     const [, month, day] = dateStr.split('-');
     return `${day}/${month}`;

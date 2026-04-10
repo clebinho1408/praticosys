@@ -1,5 +1,5 @@
 // Request Manager Page
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { api } from "../services/api";
 import {
   ExamRequest,
@@ -93,6 +93,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   sourceFilter,
 }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
+  const [allGlobalRequests, setAllGlobalRequests] = useState<ExamRequest[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
@@ -154,6 +155,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       setExaminers(examinersData);
       setSchedules(schedulesData);
       setCities(citiesData);
+      setAllGlobalRequests(data);
       let filtered = data;
 
       // Role Filtering
@@ -394,20 +396,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       )
     )
       return;
-    await api.updateRequest(id, { attendanceConfirmed: true });
+    await api.updateRequest(id, { 
+      attendanceConfirmed: true,
+      updatedAt: new Date().toISOString()
+    });
     fetchRequests();
   };
 
   const handleCancelAttendance = async (id: string) => {
     if (
       !window.confirm(
-        "Tem certeza que deseja cancelar a presença deste candidato?",
+        "Tem certeza que deseja cancelar a presença deste candidato? Ele será removido da banca e voltará para a fila de agendamento.",
       )
     )
       return;
     await api.updateRequest(id, {
       attendanceConfirmed: false,
       status: ExamStatus.WAITING_SCHEDULING,
+      scheduleId: null,
+      scheduledCategory: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     });
     fetchRequests();
   };
@@ -911,6 +920,25 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     setExpandedGroups((prev) => ({ ...prev, [status]: !prev[status] }));
   };
 
+  // Global queue for WAITING_SCHEDULING to ensure unique positions across all users/schools
+  const globalQueue = useMemo(() => {
+    return allGlobalRequests
+      .filter(
+        (r) =>
+          r.status === ExamStatus.WAITING_SCHEDULING &&
+          (!typeFilter || r.examType === typeFilter),
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+  }, [allGlobalRequests, typeFilter]);
+
+  const getGlobalPosition = (id: string) => {
+    const index = globalQueue.findIndex((r) => r.id === id);
+    return index !== -1 ? `${index + 1}º` : "-";
+  };
+
   const filteredRequests = requests.filter(
     (r) =>
       (r.socialName || r.studentName)
@@ -1130,7 +1158,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 <>
                   {/* Mobile View */}
                   <div className="block md:hidden divide-y divide-gray-100">
-                    {items.map((req: ExamRequest, idx: number) => (
+                    {items.map((req: ExamRequest) => (
                       <div
                         key={req.id}
                         className="p-4 bg-white hover:bg-gray-50 transition-colors"
@@ -1155,7 +1183,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             </span>
                             {status === ExamStatus.WAITING_SCHEDULING && (
                               <span className="text-[10px] font-bold text-gray-500">
-                                Pos: {idx + 1}º
+                                Pos: {getGlobalPosition(req.id)}
                               </span>
                             )}
                           </div>
@@ -1244,14 +1272,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50">
-                        {items.map((req: ExamRequest, idx: number) => (
+                        {items.map((req: ExamRequest) => (
                           <tr
                             key={req.id}
                             className="hover:bg-gray-50 transition-colors"
                           >
                             {status === ExamStatus.WAITING_SCHEDULING && (
                               <td className="px-6 py-4 align-middle text-sm font-bold text-gray-700 text-center">
-                                {idx + 1}º
+                                {getGlobalPosition(req.id)}
                               </td>
                             )}
                             <td className="px-6 py-4 align-middle text-xs text-gray-500">

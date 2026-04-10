@@ -109,7 +109,9 @@ export const api = {
         scheduleId: null, 
         scheduledCategory: null, 
         status: 'WAITING_SCHEDULING', // ExamStatus.WAITING_SCHEDULING
-        attendanceConfirmed: false 
+        attendanceConfirmed: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }) 
     }),
   
