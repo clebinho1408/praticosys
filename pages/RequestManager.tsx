@@ -368,6 +368,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
   // Helper functions for filtering instructors and vehicles
   const getInstructorsByCategory = (category: 'A' | 'B') => {
       return instructors.filter(inst => {
+          // Se for instrutor, só pode ver a si mesmo
+          if (user.role === UserRole.INSTRUCTOR && user.instructorId) {
+              return inst.id === user.instructorId;
+          }
+          
           // Se o instrutor não tem categoria definida, assume que pode dar aula em tudo (ou filtrar se tiver lógica mais estrita)
           // Aqui vamos assumir que se tiver vehicles do tipo correspondente, ele serve.
           // Ou se a categoria dele incluir a letra.
@@ -421,8 +426,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                     <label className="block text-sm font-medium text-gray-700 mb-1">Instrutor {categoryCode === 'A' ? 'Moto' : 'Carro'} <span className="text-red-500">*</span></label>
                     <select 
                         id={`instructor_${categoryCode}`}
-                        className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                        className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                         value={currentInstructorName}
+                        disabled={user.role === UserRole.INSTRUCTOR}
                         onChange={e => {
                             const newName = e.target.value;
                             let newPlate = '';
@@ -454,8 +460,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                             }
                         }}
                     >
-                        <option value="">Selecione...</option>
-                        <option value="A DEFINIR">A DEFINIR</option>
+                        {user.role !== UserRole.INSTRUCTOR && (
+                            <>
+                                <option value="">Selecione...</option>
+                                <option value="A DEFINIR">A DEFINIR</option>
+                            </>
+                        )}
                         {availableInstructors.map(inst => (
                             <option key={inst.id} value={inst.name}>{inst.name}</option>
                         ))}
@@ -506,7 +516,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
     if (req) {
       setFormData(req);
     } else {
-      setFormData({
+      const initialData: any = {
         studentName: '',
         cpf: '',
         phone: '',
@@ -516,7 +526,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
         completedPracticalCourse: false,
         hasVehicle: false,
         practicalHours: 0
-      });
+      };
+
+      // Se for instrutor, já preenche o nome dele
+      if (user.role === UserRole.INSTRUCTOR && user.instructorId) {
+        const myInstructor = instructors.find(i => i.id === user.instructorId);
+        if (myInstructor) {
+          initialData.instructor = myInstructor.name;
+          const firstVehicle = myInstructor.vehicles?.find(v => v.active);
+          if (firstVehicle) {
+            initialData.vehiclePlate = firstVehicle.plate;
+          }
+        }
+      }
+
+      setFormData(initialData);
     }
     setIsModalOpen(true);
   };
@@ -905,7 +929,37 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Categoria Pretendida <span className="text-red-500">*</span></label>
-                                        <select id="intendedCategory" required className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" value={formData.intendedCategory || ''} onChange={e => setFormData({...formData, intendedCategory: e.target.value})}>
+                                        <select 
+                                            id="intendedCategory" 
+                                            required 
+                                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900" 
+                                            value={formData.intendedCategory || ''} 
+                                            onChange={e => {
+                                                const newCat = e.target.value;
+                                                let newInstructor = formData.instructor;
+                                                let newPlate = formData.vehiclePlate;
+
+                                                // Se for instrutor, ao mudar a categoria, garante que o instrutor e placa estão preenchidos corretamente
+                                                if (user.role === UserRole.INSTRUCTOR && user.instructorId) {
+                                                    const myInstructor = instructors.find(i => i.id === user.instructorId);
+                                                    if (myInstructor) {
+                                                        const name = myInstructor.name;
+                                                        const firstVehicle = myInstructor.vehicles?.find(v => v.active);
+                                                        const plate = firstVehicle ? firstVehicle.plate : (myInstructor.plate || '');
+                                                        
+                                                        if (newCat === 'AB') {
+                                                            newInstructor = `Moto: ${name} / Carro: ${name}`;
+                                                            newPlate = `Moto: ${plate} / Carro: ${plate}`;
+                                                        } else {
+                                                            newInstructor = name;
+                                                            newPlate = plate;
+                                                        }
+                                                    }
+                                                }
+                                                
+                                                setFormData({...formData, intendedCategory: newCat, instructor: newInstructor, vehiclePlate: newPlate});
+                                            }}
+                                        >
                                             <option value="">Selecione...</option>
                                             <option value="A">A (Moto)</option>
                                             <option value="B">B (Carro)</option>
