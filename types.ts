@@ -136,6 +136,7 @@ export interface ExamRequest {
   phone: string;
   email: string;
   address?: string; 
+  city?: string;
   examType: ExamType;
   intendedCategory?: string; // New (A, B, etc.)
   source: RequestSource;

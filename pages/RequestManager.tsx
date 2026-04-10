@@ -2,7 +2,7 @@
 // Request Manager Page
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
-import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult, Instructor, Examiner, ExamSchedule } from '../types';
+import { ExamRequest, User, UserRole, ExamType, RequestSource, ExamStatus, ExamResult, Instructor, Examiner, ExamSchedule, City } from '../types';
 import { Plus, Search, Edit, X, CheckSquare, Gavel, ChevronDown, ChevronUp, Clock, Calendar, CheckCircle, AlertOctagon, Filter, Trash2, AlertCircle, Check, Ban } from 'lucide-react';
 
 const validateCPF = (cpf: string) => {
@@ -47,6 +47,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -79,15 +80,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const [data, instructorsData, examinersData, schedulesData] = await Promise.all([
+      const [data, instructorsData, examinersData, schedulesData, citiesData] = await Promise.all([
         api.getRequests(),
         api.getInstructorsAsync(),
         api.getExaminersAsync(),
-        api.getSchedules()
+        api.getSchedules(),
+        api.getCities()
       ]);
       setInstructors(instructorsData);
       setExaminers(examinersData);
       setSchedules(schedulesData);
+      setCities(citiesData);
       let filtered = data;
       
       // Role Filtering
@@ -910,6 +913,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                             }} 
                                             placeholder="Somente números"
                                         />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Cidade <span className="text-red-500">*</span></label>
+                                        <select 
+                                            id="city"
+                                            required
+                                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                                            value={formData.city || ''}
+                                            onChange={e => setFormData({...formData, city: e.target.value})}
+                                        >
+                                            <option value="">Selecione...</option>
+                                            {cities.map(city => (
+                                                <option key={city.id} value={city.name}>{city.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     {!typeFilter && (
                                     <div>
