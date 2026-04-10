@@ -660,6 +660,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                <table className="w-full text-sm text-left">
                                    <thead className="bg-white text-gray-500 border-b">
                                        <tr>
+                                           {status === ExamStatus.WAITING_SCHEDULING && (
+                                               <th className="px-6 py-3 font-bold text-xs uppercase w-16 text-center">Posição</th>
+                                           )}
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Data Cadastro</th>
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Candidato</th>
                                            <th className="px-6 py-3 font-bold text-xs uppercase">Categoria</th>
@@ -668,8 +671,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                        </tr>
                                    </thead>
                                    <tbody className="divide-y divide-gray-50">
-                                       {items.map((req: ExamRequest) => (
+                                       {items.map((req: ExamRequest, idx: number) => (
                                            <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                                               {status === ExamStatus.WAITING_SCHEDULING && (
+                                                   <td className="px-6 py-4 align-middle text-sm font-bold text-gray-700 text-center">
+                                                       {idx + 1}º
+                                                   </td>
+                                               )}
                                                <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                                    {new Date(req.createdAt).toLocaleString()}
                                                    {req.result && req.status === ExamStatus.DONE && (
@@ -737,7 +745,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({ user, typeFilter, sourc
                                        ))}
                                        {items.length === 0 && (
                                            <tr>
-                                               <td colSpan={6} className="px-6 py-8 text-center text-gray-400 text-sm">
+                                               <td colSpan={status === ExamStatus.WAITING_SCHEDULING ? 6 : 5} className="px-6 py-8 text-center text-gray-400 text-sm">
                                                    Nenhum candidato nesta situação.
                                                </td>
                                            </tr>
