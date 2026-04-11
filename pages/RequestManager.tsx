@@ -14,6 +14,7 @@ import {
   ExamSchedule,
   City,
 } from "../types";
+import { NotificationModal } from "../components/NotificationModal";
 import {
   Plus,
   Search,
@@ -129,6 +130,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [editingRequest, setEditingRequest] = useState<ExamRequest | null>(
     null,
   );
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [notificationData, setNotificationData] = useState({ title: '', message: '' });
 
   // Form State
   const [formData, setFormData] = useState<Partial<ExamRequest>>({});
@@ -208,9 +211,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     eventSource.addEventListener('requests_updated', (event) => {
       const data = JSON.parse(event.data);
       if (user.role === UserRole.INSTRUCTOR && data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed) {
-        const audio = new Audio('/notification.mp3');
-        audio.play().catch(e => console.error("Audio play failed", e));
-        alert("Novo candidato aguardando confirmação para a prova!");
+        setNotificationData({ title: 'Nova Notificação', message: 'Novo candidato aguardando confirmação para a prova!' });
+        setIsNotificationModalOpen(true);
       }
       fetchRequests(true);
     });
@@ -1456,6 +1458,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           );
         })}
       </div>
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+        title={notificationData.title}
+        message={notificationData.message}
+      />
 
       {/* Create/Edit Modal */}
       {isModalOpen && (
