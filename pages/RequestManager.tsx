@@ -1196,9 +1196,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                           </div>
                           <div className="flex flex-col items-end gap-1">
-                            <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-[10px]">
-                              {req.intendedCategory}
-                            </span>
+                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                              <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-[10px]">
+                                {req.intendedCategory}
+                              </span>
+                            )}
                             {status === ExamStatus.WAITING_SCHEDULING && (
                               <span className="text-[10px] font-bold text-gray-500">
                                 Pos: {getGlobalPosition(req.id)}
@@ -1246,7 +1248,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           </div>
                           {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
                             <div className="mt-1 font-bold text-red-600">
-                              Prova: {schedules.find(s => s.id === req.scheduleId)?.code || "-"} - {req.scheduledDate ? new Date(req.scheduledDate).toLocaleDateString() : "-"} às {req.scheduledTime || "-"}
+                              Prova: {schedules.find(s => s.id === req.scheduleId)?.code || "-"} - Categoria {req.scheduledCategory || req.intendedCategory} - {req.scheduledDate ? new Date(req.scheduledDate).toLocaleDateString() : "-"} às {req.scheduledTime || "-"}
                             </div>
                           )}
                           {req.result && req.status === ExamStatus.DONE && (
@@ -1303,9 +1305,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               Cidade
                             </th>
                           )}
-                          <th className="px-6 py-3 font-bold text-xs uppercase">
-                            Categoria
-                          </th>
+                          {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase">
+                              Categoria
+                            </th>
+                          )}
                           {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               Dados da Prova
@@ -1381,14 +1385,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {req.city || "-"}
                               </td>
                             )}
-                            <td className="px-6 py-4 align-middle">
-                              <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
-                                {req.intendedCategory}
-                              </span>
-                            </td>
+                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                              <td className="px-6 py-4 align-middle">
+                                <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
+                                  {req.intendedCategory}
+                                </span>
+                              </td>
+                            )}
                             {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
                               <td className="px-6 py-4 align-middle text-xs font-bold text-red-600">
-                                {schedules.find(s => s.id === req.scheduleId)?.code || "-"} - {req.scheduledDate ? new Date(req.scheduledDate).toLocaleDateString() : "-"} às {req.scheduledTime || "-"}
+                                {schedules.find(s => s.id === req.scheduleId)?.code || "-"} - Categoria {req.scheduledCategory || req.intendedCategory} - {req.scheduledDate ? new Date(req.scheduledDate).toLocaleDateString() : "-"} às {req.scheduledTime || "-"}
                               </td>
                             )}
                             {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
