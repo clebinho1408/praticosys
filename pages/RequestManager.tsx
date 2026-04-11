@@ -1300,7 +1300,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               Data Cadastro
                             </th>
                           )}
-                          {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
+                          {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               CPF
                             </th>
@@ -1308,7 +1308,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           <th className="px-6 py-3 font-bold text-xs uppercase">
                             Candidato
                           </th>
-                          {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
+                          {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               Cidade
                             </th>
@@ -1360,7 +1360,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 )}
                               </td>
                             )}
-                            {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
+                            {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {req.cpf}
                               </td>
@@ -1370,12 +1370,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 <span className="font-bold text-gray-800 uppercase">
                                   {req.socialName || req.studentName}
                                 </span>
-                                {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && req.city && (
+                                {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && req.city && (
                                   <span className="text-xs text-blue-600 font-medium">
                                     {req.city}
                                   </span>
                                 )}
-                                {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                                {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                                   <span className="text-xs text-gray-500">
                                     {req.cpf}
                                   </span>
@@ -1388,7 +1388,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 )}
                               </div>
                             </td>
-                            {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
+                            {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {req.city || "-"}
                               </td>
