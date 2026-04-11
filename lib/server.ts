@@ -20,6 +20,7 @@ import blockedDatesHandler from './server-api/blocked-dates.js';
 import citiesHandler from './server-api/cities.js';
 import riskAreaHandler from './server-api/risk-area.js';
 import { db } from '../db/index.js';
+import { addClient } from './sse.js';
 
 export const app = express();
 
@@ -70,6 +71,16 @@ app.all('/api/users', wrap(usersHandler));
 app.all('/api/blocked-dates', wrap(blockedDatesHandler));
 app.all('/api/cities', wrap(citiesHandler));
 app.all('/api/risk-area', wrap(riskAreaHandler));
+
+// SSE Endpoint for real-time updates
+app.get('/api/events', (_req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders(); // flush the headers to establish SSE with client
+
+  addClient(res);
+});
 
 export async function setupVite() {
   if (process.env.NODE_ENV !== 'production') {

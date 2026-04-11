@@ -4,6 +4,7 @@ import { db } from '../../db/index.js';
 import { examSchedules, examRequests } from '../../db/schema.js';
 import { eq, and, desc, isNotNull } from 'drizzle-orm';
 import crypto from 'crypto';
+import { broadcast } from '../sse.js';
 
 const parseBody = (req: any) => typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
@@ -94,6 +95,7 @@ export default async function handler(req: any, res: any) {
         date: cleanDate // Salva apenas a data limpa
       }).returning();
       
+      broadcast('schedules_updated', newItem[0]);
       return res.status(200).json(newItem[0]);
     }
 
@@ -130,9 +132,14 @@ export default async function handler(req: any, res: any) {
              .where(eq(examRequests.scheduleId, id));
 
           if (!updated || updated.length === 0) {
-            return res.status(200).json({ id, status: 'CANCELLED', cancellationReason: reason });
+            const fallback = { id, status: 'CANCELLED', cancellationReason: reason };
+            broadcast('schedules_updated', fallback);
+            broadcast('requests_updated', { scheduleId: id, status: 'WAITING_SCHEDULING' }); // Signal requests changed
+            return res.status(200).json(fallback);
           }
 
+          broadcast('schedules_updated', updated[0]);
+          broadcast('requests_updated', { scheduleId: id, status: 'WAITING_SCHEDULING' }); // Signal requests changed
           return res.status(200).json(updated[0]);
         } catch (err: any) {
           console.error("[API/Schedules] Cancel Update Error:", err);
@@ -168,7 +175,9 @@ export default async function handler(req: any, res: any) {
           .returning();
         
         if (!updated || updated.length === 0) {
-          return res.status(200).json({ id, ...updates });
+          const fallback = { id, ...updates };
+          broadcast('schedules_updated', fallback);
+          return res.status(200).json(fallback);
         }
 
         const current = updated[0];
@@ -185,8 +194,10 @@ export default async function handler(req: any, res: any) {
            await db.update(examRequests)
               .set({ scheduledDate: updates.date, scheduledTime: updates.time })
               .where(eq(examRequests.scheduleId, id));
+           broadcast('requests_updated', { scheduleId: id });
         }
 
+        broadcast('schedules_updated', current);
         return res.status(200).json(current);
       } catch (err: any) {
         console.error("[API/Schedules] General Update Error:", err);
@@ -198,6 +209,7 @@ export default async function handler(req: any, res: any) {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'ID is required' });
       await db.delete(examSchedules).where(eq(examSchedules.id, id));
+      broadcast('schedules_updated', { id, deleted: true });
       return res.status(200).json({ success: true });
     }
   } catch (error) {

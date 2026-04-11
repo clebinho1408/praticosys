@@ -4,6 +4,7 @@ import { db } from '../../db/index.js';
 import { examRequests } from '../../db/schema.js';
 import { eq, like, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { broadcast } from '../sse.js';
 
 const parseBody = (req: any) => {
     try {
@@ -71,15 +72,17 @@ export default async function handler(req: any, res: any) {
       }).returning();
 
       if (!newItem || newItem.length === 0) {
-        // Fallback for mock mode or databases that don't support returning
-        return res.status(200).json({ 
+        const fallback = { 
           id: body.id || crypto.randomUUID(), 
           ...body,
           createdAt: body.createdAt || new Date().toISOString(),
           updatedAt: new Date().toISOString()
-        });
+        };
+        broadcast('requests_updated', fallback);
+        return res.status(200).json(fallback);
       }
 
+      broadcast('requests_updated', newItem[0]);
       return res.status(200).json(newItem[0]);
     }
 
@@ -127,9 +130,12 @@ export default async function handler(req: any, res: any) {
         if (!updated || updated.length === 0) {
           // Fallback for mock mode or databases that don't support returning
           // We try to return the updates object at least
-          return res.status(200).json({ id, ...updates, updatedAt: new Date().toISOString() });
+          const fallback = { id, ...updates, updatedAt: new Date().toISOString() };
+          broadcast('requests_updated', fallback);
+          return res.status(200).json(fallback);
         }
 
+        broadcast('requests_updated', updated[0]);
         return res.status(200).json(updated[0]);
       } catch (err: any) {
         console.error("[API/Requests] Update Error:", err);
@@ -141,6 +147,7 @@ export default async function handler(req: any, res: any) {
       const { id } = req.query;
       if (!id) return res.status(400).json({ error: 'ID is required' });
       await db.delete(examRequests).where(eq(examRequests.id, id));
+      broadcast('requests_updated', { id, deleted: true });
       return res.status(200).json({ success: true });
     }
     

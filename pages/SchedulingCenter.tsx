@@ -185,6 +185,22 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
 
   useEffect(() => { refreshData(); }, [type]);
 
+  useEffect(() => {
+    const eventSource = new EventSource('/api/events');
+
+    eventSource.addEventListener('requests_updated', () => {
+      refreshData(true);
+    });
+
+    eventSource.addEventListener('schedules_updated', () => {
+      refreshData(true);
+    });
+
+    return () => {
+      eventSource.close();
+    };
+  }, [type]);
+
   const injectEmojis = (text: string) => {
     const emojiMap: Record<string, string> = {
       '[WAVE]': '\uD83D\uDC4B',       // 👋

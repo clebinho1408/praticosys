@@ -203,6 +203,22 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   }, [user, typeFilter]);
 
   useEffect(() => {
+    const eventSource = new EventSource('/api/events');
+
+    eventSource.addEventListener('requests_updated', () => {
+      fetchRequests(true);
+    });
+
+    eventSource.addEventListener('schedules_updated', () => {
+      fetchRequests(true);
+    });
+
+    return () => {
+      eventSource.close();
+    };
+  }, [user, typeFilter]);
+
+  useEffect(() => {
     if (isModalOpen) {
       api.getInstructorsAsync().then(setInstructors);
     }
@@ -1192,7 +1208,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         </div>
 
                         <div className="text-[10px] text-gray-500 bg-gray-50 p-2 rounded mb-3">
-                          {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                          {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                             <div className="flex justify-between">
                               <span>
                                 Instr:{" "}
@@ -1209,23 +1225,30 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             </div>
                           )}
                           <div className="flex justify-between mt-1">
-                            <span>
-                              Data: {new Date(req.createdAt).toLocaleDateString()}
-                            </span>
+                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                              <span>
+                                Data: {new Date(req.createdAt).toLocaleDateString()}
+                              </span>
+                            )}
                             {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR ? (
                               <>
                                 <span>CPF: {req.cpf}</span>
                                 <span>Cidade: {req.city || "-"}</span>
                               </>
-                            ) : (
+                            ) : !(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) ? (
                               <span>
                                 Tentativas:{" "}
                                 {req.examHistory?.filter(
                                   (h) => h.result === "INAPTO",
                                 ).length || 0}
                               </span>
-                            )}
+                            ) : null}
                           </div>
+                          {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
+                            <div className="mt-1 font-bold text-red-600">
+                              Prova: {schedules.find(s => s.id === req.scheduleId)?.code || "-"} - {req.scheduledDate ? new Date(req.scheduledDate).toLocaleDateString() : "-"} às {req.scheduledTime || "-"}
+                            </div>
+                          )}
                           {req.result && req.status === ExamStatus.DONE && (
                             <div className="mt-2">
                               <ResultBadge
@@ -1262,9 +1285,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               Posição
                             </th>
                           )}
-                          <th className="px-6 py-3 font-bold text-xs uppercase">
-                            Data Cadastro
-                          </th>
+                          {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase">
+                              Data Cadastro
+                            </th>
+                          )}
                           {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               CPF
@@ -1281,7 +1306,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           <th className="px-6 py-3 font-bold text-xs uppercase">
                             Categoria
                           </th>
-                          {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                          {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase">
+                              Dados da Prova
+                            </th>
+                          )}
+                          {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               Histórico
                             </th>
@@ -1305,17 +1335,19 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {getGlobalPosition(req.id)}
                               </td>
                             )}
-                            <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                              {new Date(req.createdAt).toLocaleString()}
-                              {req.result && req.status === ExamStatus.DONE && (
-                                <div className="mt-1">
-                                  <ResultBadge
-                                    result={req.result as any}
-                                    status={req.status}
-                                  />
-                                </div>
-                              )}
-                            </td>
+                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                              <td className="px-6 py-4 align-middle text-xs text-gray-500">
+                                {new Date(req.createdAt).toLocaleString()}
+                                {req.result && req.status === ExamStatus.DONE && (
+                                  <div className="mt-1">
+                                    <ResultBadge
+                                      result={req.result as any}
+                                      status={req.status}
+                                    />
+                                  </div>
+                                )}
+                              </td>
+                            )}
                             {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {req.cpf}
@@ -1336,7 +1368,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                     {req.cpf}
                                   </span>
                                 )}
-                                {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                                {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                                   <span className="text-[10px] text-gray-400 mt-0.5">
                                     Instr: {req.instructor || "-"} | Placa:{" "}
                                     {req.vehiclePlate || "-"}
@@ -1354,7 +1386,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {req.intendedCategory}
                               </span>
                             </td>
-                            {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                            {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
+                              <td className="px-6 py-4 align-middle text-xs font-bold text-red-600">
+                                {schedules.find(s => s.id === req.scheduleId)?.code || "-"} - {req.scheduledDate ? new Date(req.scheduledDate).toLocaleDateString() : "-"} às {req.scheduledTime || "-"}
+                              </td>
+                            )}
+                            {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {req.examHistory?.filter(
                                   (h) => h.result === "INAPTO",
