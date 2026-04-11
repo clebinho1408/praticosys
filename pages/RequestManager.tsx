@@ -205,7 +205,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   useEffect(() => {
     const eventSource = new EventSource('/api/events');
 
-    eventSource.addEventListener('requests_updated', () => {
+    eventSource.addEventListener('requests_updated', (event) => {
+      const data = JSON.parse(event.data);
+      if (user.role === UserRole.INSTRUCTOR && data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed) {
+        const audio = new Audio('/notification.mp3');
+        audio.play().catch(e => console.error("Audio play failed", e));
+        alert("Novo candidato aguardando confirmação para a prova!");
+      }
       fetchRequests(true);
     });
 
@@ -422,7 +428,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const handleCancelAttendance = async (id: string) => {
     if (
       !window.confirm(
-        "Tem certeza que deseja cancelar a presença deste candidato? Ele será removido da banca e voltará para a fila de agendamento.",
+        "Tem certeza que deseja cancelar a presença deste candidato? Ele será removido da banca e voltará para o final da fila de agendamento.",
       )
     )
       return;
@@ -431,7 +437,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       status: ExamStatus.WAITING_SCHEDULING,
       scheduleId: null,
       scheduledCategory: null,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(), // Move to end of queue
       updatedAt: new Date().toISOString()
     });
     fetchRequests(true);
@@ -513,7 +519,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               </button>
             )}
 
-            {req.status === ExamStatus.SCHEDULED && (
+            {req.status === ExamStatus.SCHEDULED && user.role !== UserRole.INSTRUCTOR && (
               <button
                 onClick={() =>
                   handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)
