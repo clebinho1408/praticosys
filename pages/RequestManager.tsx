@@ -447,7 +447,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const handleUpdateStatus = async (id: string, status: ExamStatus) => {
     if (!window.confirm("Tem certeza que deseja alterar o status?")) return;
-    await api.updateRequest(id, { status });
+    
+    const updates: any = { status };
+    if (status === ExamStatus.WAITING_SCHEDULING) {
+      updates.createdAt = new Date().toISOString(); // Move to end of queue
+    }
+    
+    await api.updateRequest(id, updates);
     fetchRequests(true);
   };
 
@@ -639,6 +645,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       // updates.scheduledDate = null;
       // updates.scheduledTime = null;
       updates.attendanceConfirmed = false;
+      updates.createdAt = new Date().toISOString(); // Move to end of queue
     }
 
     await api.updateRequest(editingRequest.id, updates);
@@ -997,6 +1004,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ),
   };
 
+  // Sort filtered requests for WAITING_SCHEDULING by position
+  const sortedWaitingScheduling = useMemo(() => {
+    return [...groupedRequests[ExamStatus.WAITING_SCHEDULING]].sort((a, b) => {
+      const posA = globalQueue.findIndex(r => r.id === a.id);
+      const posB = globalQueue.findIndex(r => r.id === b.id);
+      return posA - posB;
+    });
+  }, [groupedRequests, globalQueue]);
+
   // Determine visible statuses based on filter
   const allStatuses = [
     ExamStatus.IN_ANALYSIS,
@@ -1117,7 +1133,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       {/* Grupos Expansíveis (Acordeões) */}
       <div className="space-y-4">
         {visibleStatuses.map((status) => {
-          const items = (groupedRequests as any)[status];
+          const items = status === ExamStatus.WAITING_SCHEDULING ? sortedWaitingScheduling : (groupedRequests as any)[status];
           const config = (groupConfig as any)[status];
           const isExpanded = expandedGroups[status];
           const Icon = config.icon;

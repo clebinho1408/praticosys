@@ -93,7 +93,7 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'ID is required for update' });
       }
 
-      const { id, createdAt, updatedAt, ...updates } = body;
+      const { id, updatedAt, ...updates } = body;
       
       // Prevent nulling out required fields on Vercel
       if (updates.studentName === null || updates.studentName === '') updates.studentName = 'Vaga Disponível';
@@ -109,13 +109,17 @@ export default async function handler(req: any, res: any) {
         'cnhRestriction', 'instructor', 'vehiclePlate', 'disabilityType',
         'specialNeeds', 'status', 'result', 'scheduleId', 'scheduledDate',
         'scheduledTime', 'scheduledCategory', 'examinerId', 'attendanceConfirmed',
-        'cancellationReason', 'observation', 'examHistory'
+        'cancellationReason', 'observation', 'examHistory', 'createdAt'
       ];
 
       const filteredUpdates: any = {};
       for (const key of allowedFields) {
         if (updates[key] !== undefined) {
-          filteredUpdates[key] = updates[key];
+          if (key === 'createdAt') {
+            filteredUpdates[key] = new Date(updates[key]);
+          } else {
+            filteredUpdates[key] = updates[key];
+          }
         }
       }
 
