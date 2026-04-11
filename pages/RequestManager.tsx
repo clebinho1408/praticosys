@@ -1248,7 +1248,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           </div>
                           {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
                             <div className="mt-1 font-bold text-red-600">
-                              Prova: {schedules.find(s => s.id === req.scheduleId)?.code || "-"} - Categoria {req.scheduledCategory || req.intendedCategory} - {req.scheduledDate ? new Date(req.scheduledDate).toLocaleDateString() : "-"} às {req.scheduledTime || "-"}
+                              {(() => {
+                                const schedule = schedules.find(s => s.id === req.scheduleId);
+                                const dateStr = schedule?.date || req.scheduledDate;
+                                const timeStr = schedule?.time || req.scheduledTime;
+                                const codeStr = schedule?.code || "-";
+                                const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                
+                                return `Prova: ${codeStr} - Categoria ${req.scheduledCategory || req.intendedCategory} - ${formattedDate} às ${timeStr || "-"}`;
+                              })()}
                             </div>
                           )}
                           {req.result && req.status === ExamStatus.DONE && (
@@ -1394,7 +1402,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
                               <td className="px-6 py-4 align-middle text-xs font-bold text-red-600">
-                                {schedules.find(s => s.id === req.scheduleId)?.code || "-"} - Categoria {req.scheduledCategory || req.intendedCategory} - {req.scheduledDate ? new Date(req.scheduledDate).toLocaleDateString() : "-"} às {req.scheduledTime || "-"}
+                                {(() => {
+                                  const schedule = schedules.find(s => s.id === req.scheduleId);
+                                  const dateStr = schedule?.date || req.scheduledDate;
+                                  const timeStr = schedule?.time || req.scheduledTime;
+                                  const codeStr = schedule?.code || "-";
+                                  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                  
+                                  return `${codeStr} - Categoria ${req.scheduledCategory || req.intendedCategory} - ${formattedDate} às ${timeStr || "-"}`;
+                                })()}
                               </td>
                             )}
                             {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
