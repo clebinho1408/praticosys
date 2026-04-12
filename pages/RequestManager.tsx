@@ -974,7 +974,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const getGlobalPosition = (id: string) => {
     const index = globalQueue.findIndex((r) => r.id === id);
-    return index !== -1 ? `${index + 1}º` : "-";
+    return index !== -1 ? `${index + 1}` : "-";
   };
 
   const filteredRequests = requests.filter(
@@ -1081,26 +1081,37 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Header and filters */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        {/* Filters (Left Side) */}
-        <div className="flex gap-3 w-full md:w-auto items-center">
-          <div className="relative w-full md:w-80">
+      {user.role === UserRole.INSTRUCTOR ? (
+        <div className="flex flex-col gap-4">
+          {/* Action Button (Top Centered) */}
+          <div className="w-full flex justify-center">
+            <button
+              onClick={() => openCreateModal()}
+              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center gap-2 font-bold shadow-sm transition-colors w-full justify-center"
+            >
+              <Plus className="h-5 w-5" /> NOVO CANDIDATO
+            </button>
+          </div>
+
+          {/* Search Filter */}
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar por nome ou CPF..."
-              className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
+              className="w-full pl-10 pr-4 py-3 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          <div className="relative w-full md:w-72">
+          {/* Status Filter */}
+          <div className="relative w-full">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <Filter className="h-4 w-4 text-gray-400" />
             </div>
             <select
-              className="w-full pl-10 pr-10 py-2 border rounded-md text-sm bg-white text-gray-900 appearance-none focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer shadow-sm"
+              className="w-full pl-10 pr-10 py-3 border rounded-md text-sm bg-white text-gray-900 appearance-none focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer shadow-sm"
               value={statusFilter}
               onChange={(e) => handleStatusFilterChange(e.target.value)}
             >
@@ -1112,11 +1123,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 Aguardando Agendamento
               </option>
               <option value={ExamStatus.SCHEDULED}>Agendado</option>
-              {user.role !== UserRole.INSTRUCTOR && (
-                <option value={ExamStatus.WAITING_RESULT}>
-                  Aguardando Resultado
-                </option>
-              )}
               <option value={ExamStatus.DONE}>Realizado</option>
               <option value={ExamStatus.CANCELLED}>Cancelado</option>
             </select>
@@ -1125,17 +1131,61 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             </div>
           </div>
         </div>
+      ) : (
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          {/* Filters (Left Side) */}
+          <div className="flex gap-3 w-full md:w-auto items-center">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por nome ou CPF..."
+                className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-        {/* Action Button (Right Side) */}
-        <div className="w-full md:w-auto flex justify-end">
-          <button
-            onClick={() => openCreateModal()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
-          >
-            <Plus className="h-4 w-4" /> Novo Candidato
-          </button>
+            <div className="relative w-full md:w-72">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <Filter className="h-4 w-4 text-gray-400" />
+              </div>
+              <select
+                className="w-full pl-10 pr-10 py-2 border rounded-md text-sm bg-white text-gray-900 appearance-none focus:ring-2 focus:ring-blue-500 focus:outline-none cursor-pointer shadow-sm"
+                value={statusFilter}
+                onChange={(e) => handleStatusFilterChange(e.target.value)}
+              >
+                <option value="ALL">Todos os Status</option>
+                <option value={ExamStatus.IN_ANALYSIS}>
+                  Cadastros em Análise
+                </option>
+                <option value={ExamStatus.WAITING_SCHEDULING}>
+                  Aguardando Agendamento
+                </option>
+                <option value={ExamStatus.SCHEDULED}>Agendado</option>
+                <option value={ExamStatus.WAITING_RESULT}>
+                  Aguardando Resultado
+                </option>
+                <option value={ExamStatus.DONE}>Realizado</option>
+                <option value={ExamStatus.CANCELLED}>Cancelado</option>
+              </select>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                <ChevronDown className="h-4 w-4 text-gray-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Action Button (Right Side) */}
+          <div className="w-full md:w-auto flex justify-end">
+            <button
+              onClick={() => openCreateModal()}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
+            >
+              <Plus className="h-4 w-4" /> Novo Candidato
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Grupos Expansíveis (Acordeões) */}
       <div className="space-y-4">
@@ -1244,7 +1294,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                     const timeStr = schedule?.time || req.scheduledTime;
                                     const codeStr = schedule?.code || "-";
                                     const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
-                                    return `${codeStr} - Categoria ${req.scheduledCategory || req.intendedCategory} - ${formattedDate} às ${timeStr || "-"}`;
+                                    return `${codeStr} - ${formattedDate} às ${timeStr || "-"}`;
                                   })()}
                                 </span>
                               </div>
