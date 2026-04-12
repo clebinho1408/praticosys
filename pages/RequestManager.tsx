@@ -1015,8 +1015,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ),
     [ExamStatus.SCHEDULED]: filteredRequests.filter(
       (r) =>
-        r.status === ExamStatus.SCHEDULED &&
-        (user.role !== UserRole.INSTRUCTOR || r.attendanceConfirmed),
+        (r.status === ExamStatus.SCHEDULED &&
+        (user.role !== UserRole.INSTRUCTOR || r.attendanceConfirmed)) ||
+        (user.role === UserRole.INSTRUCTOR && r.status === ExamStatus.WAITING_RESULT),
     ),
     [ExamStatus.WAITING_RESULT]: filteredRequests.filter(
       (r) => r.status === ExamStatus.WAITING_RESULT,
@@ -1050,6 +1051,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   ].filter((s) => {
     if (user.role === UserRole.INSTRUCTOR && s === ExamStatus.WAITING_RESULT)
       return false;
+    if (user.role === UserRole.INSTRUCTOR && s === ExamStatus.CANCELLED)
+      return false;
     return true;
   });
 
@@ -1057,7 +1060,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const groupConfig = {
     [ExamStatus.IN_ANALYSIS]: {
-      label: "Cadastros em Análise",
+      label: user.role === UserRole.INSTRUCTOR ? "Pedidos de Agendamentos" : "Cadastros em Análise",
       color: "indigo",
       icon: AlertCircle,
     },
@@ -1135,14 +1138,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             >
               <option value="ALL">Todos os Status</option>
               <option value={ExamStatus.IN_ANALYSIS}>
-                Cadastros em Análise
+                {user.role === UserRole.INSTRUCTOR ? "Pedidos de Agendamentos" : "Cadastros em Análise"}
               </option>
               <option value={ExamStatus.WAITING_SCHEDULING}>
                 Aguardando Agendamento
               </option>
               <option value={ExamStatus.SCHEDULED}>Agendado</option>
               <option value={ExamStatus.DONE}>Realizado</option>
-              <option value={ExamStatus.CANCELLED}>Cancelado</option>
+              {user.role !== UserRole.INSTRUCTOR && (
+                <option value={ExamStatus.CANCELLED}>Cancelado</option>
+              )}
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -1175,17 +1180,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 <option value="ALL">Todos os Status</option>
                 <option value={ExamStatus.IN_ANALYSIS}>
-                  Cadastros em Análise
+                  {user.role === UserRole.INSTRUCTOR ? "Pedidos de Agendamentos" : "Cadastros em Análise"}
                 </option>
                 <option value={ExamStatus.WAITING_SCHEDULING}>
                   Aguardando Agendamento
                 </option>
                 <option value={ExamStatus.SCHEDULED}>Agendado</option>
-                <option value={ExamStatus.WAITING_RESULT}>
-                  Aguardando Resultado
-                </option>
+                {user.role !== UserRole.INSTRUCTOR && (
+                  <option value={ExamStatus.WAITING_RESULT}>
+                    Aguardando Resultado
+                  </option>
+                )}
                 <option value={ExamStatus.DONE}>Realizado</option>
-                <option value={ExamStatus.CANCELLED}>Cancelado</option>
+                {user.role !== UserRole.INSTRUCTOR && (
+                  <option value={ExamStatus.CANCELLED}>Cancelado</option>
+                )}
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -1327,7 +1336,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               </div>
                             )}
 
-                            {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED) && req.cnhRestriction && (
+                            {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_SCHEDULING) && req.cnhRestriction && (
                               <div 
                                 className="mt-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded cursor-pointer inline-block shadow-sm"
                                 onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
@@ -1855,7 +1864,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Categoria Pretendida{" "}
+                          {user.role === UserRole.INSTRUCTOR ? "Agendar prova de" : "Categoria Pretendida"}{" "}
                           <span className="text-red-500">*</span>
                         </label>
                         <select
