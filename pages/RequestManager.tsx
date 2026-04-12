@@ -136,6 +136,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [errorMessage, setErrorMessage] = useState("");
   const [errorField, setErrorField] = useState<string | null>(null);
   const [isABConfirmationOpen, setIsABConfirmationOpen] = useState(false);
+  const [checkedRequests, setCheckedRequests] = useState<Set<string>>(new Set());
+  const [isRejectionModalOpen, setIsRejectionModalOpen] = useState(false);
+  const [rejectionData, setRejectionData] = useState<{ requestId: string; reason: string }>({ requestId: '', reason: '' });
   const [editingRequest, setEditingRequest] = useState<ExamRequest | null>(
     null,
   );
@@ -484,16 +487,35 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   };
 
   const renderActions = (req: ExamRequest, statusGroup: string) => {
+    const isAnalysis = req.status === ExamStatus.IN_ANALYSIS;
+    const isAdminOpSup = user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR;
+
     return (
       <div className={`flex items-center space-x-2 ${user.role === UserRole.INSTRUCTOR ? 'w-full' : 'justify-end'}`}>
         {user.role !== UserRole.INSTRUCTOR && (
-          <button
-            onClick={() => openCreateModal(req)}
-            className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500"
-            title="Editar"
-          >
-            <Edit className="h-4 w-4" />
-          </button>
+          isAnalysis && isAdminOpSup ? (
+            <button
+              onClick={() => {
+                openCreateModal(req);
+                setCheckedRequests(prev => {
+                  const next = new Set(prev);
+                  next.add(req.id);
+                  return next;
+                });
+              }}
+              className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 transition-colors"
+            >
+              Conferir
+            </button>
+          ) : (
+            <button
+              onClick={() => openCreateModal(req)}
+              className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500"
+              title="Editar"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+          )
         )}
 
         {statusGroup === "WAITING_CONFIRMATION" &&
@@ -516,23 +538,24 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             </div>
           )}
 
-        {req.status === ExamStatus.IN_ANALYSIS &&
-          (user.role === UserRole.ADMIN ||
-            user.role === UserRole.OPERATOR ||
-            user.role === UserRole.SUPERVISOR) && (
+        {isAnalysis && isAdminOpSup && (
             <>
               <button
+                disabled={!checkedRequests.has(req.id)}
                 onClick={() =>
                   handleUpdateStatus(req.id, ExamStatus.WAITING_SCHEDULING)
                 }
-                className="p-1.5 border border-green-200 rounded hover:bg-green-50 text-green-600"
+                className={`p-1.5 border rounded transition-colors ${checkedRequests.has(req.id) ? 'border-green-200 hover:bg-green-50 text-green-600' : 'border-gray-100 text-gray-300 cursor-not-allowed'}`}
                 title="Aprovar"
               >
                 <Check className="h-4 w-4" />
               </button>
               <button
-                onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)}
-                className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
+                disabled={!checkedRequests.has(req.id)}
+                onClick={() =>
+                  handleOpenRejectionModal(req.id)
+                }
+                className={`p-1.5 border rounded transition-colors ${checkedRequests.has(req.id) ? 'border-red-200 hover:bg-red-50 text-red-600' : 'border-gray-100 text-gray-300 cursor-not-allowed'}`}
                 title="Recusar"
               >
                 <Ban className="h-4 w-4" />
@@ -584,7 +607,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               </button>
             )}
 
-            {user.role === UserRole.ADMIN && (
+            {user.role === UserRole.ADMIN && !isAnalysis && (
               <button
                 onClick={() => handleDeleteRequest(req.id)}
                 className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
@@ -597,6 +620,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         )}
       </div>
     );
+  };
+
+  const handleOpenRejectionModal = (requestId: string) => {
+    setRejectionData({ requestId, reason: '' });
+    setIsRejectionModalOpen(true);
+  };
+
+  const handleSubmitRejection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectionData.reason.trim()) {
+      alert("Por favor, informe o motivo da recusa.");
+      return;
+    }
+    
+    await api.updateRequest(rejectionData.requestId, { 
+      status: ExamStatus.CANCELLED,
+      cancellationReason: rejectionData.reason 
+    });
+    
+    setIsRejectionModalOpen(false);
+    fetchRequests(true);
   };
 
   const handleDeleteRequest = async (id: string) => {
@@ -2568,6 +2612,49 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 Entendi
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Modal */}
+      {isRejectionModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative">
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 p-3 rounded-full bg-red-50">
+                <Ban className="h-10 w-10 text-red-500" />
+              </div>
+
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Recusar Candidato</h3>
+              <div className="text-gray-600 mb-6">Informe o motivo pelo qual este cadastro está sendo recusado.</div>
+
+              <form onSubmit={handleSubmitRejection} className="w-full space-y-4">
+                <textarea
+                  required
+                  className="w-full border rounded-lg p-3 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+                  rows={4}
+                  placeholder="Ex: Documentação incompleta, foto ilegível..."
+                  value={rejectionData.reason}
+                  onChange={(e) => setRejectionData({ ...rejectionData, reason: e.target.value })}
+                ></textarea>
+
+                <div className="flex gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setIsRejectionModalOpen(false)}
+                    className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 font-bold rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 px-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    Confirmar Recusa
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
