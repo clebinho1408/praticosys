@@ -13,6 +13,7 @@ import {
   Examiner,
   ExamSchedule,
   City,
+  SystemSettings,
 } from "../types";
 import { NotificationModal } from "../components/NotificationModal";
 import {
@@ -106,6 +107,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [cities, setCities] = useState<City[]>([]);
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -146,6 +148,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     onConfirm: () => void;
     type: 'confirm' | 'cancel';
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'confirm' });
+  const [restrictionModalData, setRestrictionModalData] = useState<{ isOpen: boolean; restrictions: string }>({ isOpen: false, restrictions: "" });
 
   // Form State
   const [formData, setFormData] = useState<Partial<ExamRequest>>({});
@@ -160,18 +163,20 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const fetchRequests = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [data, instructorsData, examinersData, schedulesData, citiesData] =
+      const [data, instructorsData, examinersData, schedulesData, citiesData, settingsData] =
         await Promise.all([
           api.getRequests(),
           api.getInstructorsAsync(),
           api.getExaminersAsync(),
           api.getSchedules(),
           api.getCities(),
+          api.getSettings(),
         ]);
       setInstructors(instructorsData);
       setExaminers(examinersData);
       setSchedules(schedulesData);
       setCities(citiesData);
+      setSettings(settingsData);
       setAllGlobalRequests(data);
       let filtered = data;
 
@@ -1290,7 +1295,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             <div className="text-sm text-gray-700">
                               Categoria: <span className="text-red-600 font-bold">{req.intendedCategory}</span>
-                              {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE) && (
+                              {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE || status === ExamStatus.WAITING_SCHEDULING) && (
                                 <span>
                                   {" - Histórico: "}
                                   <span className="text-red-600 font-bold">
@@ -1309,16 +1314,25 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
                             {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE) && (
                               <div className="text-sm text-gray-700 mt-1">
-                                Dados da Prova: <span className="text-red-600 font-bold">
+                                Dados da Prova:
+                                <div className="text-red-600 font-bold">
                                   {(() => {
                                     const schedule = schedules.find(s => s.id === req.scheduleId);
                                     const dateStr = schedule?.date || req.scheduledDate;
                                     const timeStr = schedule?.time || req.scheduledTime;
-                                    const codeStr = schedule?.code || "-";
                                     const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
-                                    return `${codeStr} - ${formattedDate} às ${timeStr || "-"}`;
+                                    return `${formattedDate} às ${timeStr || "-"}`;
                                   })()}
-                                </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED) && req.cnhRestriction && (
+                              <div 
+                                className="mt-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded cursor-pointer inline-block shadow-sm"
+                                onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
+                              >
+                                Restrição CNH: {req.cnhRestriction}
                               </div>
                             )}
 
@@ -1626,6 +1640,50 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         </div>
       )}
 
+      {/* Restriction Modal */}
+      {restrictionModalData.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm flex flex-col overflow-hidden animate-fadeIn">
+            <div className="p-4 border-b flex justify-between items-center bg-yellow-50">
+              <h3 className="text-lg font-bold text-yellow-800">
+                Restrições CNH
+              </h3>
+              <button
+                onClick={() => setRestrictionModalData({ isOpen: false, restrictions: "" })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 text-gray-700 text-sm">
+              <p className="mb-4">O candidato possui as seguintes restrições médicas registradas:</p>
+              <div className="font-bold text-lg text-center text-yellow-700 bg-yellow-100 py-3 rounded-lg mb-4">
+                {restrictionModalData.restrictions}
+              </div>
+              <div className="space-y-2 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                {restrictionModalData.restrictions.split(', ').map(letter => {
+                  const restriction = settings?.restrictions?.find(r => r.code === letter);
+                  return (
+                    <div key={letter} className="flex gap-2 text-sm">
+                      <span className="font-bold text-yellow-800 min-w-[20px]">{letter}:</span>
+                      <span className="text-gray-700">{restriction ? restriction.description : "Significado não cadastrado"}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-center">
+              <button
+                onClick={() => setRestrictionModalData({ isOpen: false, restrictions: "" })}
+                className="py-2.5 px-6 bg-yellow-500 hover:bg-yellow-600 rounded-lg text-white font-bold transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center md:p-4">
@@ -1711,22 +1769,24 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           }}
                         />
                       </div>
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Nome Social
-                        </label>
-                        <input
-                          id="socialName"
-                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-                          value={formData.socialName || ""}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              socialName: e.target.value,
-                            })
-                          }
-                        />
-                      </div>
+                      {user.role !== UserRole.INSTRUCTOR && (
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nome Social
+                          </label>
+                          <input
+                            id="socialName"
+                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                            value={formData.socialName || ""}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                socialName: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      )}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Telefone <span className="text-red-500">*</span>
@@ -1858,32 +1918,54 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           }}
                         >
                           <option value="">Selecione...</option>
-                          <option value="A">A (Moto)</option>
-                          <option value="B">B (Carro)</option>
-                          <option value="AB">AB (Carro e Moto)</option>
+                          {(() => {
+                            if (user.role === UserRole.INSTRUCTOR && user.instructorId) {
+                              const myInstructor = instructors.find(i => i.id === user.instructorId);
+                              if (myInstructor) {
+                                const hasMoto = myInstructor.vehicles?.some(v => v.type === "MOTO" && v.active) || myInstructor.category?.includes("A");
+                                const hasCar = myInstructor.vehicles?.some(v => v.type === "CAR" && v.active) || myInstructor.category?.includes("B");
+                                
+                                const options = [];
+                                if (hasMoto) options.push(<option key="A" value="A">A (Moto)</option>);
+                                if (hasCar) options.push(<option key="B" value="B">B (Carro)</option>);
+                                if (hasMoto && hasCar) options.push(<option key="AB" value="AB">AB (Carro e Moto)</option>);
+                                
+                                if (options.length > 0) return options;
+                              }
+                            }
+                            return (
+                              <>
+                                <option value="A">A (Moto)</option>
+                                <option value="B">B (Carro)</option>
+                                <option value="AB">AB (Carro e Moto)</option>
+                              </>
+                            );
+                          })()}
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Restrição CNH
-                        </label>
-                        <input
-                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-                          value={formData.cnhRestriction || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            const letters = val
-                              .replace(/[^a-zA-Z]/g, "")
-                              .toUpperCase();
-                            const formatted = letters.split("").join(", ");
-                            setFormData({
-                              ...formData,
-                              cnhRestriction: formatted,
-                            });
-                          }}
-                          placeholder="Ex: A, G..."
-                        />
-                      </div>
+                      {user.role !== UserRole.INSTRUCTOR && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Restrição CNH
+                          </label>
+                          <input
+                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                            value={formData.cnhRestriction || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const letters = val
+                                .replace(/[^a-zA-Z]/g, "")
+                                .toUpperCase();
+                              const formatted = letters.split("").join(", ");
+                              setFormData({
+                                ...formData,
+                                cnhRestriction: formatted,
+                              });
+                            }}
+                            placeholder="Ex: A, G..."
+                          />
+                        </div>
+                      )}
                     </div>
 
                     {(formData.intendedCategory === "A" ||
