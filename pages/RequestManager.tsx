@@ -996,6 +996,63 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     return index !== -1 ? `${index + 1}` : "-";
   };
 
+  const renderInstructorDetails = (req: ExamRequest) => {
+    if (!req.instructor || !req.vehiclePlate) return null;
+
+    const allVehicles = instructors.flatMap(i => i.vehicles || []);
+    
+    const findVehicle = (plate: string) => {
+      if (!plate || plate === "A DEFINIR") return null;
+      const cleanPlate = plate.replace(/[^A-Z0-9]/g, "");
+      return allVehicles.find(v => v.plate.replace(/[^A-Z0-9]/g, "") === cleanPlate);
+    };
+
+    if (req.intendedCategory === "AB") {
+      const plates = req.vehiclePlate.split(" / ");
+      const motoPlate = plates[0]?.replace("Moto: ", "");
+      const carroPlate = plates[1]?.replace("Carro: ", "");
+      
+      const moto = findVehicle(motoPlate);
+      const carro = findVehicle(carroPlate);
+
+      return (
+        <div className="flex flex-col gap-1 mt-1">
+          <div className="border-l-2 border-blue-200 pl-2">
+            <div className="font-bold text-gray-800 text-[10px]">{req.instructor.split(" / ")[0]}</div>
+            <div className="text-[9px] text-gray-500">
+              Transmissão: {moto?.transmission === 'AUTOMATICA' ? 'Automática' : moto?.transmission === 'MANUAL' ? 'Manual' : '-'}
+            </div>
+            <div className="text-[9px] text-gray-500">
+              Modelo: {moto?.model || '-'} Placa: {motoPlate || '-'}
+            </div>
+          </div>
+          <div className="border-l-2 border-green-200 pl-2">
+            <div className="font-bold text-gray-800 text-[10px]">{req.instructor.split(" / ")[1]}</div>
+            <div className="text-[9px] text-gray-500">
+              Transmissão: {carro?.transmission === 'AUTOMATICA' ? 'Automática' : carro?.transmission === 'MANUAL' ? 'Manual' : '-'}
+            </div>
+            <div className="text-[9px] text-gray-500">
+              Modelo: {carro?.model || '-'} Placa: {carroPlate || '-'}
+            </div>
+          </div>
+        </div>
+      );
+    } else {
+      const vehicle = findVehicle(req.vehiclePlate);
+      return (
+        <div className="flex flex-col mt-1">
+          <span className="font-bold text-gray-800">{req.instructor}</span>
+          <span className="text-[10px] text-gray-500">
+            Transmissão: {vehicle?.transmission === 'AUTOMATICA' ? 'Automática' : vehicle?.transmission === 'MANUAL' ? 'Manual' : '-'}
+          </span>
+          <span className="text-[10px] text-gray-500">
+            Modelo: {vehicle?.model || '-'} Placa: {req.vehiclePlate}
+          </span>
+        </div>
+      );
+    }
+  };
+
   const filteredRequests = requests.filter(
     (r) =>
       (r.socialName || r.studentName)
@@ -1429,20 +1486,24 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           </div>
 
                           <div className="text-[10px] text-gray-500 bg-gray-50 p-2.5 rounded-lg mb-3">
-                            <div className="flex justify-between">
-                              <span>
-                                Instr:{" "}
-                                <span className="font-medium text-gray-700">
-                                  {req.instructor || "-"}
+                            {status === ExamStatus.IN_ANALYSIS ? (
+                              renderInstructorDetails(req)
+                            ) : (
+                              <div className="flex justify-between">
+                                <span>
+                                  Instr:{" "}
+                                  <span className="font-medium text-gray-700">
+                                    {req.instructor || "-"}
+                                  </span>
                                 </span>
-                              </span>
-                              <span>
-                                Placa:{" "}
-                                <span className="font-medium text-gray-700">
-                                  {req.vehiclePlate || "-"}
+                                <span>
+                                  Placa:{" "}
+                                  <span className="font-medium text-gray-700">
+                                    {req.vehiclePlate || "-"}
+                                  </span>
                                 </span>
-                              </span>
-                            </div>
+                              </div>
+                            )}
                             <div className="flex justify-between mt-1">
                               <span>
                                 {status === ExamStatus.IN_ANALYSIS ? "Cadastrado em:" : "Data:"} {new Date(req.createdAt).toLocaleDateString()}
@@ -1626,12 +1687,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {status === ExamStatus.IN_ANALYSIS ? (
-                                  <div className="flex flex-col">
-                                    <span className="font-bold text-gray-800">{req.instructor || "-"}</span>
-                                    <span className="text-[10px] text-gray-500">
-                                      {req.vehiclePlate ? `Veículo/Placa: ${req.vehiclePlate}` : "-"}
-                                    </span>
-                                  </div>
+                                  renderInstructorDetails(req)
                                 ) : (
                                   <>
                                     {req.examHistory?.filter(
