@@ -830,6 +830,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         )
       : [];
 
+    const selectedVehicle = availableVehicles.find(v => v.plate === currentPlate);
+    const isAdminOpSup = user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR;
+
     return (
       <div className={`p-4 rounded-lg border ${colorClass}`}>
         <h4
@@ -847,7 +850,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               id={`instructor_${categoryCode}`}
               className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
               value={currentInstructorName}
-              disabled={user.role === UserRole.INSTRUCTOR}
+              disabled={user.role === UserRole.INSTRUCTOR || (!!editingRequest && isAdminOpSup)}
               onChange={(e) => {
                 const newName = e.target.value;
                 let newPlate = "";
@@ -923,8 +926,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               Veículo/Placa <span className="text-red-500">*</span>
             </label>
             <select
-              className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+              className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
               value={currentPlate}
+              disabled={(!!editingRequest && isAdminOpSup) || !currentInstructorName}
               onChange={(e) => {
                 const newPlate = e.target.value;
                 if (formData.intendedCategory === "AB") {
@@ -941,7 +945,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   setFormData({ ...formData, vehiclePlate: newPlate });
                 }
               }}
-              disabled={!currentInstructorName}
             >
               <option value="">Selecione...</option>
               <option value="A DEFINIR">A DEFINIR</option>
@@ -970,6 +973,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             </select>
           </div>
         </div>
+        {selectedVehicle && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-1">
+            <div className="text-xs text-gray-600">
+              <span className="font-bold">Transmissão:</span> {selectedVehicle.transmission === 'AUTOMATICA' ? 'Automática' : selectedVehicle.transmission === 'MANUAL' ? 'Manual' : '-'}
+            </div>
+            <div className="text-xs text-gray-600">
+              <span className="font-bold">Acessórios:</span> {selectedVehicle.accessories?.length ? selectedVehicle.accessories.join(', ') : 'Nenhum'}
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -2124,8 +2137,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         <select
                           id="intendedCategory"
                           required
-                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.intendedCategory || ""}
+                          disabled={!!editingRequest && (user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR)}
                           onChange={(e) => {
                             const newCat = e.target.value;
                             let newInstructor = formData.instructor;
