@@ -54,6 +54,13 @@ const validateCPF = (cpf: string) => {
   return true;
 };
 
+const maskCpf = (cpf: string) => {
+  if (!cpf) return "";
+  const cleaned = cpf.replace(/\D/g, "");
+  if (cleaned.length !== 11) return cpf;
+  return `***.${cleaned.substring(3, 6)}.${cleaned.substring(6, 9)}-**`;
+};
+
 const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({
   result,
   status,
@@ -459,7 +466,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const renderActions = (req: ExamRequest, statusGroup: string) => {
     return (
-      <div className="flex justify-end items-center space-x-2">
+      <div className={`flex items-center space-x-2 ${user.role === UserRole.INSTRUCTOR ? 'w-full' : 'justify-end'}`}>
         {user.role !== UserRole.INSTRUCTOR && (
           <button
             onClick={() => openCreateModal(req)}
@@ -472,22 +479,22 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
         {statusGroup === "WAITING_CONFIRMATION" &&
           user.role === UserRole.INSTRUCTOR && (
-            <>
+            <div className="flex gap-2 w-full">
               <button
                 onClick={() => handleConfirmAttendance(req.id)}
-                className="p-1.5 border border-green-200 rounded hover:bg-green-50 text-green-600"
+                className="flex-1 flex items-center justify-center gap-1 p-2 border border-green-200 rounded-lg hover:bg-green-50 text-green-700 font-bold text-xs transition-colors"
                 title="Confirmar Presença"
               >
-                <Check className="h-4 w-4" />
+                <Check className="h-4 w-4" /> Confirmar
               </button>
               <button
                 onClick={() => handleCancelAttendance(req.id)}
-                className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
+                className="flex-1 flex items-center justify-center gap-1 p-2 border border-red-200 rounded-lg hover:bg-red-50 text-red-700 font-bold text-xs transition-colors"
                 title="Cancelar Presença"
               >
-                <Ban className="h-4 w-4" />
+                <Ban className="h-4 w-4" /> Cancelar
               </button>
-            </>
+            </div>
           )}
 
         {req.status === ExamStatus.IN_ANALYSIS &&
@@ -1196,45 +1203,94 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
               {isExpanded && (
                 <>
-                  {/* Mobile View */}
-                  <div className="block md:hidden divide-y divide-gray-100">
-                    {items.map((req: ExamRequest) => (
-                      <div
-                        key={req.id}
-                        className="p-4 bg-white hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-800 uppercase text-sm">
-                              {req.socialName || req.studentName}
-                            </span>
-                            {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && req.city && (
-                              <span className="text-xs text-blue-600 font-medium">
-                                {req.city}
-                              </span>
+                  {/* Mobile View / Cards View */}
+                  <div className={`${user.role === UserRole.INSTRUCTOR ? 'p-4 grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 bg-gray-50/50' : 'block md:hidden divide-y divide-gray-100'}`}>
+                    {items.map((req: ExamRequest) => {
+                      if (user.role === UserRole.INSTRUCTOR) {
+                        return (
+                          <div key={req.id} className="p-4 bg-white border rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-start text-left">
+                            {status === ExamStatus.WAITING_SCHEDULING && (
+                              <div className="text-red-600 font-bold mb-1">
+                                Posição: {getGlobalPosition(req.id)}º
+                              </div>
                             )}
-                            {!(status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR) && (
+                            <div className="font-bold text-gray-800 uppercase text-sm mb-1">
+                              {req.socialName || req.studentName}
+                            </div>
+                            <div className="text-sm text-gray-700">
+                              CPF: {maskCpf(req.cpf)}
+                            </div>
+                            {req.city && (
+                              <div className="text-sm text-gray-700">
+                                Cidade: {req.city}
+                              </div>
+                            )}
+                            <div className="text-sm text-gray-700">
+                              Categoria: <span className="text-red-600 font-bold">{req.intendedCategory}</span>
+                            </div>
+                            
+                            {(status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING) && (
+                              <div className="text-xs text-gray-400 mt-1">
+                                Cadastrado em: {new Date(req.createdAt).toLocaleDateString()}
+                              </div>
+                            )}
+
+                            {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE) && (
+                              <div className="text-sm text-gray-700 mt-1">
+                                Dados da Prova: <span className="text-red-600 font-bold">
+                                  {(() => {
+                                    const schedule = schedules.find(s => s.id === req.scheduleId);
+                                    const dateStr = schedule?.date || req.scheduledDate;
+                                    const timeStr = schedule?.time || req.scheduledTime;
+                                    const codeStr = schedule?.code || "-";
+                                    const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                    return `${codeStr} - Categoria ${req.scheduledCategory || req.intendedCategory} - ${formattedDate} às ${timeStr || "-"}`;
+                                  })()}
+                                </span>
+                              </div>
+                            )}
+
+                            {status === "WAITING_CONFIRMATION" && (
+                              <div className="mt-3 w-full pt-3 border-t border-gray-100">
+                                {renderActions(req, status)}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={req.id}
+                          className="p-4 bg-white hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-gray-800 uppercase text-sm">
+                                {req.socialName || req.studentName}
+                              </span>
+                              {req.city && (
+                                <span className="text-xs text-blue-600 font-medium">
+                                  {req.city}
+                                </span>
+                              )}
                               <span className="text-xs text-gray-500">
                                 {req.cpf}
                               </span>
-                            )}
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
                               <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-[10px]">
                                 {req.intendedCategory}
                               </span>
-                            )}
-                            {status === ExamStatus.WAITING_SCHEDULING && (
-                              <span className="text-[10px] font-bold text-gray-500">
-                                Pos: {getGlobalPosition(req.id)}
-                              </span>
-                            )}
+                              {status === ExamStatus.WAITING_SCHEDULING && (
+                                <span className="text-[10px] font-bold text-gray-500">
+                                  Pos: {getGlobalPosition(req.id)}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="text-[10px] text-gray-500 bg-gray-50 p-2 rounded mb-3">
-                          {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
+                          <div className="text-[10px] text-gray-500 bg-gray-50 p-2.5 rounded-lg mb-3">
                             <div className="flex justify-between">
                               <span>
                                 Instr:{" "}
@@ -1249,59 +1305,34 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 </span>
                               </span>
                             </div>
-                          )}
-                          <div className="flex justify-between mt-1">
-                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                            <div className="flex justify-between mt-1">
                               <span>
                                 Data: {new Date(req.createdAt).toLocaleDateString()}
                               </span>
-                            )}
-                            {status === ExamStatus.IN_ANALYSIS && user.role === UserRole.INSTRUCTOR ? (
-                              <>
-                                <span>CPF: {req.cpf}</span>
-                                <span>Cidade: {req.city || "-"}</span>
-                              </>
-                            ) : !(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) ? (
                               <span>
                                 Tentativas:{" "}
                                 {req.examHistory?.filter(
                                   (h) => h.result === "INAPTO",
                                 ).length || 0}
                               </span>
-                            ) : null}
+                            </div>
+                            {req.result && req.status === ExamStatus.DONE && (
+                              <div className="mt-2">
+                                <ResultBadge
+                                  result={req.result as any}
+                                  status={req.status}
+                                />
+                              </div>
+                            )}
                           </div>
-                          {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
-                            <div className="mt-1 font-bold text-red-600">
-                              {(() => {
-                                const schedule = schedules.find(s => s.id === req.scheduleId);
-                                const dateStr = schedule?.date || req.scheduledDate;
-                                const timeStr = schedule?.time || req.scheduledTime;
-                                const codeStr = schedule?.code || "-";
-                                const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
-                                
-                                return `Prova: ${codeStr} - Categoria ${req.scheduledCategory || req.intendedCategory} - ${formattedDate} às ${timeStr || "-"}`;
-                              })()}
-                            </div>
-                          )}
-                          {req.result && req.status === ExamStatus.DONE && (
-                            <div className="mt-2">
-                              <ResultBadge
-                                result={req.result as any}
-                                status={req.status}
-                              />
-                            </div>
-                          )}
-                        </div>
 
-                        {/* Actions */}
-                        {(user.role !== UserRole.INSTRUCTOR ||
-                          status === "WAITING_CONFIRMATION") && (
+                          {/* Actions */}
                           <div className="pt-2 border-t border-gray-100">
                             {renderActions(req, status)}
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                     {items.length === 0 && (
                       <div className="p-6 text-center text-gray-400 text-sm">
                         Nenhum candidato nesta situação.
@@ -1310,7 +1341,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   </div>
 
                   {/* Desktop View */}
-                  <div className="hidden md:block overflow-x-auto">
+                  <div className={`${user.role === UserRole.INSTRUCTOR ? 'hidden' : 'hidden md:block'} overflow-x-auto`}>
                     <table className="w-full text-sm text-left">
                       <thead className="bg-white text-gray-500 border-b">
                         <tr>
@@ -1485,9 +1516,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
       {/* Create/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center md:p-4">
+          <div className="bg-white md:rounded-lg shadow-xl w-full h-full md:h-auto md:max-w-2xl flex flex-col md:max-h-[90vh]">
+            <div className="p-4 md:p-6 border-b flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-900">
                 {editingRequest ? "Editar Candidato" : "Novo Candidato"}
               </h3>
@@ -1502,19 +1533,19 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             {/* Tabs */}
             <div className="flex border-b bg-gray-50">
               <button
-                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "personal" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                className={`flex-1 py-3 text-xs md:text-sm font-bold border-b-2 transition-colors ${activeTab === "personal" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"}`}
                 onClick={() => setActiveTab("personal")}
               >
                 Dados Pessoais
               </button>
               <button
-                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "exam" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                className={`flex-1 py-3 text-xs md:text-sm font-bold border-b-2 transition-colors ${activeTab === "exam" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"}`}
                 onClick={() => setActiveTab("exam")}
               >
                 Dados do Exame
               </button>
               <button
-                className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === "history" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                className={`flex-1 py-3 text-xs md:text-sm font-bold border-b-2 transition-colors ${activeTab === "history" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"}`}
                 onClick={() => setActiveTab("history")}
               >
                 Histórico
@@ -1529,8 +1560,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 {activeTab === "personal" && (
                   <div className="space-y-4 animate-fadeIn">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           CPF <span className="text-red-500">*</span>
                         </label>
@@ -1547,7 +1578,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           placeholder="Somente números"
                         />
                       </div>
-                      <div className="col-span-2">
+                      <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nome Completo <span className="text-red-500">*</span>
                         </label>
@@ -1568,7 +1599,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           }}
                         />
                       </div>
-                      <div className="col-span-2">
+                      <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Nome Social
                         </label>
@@ -1649,7 +1680,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
                 {activeTab === "exam" && (
                   <div className="space-y-6 animate-fadeIn">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Categoria Pretendida{" "}
@@ -1908,7 +1939,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               </form>
             </div>
 
-            <div className="p-6 border-t bg-gray-50 flex justify-end gap-3">
+            <div className="p-4 md:p-6 border-t bg-gray-50 flex justify-end gap-3 mt-auto">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
