@@ -1014,13 +1014,42 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       (r) => r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed,
     ),
     [ExamStatus.SCHEDULED]: filteredRequests.filter(
-      (r) =>
-        (r.status === ExamStatus.SCHEDULED &&
-        (user.role !== UserRole.INSTRUCTOR || r.attendanceConfirmed)) ||
-        (user.role === UserRole.INSTRUCTOR && r.status === ExamStatus.WAITING_RESULT),
+      (r) => {
+        if (r.status === ExamStatus.SCHEDULED && (user.role !== UserRole.INSTRUCTOR || r.attendanceConfirmed)) {
+          if (user.role === UserRole.INSTRUCTOR) {
+            const schedule = schedules.find(s => s.id === r.scheduleId);
+            const dateStr = schedule?.date || r.scheduledDate;
+            const timeStr = schedule?.time || r.scheduledTime;
+            if (dateStr && timeStr) {
+              const examDateTime = new Date(`${dateStr}T${timeStr}`);
+              const fourHoursLater = new Date(examDateTime.getTime() + 4 * 60 * 60 * 1000);
+              if (new Date() > fourHoursLater) {
+                return false; // Move to WAITING_RESULT
+              }
+            }
+          }
+          return true;
+        }
+        return false;
+      }
     ),
     [ExamStatus.WAITING_RESULT]: filteredRequests.filter(
-      (r) => r.status === ExamStatus.WAITING_RESULT,
+      (r) => {
+        if (r.status === ExamStatus.WAITING_RESULT) return true;
+        if (user.role === UserRole.INSTRUCTOR && r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed) {
+          const schedule = schedules.find(s => s.id === r.scheduleId);
+          const dateStr = schedule?.date || r.scheduledDate;
+          const timeStr = schedule?.time || r.scheduledTime;
+          if (dateStr && timeStr) {
+            const examDateTime = new Date(`${dateStr}T${timeStr}`);
+            const fourHoursLater = new Date(examDateTime.getTime() + 4 * 60 * 60 * 1000);
+            if (new Date() > fourHoursLater) {
+              return true; // Show in WAITING_RESULT
+            }
+          }
+        }
+        return false;
+      }
     ),
     [ExamStatus.DONE]: filteredRequests.filter(
       (r) => r.status === ExamStatus.DONE,
@@ -1049,8 +1078,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ExamStatus.DONE,
     ExamStatus.CANCELLED,
   ].filter((s) => {
-    if (user.role === UserRole.INSTRUCTOR && s === ExamStatus.WAITING_RESULT)
-      return false;
     if (user.role === UserRole.INSTRUCTOR && s === ExamStatus.CANCELLED)
       return false;
     return true;
@@ -1186,11 +1213,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   Aguardando Agendamento
                 </option>
                 <option value={ExamStatus.SCHEDULED}>Agendado</option>
-                {user.role !== UserRole.INSTRUCTOR && (
-                  <option value={ExamStatus.WAITING_RESULT}>
-                    Aguardando Resultado
-                  </option>
-                )}
+                <option value={ExamStatus.WAITING_RESULT}>
+                  Aguardando Resultado
+                </option>
                 <option value={ExamStatus.DONE}>Realizado</option>
                 {user.role !== UserRole.INSTRUCTOR && (
                   <option value={ExamStatus.CANCELLED}>Cancelado</option>
