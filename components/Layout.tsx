@@ -111,11 +111,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        });
     } else if (user.role === UserRole.INSTRUCTOR) {
        items.push({
-         icon: Map,
-         label: 'CNH do Brasil',
-         subItems: [
-           { label: 'Candidatos', path: '/admin/requests/common', icon: FileText }
-         ]
+         icon: FileText,
+         label: 'Candidatos',
+         path: '/admin/requests/common'
        });
     } else {
        items.push({ icon: LayoutDashboard, label: 'Dashboard', path: '/admin' });

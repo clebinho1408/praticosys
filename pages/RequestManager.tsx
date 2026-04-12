@@ -139,6 +139,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   );
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [notificationData, setNotificationData] = useState({ title: '', message: '' });
+  const [confirmModalData, setConfirmModalData] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'confirm' | 'cancel';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'confirm' });
 
   // Form State
   const [formData, setFormData] = useState<Partial<ExamRequest>>({});
@@ -421,35 +428,41 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   };
 
   const handleConfirmAttendance = async (id: string) => {
-    if (
-      !window.confirm(
-        "Tem certeza que deseja confirmar a presença deste candidato?",
-      )
-    )
-      return;
-    await api.updateRequest(id, { 
-      attendanceConfirmed: true,
-      updatedAt: new Date().toISOString()
+    setConfirmModalData({
+      isOpen: true,
+      title: "Confirmar Presença",
+      message: "Tem certeza que deseja confirmar a presença deste candidato?",
+      type: "confirm",
+      onConfirm: async () => {
+        await api.updateRequest(id, { 
+          attendanceConfirmed: true,
+          updatedAt: new Date().toISOString()
+        });
+        fetchRequests(true);
+        setConfirmModalData(prev => ({ ...prev, isOpen: false }));
+      }
     });
-    fetchRequests(true);
   };
 
   const handleCancelAttendance = async (id: string) => {
-    if (
-      !window.confirm(
-        "Tem certeza que deseja cancelar a presença deste candidato? Ele será removido da banca e voltará para o final da fila de agendamento.",
-      )
-    )
-      return;
-    await api.updateRequest(id, {
-      attendanceConfirmed: false,
-      status: ExamStatus.WAITING_SCHEDULING,
-      scheduleId: null,
-      scheduledCategory: null,
-      createdAt: new Date().toISOString(), // Move to end of queue
-      updatedAt: new Date().toISOString()
+    setConfirmModalData({
+      isOpen: true,
+      title: "Cancelar Presença",
+      message: "Tem certeza que deseja cancelar a presença deste candidato? Ele será removido da banca e voltará para o final da fila de agendamento.",
+      type: "cancel",
+      onConfirm: async () => {
+        await api.updateRequest(id, {
+          attendanceConfirmed: false,
+          status: ExamStatus.WAITING_SCHEDULING,
+          scheduleId: null,
+          scheduledCategory: null,
+          createdAt: new Date().toISOString(), // Move to end of queue
+          updatedAt: new Date().toISOString()
+        });
+        fetchRequests(true);
+        setConfirmModalData(prev => ({ ...prev, isOpen: false }));
+      }
     });
-    fetchRequests(true);
   };
 
   const handleUpdateStatus = async (id: string, status: ExamStatus) => {
@@ -1277,6 +1290,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             <div className="text-sm text-gray-700">
                               Categoria: <span className="text-red-600 font-bold">{req.intendedCategory}</span>
+                              {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE) && (
+                                <span>
+                                  {" - Histórico: "}
+                                  <span className="text-red-600 font-bold">
+                                    {req.examHistory?.filter(h => h.result === "INAPTO").length || 0}
+                                  </span>
+                                  {" tentativas"}
+                                </span>
+                              )}
                             </div>
                             
                             {(status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING) && (
@@ -1563,6 +1585,46 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         title={notificationData.title}
         message={notificationData.message}
       />
+
+      {/* Confirmation Modal */}
+      {confirmModalData.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm flex flex-col overflow-hidden animate-fadeIn">
+            <div className={`p-4 border-b flex justify-between items-center ${confirmModalData.type === 'confirm' ? 'bg-green-50' : 'bg-red-50'}`}>
+              <h3 className={`text-lg font-bold ${confirmModalData.type === 'confirm' ? 'text-green-800' : 'text-red-800'}`}>
+                {confirmModalData.title}
+              </h3>
+              <button
+                onClick={() => setConfirmModalData(prev => ({ ...prev, isOpen: false }))}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 text-gray-700 text-sm text-center">
+              {confirmModalData.message}
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex gap-3">
+              <button
+                onClick={() => setConfirmModalData(prev => ({ ...prev, isOpen: false }))}
+                className="flex-1 py-2.5 px-4 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-100 transition-colors"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={confirmModalData.onConfirm}
+                className={`flex-1 py-2.5 px-4 rounded-lg text-white font-bold transition-colors ${
+                  confirmModalData.type === 'confirm' 
+                    ? 'bg-green-600 hover:bg-green-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {confirmModalData.type === 'confirm' ? 'Confirmar' : 'Cancelar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create/Edit Modal */}
       {isModalOpen && (
@@ -1886,8 +1948,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                       Histórico de Exames
                     </h4>
                     {formData.examHistory && formData.examHistory.length > 0 ? (
-                      <div className="border rounded-lg overflow-hidden">
-                        <table className="w-full text-xs text-left">
+                      <div className="border rounded-lg overflow-x-auto">
+                        <table className="w-full text-xs text-left min-w-[500px]">
                           <thead className="bg-gray-50 text-gray-500 font-bold">
                             <tr>
                               <th className="px-3 py-2">Data/Hora</th>
