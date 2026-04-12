@@ -149,6 +149,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     type: 'confirm' | 'cancel';
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'confirm' });
   const [restrictionModalData, setRestrictionModalData] = useState<{ isOpen: boolean; restrictions: string }>({ isOpen: false, restrictions: "" });
+  const [historyModalData, setHistoryModalData] = useState<{ isOpen: boolean; request: ExamRequest | null }>({ isOpen: false, request: null });
 
   // Form State
   const [formData, setFormData] = useState<Partial<ExamRequest>>({});
@@ -1171,6 +1172,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 Aguardando Agendamento
               </option>
               <option value={ExamStatus.SCHEDULED}>Agendado</option>
+              <option value={ExamStatus.WAITING_RESULT}>Aguardando Resultado</option>
               <option value={ExamStatus.DONE}>Realizado</option>
               {user.role !== UserRole.INSTRUCTOR && (
                 <option value={ExamStatus.CANCELLED}>Cancelado</option>
@@ -1310,7 +1312,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                     {items.map((req: ExamRequest) => {
                       if (user.role === UserRole.INSTRUCTOR) {
                         return (
-                          <div key={req.id} className="p-4 bg-white border rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-start text-left">
+                          <div key={req.id} className="p-4 bg-white border rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-start text-left relative">
+                            {(status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.DONE) && (
+                              <button
+                                onClick={() => setHistoryModalData({ isOpen: true, request: req })}
+                                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                                title="Ver Histórico"
+                              >
+                                <Search className="h-5 w-5" />
+                              </button>
+                            )}
                             {status === ExamStatus.WAITING_SCHEDULING && (
                               <div className="text-red-600 font-bold mb-1">
                                 Posição: {getGlobalPosition(req.id)}º
@@ -1340,6 +1351,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               )}
                             </div>
                             
+                            {status === ExamStatus.WAITING_SCHEDULING && req.cnhRestriction && (
+                              <div 
+                                className="mt-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded cursor-pointer inline-block shadow-sm"
+                                onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
+                              >
+                                Restrição CNH: {req.cnhRestriction}
+                              </div>
+                            )}
+                            
                             {(status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING) && (
                               <div className="text-xs text-gray-400 mt-1">
                                 Cadastrado em: {new Date(req.createdAt).toLocaleDateString()}
@@ -1361,7 +1381,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               </div>
                             )}
 
-                            {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_SCHEDULING) && req.cnhRestriction && (
+                            {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED) && req.cnhRestriction && (
                               <div 
                                 className="mt-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded cursor-pointer inline-block shadow-sm"
                                 onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
@@ -1718,6 +1738,87 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         </div>
       )}
 
+      {/* History Modal */}
+      {historyModalData.isOpen && historyModalData.request && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col overflow-hidden animate-fadeIn max-h-[90vh]">
+            <div className="p-4 border-b flex justify-between items-center bg-blue-50">
+              <h3 className="text-lg font-bold text-blue-800 flex items-center gap-2">
+                <Search className="h-5 w-5" /> Histórico de Provas
+              </h3>
+              <button
+                onClick={() => setHistoryModalData({ isOpen: false, request: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              <div className="mb-6">
+                <div className="text-xs text-gray-500 uppercase font-bold mb-1">Candidato</div>
+                <div className="text-lg font-bold text-gray-900">{historyModalData.request.socialName || historyModalData.request.studentName}</div>
+                <div className="text-sm text-gray-600">CPF: {maskCpf(historyModalData.request.cpf)}</div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-bold text-gray-700 border-b pb-2">Tentativas Anteriores</h4>
+                {historyModalData.request.examHistory && historyModalData.request.examHistory.length > 0 ? (
+                  <div className="space-y-3">
+                    {historyModalData.request.examHistory.map((h, idx) => (
+                      <div key={idx} className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="text-xs font-bold text-gray-500 uppercase">Prova {idx + 1}</span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            h.result === 'APTO' ? 'bg-green-100 text-green-700' : 
+                            h.result === 'INAPTO' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {h.result}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-gray-400">Data:</span> {new Date(h.date).toLocaleDateString()}
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Hora:</span> {h.time || "-"}
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-gray-400">Examinador:</span> {h.examiners || "Não informado"}
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Categoria:</span> {h.category}
+                          </div>
+                          <div>
+                            <span className="text-gray-400">Resultado:</span> <span className={`font-bold ${h.result === 'APTO' ? 'text-green-600' : 'text-red-600'}`}>{h.result}</span>
+                          </div>
+                          {h.observation && (
+                            <div className="col-span-2 mt-1">
+                              <span className="text-gray-400">Obs:</span> {h.observation}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-gray-400 italic text-sm">
+                    Nenhum histórico de provas encontrado.
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="p-4 border-t bg-gray-50 flex justify-center">
+              <button
+                onClick={() => setHistoryModalData({ isOpen: false, request: null })}
+                className="py-2.5 px-8 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-bold transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center md:p-4">
@@ -1748,12 +1849,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 Dados do Exame
               </button>
-              <button
-                className={`flex-1 py-3 text-xs md:text-sm font-bold border-b-2 transition-colors ${activeTab === "history" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"}`}
-                onClick={() => setActiveTab("history")}
-              >
-                Histórico
-              </button>
+              {user.role !== UserRole.INSTRUCTOR && (
+                <button
+                  className={`flex-1 py-3 text-xs md:text-sm font-bold border-b-2 transition-colors ${activeTab === "history" ? "border-blue-600 text-blue-600 bg-white" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+                  onClick={() => setActiveTab("history")}
+                >
+                  Histórico
+                </button>
+              )}
             </div>
 
             <div className="p-6 overflow-y-auto">
