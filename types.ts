@@ -90,6 +90,8 @@ export interface Vehicle {
   model: string;
   plate: string;
   active: boolean;
+  transmission?: 'AUTOMATICA' | 'MANUAL';
+  accessories?: string[];
 }
 
 export interface Instructor {

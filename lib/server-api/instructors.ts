@@ -58,7 +58,9 @@ export default async function handler(req: any, res: any) {
                   brand: v.brand,
                   model: v.model,
                   plate: v.plate,
-                  active: v.active ?? true
+                  active: v.active ?? true,
+                  transmission: v.transmission,
+                  accessories: v.accessories || []
               });
           }
       }
@@ -83,13 +85,15 @@ export default async function handler(req: any, res: any) {
           
           for (const v of vehiclesList) {
               await db.insert(vehicles).values({
-                  id: v.id || crypto.randomUUID(),
+                  id: (!v.id || v.id.startsWith('temp_')) ? crypto.randomUUID() : v.id,
                   instructorId: id,
                   type: v.type,
                   brand: v.brand,
                   model: v.model,
                   plate: v.plate,
-                  active: v.active ?? true
+                  active: v.active ?? true,
+                  transmission: v.transmission,
+                  accessories: v.accessories || []
               });
           }
       }

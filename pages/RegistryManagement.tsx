@@ -3518,9 +3518,16 @@ const InstructorsManager: React.FC = () => {
   });
 
   // State for adding new Vehicle inside Modal
-  const [newVehicle, setNewVehicle] = useState({ brand: '', model: '', plate: '', active: true });
+  const [newVehicle, setNewVehicle] = useState<{
+    brand: string;
+    model: string;
+    plate: string;
+    active: boolean;
+    transmission: 'AUTOMATICA' | 'MANUAL';
+    accessories: string[];
+  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
   
-  // Search State
+  const [accessoryInput, setAccessoryInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   
   // Confirm Modal State
@@ -3563,7 +3570,8 @@ const InstructorsManager: React.FC = () => {
         });
     }
     setModalTab('DATA');
-    setNewVehicle({ brand: '', model: '', plate: '', active: true });
+    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
+    setAccessoryInput('');
     setIsModalOpen(true);
   };
 
@@ -3612,7 +3620,9 @@ const InstructorsManager: React.FC = () => {
           brand: newVehicle.brand.toUpperCase(),
           model: newVehicle.model.toUpperCase(),
           plate: newVehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, ""),
-          active: newVehicle.active
+          active: newVehicle.active,
+          transmission: newVehicle.transmission,
+          accessories: newVehicle.accessories
       };
 
       setFormData(prev => ({
@@ -3620,7 +3630,8 @@ const InstructorsManager: React.FC = () => {
           vehicles: [...prev.vehicles, vehicle]
       }));
 
-      setNewVehicle({ brand: '', model: '', plate: '', active: true });
+      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
+      setAccessoryInput('');
   };
 
   const handleRemoveVehicle = (id: string) => {
@@ -3783,7 +3794,7 @@ const InstructorsManager: React.FC = () => {
                 {(formData.category === 'B' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true }); }} 
+                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'CARS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Car className="h-4 w-4" /> Carros
@@ -3793,7 +3804,7 @@ const InstructorsManager: React.FC = () => {
                 {(formData.category === 'A' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true }); }} 
+                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'MOTOS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Bike className="h-4 w-4" /> Motos
@@ -3871,6 +3882,80 @@ const InstructorsManager: React.FC = () => {
                                         onChange={e => setNewVehicle({...newVehicle, plate: e.target.value})}
                                     />
                                 </div>
+
+                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Transmissão</label>
+                                        <select 
+                                            className="w-full border rounded p-2 text-sm bg-white"
+                                            value={newVehicle.transmission}
+                                            onChange={e => setNewVehicle({...newVehicle, transmission: e.target.value as any})}
+                                        >
+                                            <option value="MANUAL">Manual</option>
+                                            <option value="AUTOMATICA">Automática</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Acessórios</label>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text"
+                                                placeholder="Ex: Acelerador à esquerda"
+                                                className="flex-1 border rounded p-2 text-sm bg-white"
+                                                value={accessoryInput}
+                                                onChange={e => setAccessoryInput(e.target.value)}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        if (accessoryInput.trim()) {
+                                                            setNewVehicle({
+                                                                ...newVehicle,
+                                                                accessories: [...newVehicle.accessories, accessoryInput.trim()]
+                                                            });
+                                                            setAccessoryInput('');
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    if (accessoryInput.trim()) {
+                                                        setNewVehicle({
+                                                            ...newVehicle,
+                                                            accessories: [...newVehicle.accessories, accessoryInput.trim()]
+                                                        });
+                                                        setAccessoryInput('');
+                                                    }
+                                                }}
+                                                className="px-3 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                                            >
+                                                <Plus className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {newVehicle.accessories.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                        {newVehicle.accessories.map((acc, idx) => (
+                                            <span key={idx} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full border border-blue-100">
+                                                {acc}
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setNewVehicle({
+                                                        ...newVehicle,
+                                                        accessories: newVehicle.accessories.filter((_, i) => i !== idx)
+                                                    })}
+                                                    className="hover:text-red-500"
+                                                >
+                                                    <XCircle className="h-3 w-3" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <div className="flex justify-between items-center mt-3">
                                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                                         <input type="checkbox" checked={newVehicle.active} onChange={e => setNewVehicle({...newVehicle, active: e.target.checked})} />
@@ -3897,7 +3982,20 @@ const InstructorsManager: React.FC = () => {
                                     <div key={vehicle.id} className={`flex items-center justify-between p-3 rounded-lg border ${vehicle.active ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
                                         <div>
                                             <div className="font-bold text-sm text-gray-800">{vehicle.brand} {vehicle.model}</div>
-                                            <div className="text-xs font-mono text-gray-500">{vehicle.plate}</div>
+                                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                <span className="font-mono">{vehicle.plate}</span>
+                                                <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                                                <span>{vehicle.transmission === 'AUTOMATICA' ? 'Automática' : 'Manual'}</span>
+                                            </div>
+                                            {vehicle.accessories && vehicle.accessories.length > 0 && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {vehicle.accessories.map((acc, idx) => (
+                                                        <span key={idx} className="bg-gray-100 text-gray-600 text-[9px] px-1.5 py-0.5 rounded">
+                                                            {acc}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button 

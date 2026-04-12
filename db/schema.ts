@@ -62,6 +62,8 @@ export const vehicles = pgTable('vehicles', {
   model: text('model').notNull(),
   plate: text('plate').notNull(),
   active: boolean('active').default(true),
+  transmission: text('transmission'), // AUTOMATICA, MANUAL
+  accessories: jsonb('accessories').$type<string[]>().default([]),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
