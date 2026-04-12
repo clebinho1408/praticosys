@@ -1316,7 +1316,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             {(status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.DONE) && (
                               <button
                                 onClick={() => setHistoryModalData({ isOpen: true, request: req })}
-                                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                                className="absolute top-2 right-2 p-2 text-gray-400 hover:text-blue-600 transition-colors"
                                 title="Ver Histórico"
                               >
                                 <Search className="h-5 w-5" />
