@@ -1209,7 +1209,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 <option value="ALL">Todos os Status</option>
                 <option value={ExamStatus.IN_ANALYSIS}>
-                  {user.role === UserRole.INSTRUCTOR ? "Pedidos de Agendamentos" : "Cadastros em Análise"}
+                  Cadastros em Análise
                 </option>
                 <option value={ExamStatus.WAITING_SCHEDULING}>
                   Aguardando Agendamento
@@ -1219,9 +1219,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   Aguardando Resultado
                 </option>
                 <option value={ExamStatus.DONE}>Realizado</option>
-                {user.role !== UserRole.INSTRUCTOR && (
-                  <option value={ExamStatus.CANCELLED}>Cancelado</option>
-                )}
+                <option value={ExamStatus.CANCELLED}>Cancelado</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -1362,7 +1360,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             
                             {(status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING) && (
                               <div className="text-xs text-gray-400 mt-1">
-                                Cadastrado em: {new Date(req.createdAt).toLocaleDateString()}
+                                Cadastrado em: {new Date(req.createdAt).toLocaleString()}
                               </div>
                             )}
 
@@ -1410,12 +1408,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {req.socialName || req.studentName}
                               </span>
                               {req.city && (
-                                <span className="text-xs text-blue-600 font-medium">
+                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS ? 'text-black' : 'text-blue-600'}`}>
                                   {req.city}
                                 </span>
                               )}
                               <span className="text-xs text-gray-500">
-                                {req.cpf}
+                                {status === ExamStatus.IN_ANALYSIS ? maskCpf(req.cpf) : req.cpf}
                               </span>
                             </div>
                             <div className="flex flex-col items-end gap-1">
@@ -1447,7 +1445,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             </div>
                             <div className="flex justify-between mt-1">
                               <span>
-                                Data: {new Date(req.createdAt).toLocaleDateString()}
+                                {status === ExamStatus.IN_ANALYSIS ? "Cadastrado em:" : "Data:"} {new Date(req.createdAt).toLocaleDateString()}
                               </span>
                               <span>
                                 Tentativas:{" "}
@@ -1492,7 +1490,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           )}
                           {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
-                              Data Cadastro
+                              {status === ExamStatus.IN_ANALYSIS ? "Cadastrado em" : "Data Cadastro"}
                             </th>
                           )}
                           {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
@@ -1520,7 +1518,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           )}
                           {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
-                              Histórico
+                              {status === ExamStatus.IN_ANALYSIS ? "Instrutor" : "Histórico"}
                             </th>
                           )}
                           {(user.role !== UserRole.INSTRUCTOR ||
@@ -1544,7 +1542,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                                {new Date(req.createdAt).toLocaleString()}
+                                {status === ExamStatus.IN_ANALYSIS 
+                                  ? new Date(req.createdAt).toLocaleDateString() 
+                                  : new Date(req.createdAt).toLocaleString()}
                                 {req.result && req.status === ExamStatus.DONE && (
                                   <div className="mt-1">
                                     <ResultBadge
@@ -1565,21 +1565,36 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 <span className="font-bold text-gray-800 uppercase">
                                   {req.socialName || req.studentName}
                                 </span>
-                                {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && req.city && (
-                                  <span className="text-xs text-blue-600 font-medium">
-                                    {req.city}
-                                  </span>
-                                )}
-                                {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
-                                  <span className="text-xs text-gray-500">
-                                    {req.cpf}
-                                  </span>
-                                )}
-                                {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
-                                  <span className="text-[10px] text-gray-400 mt-0.5">
-                                    Instr: {req.instructor || "-"} | Placa:{" "}
-                                    {req.vehiclePlate || "-"}
-                                  </span>
+                                {status === ExamStatus.IN_ANALYSIS ? (
+                                  <>
+                                    <span className="text-xs text-gray-700">
+                                      CPF: {maskCpf(req.cpf)}
+                                    </span>
+                                    {req.city && (
+                                      <span className="text-xs text-black font-medium">
+                                        Cidade: {req.city}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <>
+                                    {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && req.city && (
+                                      <span className="text-xs text-blue-600 font-medium">
+                                        {req.city}
+                                      </span>
+                                    )}
+                                    {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
+                                      <span className="text-xs text-gray-500">
+                                        {req.cpf}
+                                      </span>
+                                    )}
+                                    {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
+                                      <span className="text-[10px] text-gray-400 mt-0.5">
+                                        Instr: {req.instructor || "-"} | Placa:{" "}
+                                        {req.vehiclePlate || "-"}
+                                      </span>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </td>
@@ -1610,10 +1625,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                                {req.examHistory?.filter(
-                                  (h) => h.result === "INAPTO",
-                                ).length || 0}{" "}
-                                tentativas
+                                {status === ExamStatus.IN_ANALYSIS ? (
+                                  <div className="flex flex-col">
+                                    <span className="font-bold text-gray-800">{req.instructor || "-"}</span>
+                                    <span className="text-[10px] text-gray-500">
+                                      {req.vehiclePlate ? `Veículo/Placa: ${req.vehiclePlate}` : "-"}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {req.examHistory?.filter(
+                                      (h) => h.result === "INAPTO",
+                                    ).length || 0}{" "}
+                                    tentativas
+                                  </>
+                                )}
                               </td>
                             )}
                             {(user.role !== UserRole.INSTRUCTOR ||
