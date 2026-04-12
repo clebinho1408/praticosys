@@ -233,9 +233,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     eventSource.addEventListener('requests_updated', (event) => {
       const data = JSON.parse(event.data);
-      if (user.role === UserRole.INSTRUCTOR && data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed) {
-        setNotificationData({ title: 'Nova Notificação', message: 'Novo candidato aguardando confirmação para a prova!' });
-        setIsNotificationModalOpen(true);
+      if (user.role === UserRole.INSTRUCTOR) {
+        if (data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed) {
+          setNotificationData({ title: 'Nova Notificação', message: 'Novo candidato aguardando confirmação para a prova!' });
+          setIsNotificationModalOpen(true);
+        } else if (data.status === ExamStatus.CANCELLED) {
+          setNotificationData({ 
+            title: 'Agendamento Recusado', 
+            message: `O agendamento do candidato ${data.studentName} foi recusado. Motivo: ${data.cancellationReason || 'Não informado'}` 
+          });
+          setIsNotificationModalOpen(true);
+        }
       }
       fetchRequests(true);
     });
@@ -254,6 +262,41 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       api.getInstructorsAsync().then(setInstructors);
     }
   }, [isModalOpen]);
+
+  // Persistent notifications for Instructor (on login/refresh)
+  useEffect(() => {
+    if (user.role === UserRole.INSTRUCTOR && requests.length > 0) {
+      const notifiedIds = JSON.parse(localStorage.getItem(`notified_requests_${user.id}`) || '[]');
+      
+      // Check for new rejections
+      const newRejections = requests.filter(r => 
+        r.status === ExamStatus.CANCELLED && !notifiedIds.includes(r.id)
+      );
+
+      // Check for new waiting confirmations
+      const newWaitingConfirmations = requests.filter(r => 
+        r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed && !notifiedIds.includes(r.id)
+      );
+
+      if (newRejections.length > 0) {
+        const last = newRejections[newRejections.length - 1];
+        setNotificationData({ 
+          title: 'Agendamento Recusado', 
+          message: `O agendamento do candidato ${last.studentName} foi recusado. Motivo: ${last.cancellationReason || 'Não informado'}` 
+        });
+        setIsNotificationModalOpen(true);
+        localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify([...notifiedIds, ...newRejections.map(r => r.id)]));
+      } else if (newWaitingConfirmations.length > 0) {
+        const last = newWaitingConfirmations[newWaitingConfirmations.length - 1];
+        setNotificationData({ 
+          title: 'Nova Notificação', 
+          message: `O candidato ${last.studentName} está aguardando confirmação para a prova!` 
+        });
+        setIsNotificationModalOpen(true);
+        localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify([...notifiedIds, ...newWaitingConfirmations.map(r => r.id)]));
+      }
+    }
+  }, [requests, user]);
 
   // Handle Filter Change logic (Auto open accordion if specific status selected)
   const handleStatusFilterChange = (status: string) => {
@@ -1192,11 +1235,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ExamStatus.WAITING_RESULT,
     ExamStatus.DONE,
     ExamStatus.CANCELLED,
-  ].filter((s) => {
-    if (user.role === UserRole.INSTRUCTOR && s === ExamStatus.CANCELLED)
-      return false;
-    return true;
-  });
+  ];
 
   const visibleStatuses = statusFilter === "ALL" ? allStatuses : [statusFilter];
 
@@ -1288,9 +1327,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               <option value={ExamStatus.SCHEDULED}>Agendado</option>
               <option value={ExamStatus.WAITING_RESULT}>Aguardando Resultado</option>
               <option value={ExamStatus.DONE}>Realizado</option>
-              {user.role !== UserRole.INSTRUCTOR && (
-                <option value={ExamStatus.CANCELLED}>Cancelado</option>
-              )}
+              <option value={ExamStatus.CANCELLED}>Cancelado</option>
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -1425,87 +1462,110 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                       if (user.role === UserRole.INSTRUCTOR) {
                         return (
                           <div key={req.id} className="p-4 bg-white border rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col items-start text-left relative">
-                            {(status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.DONE) && (
-                              <button
-                                onClick={() => setHistoryModalData({ isOpen: true, request: req })}
-                                className="absolute top-2 right-2 p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                                title="Ver Histórico"
-                              >
-                                <Search className="h-5 w-5" />
-                              </button>
-                            )}
-                            {status === ExamStatus.WAITING_SCHEDULING && (
-                              <div className="text-red-600 font-bold mb-1">
-                                Posição: {getGlobalPosition(req.id)}º
-                              </div>
-                            )}
-                            <div className="font-bold text-gray-800 uppercase text-sm mb-1">
-                              {req.socialName || req.studentName}
-                            </div>
-                            <div className="text-sm text-gray-700">
-                              CPF: {maskCpf(req.cpf)}
-                            </div>
-                            {req.city && (
-                              <div className="text-sm text-gray-700">
-                                Cidade: {req.city}
-                              </div>
-                            )}
-                            <div className="text-sm text-gray-700">
-                              Categoria: <span className="text-red-600 font-bold">{req.intendedCategory}</span>
-                              {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE || status === ExamStatus.WAITING_SCHEDULING) && (
-                                <span>
-                                  {" - Histórico: "}
-                                  <span className="text-red-600 font-bold">
-                                    {req.examHistory?.filter(h => h.result === "INAPTO").length || 0}
-                                  </span>
-                                  {" tentativas"}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {status === ExamStatus.WAITING_SCHEDULING && req.cnhRestriction && (
-                              <div 
-                                className="mt-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded cursor-pointer inline-block shadow-sm"
-                                onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
-                              >
-                                Restrição CNH: {req.cnhRestriction}
-                              </div>
-                            )}
-                            
-                            {(status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING) && (
-                              <div className="text-xs text-gray-400 mt-1">
-                                Cadastrado em: {new Date(req.createdAt).toLocaleString()}
-                              </div>
-                            )}
-
-                            {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE) && (
-                              <div className="text-sm text-gray-700 mt-1">
-                                Dados da Prova:
-                                <div className="text-red-600 font-bold">
-                                  {(() => {
-                                    const schedule = schedules.find(s => s.id === req.scheduleId);
-                                    const dateStr = schedule?.date || req.scheduledDate;
-                                    const timeStr = schedule?.time || req.scheduledTime;
-                                    const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
-                                    return `${formattedDate} às ${timeStr || "-"}`;
-                                  })()}
+                            {status === ExamStatus.CANCELLED ? (
+                              <>
+                                <div className="font-bold text-gray-800 uppercase text-sm mb-1">
+                                  {req.socialName || req.studentName}
                                 </div>
-                              </div>
-                            )}
+                                {req.city && (
+                                  <div className="text-sm text-gray-700">
+                                    Cidade: {req.city}
+                                  </div>
+                                )}
+                                <div className="text-sm text-gray-700">
+                                  Categoria: <span className="text-red-600 font-bold">{req.intendedCategory}</span>
+                                </div>
+                                <div className="mt-2 w-full pt-2 border-t border-gray-100">
+                                  <div className="text-sm text-red-600 font-bold">
+                                    Motivo: {req.cancellationReason || "Não informado"}
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                {(status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.DONE) && (
+                                  <button
+                                    onClick={() => setHistoryModalData({ isOpen: true, request: req })}
+                                    className="absolute top-2 right-2 p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                                    title="Ver Histórico"
+                                  >
+                                    <Search className="h-5 w-5" />
+                                  </button>
+                                )}
+                                {status === ExamStatus.WAITING_SCHEDULING && (
+                                  <div className="text-red-600 font-bold mb-1">
+                                    Posição: {getGlobalPosition(req.id)}º
+                                  </div>
+                                )}
+                                <div className="font-bold text-gray-800 uppercase text-sm mb-1">
+                                  {req.socialName || req.studentName}
+                                </div>
+                                <div className="text-sm text-gray-700">
+                                  CPF: {maskCpf(req.cpf)}
+                                </div>
+                                {req.city && (
+                                  <div className="text-sm text-gray-700">
+                                    Cidade: {req.city}
+                                  </div>
+                                )}
+                                <div className="text-sm text-gray-700">
+                                  Categoria: <span className="text-red-600 font-bold">{req.intendedCategory}</span>
+                                  {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE || status === ExamStatus.WAITING_SCHEDULING) && (
+                                    <span>
+                                      {" - Histórico: "}
+                                      <span className="text-red-600 font-bold">
+                                        {req.examHistory?.filter(h => h.result === "INAPTO").length || 0}
+                                      </span>
+                                      {" tentativas"}
+                                    </span>
+                                  )}
+                                </div>
+                                
+                                {status === ExamStatus.WAITING_SCHEDULING && req.cnhRestriction && (
+                                  <div 
+                                    className="mt-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded cursor-pointer inline-block shadow-sm"
+                                    onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
+                                  >
+                                    Restrição CNH: {req.cnhRestriction}
+                                  </div>
+                                )}
+                                
+                                {(status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING) && (
+                                  <div className="text-xs text-gray-400 mt-1">
+                                    Cadastrado em: {new Date(req.createdAt).toLocaleString()}
+                                  </div>
+                                )}
 
-                            {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED) && req.cnhRestriction && (
-                              <div 
-                                className="mt-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded cursor-pointer inline-block shadow-sm"
-                                onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
-                              >
-                                Restrição CNH: {req.cnhRestriction}
-                              </div>
-                            )}
+                                {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE) && (
+                                  <div className="text-sm text-gray-700 mt-1">
+                                    Dados da Prova:
+                                    <div className="text-red-600 font-bold">
+                                      {(() => {
+                                        const schedule = schedules.find(s => s.id === req.scheduleId);
+                                        const dateStr = schedule?.date || req.scheduledDate;
+                                        const timeStr = schedule?.time || req.scheduledTime;
+                                        const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                        return `${formattedDate} às ${timeStr || "-"}`;
+                                      })()}
+                                    </div>
+                                  </div>
+                                )}
 
-                            {status === "WAITING_CONFIRMATION" && (
-                              <div className="mt-3 w-full pt-3 border-t border-gray-100">
-                                {renderActions(req, status)}
-                              </div>
+                                {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED) && req.cnhRestriction && (
+                                  <div 
+                                    className="mt-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded cursor-pointer inline-block shadow-sm"
+                                    onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
+                                  >
+                                    Restrição CNH: {req.cnhRestriction}
+                                  </div>
+                                )}
+
+                                {status === "WAITING_CONFIRMATION" && (
+                                  <div className="mt-3 w-full pt-3 border-t border-gray-100">
+                                    {renderActions(req, status)}
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
                         );
@@ -2054,12 +2114,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             id="socialName"
                             className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                             value={formData.socialName || ""}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const val = e.target.value
+                                .normalize("NFD")
+                                .replace(/[\u0300-\u036f]/g, "")
+                                .toUpperCase();
                               setFormData({
                                 ...formData,
-                                socialName: e.target.value,
-                              })
-                            }
+                                socialName: val,
+                              });
+                            }}
                           />
                         </div>
                       )}
@@ -2073,10 +2137,32 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
                           value={formData.phone || ""}
                           onChange={(e) => {
-                            const onlyNums = e.target.value.replace(/\D/g, "");
-                            setFormData({ ...formData, phone: onlyNums });
+                            let val = e.target.value.replace(/\D/g, "");
+                            if (val.length > 11) val = val.slice(0, 11);
+
+                            let formatted = val;
+                            if (val.length > 10) {
+                              formatted = val.replace(
+                                /^(\d{2})(\d{5})(\d{4}).*/,
+                                "($1) $2-$3"
+                              );
+                            } else if (val.length > 6) {
+                              formatted = val.replace(
+                                /^(\d{2})(\d{4})(\d{0,4}).*/,
+                                "($1) $2-$3"
+                              );
+                            } else if (val.length > 2) {
+                              formatted = val.replace(
+                                /^(\d{2})(\d{0,5}).*/,
+                                "($1) $2"
+                              );
+                            } else if (val.length > 0) {
+                              formatted = val.replace(/^(\d*)/, "($1");
+                            }
+
+                            setFormData({ ...formData, phone: formatted });
                           }}
-                          placeholder="Somente números"
+                          placeholder="(00) 00000-0000"
                         />
                       </div>
                       <div>
@@ -2665,7 +2751,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                     type="submit"
                     className="flex-1 py-2.5 px-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
                   >
-                    Confirmar Recusa
+                    Confirmar
                   </button>
                 </div>
               </form>
