@@ -3528,6 +3528,7 @@ const InstructorsManager: React.FC = () => {
   }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
   
   const [accessoryInput, setAccessoryInput] = useState('');
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Confirm Modal State
@@ -3572,6 +3573,7 @@ const InstructorsManager: React.FC = () => {
     setModalTab('DATA');
     setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
     setAccessoryInput('');
+    setEditingVehicleId(null);
     setIsModalOpen(true);
   };
 
@@ -3613,24 +3615,55 @@ const InstructorsManager: React.FC = () => {
           return;
       }
 
-      const vehicle: Vehicle = {
-          id: `temp_${Date.now()}`, // ID temporário
-          instructorId: editing?.id || '',
-          type: type,
-          brand: newVehicle.brand.toUpperCase(),
-          model: newVehicle.model.toUpperCase(),
-          plate: newVehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, ""),
-          active: newVehicle.active,
-          transmission: newVehicle.transmission,
-          accessories: newVehicle.accessories
-      };
+      if (editingVehicleId) {
+          // Update existing vehicle
+          setFormData(prev => ({
+              ...prev,
+              vehicles: prev.vehicles.map(v => v.id === editingVehicleId ? {
+                  ...v,
+                  brand: newVehicle.brand.toUpperCase(),
+                  model: newVehicle.model.toUpperCase(),
+                  plate: newVehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+                  active: newVehicle.active,
+                  transmission: newVehicle.transmission,
+                  accessories: newVehicle.accessories
+              } : v)
+          }));
+          setEditingVehicleId(null);
+      } else {
+          // Add new vehicle
+          const vehicle: Vehicle = {
+              id: `temp_${Date.now()}`, // ID temporário
+              instructorId: editing?.id || '',
+              type: type,
+              brand: newVehicle.brand.toUpperCase(),
+              model: newVehicle.model.toUpperCase(),
+              plate: newVehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, ""),
+              active: newVehicle.active,
+              transmission: newVehicle.transmission,
+              accessories: newVehicle.accessories
+          };
 
-      setFormData(prev => ({
-          ...prev,
-          vehicles: [...prev.vehicles, vehicle]
-      }));
+          setFormData(prev => ({
+              ...prev,
+              vehicles: [...prev.vehicles, vehicle]
+          }));
+      }
 
       setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
+      setAccessoryInput('');
+  };
+
+  const handleEditVehicle = (vehicle: Vehicle) => {
+      setNewVehicle({
+          brand: vehicle.brand,
+          model: vehicle.model,
+          plate: vehicle.plate,
+          active: vehicle.active,
+          transmission: vehicle.transmission || 'MANUAL',
+          accessories: vehicle.accessories || []
+      });
+      setEditingVehicleId(vehicle.id);
       setAccessoryInput('');
   };
 
@@ -3846,7 +3879,8 @@ const InstructorsManager: React.FC = () => {
                         <div className="space-y-6">
                             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                                 <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase flex items-center gap-2">
-                                    <Plus className="h-4 w-4" /> Adicionar {modalTab === 'CARS' ? 'Carro' : 'Moto'}
+                                    {editingVehicleId ? <Edit2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                    {editingVehicleId ? 'Editar' : 'Adicionar'} {modalTab === 'CARS' ? 'Carro' : 'Moto'}
                                 </h4>
                                 <div className="grid grid-cols-3 gap-3">
                                     <div>
@@ -3883,7 +3917,7 @@ const InstructorsManager: React.FC = () => {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3 mt-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Transmissão</label>
                                         <select 
@@ -3897,11 +3931,11 @@ const InstructorsManager: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Acessórios</label>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-1">
                                             <input 
                                                 type="text"
                                                 placeholder="Ex: Acelerador à esquerda"
-                                                className="flex-1 border rounded p-2 text-sm bg-white"
+                                                className="flex-1 border rounded p-2 text-sm bg-white min-w-0"
                                                 value={accessoryInput}
                                                 onChange={e => setAccessoryInput(e.target.value)}
                                                 onKeyDown={e => {
@@ -3928,7 +3962,7 @@ const InstructorsManager: React.FC = () => {
                                                         setAccessoryInput('');
                                                     }
                                                 }}
-                                                className="px-3 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                                                className="px-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 flex-shrink-0"
                                             >
                                                 <Plus className="h-4 w-4" />
                                             </button>
@@ -3966,8 +4000,21 @@ const InstructorsManager: React.FC = () => {
                                         onClick={() => handleAddVehicle(modalTab === 'CARS' ? 'CAR' : 'MOTO')}
                                         className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700"
                                     >
-                                        Adicionar
+                                        {editingVehicleId ? 'Salvar Alterações' : 'Adicionar'}
                                     </button>
+                                    {editingVehicleId && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => {
+                                                setEditingVehicleId(null);
+                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
+                                                setAccessoryInput('');
+                                            }}
+                                            className="px-4 py-2 bg-gray-200 text-gray-600 text-xs font-bold rounded hover:bg-gray-300"
+                                        >
+                                            Cancelar Edição
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -3998,6 +4045,14 @@ const InstructorsManager: React.FC = () => {
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => handleEditVehicle(vehicle)}
+                                                className="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded"
+                                                title="Editar"
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                            </button>
                                             <button 
                                                 type="button" 
                                                 onClick={() => toggleVehicleStatus(vehicle.id)}
