@@ -111,6 +111,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const isAdminOpSup = user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR;
 
   // Estado para controlar quais grupos estão expandidos
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
@@ -534,11 +535,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const renderActions = (req: ExamRequest, statusGroup: string) => {
     const isAnalysis = req.status === ExamStatus.IN_ANALYSIS;
-    const isAdminOpSup = user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR;
 
     return (
       <div className={`flex items-center space-x-2 ${user.role === UserRole.INSTRUCTOR ? 'w-full' : 'justify-end'}`}>
-        {user.role !== UserRole.INSTRUCTOR && (
+        {user.role !== UserRole.INSTRUCTOR && !(req.status === ExamStatus.WAITING_RESULT && isAdminOpSup) && (
           isAnalysis && isAdminOpSup ? (
             <button
               onClick={() => {
@@ -609,7 +609,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             </>
           )}
 
-        {req.status === ExamStatus.WAITING_RESULT && isAdminOpSup ? (
+        {req.status === ExamStatus.DONE && isAdminOpSup ? (
+          <button
+            onClick={() => openCreateModal(req)}
+            className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
+            title="Visualizar"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+        ) : req.status === ExamStatus.WAITING_RESULT && isAdminOpSup ? (
           <button
             onClick={() => openResultModal(req)}
             className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1"
@@ -887,7 +895,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       : [];
 
     const selectedVehicle = availableVehicles.find(v => v.plate === currentPlate);
-    const isAdminOpSup = user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR;
 
     return (
       <div className={`p-4 rounded-lg border ${colorClass}`}>
@@ -1595,12 +1602,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {req.socialName || req.studentName}
                               </span>
                               {req.city && (
-                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT ? 'text-black' : 'text-blue-600'}`}>
+                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT || status === ExamStatus.DONE ? 'text-black' : 'text-blue-600'}`}>
                                   {req.city}
                                 </span>
                               )}
                               <span className="text-xs text-gray-500">
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT ? maskCpf(req.cpf) : req.cpf}
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT || status === ExamStatus.DONE ? maskCpf(req.cpf) : req.cpf}
                               </span>
                             </div>
                             <div className="flex flex-col items-end gap-1">
@@ -1634,25 +1641,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 </span>
                               </div>
                             )}
-                            <div className="flex justify-between mt-1">
-                              <span>
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em:" : status === ExamStatus.SCHEDULED ? "Dados do Exame:" : status === ExamStatus.WAITING_RESULT ? "Cadastrado em:" : "Data:"} {
-                                  status === ExamStatus.SCHEDULED ? (() => {
-                                    const schedule = schedules.find(s => s.id === req.scheduleId);
-                                    const dateStr = schedule?.date || req.scheduledDate;
-                                    const timeStr = schedule?.time || req.scheduledTime;
-                                    const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
-                                    return `${formattedDate} às ${timeStr || "-"}`;
-                                  })() : new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
-                                }
-                              </span>
-                              <span>
-                                Tentativas:{" "}
-                                {req.examHistory?.filter(
-                                  (h) => h.result === "INAPTO",
-                                ).length || 0}
-                              </span>
-                            </div>
+                            {status !== ExamStatus.DONE && (
+                              <div className="flex justify-between mt-1">
+                                <span>
+                                  {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em:" : status === ExamStatus.SCHEDULED ? "Dados do Exame:" : status === ExamStatus.WAITING_RESULT ? "Cadastrado em:" : "Data:"} {
+                                    status === ExamStatus.SCHEDULED ? (() => {
+                                      const schedule = schedules.find(s => s.id === req.scheduleId);
+                                      const dateStr = schedule?.date || req.scheduledDate;
+                                      const timeStr = schedule?.time || req.scheduledTime;
+                                      const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                      return `${formattedDate} às ${timeStr || "-"}`;
+                                    })() : new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                                  }
+                                </span>
+                                <span>
+                                  Tentativas:{" "}
+                                  {req.examHistory?.filter(
+                                    (h) => h.result === "INAPTO",
+                                  ).length || 0}
+                                </span>
+                              </div>
+                            )}
                             {req.result && req.status === ExamStatus.DONE && (
                               <div className="mt-2">
                                 <ResultBadge
@@ -1692,7 +1701,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               Dados do Exame
                             </th>
                           )}
-                          {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && status !== ExamStatus.WAITING_RESULT && (
+                          {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && status !== ExamStatus.WAITING_RESULT && status !== ExamStatus.DONE && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em" : "Data Cadastro"}
                             </th>
@@ -1755,7 +1764,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 })()}
                               </td>
                             )}
-                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && status !== ExamStatus.WAITING_RESULT && (
+                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && status !== ExamStatus.WAITING_RESULT && status !== ExamStatus.DONE && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING
                                   ? new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
@@ -1780,7 +1789,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 <span className="font-bold text-gray-800 uppercase">
                                   {req.socialName || req.studentName}
                                 </span>
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT ? (
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT || status === ExamStatus.DONE ? (
                                   <>
                                     <span className="text-xs text-gray-700">
                                       CPF: {maskCpf(req.cpf)}
@@ -2061,7 +2070,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           <div className="bg-white md:rounded-lg shadow-xl w-full h-full md:h-auto md:max-w-2xl flex flex-col md:max-h-[90vh]">
             <div className="p-4 md:p-6 border-b flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-900">
-                {editingRequest ? "Editar Candidato" : "Novo Candidato"}
+                {editingRequest?.status === ExamStatus.DONE && isAdminOpSup ? "Visualizar Candidato" : editingRequest ? "Editar Candidato" : "Novo Candidato"}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -2111,8 +2120,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         <input
                           id="cpf"
                           required
-                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.cpf || ""}
+                          disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
                           onChange={(e) => {
                             const onlyNums = e.target.value.replace(/\D/g, "");
                             setFormData({ ...formData, cpf: onlyNums });
@@ -2128,8 +2138,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         <input
                           id="studentName"
                           required
-                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.studentName || ""}
+                          disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
                           onChange={(e) => {
                             // Remove acentos e converte para maiúsculas
                             const val = e.target.value
@@ -2149,8 +2160,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           </label>
                           <input
                             id="socialName"
-                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                             value={formData.socialName || ""}
+                            disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
                             onChange={(e) => {
                               const val = e.target.value
                                 .normalize("NFD")
@@ -2171,8 +2183,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         <input
                           id="phone"
                           required
-                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.phone || ""}
+                          disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
                           onChange={(e) => {
                             let val = e.target.value.replace(/\D/g, "");
                             if (val.length > 11) val = val.slice(0, 11);
@@ -2209,8 +2222,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         <select
                           id="city"
                           required
-                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.city || ""}
+                          disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
                           onChange={(e) =>
                             setFormData({ ...formData, city: e.target.value })
                           }
@@ -2229,8 +2243,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             Tipo de Exame
                           </label>
                           <select
-                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                             value={formData.examType || ExamType.COMMON}
+                            disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -2349,8 +2364,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             Restrição CNH
                           </label>
                           <input
-                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                            className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                             value={formData.cnhRestriction || ""}
+                            disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
                             onChange={(e) => {
                               const val = e.target.value;
                               const letters = val
@@ -2539,20 +2555,22 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 onClick={() => setIsModalOpen(false)}
                 className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100 font-medium"
               >
-                Cancelar
+                {editingRequest?.status === ExamStatus.DONE && isAdminOpSup ? "Fechar" : "Cancelar"}
               </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  // Se não estiver na última aba, avança. Se estiver, submete.
-                  // Mas o usuário pediu abas para navegar, então o botão Salvar deve estar sempre disponível ou apenas no final?
-                  // O padrão geralmente é Salvar disponível sempre.
-                  handleSave(e as any);
-                }}
-                className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 shadow-sm transition-all"
-              >
-                Salvar
-              </button>
+              {!(editingRequest?.status === ExamStatus.DONE && isAdminOpSup) && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    // Se não estiver na última aba, avança. Se estiver, submete.
+                    // Mas o usuário pediu abas para navegar, então o botão Salvar deve estar sempre disponível ou apenas no final?
+                    // O padrão geralmente é Salvar disponível sempre.
+                    handleSave(e as any);
+                  }}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 shadow-sm transition-all"
+                >
+                  Salvar
+                </button>
+              )}
             </div>
           </div>
         </div>
