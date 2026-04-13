@@ -611,7 +611,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
         {req.status === ExamStatus.CANCELLED && isAdminOpSup ? (
           <div className="w-full text-right">
-            <span className="text-red-600 font-bold text-xs uppercase">
+            <span className="text-red-600 font-bold text-xs">
               {req.cancellationReason || "-"}
             </span>
           </div>
@@ -1720,11 +1720,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           <th className="px-6 py-3 font-bold text-xs uppercase">
                             Candidato
                           </th>
-                          {status === ExamStatus.CANCELLED && (
-                            <th className="px-6 py-3 font-bold text-xs uppercase">
-                              Cidade
-                            </th>
-                          )}
                           {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               Cidade
@@ -1805,7 +1800,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                     <span className="text-xs text-gray-700">
                                       CPF: {maskCpf(req.cpf)}
                                     </span>
-                                    {req.city && status !== ExamStatus.CANCELLED && (
+                                    {req.city && (
                                       <span className="text-xs text-black font-medium">
                                         Cidade: {req.city}
                                       </span>
@@ -1833,11 +1828,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 )}
                               </div>
                             </td>
-                            {status === ExamStatus.CANCELLED && (
-                              <td className="px-6 py-4 align-middle text-xs text-black font-medium">
-                                {req.city || "-"}
-                              </td>
-                            )}
                             {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {req.city || "-"}
