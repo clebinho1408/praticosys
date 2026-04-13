@@ -21,7 +21,6 @@ import {
   Search,
   Edit,
   X,
-  CheckSquare,
   Gavel,
   ChevronDown,
   ChevronUp,
@@ -302,6 +301,47 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     }
   }, [requests, user]);
 
+  useEffect(() => {
+    const checkScheduledExams = async () => {
+      if (!isAdminOpSup || requests.length === 0) return;
+
+      const now = new Date();
+      let hasUpdates = false;
+
+      for (const req of requests) {
+        if (req.status === ExamStatus.SCHEDULED) {
+          const schedule = schedules.find(s => s.id === req.scheduleId);
+          const dateStr = schedule?.date || req.scheduledDate;
+          const timeStr = schedule?.time || req.scheduledTime;
+
+          if (dateStr && timeStr) {
+            const examDateTime = new Date(`${dateStr}T${timeStr}`);
+            if (!isNaN(examDateTime.getTime())) {
+              const fourHoursInMs = 4 * 60 * 60 * 1000;
+              if (now.getTime() >= examDateTime.getTime() + fourHoursInMs) {
+                try {
+                  await api.updateRequest(req.id, { status: ExamStatus.WAITING_RESULT });
+                  hasUpdates = true;
+                } catch (error) {
+                  console.error("Failed to auto-update status:", error);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (hasUpdates) {
+        fetchRequests(true);
+      }
+    };
+
+    const intervalId = setInterval(checkScheduledExams, 60000);
+    checkScheduledExams();
+
+    return () => clearInterval(intervalId);
+  }, [requests, schedules, isAdminOpSup]);
+
   // Handle Filter Change logic (Auto open accordion if specific status selected)
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);
@@ -542,7 +582,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
          !(req.status === ExamStatus.WAITING_RESULT && isAdminOpSup) && 
          !(req.status === ExamStatus.DONE && isAdminOpSup) && 
          !(req.status === ExamStatus.CANCELLED && isAdminOpSup) && 
-         !(req.status === ExamStatus.WAITING_SCHEDULING && isAdminOpSup) && (
+         !(req.status === ExamStatus.WAITING_SCHEDULING && isAdminOpSup) && 
+         !(req.status === ExamStatus.SCHEDULED && isAdminOpSup) && (
           isAnalysis && isAdminOpSup ? (
             <button
               onClick={() => {
@@ -643,18 +684,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   </button>
                 )}
 
-                {req.status === ExamStatus.SCHEDULED && user.role !== UserRole.INSTRUCTOR && (
-                  <button
-                    onClick={() =>
-                      handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)
-                    }
-                    className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
-                    title="Enviar para Aguardando Resultado"
-                  >
-                    <CheckSquare className="h-4 w-4" />
-                  </button>
-                )}
-
                 {req.status === ExamStatus.WAITING_RESULT && isAdminOpSup && (
                   <button
                     onClick={() => openResultModal(req)}
@@ -674,7 +703,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   </button>
                 )}
 
-                {user.role === UserRole.ADMIN && !isAnalysis && (
+                {user.role === UserRole.ADMIN && !isAnalysis && 
+                 req.status !== ExamStatus.WAITING_SCHEDULING && 
+                 req.status !== ExamStatus.SCHEDULED && 
+                 req.status !== ExamStatus.WAITING_RESULT && 
+                 req.status !== ExamStatus.DONE && (
                   <button
                     onClick={() => handleDeleteRequest(req.id)}
                     className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
@@ -1678,9 +1711,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           </div>
 
                           {/* Actions */}
-                          <div className="pt-2 border-t border-gray-100">
-                            {renderActions(req, status)}
-                          </div>
+                          {!(status === ExamStatus.SCHEDULED && isAdminOpSup) && (
+                            <div className="pt-2 border-t border-gray-100">
+                              {renderActions(req, status)}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -1745,7 +1780,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             </th>
                           )}
                           {(user.role !== UserRole.INSTRUCTOR ||
-                            status === "WAITING_CONFIRMATION") && (
+                            status === "WAITING_CONFIRMATION") && 
+                           !(status === ExamStatus.SCHEDULED && isAdminOpSup) && (
                             <th className={`px-6 py-3 font-bold text-xs uppercase text-right`}>
                               {status === ExamStatus.CANCELLED ? "Motivo" : "Ações"}
                             </th>
@@ -1877,7 +1913,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               </td>
                             )}
                             {(user.role !== UserRole.INSTRUCTOR ||
-                              status === "WAITING_CONFIRMATION") && (
+                              status === "WAITING_CONFIRMATION") && 
+                             !(status === ExamStatus.SCHEDULED && isAdminOpSup) && (
                               <td className={`px-6 py-4 align-middle text-right`}>
                                 {renderActions(req, status)}
                               </td>
