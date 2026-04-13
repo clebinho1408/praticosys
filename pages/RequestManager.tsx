@@ -235,12 +235,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       const data = JSON.parse(event.data);
       if (user.role === UserRole.INSTRUCTOR) {
         if (data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed) {
-          setNotificationData({ title: 'Nova Notificação', message: 'Novo candidato aguardando confirmação para a prova!' });
+          setNotificationData({ 
+            title: 'Nova Notificação', 
+            message: `O candidato ${data.socialName || data.studentName} está aguardando confirmação para a prova!` 
+          });
           setIsNotificationModalOpen(true);
         } else if (data.status === ExamStatus.CANCELLED) {
           setNotificationData({ 
             title: 'Agendamento Recusado', 
-            message: `O agendamento do candidato ${data.studentName} foi recusado. Motivo: ${data.cancellationReason || 'Não informado'}` 
+            message: `O agendamento do candidato ${data.socialName || data.studentName} foi recusado. Motivo: ${data.cancellationReason || 'Não informado'}` 
           });
           setIsNotificationModalOpen(true);
         }
@@ -282,7 +285,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         const last = newRejections[newRejections.length - 1];
         setNotificationData({ 
           title: 'Agendamento Recusado', 
-          message: `O agendamento do candidato ${last.studentName} foi recusado. Motivo: ${last.cancellationReason || 'Não informado'}` 
+          message: `O agendamento do candidato ${last.socialName || last.studentName} foi recusado. Motivo: ${last.cancellationReason || 'Não informado'}` 
         });
         setIsNotificationModalOpen(true);
         localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify([...notifiedIds, ...newRejections.map(r => r.id)]));
@@ -290,7 +293,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         const last = newWaitingConfirmations[newWaitingConfirmations.length - 1];
         setNotificationData({ 
           title: 'Nova Notificação', 
-          message: `O candidato ${last.studentName} está aguardando confirmação para a prova!` 
+          message: `O candidato ${last.socialName || last.studentName} está aguardando confirmação para a prova!` 
         });
         setIsNotificationModalOpen(true);
         localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify([...notifiedIds, ...newWaitingConfirmations.map(r => r.id)]));
@@ -1118,7 +1121,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       return (
         <div className="flex flex-col gap-1 mt-1">
           <div className="border-l-2 border-blue-200 pl-2">
-            <div className="font-bold text-gray-800 text-[10px]">{req.instructor.split(" / ")[0]}</div>
+            <div className="font-bold text-gray-800 text-[10px] uppercase">{req.instructor.split(" / ")[0]}</div>
             <div className="text-[9px] text-gray-500">
               Transmissão: {moto?.transmission === 'AUTOMATICA' ? 'Automática' : moto?.transmission === 'MANUAL' ? 'Manual' : '-'}
             </div>
@@ -1127,7 +1130,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             </div>
           </div>
           <div className="border-l-2 border-green-200 pl-2">
-            <div className="font-bold text-gray-800 text-[10px]">{req.instructor.split(" / ")[1]}</div>
+            <div className="font-bold text-gray-800 text-[10px] uppercase">{req.instructor.split(" / ")[1]}</div>
             <div className="text-[9px] text-gray-500">
               Transmissão: {carro?.transmission === 'AUTOMATICA' ? 'Automática' : carro?.transmission === 'MANUAL' ? 'Manual' : '-'}
             </div>
@@ -1141,7 +1144,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       const vehicle = findVehicle(req.vehiclePlate);
       return (
         <div className="flex flex-col mt-1">
-          <span className="font-bold text-gray-800">{req.instructor}</span>
+          <span className="font-bold text-gray-800 uppercase">{req.instructor}</span>
           <span className="text-[10px] text-gray-500">
             Transmissão: {vehicle?.transmission === 'AUTOMATICA' ? 'Automática' : vehicle?.transmission === 'MANUAL' ? 'Manual' : '-'}
           </span>
@@ -1582,12 +1585,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {req.socialName || req.studentName}
                               </span>
                               {req.city && (
-                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS ? 'text-black' : 'text-blue-600'}`}>
+                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? 'text-black' : 'text-blue-600'}`}>
                                   {req.city}
                                 </span>
                               )}
                               <span className="text-xs text-gray-500">
-                                {status === ExamStatus.IN_ANALYSIS ? maskCpf(req.cpf) : req.cpf}
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? maskCpf(req.cpf) : req.cpf}
                               </span>
                             </div>
                             <div className="flex flex-col items-end gap-1">
@@ -1595,15 +1598,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {req.intendedCategory}
                               </span>
                               {status === ExamStatus.WAITING_SCHEDULING && (
-                                <span className="text-[10px] font-bold text-gray-500">
-                                  Pos: {getGlobalPosition(req.id)}
+                                <span className="text-[10px] font-bold text-red-600">
+                                  Pos: {getGlobalPosition(req.id)}º
                                 </span>
                               )}
                             </div>
                           </div>
 
                           <div className="text-[10px] text-gray-500 bg-gray-50 p-2.5 rounded-lg mb-3">
-                            {status === ExamStatus.IN_ANALYSIS ? (
+                            {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? (
                               renderInstructorDetails(req)
                             ) : (
                               <div className="flex justify-between">
@@ -1623,7 +1626,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             <div className="flex justify-between mt-1">
                               <span>
-                                {status === ExamStatus.IN_ANALYSIS ? "Cadastrado em:" : "Data:"} {new Date(req.createdAt).toLocaleDateString()}
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em:" : "Data:"} {new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                               </span>
                               <span>
                                 Tentativas:{" "}
@@ -1668,7 +1671,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           )}
                           {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
-                              {status === ExamStatus.IN_ANALYSIS ? "Cadastrado em" : "Data Cadastro"}
+                              {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em" : "Data Cadastro"}
                             </th>
                           )}
                           {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
@@ -1701,8 +1704,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           )}
                           {(user.role !== UserRole.INSTRUCTOR ||
                             status === "WAITING_CONFIRMATION") && (
-                            <th className="px-6 py-3 font-bold text-xs uppercase text-right">
-                              Ações
+                            <th className={`px-6 py-3 font-bold text-xs uppercase ${status === ExamStatus.WAITING_SCHEDULING ? 'text-left' : 'text-right'}`}>
+                              {status === ExamStatus.WAITING_SCHEDULING ? "Instrutor" : "Ações"}
                             </th>
                           )}
                         </tr>
@@ -1714,14 +1717,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             className="hover:bg-gray-50 transition-colors"
                           >
                             {status === ExamStatus.WAITING_SCHEDULING && (
-                              <td className="px-6 py-4 align-middle text-sm font-bold text-gray-700 text-center">
-                                {getGlobalPosition(req.id)}
+                              <td className="px-6 py-4 align-middle text-sm font-bold text-red-600 text-center">
+                                {getGlobalPosition(req.id)}º
                               </td>
                             )}
                             {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                                {status === ExamStatus.IN_ANALYSIS 
-                                  ? new Date(req.createdAt).toLocaleDateString() 
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING
+                                  ? new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
                                   : new Date(req.createdAt).toLocaleString()}
                                 {req.result && req.status === ExamStatus.DONE && (
                                   <div className="mt-1">
@@ -1743,7 +1746,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 <span className="font-bold text-gray-800 uppercase">
                                   {req.socialName || req.studentName}
                                 </span>
-                                {status === ExamStatus.IN_ANALYSIS ? (
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? (
                                   <>
                                     <span className="text-xs text-gray-700">
                                       CPF: {maskCpf(req.cpf)}
@@ -1817,8 +1820,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             {(user.role !== UserRole.INSTRUCTOR ||
                               status === "WAITING_CONFIRMATION") && (
-                              <td className="px-6 py-4 align-middle text-right">
-                                {renderActions(req, status)}
+                              <td className={`px-6 py-4 align-middle ${status === ExamStatus.WAITING_SCHEDULING ? 'text-left' : 'text-right'}`}>
+                                {status === ExamStatus.WAITING_SCHEDULING ? renderInstructorDetails(req) : renderActions(req, status)}
                               </td>
                             )}
                           </tr>
