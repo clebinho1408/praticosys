@@ -1585,12 +1585,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {req.socialName || req.studentName}
                               </span>
                               {req.city && (
-                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? 'text-black' : 'text-blue-600'}`}>
+                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? 'text-black' : 'text-blue-600'}`}>
                                   {req.city}
                                 </span>
                               )}
                               <span className="text-xs text-gray-500">
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? maskCpf(req.cpf) : req.cpf}
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? maskCpf(req.cpf) : req.cpf}
                               </span>
                             </div>
                             <div className="flex flex-col items-end gap-1">
@@ -1606,7 +1606,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           </div>
 
                           <div className="text-[10px] text-gray-500 bg-gray-50 p-2.5 rounded-lg mb-3">
-                            {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? (
+                            {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? (
                               renderInstructorDetails(req)
                             ) : (
                               <div className="flex justify-between">
@@ -1626,7 +1626,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             <div className="flex justify-between mt-1">
                               <span>
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em:" : "Data:"} {new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em:" : status === ExamStatus.SCHEDULED ? "Dados do Exame:" : "Data:"} {
+                                  status === ExamStatus.SCHEDULED ? (() => {
+                                    const schedule = schedules.find(s => s.id === req.scheduleId);
+                                    const dateStr = schedule?.date || req.scheduledDate;
+                                    const timeStr = schedule?.time || req.scheduledTime;
+                                    const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                    return `${formattedDate} às ${timeStr || "-"}`;
+                                  })() : new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+                                }
                               </span>
                               <span>
                                 Tentativas:{" "}
@@ -1669,7 +1677,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               Posição
                             </th>
                           )}
-                          {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                          {status === ExamStatus.SCHEDULED && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase">
+                              Dados do Exame
+                            </th>
+                          )}
+                          {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em" : "Data Cadastro"}
                             </th>
@@ -1704,8 +1717,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           )}
                           {(user.role !== UserRole.INSTRUCTOR ||
                             status === "WAITING_CONFIRMATION") && (
-                            <th className={`px-6 py-3 font-bold text-xs uppercase ${status === ExamStatus.WAITING_SCHEDULING ? 'text-left' : 'text-right'}`}>
-                              {status === ExamStatus.WAITING_SCHEDULING ? "Instrutor" : "Ações"}
+                            <th className={`px-6 py-3 font-bold text-xs uppercase ${status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? 'text-left' : 'text-right'}`}>
+                              {status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? "Instrutor" : "Ações"}
                             </th>
                           )}
                         </tr>
@@ -1721,7 +1734,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {getGlobalPosition(req.id)}º
                               </td>
                             )}
-                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && (
+                            {status === ExamStatus.SCHEDULED && (
+                              <td className="px-6 py-4 align-middle text-xs font-bold text-red-600">
+                                {(() => {
+                                  const schedule = schedules.find(s => s.id === req.scheduleId);
+                                  const dateStr = schedule?.date || req.scheduledDate;
+                                  const timeStr = schedule?.time || req.scheduledTime;
+                                  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                  return `${formattedDate} às ${timeStr || "-"}`;
+                                })()}
+                              </td>
+                            )}
+                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING
                                   ? new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
@@ -1746,7 +1770,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 <span className="font-bold text-gray-800 uppercase">
                                   {req.socialName || req.studentName}
                                 </span>
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? (
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? (
                                   <>
                                     <span className="text-xs text-gray-700">
                                       CPF: {maskCpf(req.cpf)}
@@ -1806,7 +1830,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                                {status === ExamStatus.IN_ANALYSIS ? (
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.SCHEDULED ? (
                                   renderInstructorDetails(req)
                                 ) : (
                                   <>
@@ -1820,8 +1844,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             {(user.role !== UserRole.INSTRUCTOR ||
                               status === "WAITING_CONFIRMATION") && (
-                              <td className={`px-6 py-4 align-middle ${status === ExamStatus.WAITING_SCHEDULING ? 'text-left' : 'text-right'}`}>
-                                {status === ExamStatus.WAITING_SCHEDULING ? renderInstructorDetails(req) : renderActions(req, status)}
+                              <td className={`px-6 py-4 align-middle ${status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? 'text-left' : 'text-right'}`}>
+                                {status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? renderInstructorDetails(req) : renderActions(req, status)}
                               </td>
                             )}
                           </tr>
