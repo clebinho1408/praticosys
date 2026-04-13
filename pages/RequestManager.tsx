@@ -609,60 +609,70 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             </>
           )}
 
-        {user.role !== UserRole.SCHOOL && (
-          <>
-            {(req.status === ExamStatus.WAITING_SCHEDULING ||
-              req.status === ExamStatus.RETEST) && (
-              <button
-                onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)}
-                className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
-                title="Cancelar"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
+        {req.status === ExamStatus.WAITING_RESULT && isAdminOpSup ? (
+          <button
+            onClick={() => openResultModal(req)}
+            className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1"
+            title="Lançar Resultado"
+          >
+            <Gavel className="h-3 w-3" /> Resultado
+          </button>
+        ) : (
+          user.role !== UserRole.SCHOOL && (
+            <>
+              {(req.status === ExamStatus.WAITING_SCHEDULING ||
+                req.status === ExamStatus.RETEST) && (
+                <button
+                  onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)}
+                  className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
+                  title="Cancelar"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
 
-            {req.status === ExamStatus.SCHEDULED && user.role !== UserRole.INSTRUCTOR && (
-              <button
-                onClick={() =>
-                  handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)
-                }
-                className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
-                title="Enviar para Aguardando Resultado"
-              >
-                <CheckSquare className="h-4 w-4" />
-              </button>
-            )}
+              {req.status === ExamStatus.SCHEDULED && user.role !== UserRole.INSTRUCTOR && (
+                <button
+                  onClick={() =>
+                    handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)
+                  }
+                  className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
+                  title="Enviar para Aguardando Resultado"
+                >
+                  <CheckSquare className="h-4 w-4" />
+                </button>
+              )}
 
-            {req.status === ExamStatus.WAITING_RESULT && (
-              <button
-                onClick={() => openResultModal(req)}
-                className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1"
-                title="Lançar Resultado"
-              >
-                <Gavel className="h-3 w-3" /> Resultado
-              </button>
-            )}
+              {req.status === ExamStatus.WAITING_RESULT && (
+                <button
+                  onClick={() => openResultModal(req)}
+                  className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1"
+                  title="Lançar Resultado"
+                >
+                  <Gavel className="h-3 w-3" /> Resultado
+                </button>
+              )}
 
-            {req.status === ExamStatus.DONE && req.result === "INAPTO" && (
-              <button
-                onClick={() => handleUpdateStatus(req.id, ExamStatus.RETEST)}
-                className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 border border-orange-200 text-xs font-bold"
-              >
-                Reteste
-              </button>
-            )}
+              {req.status === ExamStatus.DONE && req.result === "INAPTO" && (
+                <button
+                  onClick={() => handleUpdateStatus(req.id, ExamStatus.RETEST)}
+                  className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 border border-orange-200 text-xs font-bold"
+                >
+                  Reteste
+                </button>
+              )}
 
-            {user.role === UserRole.ADMIN && !isAnalysis && (
-              <button
-                onClick={() => handleDeleteRequest(req.id)}
-                className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
-                title="Excluir Candidato"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            )}
-          </>
+              {user.role === UserRole.ADMIN && !isAnalysis && (
+                <button
+                  onClick={() => handleDeleteRequest(req.id)}
+                  className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
+                  title="Excluir Candidato"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </>
+          )
         )}
       </div>
     );
@@ -1585,12 +1595,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 {req.socialName || req.studentName}
                               </span>
                               {req.city && (
-                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? 'text-black' : 'text-blue-600'}`}>
+                                <span className={`text-xs font-medium ${status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT ? 'text-black' : 'text-blue-600'}`}>
                                   {req.city}
                                 </span>
                               )}
                               <span className="text-xs text-gray-500">
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? maskCpf(req.cpf) : req.cpf}
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT ? maskCpf(req.cpf) : req.cpf}
                               </span>
                             </div>
                             <div className="flex flex-col items-end gap-1">
@@ -1626,7 +1636,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             <div className="flex justify-between mt-1">
                               <span>
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em:" : status === ExamStatus.SCHEDULED ? "Dados do Exame:" : "Data:"} {
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em:" : status === ExamStatus.SCHEDULED ? "Dados do Exame:" : status === ExamStatus.WAITING_RESULT ? "Cadastrado em:" : "Data:"} {
                                   status === ExamStatus.SCHEDULED ? (() => {
                                     const schedule = schedules.find(s => s.id === req.scheduleId);
                                     const dateStr = schedule?.date || req.scheduledDate;
@@ -1682,7 +1692,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               Dados do Exame
                             </th>
                           )}
-                          {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && (
+                          {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && status !== ExamStatus.WAITING_RESULT && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING ? "Cadastrado em" : "Data Cadastro"}
                             </th>
@@ -1745,7 +1755,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 })()}
                               </td>
                             )}
-                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && (
+                            {!(status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR) && status !== ExamStatus.SCHEDULED && status !== ExamStatus.WAITING_RESULT && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING
                                   ? new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
@@ -1770,7 +1780,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 <span className="font-bold text-gray-800 uppercase">
                                   {req.socialName || req.studentName}
                                 </span>
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? (
+                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT ? (
                                   <>
                                     <span className="text-xs text-gray-700">
                                       CPF: {maskCpf(req.cpf)}
@@ -1830,7 +1840,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                                {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.SCHEDULED ? (
+                                {status === ExamStatus.IN_ANALYSIS ? (
                                   renderInstructorDetails(req)
                                 ) : (
                                   <>
