@@ -538,7 +538,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     return (
       <div className={`flex items-center space-x-2 ${user.role === UserRole.INSTRUCTOR ? 'w-full' : 'justify-end'}`}>
-        {user.role !== UserRole.INSTRUCTOR && !(req.status === ExamStatus.WAITING_RESULT && isAdminOpSup) && (
+        {user.role !== UserRole.INSTRUCTOR && 
+         !(req.status === ExamStatus.WAITING_RESULT && isAdminOpSup) && 
+         !(req.status === ExamStatus.DONE && isAdminOpSup) && 
+         !(req.status === ExamStatus.CANCELLED && isAdminOpSup) && 
+         !(req.status === ExamStatus.WAITING_SCHEDULING && isAdminOpSup) && (
           isAnalysis && isAdminOpSup ? (
             <button
               onClick={() => {
@@ -615,78 +619,73 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               {req.cancellationReason || "-"}
             </span>
           </div>
-        ) : req.status === ExamStatus.DONE && isAdminOpSup ? (
-          <button
-            onClick={() => openCreateModal(req)}
-            className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
-            title="Visualizar"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-        ) : req.status === ExamStatus.WAITING_RESULT && isAdminOpSup ? (
-          <button
-            onClick={() => openResultModal(req)}
-            className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1"
-            title="Lançar Resultado"
-          >
-            <Gavel className="h-3 w-3" /> Resultado
-          </button>
         ) : (
-          user.role !== UserRole.SCHOOL && (
-            <>
-              {(req.status === ExamStatus.WAITING_SCHEDULING ||
-                req.status === ExamStatus.RETEST) && (
-                <button
-                  onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)}
-                  className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
-                  title="Cancelar"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+          <>
+            {(req.status === ExamStatus.DONE || req.status === ExamStatus.WAITING_SCHEDULING) && isAdminOpSup && (
+              <button
+                onClick={() => openCreateModal(req)}
+                className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
+                title="Visualizar"
+              >
+                <Search className="h-4 w-4" />
+              </button>
+            )}
 
-              {req.status === ExamStatus.SCHEDULED && user.role !== UserRole.INSTRUCTOR && (
-                <button
-                  onClick={() =>
-                    handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)
-                  }
-                  className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
-                  title="Enviar para Aguardando Resultado"
-                >
-                  <CheckSquare className="h-4 w-4" />
-                </button>
-              )}
+            {user.role !== UserRole.SCHOOL && (
+              <>
+                {(req.status === ExamStatus.RETEST) && (
+                  <button
+                    onClick={() => handleUpdateStatus(req.id, ExamStatus.CANCELLED)}
+                    className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
+                    title="Cancelar"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
 
-              {req.status === ExamStatus.WAITING_RESULT && (
-                <button
-                  onClick={() => openResultModal(req)}
-                  className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1"
-                  title="Lançar Resultado"
-                >
-                  <Gavel className="h-3 w-3" /> Resultado
-                </button>
-              )}
+                {req.status === ExamStatus.SCHEDULED && user.role !== UserRole.INSTRUCTOR && (
+                  <button
+                    onClick={() =>
+                      handleUpdateStatus(req.id, ExamStatus.WAITING_RESULT)
+                    }
+                    className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
+                    title="Enviar para Aguardando Resultado"
+                  >
+                    <CheckSquare className="h-4 w-4" />
+                  </button>
+                )}
 
-              {req.status === ExamStatus.DONE && req.result === "INAPTO" && (
-                <button
-                  onClick={() => handleUpdateStatus(req.id, ExamStatus.RETEST)}
-                  className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 border border-orange-200 text-xs font-bold"
-                >
-                  Reteste
-                </button>
-              )}
+                {req.status === ExamStatus.WAITING_RESULT && isAdminOpSup && (
+                  <button
+                    onClick={() => openResultModal(req)}
+                    className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1"
+                    title="Lançar Resultado"
+                  >
+                    <Gavel className="h-3 w-3" /> Resultado
+                  </button>
+                )}
 
-              {user.role === UserRole.ADMIN && !isAnalysis && (
-                <button
-                  onClick={() => handleDeleteRequest(req.id)}
-                  className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
-                  title="Excluir Candidato"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              )}
-            </>
-          )
+                {req.status === ExamStatus.DONE && req.result === "INAPTO" && (
+                  <button
+                    onClick={() => handleUpdateStatus(req.id, ExamStatus.RETEST)}
+                    className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 border border-orange-200 text-xs font-bold"
+                  >
+                    Reteste
+                  </button>
+                )}
+
+                {user.role === UserRole.ADMIN && !isAnalysis && (
+                  <button
+                    onClick={() => handleDeleteRequest(req.id)}
+                    className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
+                    title="Excluir Candidato"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </>
+            )}
+          </>
         )}
       </div>
     );
@@ -1629,9 +1628,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           </div>
 
                           <div className="text-[10px] text-gray-500 bg-gray-50 p-2.5 rounded-lg mb-3">
-                            {status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? (
+                            {status === ExamStatus.IN_ANALYSIS ? (
                               renderInstructorDetails(req)
-                            ) : (
+                            ) : status !== ExamStatus.SCHEDULED && status !== ExamStatus.WAITING_SCHEDULING ? (
                               <div className="flex justify-between">
                                 <span>
                                   Instr:{" "}
@@ -1646,7 +1645,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                   </span>
                                 </span>
                               </div>
-                            )}
+                            ) : null}
                             {status !== ExamStatus.DONE && status !== ExamStatus.CANCELLED && (
                               <div className="flex justify-between mt-1">
                                 <span>
@@ -1720,6 +1719,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           <th className="px-6 py-3 font-bold text-xs uppercase">
                             Candidato
                           </th>
+                          {(status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT || status === ExamStatus.DONE) && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase">
+                              Cidade
+                            </th>
+                          )}
                           {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               Cidade
@@ -1742,8 +1746,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           )}
                           {(user.role !== UserRole.INSTRUCTOR ||
                             status === "WAITING_CONFIRMATION") && (
-                            <th className={`px-6 py-3 font-bold text-xs uppercase ${status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? 'text-left' : 'text-right'}`}>
-                              {status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? "Instrutor" : status === ExamStatus.CANCELLED ? "Motivo" : "Ações"}
+                            <th className={`px-6 py-3 font-bold text-xs uppercase text-right`}>
+                              {status === ExamStatus.CANCELLED ? "Motivo" : "Ações"}
                             </th>
                           )}
                         </tr>
@@ -1800,7 +1804,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                     <span className="text-xs text-gray-700">
                                       CPF: {maskCpf(req.cpf)}
                                     </span>
-                                    {req.city && (
+                                    {req.city && (status === ExamStatus.IN_ANALYSIS || status === ExamStatus.WAITING_SCHEDULING) && (
                                       <span className="text-xs text-black font-medium">
                                         Cidade: {req.city}
                                       </span>
@@ -1828,6 +1832,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 )}
                               </div>
                             </td>
+                            {(status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT || status === ExamStatus.DONE) && (
+                              <td className="px-6 py-4 align-middle text-xs text-black font-medium">
+                                {req.city || "-"}
+                              </td>
+                            )}
                             {(status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR && (
                               <td className="px-6 py-4 align-middle text-xs text-gray-500">
                                 {req.city || "-"}
@@ -1869,8 +1878,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             )}
                             {(user.role !== UserRole.INSTRUCTOR ||
                               status === "WAITING_CONFIRMATION") && (
-                              <td className={`px-6 py-4 align-middle ${status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? 'text-left' : 'text-right'}`}>
-                                {status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED ? renderInstructorDetails(req) : renderActions(req, status)}
+                              <td className={`px-6 py-4 align-middle text-right`}>
+                                {renderActions(req, status)}
                               </td>
                             )}
                           </tr>
