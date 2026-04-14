@@ -1299,7 +1299,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const groupConfig = {
     [ExamStatus.IN_ANALYSIS]: {
-      label: user.role === UserRole.INSTRUCTOR ? "Pedidos de Agendamentos" : "Cadastros em Análise",
+      label: user.role === UserRole.INSTRUCTOR ? "Pedidos de Agendamentos" : (isAdminOpSup ? "Pedidos de Agendamento" : "Cadastros em Análise"),
       color: "indigo",
       icon: AlertCircle,
     },
@@ -1314,21 +1314,25 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       icon: AlertOctagon,
     },
     [ExamStatus.SCHEDULED]: {
-      label: "Agendado",
+      label: isAdminOpSup ? "Candidatos Agendados" : "Agendado",
       color: "blue",
       icon: Calendar,
     },
     [ExamStatus.WAITING_RESULT]: {
-      label: "Aguardando Resultado",
+      label: isAdminOpSup ? "Aguardando Resultados" : "Aguardando Resultado",
       color: "purple",
       icon: AlertOctagon,
     },
     [ExamStatus.DONE]: {
-      label: "Realizado",
+      label: isAdminOpSup ? "Candidatos Aprovados" : "Realizado",
       color: "green",
       icon: CheckCircle,
     },
-    [ExamStatus.CANCELLED]: { label: "Cancelado", color: "red", icon: X },
+    [ExamStatus.CANCELLED]: { 
+      label: isAdminOpSup ? "Candidatos Cancelados" : "Cancelado", 
+      color: "red", 
+      icon: X 
+    },
   };
 
   if (loading)
@@ -1418,17 +1422,23 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 <option value="ALL">Todos os Status</option>
                 <option value={ExamStatus.IN_ANALYSIS}>
-                  Cadastros em Análise
+                  {isAdminOpSup ? "Pedidos de Agendamento" : "Cadastros em Análise"}
                 </option>
                 <option value={ExamStatus.WAITING_SCHEDULING}>
                   Aguardando Agendamento
                 </option>
-                <option value={ExamStatus.SCHEDULED}>Agendado</option>
-                <option value={ExamStatus.WAITING_RESULT}>
-                  Aguardando Resultado
+                <option value={ExamStatus.SCHEDULED}>
+                  {isAdminOpSup ? "Candidatos Agendados" : "Agendado"}
                 </option>
-                <option value={ExamStatus.DONE}>Realizado</option>
-                <option value={ExamStatus.CANCELLED}>Cancelado</option>
+                <option value={ExamStatus.WAITING_RESULT}>
+                  {isAdminOpSup ? "Aguardando Resultados" : "Aguardando Resultado"}
+                </option>
+                <option value={ExamStatus.DONE}>
+                  {isAdminOpSup ? "Candidatos Aprovados" : "Realizado"}
+                </option>
+                <option value={ExamStatus.CANCELLED}>
+                  {isAdminOpSup ? "Candidatos Cancelados" : "Cancelado"}
+                </option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <ChevronDown className="h-4 w-4 text-gray-400" />
