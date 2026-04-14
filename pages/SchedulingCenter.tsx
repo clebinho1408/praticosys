@@ -159,6 +159,60 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
     type: type || ExamType.COMMON
   });
 
+  const globalQueue = React.useMemo(() => {
+    return allRequests
+      .filter(
+        (r) =>
+          r.status === ExamStatus.WAITING_SCHEDULING &&
+          (!type || r.examType === type),
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
+  }, [allRequests, type]);
+
+  const getGlobalPosition = (id: string) => {
+    const index = globalQueue.findIndex((r) => r.id === id);
+    return index !== -1 ? index + 1 : "-";
+  };
+
+  const isValidForCategory = (r: ExamRequest, category: 'A' | 'B') => {
+    if (!r.instructor || !r.vehiclePlate) return false;
+    
+    if (r.intendedCategory === 'AB') {
+        const instrParts = r.instructor.split(' / ');
+        const plateParts = r.vehiclePlate.split(' / ');
+        
+        if (category === 'A') {
+            const motoInstr = instrParts[0]?.replace('Moto: ', '');
+            const motoPlate = plateParts[0]?.replace('Moto: ', '');
+            return motoInstr !== 'A DEFINIR' && motoPlate !== 'A DEFINIR';
+        } else {
+            const carInstr = instrParts[1]?.replace('Carro: ', '');
+            const carPlate = plateParts[1]?.replace('Carro: ', '');
+            return carInstr !== 'A DEFINIR' && carPlate !== 'A DEFINIR';
+        }
+    } else {
+        return r.instructor !== 'A DEFINIR' && r.vehiclePlate !== 'A DEFINIR';
+    }
+  };
+
+  const fullAvailableRequests = React.useMemo(() => {
+    return allRequests
+     .filter(r => {
+         const matchesStatus = r.status === ExamStatus.WAITING_SCHEDULING;
+         const matchesType = r.examType === selectedSchedule?.type;
+         const matchesSchool = user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId;
+         const matchesSource = r.source === RequestSource.STUDENT_DIRECT;
+         return matchesStatus && matchesType && matchesSchool && matchesSource;
+     })
+     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  }, [allRequests, selectedSchedule, user]);
+
+  const fullCandidatesA = fullAvailableRequests.filter(r => (r.intendedCategory === 'A' || r.intendedCategory === 'AB') && isValidForCategory(r, 'A'));
+  const fullCandidatesB = fullAvailableRequests.filter(r => (r.intendedCategory === 'B' || r.intendedCategory === 'AB') && isValidForCategory(r, 'B'));
+
   const refreshData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
@@ -354,12 +408,46 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   };
 
   const toggleCandidateSelection = (id: string, category: 'A' | 'B') => {
+      const candidatesList = category === 'A' ? fullCandidatesA : fullCandidatesB;
+      const index = candidatesList.findIndex(c => c.id === id);
+      if (index === -1) return;
+
       setSelectedCandidates(prev => {
           const newState = { ...prev };
-          if (newState[id]) {
-              delete newState[id];
+          const isCurrentlySelected = newState[id] === category;
+          
+          if (isCurrentlySelected) {
+              // Deselecting: must deselect all subsequent candidates in this category
+              for (let i = index; i < candidatesList.length; i++) {
+                  const candId = candidatesList[i].id;
+                  if (newState[candId] === category) {
+                      delete newState[candId];
+                  }
+              }
           } else {
-              newState[id] = category;
+              // Selecting: must select all previous candidates in this category
+              // Check if we have enough slots
+              const currentSelectedInThisCat = Object.values(newState).filter(c => c === category).length;
+              const alreadyInBanca = allScheduledInThisBanca.filter(s => s.scheduledCategory === category).length;
+              const maxSlots = category === 'A' ? (selectedSchedule?.maxSlotsA || 0) : (selectedSchedule?.maxSlotsB || 0);
+              
+              // Count how many new selections we are making
+              let newSelections = 0;
+              for (let i = 0; i <= index; i++) {
+                  if (newState[candidatesList[i].id] !== category) {
+                      newSelections++;
+                  }
+              }
+
+              if (alreadyInBanca + currentSelectedInThisCat + newSelections > maxSlots) {
+                  alert(`Não há vagas suficientes para selecionar até esta posição na Categoria ${category}.`);
+                  return prev;
+              }
+
+              for (let i = 0; i <= index; i++) {
+                  const candId = candidatesList[i].id;
+                  newState[candId] = category;
+              }
           }
           return newState;
       });
@@ -550,27 +638,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         return matchesStatus && matchesType && matchesSearch && matchesSchool && matchesSource;
     })
     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
-
-  const isValidForCategory = (r: ExamRequest, category: 'A' | 'B') => {
-      if (!r.instructor || !r.vehiclePlate) return false;
-      
-      if (r.intendedCategory === 'AB') {
-          const instrParts = r.instructor.split(' / ');
-          const plateParts = r.vehiclePlate.split(' / ');
-          
-          if (category === 'A') {
-              const motoInstr = instrParts[0]?.replace('Moto: ', '');
-              const motoPlate = plateParts[0]?.replace('Moto: ', '');
-              return motoInstr !== 'A DEFINIR' && motoPlate !== 'A DEFINIR';
-          } else {
-              const carInstr = instrParts[1]?.replace('Carro: ', '');
-              const carPlate = plateParts[1]?.replace('Carro: ', '');
-              return carInstr !== 'A DEFINIR' && carPlate !== 'A DEFINIR';
-          }
-      } else {
-          return r.instructor !== 'A DEFINIR' && r.vehiclePlate !== 'A DEFINIR';
-      }
-  };
 
   // Split into categories
   const candidatesA = availableRequests.filter(r => (r.intendedCategory === 'A' || r.intendedCategory === 'AB') && isValidForCategory(r, 'A'));
@@ -1060,8 +1127,12 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                                               </div>
                                               <div className="flex-1">
-                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
-                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
+                                                  <div className="flex justify-between items-start">
+                                                      <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
+                                                      <div className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Pos: {getGlobalPosition(cand.id)}º</div>
+                                                  </div>
+                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">Instrutor: {cand.instructor || "-"}</div>
+                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1 mt-1">
                                                       <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
                                                       <span>•</span>
                                                       <span>{cand.cpf}</span>
@@ -1117,8 +1188,12 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                                               </div>
                                               <div className="flex-1">
-                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
-                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1">
+                                                  <div className="flex justify-between items-start">
+                                                      <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
+                                                      <div className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Pos: {getGlobalPosition(cand.id)}º</div>
+                                                  </div>
+                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">Instrutor: {cand.instructor || "-"}</div>
+                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1 mt-1">
                                                       <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
                                                       <span>•</span>
                                                       <span>{cand.cpf}</span>
