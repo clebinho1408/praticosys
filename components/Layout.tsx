@@ -53,6 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       case UserRole.OPERATOR: return 'Operador';
       case UserRole.SCHOOL: return 'Autoescola';
       case UserRole.EXAMINER: return 'Examinador';
+      case UserRole.INSTRUCTOR: return 'INSTRUTOR';
       default: return role;
     }
   };

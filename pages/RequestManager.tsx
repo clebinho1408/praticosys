@@ -30,9 +30,11 @@ import {
   AlertOctagon,
   Filter,
   Trash2,
-  AlertCircle,
   Check,
   Ban,
+  ClipboardList,
+  UserCheck,
+  FileSearch,
 } from "lucide-react";
 
 const validateCPF = (cpf: string) => {
@@ -1304,7 +1306,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     [ExamStatus.IN_ANALYSIS]: {
       label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Pedidos de Agendamento" : "Cadastros em Análise",
       color: "indigo",
-      icon: AlertCircle,
+      icon: ClipboardList,
     },
     [ExamStatus.WAITING_SCHEDULING]: {
       label: "Aguardando Agendamento",
@@ -1314,7 +1316,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     WAITING_CONFIRMATION: {
       label: "Aguardando Confirmação",
       color: "orange",
-      icon: AlertOctagon,
+      icon: UserCheck,
     },
     [ExamStatus.SCHEDULED]: {
       label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Candidatos Agendados" : "Agendado",
@@ -1324,7 +1326,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     [ExamStatus.WAITING_RESULT]: {
       label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Aguardando Resultados" : "Aguardando Resultado",
       color: "purple",
-      icon: AlertOctagon,
+      icon: FileSearch,
     },
     [ExamStatus.DONE]: {
       label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Candidatos Aprovados" : "Realizado",
@@ -2341,7 +2343,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          {user.role === UserRole.INSTRUCTOR ? "Agendar prova de" : "Categoria Pretendida"}{" "}
+                          {user.role === UserRole.INSTRUCTOR ? "Categoria" : "Categoria Pretendida"}{" "}
                           <span className="text-red-500">*</span>
                         </label>
                         <select
