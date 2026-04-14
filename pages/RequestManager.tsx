@@ -91,17 +91,22 @@ const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({
   );
 };
 
-const CountdownTimer: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
+const CountdownTimer: React.FC<{ targetDate: Date; onExpire?: () => void }> = ({ targetDate, onExpire }) => {
   const [timeLeft, setTimeLeft] = useState<number>(targetDate.getTime() - new Date().getTime());
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimeLeft(targetDate.getTime() - new Date().getTime());
+      const newTime = targetDate.getTime() - new Date().getTime();
+      setTimeLeft(newTime);
+      if (newTime <= 0) {
+        clearInterval(interval);
+        onExpire?.();
+      }
     }, 1000);
     return () => clearInterval(interval);
-  }, [targetDate]);
+  }, [targetDate, onExpire]);
 
-  if (timeLeft <= 0) return <span className="text-red-600 font-bold animate-pulse">Expirado</span>;
+  if (timeLeft <= 0) return null;
 
   const hours = Math.floor(timeLeft / (1000 * 60 * 60));
   const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
@@ -641,8 +646,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         {statusGroup === "WAITING_CONFIRMATION" &&
           user.role === UserRole.INSTRUCTOR && (
             <div className="flex flex-col gap-2 w-full">
-              <div className="p-2 bg-orange-50 border border-orange-100 rounded-lg mb-1">
-                <div className="text-[10px] text-orange-500 uppercase font-bold tracking-wider mb-1">Tempo para confirmar:</div>
                 {(() => {
                   const schedule = schedules.find(s => s.id === req.scheduleId);
                   const dateStr = schedule?.date || req.scheduledDate;
@@ -650,11 +653,24 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   if (dateStr && timeStr) {
                     const examDateTime = new Date(`${dateStr.split('T')[0]}T${timeStr}`);
                     const closingDate = new Date(examDateTime.getTime() - 24 * 60 * 60 * 1000);
-                    return <CountdownTimer targetDate={closingDate} />;
+                    if (new Date() > closingDate) return null;
+                    return (
+                      <div className="p-2 bg-orange-50 border border-orange-100 rounded-lg mb-1">
+                        <div className="text-[10px] text-orange-500 uppercase font-bold tracking-wider mb-1">Tempo para confirmar:</div>
+                        <CountdownTimer 
+                          targetDate={closingDate} 
+                          onExpire={() => fetchRequests(true)}
+                        />
+                      </div>
+                    );
                   }
-                  return <span className="text-gray-400 text-xs italic">Data não definida</span>;
+                  return (
+                    <div className="p-2 bg-orange-50 border border-orange-100 rounded-lg mb-1">
+                      <div className="text-[10px] text-orange-500 uppercase font-bold tracking-wider mb-1">Tempo para confirmar:</div>
+                      <span className="text-gray-400 text-xs italic">Data não definida</span>
+                    </div>
+                  );
                 })()}
-              </div>
               <div className="flex gap-2 w-full">
                 <button
                   onClick={() => handleConfirmAttendance(req.id)}
@@ -1272,7 +1288,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       (r) => r.status === ExamStatus.WAITING_SCHEDULING,
     ),
     WAITING_CONFIRMATION: filteredRequests.filter(
-      (r) => r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed,
+      (r) => {
+        const schedule = schedules.find(s => s.id === r.scheduleId);
+        return r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed && schedule?.status === 'OPEN';
+      }
     ),
     [ExamStatus.SCHEDULED]: filteredRequests.filter(
       (r) => {
@@ -1948,12 +1967,19 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                   return (
                                     <div className="flex flex-col gap-1">
                                       <span>{`${codeStr} - Categoria ${req.scheduledCategory || req.intendedCategory} - ${formattedDate} às ${timeStr || "-"}`}</span>
-                                      {dateStr && timeStr && (
-                                        <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded border border-orange-100 w-fit">
-                                          <span className="text-[9px] text-orange-400 uppercase tracking-tighter">Expira em:</span>
-                                          <CountdownTimer targetDate={new Date(new Date(`${dateStr.split('T')[0]}T${timeStr}`).getTime() - 24 * 60 * 60 * 1000)} />
-                                        </div>
-                                      )}
+                                      {dateStr && timeStr && (() => {
+                                        const closingDate = new Date(new Date(`${dateStr.split('T')[0]}T${timeStr}`).getTime() - 24 * 60 * 60 * 1000);
+                                        if (new Date() > closingDate) return null;
+                                        return (
+                                          <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded border border-orange-100 w-fit">
+                                            <span className="text-[9px] text-orange-400 uppercase tracking-tighter">Expira em:</span>
+                                            <CountdownTimer 
+                                              targetDate={closingDate} 
+                                              onExpire={() => fetchRequests(true)}
+                                            />
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                   );
                                 })()}
