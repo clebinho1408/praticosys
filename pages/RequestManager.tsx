@@ -91,6 +91,30 @@ const ResultBadge: React.FC<{ result?: ExamResult; status: ExamStatus }> = ({
   );
 };
 
+const CountdownTimer: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
+  const [timeLeft, setTimeLeft] = useState<number>(targetDate.getTime() - new Date().getTime());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeLeft(targetDate.getTime() - new Date().getTime());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  if (timeLeft <= 0) return <span className="text-red-600 font-bold animate-pulse">Expirado</span>;
+
+  const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+  const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+  return (
+    <div className="flex items-center gap-1 text-orange-600 font-mono text-sm">
+      <Clock className="h-3 w-3" />
+      <span>{hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}</span>
+    </div>
+  );
+};
+
 interface RequestManagerProps {
   user: User;
   typeFilter?: ExamType;
@@ -616,21 +640,37 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
         {statusGroup === "WAITING_CONFIRMATION" &&
           user.role === UserRole.INSTRUCTOR && (
-            <div className="flex gap-2 w-full">
-              <button
-                onClick={() => handleConfirmAttendance(req.id)}
-                className="flex-1 flex items-center justify-center gap-1 p-2 border border-green-200 rounded-lg hover:bg-green-50 text-green-700 font-bold text-xs transition-colors"
-                title="Confirmar Presença"
-              >
-                <Check className="h-4 w-4" /> Confirmar
-              </button>
-              <button
-                onClick={() => handleCancelAttendance(req.id)}
-                className="flex-1 flex items-center justify-center gap-1 p-2 border border-red-200 rounded-lg hover:bg-red-50 text-red-700 font-bold text-xs transition-colors"
-                title="Cancelar Presença"
-              >
-                <Ban className="h-4 w-4" /> Cancelar
-              </button>
+            <div className="flex flex-col gap-2 w-full">
+              <div className="p-2 bg-orange-50 border border-orange-100 rounded-lg mb-1">
+                <div className="text-[10px] text-orange-500 uppercase font-bold tracking-wider mb-1">Tempo para confirmar:</div>
+                {(() => {
+                  const schedule = schedules.find(s => s.id === req.scheduleId);
+                  const dateStr = schedule?.date || req.scheduledDate;
+                  const timeStr = schedule?.time || req.scheduledTime;
+                  if (dateStr && timeStr) {
+                    const examDateTime = new Date(`${dateStr.split('T')[0]}T${timeStr}`);
+                    const closingDate = new Date(examDateTime.getTime() - 24 * 60 * 60 * 1000);
+                    return <CountdownTimer targetDate={closingDate} />;
+                  }
+                  return <span className="text-gray-400 text-xs italic">Data não definida</span>;
+                })()}
+              </div>
+              <div className="flex gap-2 w-full">
+                <button
+                  onClick={() => handleConfirmAttendance(req.id)}
+                  className="flex-1 flex items-center justify-center gap-1 p-2 border border-green-200 rounded-lg hover:bg-green-50 text-green-700 font-bold text-xs transition-colors"
+                  title="Confirmar Presença"
+                >
+                  <Check className="h-4 w-4" /> Confirmar
+                </button>
+                <button
+                  onClick={() => handleCancelAttendance(req.id)}
+                  className="flex-1 flex items-center justify-center gap-1 p-2 border border-red-200 rounded-lg hover:bg-red-50 text-red-700 font-bold text-xs transition-colors"
+                  title="Cancelar Presença"
+                >
+                  <Ban className="h-4 w-4" /> Cancelar
+                </button>
+              </div>
             </div>
           )}
 
@@ -1905,7 +1945,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                   const codeStr = schedule?.code || "-";
                                   const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
                                   
-                                  return `${codeStr} - Categoria ${req.scheduledCategory || req.intendedCategory} - ${formattedDate} às ${timeStr || "-"}`;
+                                  return (
+                                    <div className="flex flex-col gap-1">
+                                      <span>{`${codeStr} - Categoria ${req.scheduledCategory || req.intendedCategory} - ${formattedDate} às ${timeStr || "-"}`}</span>
+                                      {dateStr && timeStr && (
+                                        <div className="flex items-center gap-1 bg-orange-50 px-2 py-1 rounded border border-orange-100 w-fit">
+                                          <span className="text-[9px] text-orange-400 uppercase tracking-tighter">Expira em:</span>
+                                          <CountdownTimer targetDate={new Date(new Date(`${dateStr.split('T')[0]}T${timeStr}`).getTime() - 24 * 60 * 60 * 1000)} />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
                                 })()}
                               </td>
                             )}
