@@ -96,6 +96,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const prevWaitingIdsRef = React.useRef<string[]>([]);
+  
+  // Initialize prevWaitingIdsRef from localStorage on mount
+  useEffect(() => {
+    if (user.role === UserRole.SCHOOL) {
+      const storedIds = JSON.parse(localStorage.getItem(`cfc_notified_requests_${user.id}`) || '[]');
+      prevWaitingIdsRef.current = storedIds;
+    }
+  }, [user.id, user.role]);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelRequest, setCancelRequest] = useState<ExamRequest | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -465,18 +473,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   useEffect(() => {
     if (user.role === UserRole.SCHOOL) {
       const currentIds = waitingConfirmation.map(r => r.id);
-      const hasNew = currentIds.some(id => !prevWaitingIdsRef.current.includes(id));
+      const storedIds = JSON.parse(localStorage.getItem(`cfc_notified_requests_${user.id}`) || '[]');
+      const hasNew = currentIds.some(id => !storedIds.includes(id));
       
-      if (hasNew && prevWaitingIdsRef.current.length > 0) {
+      if (hasNew) {
         setIsNotificationModalOpen(true);
         // Play notification sound
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
         audio.play().catch(e => console.error('Error playing notification sound:', e));
       }
-      
-      prevWaitingIdsRef.current = currentIds;
     }
-  }, [waitingConfirmation, user.role]);
+  }, [waitingConfirmation, user.role, user.id]);
 
   useEffect(() => {
     if (user.role === UserRole.SCHOOL && waitingConfirmation.length > 0 && !hasAutoExpandedWaiting.current) {
@@ -1973,7 +1980,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 </p>
               </div>
               <button 
-                onClick={() => setIsNotificationModalOpen(false)}
+                onClick={() => {
+                  const currentIds = waitingConfirmation.map(r => r.id);
+                  localStorage.setItem(`cfc_notified_requests_${user.id}`, JSON.stringify(currentIds));
+                  setIsNotificationModalOpen(false);
+                }}
                 className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-red-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] uppercase tracking-wider"
               >
                 Entendido

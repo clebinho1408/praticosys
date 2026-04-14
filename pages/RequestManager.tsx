@@ -143,7 +143,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     null,
   );
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
-  const [notificationData, setNotificationData] = useState({ title: '', message: '' });
+  const [notificationData, setNotificationData] = useState({ title: '', message: '', id: '' });
   const [confirmModalData, setConfirmModalData] = useState<{
     isOpen: boolean;
     title: string;
@@ -234,16 +234,19 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     eventSource.addEventListener('requests_updated', (event) => {
       const data = JSON.parse(event.data);
       if (user.role === UserRole.INSTRUCTOR) {
-        if (data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed) {
+        const notifiedIds = JSON.parse(localStorage.getItem(`notified_requests_${user.id}`) || '[]');
+        if (data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed && !notifiedIds.includes(data.id)) {
           setNotificationData({ 
             title: 'Nova Notificação', 
-            message: `O candidato ${data.socialName || data.studentName} está aguardando confirmação para a prova!` 
+            message: `O candidato ${data.socialName || data.studentName} está aguardando confirmação para a prova!`,
+            id: data.id
           });
           setIsNotificationModalOpen(true);
-        } else if (data.status === ExamStatus.CANCELLED) {
+        } else if (data.status === ExamStatus.CANCELLED && !notifiedIds.includes(data.id)) {
           setNotificationData({ 
             title: 'Agendamento Recusado', 
-            message: `O agendamento do candidato ${data.socialName || data.studentName} foi recusado. Motivo: ${data.cancellationReason || 'Não informado'}` 
+            message: `O agendamento do candidato ${data.socialName || data.studentName} foi recusado. Motivo: ${data.cancellationReason || 'Não informado'}`,
+            id: data.id
           });
           setIsNotificationModalOpen(true);
         }
@@ -285,18 +288,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         const last = newRejections[newRejections.length - 1];
         setNotificationData({ 
           title: 'Agendamento Recusado', 
-          message: `O agendamento do candidato ${last.socialName || last.studentName} foi recusado. Motivo: ${last.cancellationReason || 'Não informado'}` 
+          message: `O agendamento do candidato ${last.socialName || last.studentName} foi recusado. Motivo: ${last.cancellationReason || 'Não informado'}`,
+          id: last.id
         });
         setIsNotificationModalOpen(true);
-        localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify([...notifiedIds, ...newRejections.map(r => r.id)]));
       } else if (newWaitingConfirmations.length > 0) {
         const last = newWaitingConfirmations[newWaitingConfirmations.length - 1];
         setNotificationData({ 
           title: 'Nova Notificação', 
-          message: `O candidato ${last.socialName || last.studentName} está aguardando confirmação para a prova!` 
+          message: `O candidato ${last.socialName || last.studentName} está aguardando confirmação para a prova!`,
+          id: last.id
         });
         setIsNotificationModalOpen(true);
-        localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify([...notifiedIds, ...newWaitingConfirmations.map(r => r.id)]));
       }
     }
   }, [requests, user]);
@@ -1952,7 +1955,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       {/* Notification Modal */}
       <NotificationModal
         isOpen={isNotificationModalOpen}
-        onClose={() => setIsNotificationModalOpen(false)}
+        onClose={() => {
+          const notifiedIds = JSON.parse(localStorage.getItem(`notified_requests_${user.id}`) || '[]');
+          
+          // Mark all current relevant requests as notified so they don't show up again
+          const newRejections = requests.filter(r => r.status === ExamStatus.CANCELLED).map(r => r.id);
+          const newWaitingConfirmations = requests.filter(r => r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed).map(r => r.id);
+          
+          const allIdsToMark = Array.from(new Set([...notifiedIds, ...newRejections, ...newWaitingConfirmations]));
+          localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify(allIdsToMark));
+          
+          setIsNotificationModalOpen(false);
+        }}
         title={notificationData.title}
         message={notificationData.message}
       />
