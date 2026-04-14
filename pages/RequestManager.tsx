@@ -32,9 +32,9 @@ import {
   Trash2,
   Check,
   Ban,
-  Inbox,
+  ClipboardList,
   UserCheck,
-  ClipboardCheck,
+  FileSearch,
 } from "lucide-react";
 
 const validateCPF = (cpf: string) => {
@@ -1306,7 +1306,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     [ExamStatus.IN_ANALYSIS]: {
       label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Pedidos de Agendamento" : "Cadastros em Análise",
       color: "indigo",
-      icon: Inbox,
+      icon: ClipboardList,
     },
     [ExamStatus.WAITING_SCHEDULING]: {
       label: "Aguardando Agendamento",
@@ -1326,7 +1326,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     [ExamStatus.WAITING_RESULT]: {
       label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Aguardando Resultados" : "Aguardando Resultado",
       color: "purple",
-      icon: ClipboardCheck,
+      icon: FileSearch,
     },
     [ExamStatus.DONE]: {
       label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Candidatos Aprovados" : "Realizado",
