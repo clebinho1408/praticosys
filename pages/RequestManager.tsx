@@ -177,6 +177,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [notificationData, setNotificationData] = useState({ title: '', message: '', id: '' });
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [approvalData, setApprovalData] = useState<ExamRequest | null>(null);
+  const [expandedWeekdays, setExpandedWeekdays] = useState<Record<string, boolean>>({});
   const [confirmModalData, setConfirmModalData] = useState<{
     isOpen: boolean;
     title: string;
@@ -597,8 +598,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     });
   };
 
-  const handleUpdateStatus = async (id: string, status: ExamStatus) => {
-    if (!window.confirm("Tem certeza que deseja alterar o status?")) return;
+  const handleUpdateStatus = async (id: string, status: ExamStatus, skipConfirm = false) => {
+    if (!skipConfirm && !window.confirm("Tem certeza que deseja alterar o status?")) return;
     
     const updates: any = { status };
     if (status === ExamStatus.WAITING_SCHEDULING) {
@@ -1252,122 +1253,132 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       <div className="p-4 space-y-6 bg-gray-50/50">
         {Object.entries(grouped).filter(([_, items]) => items.length > 0 || !["Sábado", "Domingo"].includes(_)).map(([weekday, dayItems]) => (
           <div key={weekday} className="bg-white rounded-xl border shadow-sm overflow-hidden">
-            <div className="bg-blue-600 px-4 py-2 flex items-center gap-2">
+            <button 
+              onClick={() => setExpandedWeekdays(prev => ({ ...prev, [weekday]: !prev[weekday] }))}
+              className="w-full bg-blue-600 px-4 py-2 flex items-center gap-2 hover:bg-blue-700 transition-colors"
+            >
               <Calendar className="h-4 w-4 text-white" />
               <h4 className="text-white font-bold text-sm uppercase tracking-wider">{weekday}</h4>
-              <span className="ml-auto bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
+              <span className="ml-auto bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-bold mr-2">
                 {dayItems.length} Candidatos
               </span>
-            </div>
-            <div className="p-0">
-              {dayItems.length > 0 ? (
-                <>
-                  {/* Mobile View */}
-                  <div className="block md:hidden divide-y divide-gray-100">
-                    {dayItems.map((req) => (
-                      <div key={req.id} className="p-4 bg-white hover:bg-gray-50 transition-colors">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-800 uppercase text-sm">
-                              {req.socialName || req.studentName}
-                            </span>
-                            {req.city && (
-                              <span className="text-xs font-medium text-black">
-                                {req.city}
+              {expandedWeekdays[weekday] ? (
+                <ChevronUp className="h-4 w-4 text-white" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-white" />
+              )}
+            </button>
+            {expandedWeekdays[weekday] && (
+              <div className="p-0 animate-fadeIn">
+                {dayItems.length > 0 ? (
+                  <>
+                    {/* Mobile View */}
+                    <div className="block md:hidden divide-y divide-gray-100">
+                      {dayItems.map((req) => (
+                        <div key={req.id} className="p-4 bg-white hover:bg-gray-50 transition-colors">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex flex-col">
+                              <span className="font-bold text-gray-800 uppercase text-sm">
+                                {req.socialName || req.studentName}
                               </span>
-                            )}
-                            <span className="text-xs text-gray-500">
-                              {maskCpf(req.cpf)}
-                            </span>
-                            <span className="text-[10px] text-gray-400 mt-0.5">
-                              Instr: {req.instructor || "-"}
-                            </span>
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-[10px]">
-                              {req.intendedCategory}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-[10px] text-gray-500 bg-gray-50 p-2.5 rounded-lg">
-                          <div className="flex justify-between mt-1">
-                            <span>
-                              Dados do Exame: {(() => {
-                                const schedule = schedules.find(s => s.id === req.scheduleId);
-                                const dateStr = schedule?.date || req.scheduledDate;
-                                const timeStr = schedule?.time || req.scheduledTime;
-                                const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
-                                return `${formattedDate} às ${timeStr || "-"}`;
-                              })()}
-                            </span>
-                            <span>
-                              Tentativas: {req.examHistory?.filter(h => h.result === "INAPTO").length || 0}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Desktop View */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-white text-gray-500 border-b">
-                        <tr>
-                          <th className="px-6 py-3 font-bold text-xs uppercase">Dados do Exame</th>
-                          <th className="px-6 py-3 font-bold text-xs uppercase">Candidato</th>
-                          <th className="px-6 py-3 font-bold text-xs uppercase">Cidade</th>
-                          <th className="px-6 py-3 font-bold text-xs uppercase">Categoria</th>
-                          <th className="px-6 py-3 font-bold text-xs uppercase">Histórico</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {dayItems.map((req) => (
-                          <tr key={req.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4 align-middle text-xs font-bold text-red-600">
-                              {(() => {
-                                const schedule = schedules.find(s => s.id === req.scheduleId);
-                                const dateStr = schedule?.date || req.scheduledDate;
-                                const timeStr = schedule?.time || req.scheduledTime;
-                                const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
-                                return `${formattedDate} às ${timeStr || "-"}`;
-                              })()}
-                            </td>
-                            <td className="px-6 py-4 align-middle">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-gray-800 uppercase">
-                                  {req.socialName || req.studentName}
+                              {req.city && (
+                                <span className="text-xs font-medium text-black">
+                                  {req.city}
                                 </span>
-                                <span className="text-xs text-gray-700">
-                                  CPF: {maskCpf(req.cpf)}
-                                </span>
-                                <span className="text-[10px] text-gray-400 mt-0.5">
-                                  Instr: {req.instructor || "-"}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 align-middle text-xs text-black font-medium">
-                              {req.city || "-"}
-                            </td>
-                            <td className="px-6 py-4 align-middle">
-                              <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
+                              )}
+                              <span className="text-xs text-gray-500">
+                                {maskCpf(req.cpf)}
+                              </span>
+                              <span className="text-[10px] text-gray-400 mt-0.5">
+                                Instr: {req.instructor || "-"}
+                              </span>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-[10px]">
                                 {req.intendedCategory}
                               </span>
-                            </td>
-                            <td className="px-6 py-4 align-middle text-xs text-gray-500">
-                              {req.examHistory?.filter(h => h.result === "INAPTO").length || 0} tentativas
-                            </td>
+                            </div>
+                          </div>
+                          <div className="text-[10px] text-gray-500 bg-gray-50 p-2.5 rounded-lg">
+                            <div className="flex justify-between mt-1">
+                              <span>
+                                Dados do Exame: {(() => {
+                                  const schedule = schedules.find(s => s.id === req.scheduleId);
+                                  const dateStr = schedule?.date || req.scheduledDate;
+                                  const timeStr = schedule?.time || req.scheduledTime;
+                                  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                  return `${formattedDate} às ${timeStr || "-"}`;
+                                })()}
+                              </span>
+                              <span>
+                                Tentativas: {req.examHistory?.filter(h => h.result === "INAPTO").length || 0}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Desktop View */}
+                    <div className="hidden md:block overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-white text-gray-500 border-b">
+                          <tr>
+                            <th className="px-6 py-3 font-bold text-xs uppercase">Dados do Exame</th>
+                            <th className="px-6 py-3 font-bold text-xs uppercase">Candidato</th>
+                            <th className="px-6 py-3 font-bold text-xs uppercase">Cidade</th>
+                            <th className="px-6 py-3 font-bold text-xs uppercase">Categoria</th>
+                            <th className="px-6 py-3 font-bold text-xs uppercase">Histórico</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                          {dayItems.map((req) => (
+                            <tr key={req.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="px-6 py-4 align-middle text-xs font-bold text-red-600">
+                                {(() => {
+                                  const schedule = schedules.find(s => s.id === req.scheduleId);
+                                  const dateStr = schedule?.date || req.scheduledDate;
+                                  const timeStr = schedule?.time || req.scheduledTime;
+                                  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                  return `${formattedDate} às ${timeStr || "-"}`;
+                                })()}
+                              </td>
+                              <td className="px-6 py-4 align-middle">
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-gray-800 uppercase">
+                                    {req.socialName || req.studentName}
+                                  </span>
+                                  <span className="text-xs text-gray-700">
+                                    CPF: {maskCpf(req.cpf)}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 mt-0.5">
+                                    Instr: {req.instructor || "-"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 align-middle text-xs text-black font-medium">
+                                {req.city || "-"}
+                              </td>
+                              <td className="px-6 py-4 align-middle">
+                                <span className="font-bold bg-gray-100 px-2 py-1 rounded text-gray-600 text-xs">
+                                  {req.intendedCategory}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 align-middle text-xs text-gray-500">
+                                {req.examHistory?.filter(h => h.result === "INAPTO").length || 0} tentativas
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-4 text-center text-gray-400 text-xs italic">
+                    Nenhum candidato agendado para este dia.
                   </div>
-                </>
-              ) : (
-                <div className="p-4 text-center text-gray-400 text-xs italic">
-                  Nenhum candidato agendado para este dia.
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -3156,7 +3167,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 </button>
                 <button
                   onClick={() => {
-                    handleUpdateStatus(approvalData.id, ExamStatus.WAITING_SCHEDULING);
+                    handleUpdateStatus(approvalData.id, ExamStatus.WAITING_SCHEDULING, true);
                     setIsApprovalModalOpen(false);
                   }}
                   className="flex-1 py-2.5 px-4 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
