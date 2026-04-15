@@ -128,10 +128,6 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [selectedCandidates, setSelectedCandidates] = useState<Record<string, 'A' | 'B'>>({});
   const [expandedCategories, setExpandedCategories] = useState<{A: boolean, B: boolean}>({ A: false, B: false });
 
-  // Remove Confirmation Modal State
-  const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
-  const [candidateToRemove, setCandidateToRemove] = useState<ExamRequest | null>(null);
-
   // Schedule Cancel Modal State
   const [isCancelScheduleOpen, setIsCancelScheduleOpen] = useState(false);
   const [scheduleToCancel, setScheduleToCancel] = useState<string | null>(null);
@@ -566,20 +562,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     }
   };
 
-  const handleRemoveStudent = (request: ExamRequest) => {
-    setCandidateToRemove(request);
-    setIsRemoveConfirmOpen(true);
-  };
-
-  const confirmRemoveStudent = async () => {
-    if (candidateToRemove) {
-        await api.removeStudentFromSchedule(candidateToRemove.id);
-        setIsRemoveConfirmOpen(false);
-        setCandidateToRemove(null);
-        refreshData(true);
-    }
-  };
-
   const getExaminerName = (id: string) => examiners.find(e => e.id === id)?.name || 'Desconhecido';
 
   const filteredSchedules = schedules.filter(s => {
@@ -895,9 +877,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         {req.socialName || req.studentName}
                                                     </div>
                                                     <div className="flex gap-2 text-xs text-gray-500">
-                                                        <span>{req.cpf}</span>
+                                                        <span>CPF: {maskCpf(req.cpf)}</span>
                                                         <span className="text-gray-300">|</span>
-                                                        <span>Restrição: {req.cnhRestriction || '-'}</span>
+                                                        <span>Cidade: {req.city || '-'}</span>
                                                         <span className="text-gray-300">|</span>
                                                         <span>Instrutor: {req.instructor || '-'}</span>
                                                         {selectedSchedule.status === 'CONCLUDED' && (
@@ -941,18 +923,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     >
                                                         <MessageCircle className="h-4 w-4" />
                                                     </button>
-
-                                                    <div className="w-px h-4 bg-gray-200 mx-1"></div>
-
-                                                    {(user.role !== UserRole.SCHOOL || req.schoolId === user.schoolId) && (
-                                                        <button 
-                                                            onClick={() => handleRemoveStudent(req)}
-                                                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-all"
-                                                            title="Remover da Banca"
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </button>
-                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1251,40 +1221,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
               </div>
           </div>
       )}
-      {/* MODAL DE CONFIRMAÇÃO DE REMOÇÃO */}
-      {isRemoveConfirmOpen && candidateToRemove && (
-          <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4 animate-fadeIn">
-              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn">
-                  <div className="p-6 text-center">
-                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
-                          <Trash2 className="h-8 w-8 text-red-600" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">Remover Candidato?</h3>
-                      <p className="text-sm text-gray-500 mb-6">
-                          Tem certeza que deseja remover <span className="font-bold text-gray-800">{candidateToRemove.socialName || candidateToRemove.studentName}</span> desta banca?
-                          <br/><br/>
-                          O candidato voltará para a lista de "Aguardando Agendamento".
-                      </p>
-                      
-                      <div className="flex gap-3 justify-center">
-                          <button 
-                              onClick={() => setIsRemoveConfirmOpen(false)}
-                              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-                          >
-                              Cancelar
-                          </button>
-                          <button 
-                              onClick={confirmRemoveStudent}
-                              className="px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 shadow-md transition-colors flex items-center gap-2"
-                          >
-                              Sim, Remover
-                          </button>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      )}
-
       {/* MODAL DE CANCELAMENTO DE BANCA */}
       {isCancelScheduleOpen && scheduleToCancel && (
           <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center p-4 animate-fadeIn">
