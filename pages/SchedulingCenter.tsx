@@ -40,6 +40,13 @@ const formatDateDisplay = (dateString: string | null | undefined) => {
   return parts.length !== 3 ? cleanDate : `${parts[2]}/${parts[1]}`;
 };
 
+const maskCpf = (cpf: string) => {
+  if (!cpf) return "";
+  const cleaned = cpf.replace(/\D/g, "");
+  if (cleaned.length !== 11) return cpf;
+  return `***.${cleaned.substring(3, 6)}.${cleaned.substring(6, 9)}-**`;
+};
+
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const configs: Record<string, { label: string, classes: string }> = {
     'OPEN': { label: 'Aberta', classes: 'bg-green-100 text-green-700 border-green-200' },
@@ -1131,17 +1138,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                       <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
                                                       <div className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Pos: {getGlobalPosition(cand.id)}º</div>
                                                   </div>
-                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">Instrutor: {cand.instructor || "-"}</div>
-                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1 mt-1">
-                                                      <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
-                                                      <span>•</span>
-                                                      <span>{cand.cpf}</span>
-                                                      {cand.cnhRestriction && (
-                                                          <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold">
-                                                              Restrição: {cand.cnhRestriction}
-                                                          </span>
-                                                      )}
-                                                  </div>
+                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">CPF: {maskCpf(cand.cpf)}</div>
+                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">Cidade: {cand.city || "-"}</div>
+                                                  <div className="text-xs text-gray-400 mt-1">Instrutor: {cand.instructor || "-"}</div>
                                               </div>
                                           </label>
                                       );
@@ -1192,17 +1191,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                       <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
                                                       <div className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Pos: {getGlobalPosition(cand.id)}º</div>
                                                   </div>
-                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">Instrutor: {cand.instructor || "-"}</div>
-                                                  <div className="text-xs text-gray-500 flex items-center flex-wrap gap-1 mt-1">
-                                                      <span>Cadastro: {new Date(cand.createdAt).toLocaleDateString()}</span>
-                                                      <span>•</span>
-                                                      <span>{cand.cpf}</span>
-                                                      {cand.cnhRestriction && (
-                                                          <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[10px] font-bold">
-                                                              Restrição: {cand.cnhRestriction}
-                                                          </span>
-                                                      )}
-                                                  </div>
+                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">CPF: {maskCpf(cand.cpf)}</div>
+                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">Cidade: {cand.city || "-"}</div>
+                                                  <div className="text-xs text-gray-400 mt-1">Instrutor: {cand.instructor || "-"}</div>
                                               </div>
                                           </label>
                                       );
