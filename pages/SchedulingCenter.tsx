@@ -803,27 +803,27 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
                 {/* Cabeçalho de Impressão e UI */}
                 <div className="p-6 bg-white border-b print:p-0 print:border-none">
-                    <div className="hidden print:flex items-center gap-4 border-b-2 border-black pb-1 mb-1">
+                    <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-2 mb-2">
                         {settings?.logoUrl ? (
-                            <img src={settings.logoUrl} className="h-12 w-auto" />
+                            <img src={settings.logoUrl} className="h-16 w-auto" />
                         ) : (
-                            <div className="h-12 w-12 bg-red-600 flex items-center justify-center text-white font-bold text-[10px] print:!text-black">DETRAN</div>
+                            <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-bold text-xs print:!text-black">DETRAN</div>
                         )}
                         <div>
-                            <h1 className="text-lg font-bold uppercase tracking-tight print:!text-black leading-none">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                            <h2 className="text-xl font-bold uppercase print:!text-black">
+                            <h1 className="text-xl font-bold uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                            <h2 className="text-2xl font-bold uppercase print:!text-black">
                                 LISTA PROVA PRÁTICA DA CNH DO BRASIL
                             </h2>
                         </div>
                     </div>
 
-                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-1 print:!text-black">
-                        <div className="flex gap-6">
-                            {selectedSchedule.code && <span className="text-xs uppercase font-bold">BANCA: <span className="font-normal">{selectedSchedule.code}</span></span>}
-                            <span className="text-xs uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
-                            <span className="text-xs uppercase font-bold">HORA: <span className="font-normal">{selectedSchedule.time}</span></span>
+                    <div className="hidden print:flex justify-between items-center border-b-2 border-black pb-1 mb-2 print:!text-black">
+                        <div className="flex gap-8">
+                            {selectedSchedule.code && <span className="text-sm uppercase font-bold">BANCA: <span className="font-normal">{selectedSchedule.code}</span></span>}
+                            <span className="text-sm uppercase font-bold">DATA: <span className="font-normal">{formatDateDisplay(selectedSchedule.date)}</span></span>
+                            <span className="text-sm uppercase font-bold">HORA: <span className="font-normal">{selectedSchedule.time}</span></span>
                         </div>
-                        <span className="text-xs uppercase font-bold">EXAMINADORES: <span className="font-normal">{selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span></span>
+                        <span className="text-sm uppercase font-bold">EXAMINADORES: <span className="font-normal">{selectedSchedule.examinerIds.map(id => getExaminerName(id)).join(', ')}</span></span>
                     </div>
 
                     <div className="print:hidden">
@@ -937,37 +937,37 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 {/* TABELA ORIGINAL (Apenas Impressão - COM as colunas de marcação) */}
                                 <table className="hidden print:table w-full text-left border-collapse">
                                     <thead className="border-2 border-black">
-                                        <tr className="bg-white text-black font-bold border-b-2 border-black text-[8px]">
-                                            <th className="px-1 py-0.5 w-6 text-center border-r border-black uppercase">#</th>
-                                            <th className="px-2 py-0.5 w-20 border-r border-black uppercase">CPF</th>
-                                            <th className="px-2 py-0.5 border-r border-black uppercase">Nome do Candidato</th>
-                                            <th className="px-1 py-0.5 w-8 text-center border-r border-black uppercase">Canc.</th>
-                                            <th className="px-1 py-0.5 w-8 text-center border-r border-black uppercase">Falt.</th>
-                                            <th className="px-1 py-0.5 w-8 text-center border-r border-black uppercase">Apto</th>
-                                            <th className="px-1 py-0.5 w-8 text-center border-r border-black uppercase">Inap.</th>
-                                            <th className="px-2 py-0.5 w-32 border-black uppercase text-center">OBS.</th>
+                                        <tr className="bg-white text-black font-bold border-b-2 border-black text-[10px]">
+                                            <th className="px-2 py-1 w-10 text-center border-r border-black uppercase">#</th>
+                                            <th className="px-3 py-1 w-24 border-r border-black uppercase">CPF</th>
+                                            <th className="px-3 py-1 border-r border-black uppercase">Nome do Candidato</th>
+                                            <th className="px-2 py-1 w-12 text-center border-r border-black uppercase">Canc.</th>
+                                            <th className="px-2 py-1 w-12 text-center border-r border-black uppercase">Falt.</th>
+                                            <th className="px-2 py-1 w-12 text-center border-r border-black uppercase">Apto</th>
+                                            <th className="px-2 py-1 w-12 text-center border-r border-black uppercase">Inap.</th>
+                                            <th className="px-3 py-1 w-44 border-black uppercase text-center">OBS.</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-black border-2 border-black">
+                                    <tbody className="divide-y-2 divide-black border-2 border-black">
                                         {students.map((req, idx) => (
-                                            <tr key={req.id} className="border-b border-black print:!text-black">
-                                                <td className="px-1 py-0.5 text-center font-bold border-r border-black text-[9px]">{idx + 1}</td>
-                                                <td className="px-2 py-0.5 font-bold text-[9px] border-r border-black">{req.cpf}</td>
-                                                <td className="px-2 py-0.5 border-r border-black">
-                                                    <div className="font-bold uppercase text-[9px] truncate">{req.socialName || req.studentName}</div>
+                                            <tr key={req.id} className="border-b-2 border-black print:!text-black">
+                                                <td className="px-2 py-1 text-center font-bold border-r border-black text-[11px]">{idx + 1}</td>
+                                                <td className="px-3 py-1 font-bold text-[11px] border-r border-black">{req.cpf}</td>
+                                                <td className="px-3 py-1 border-r border-black">
+                                                    <div className="font-bold uppercase text-[11px] truncate">{req.socialName || req.studentName}</div>
                                                     {(req.instructor || req.vehiclePlate) && (
-                                                        <div className="text-[7px] font-normal uppercase leading-tight text-gray-700 print:text-gray-800">
+                                                        <div className="text-[8.5px] font-normal uppercase mt-0.5 leading-tight text-gray-700 print:text-gray-800">
                                                             {req.instructor && req.instructor}
                                                             {req.instructor && req.vehiclePlate && ' | '}
                                                             {req.vehiclePlate && `Placa: ${req.vehiclePlate}`}
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-1 py-0.5 border-r border-black"><div className="w-4 h-4 border border-black mx-auto rounded-sm"></div></td>
-                                                <td className="px-1 py-0.5 border-r border-black"><div className="w-4 h-4 border border-black mx-auto rounded-sm"></div></td>
-                                                <td className="px-1 py-0.5 border-r border-black"><div className="w-4 h-4 border border-black mx-auto rounded-sm"></div></td>
-                                                <td className="px-1 py-0.5 border-r border-black"><div className="w-4 h-4 border border-black mx-auto rounded-sm"></div></td>
-                                                <td className="px-2 py-0.5 text-[8px] border-black"></td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-2 py-1 border-r border-black"><div className="w-5 h-5 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-3 py-1 border-black"></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -978,9 +978,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 </div>
 
                 {/* Assinatura do Examinador (Print Only) */}
-                <div className="hidden print:flex flex-col items-center mt-12 mb-8 break-inside-avoid">
-                    <div className="w-80 border-b border-black mb-1"></div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
+                <div className="hidden print:flex flex-col items-center mt-24 mb-20 break-inside-avoid">
+                    <div className="w-96 border-b-2 border-black mb-2"></div>
+                    <span className="text-sm font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
                 
                 {/* Print Footer (Fixed at bottom) */}
