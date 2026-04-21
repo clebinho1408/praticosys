@@ -941,7 +941,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                             <th className="px-2 py-1 w-[40px] text-center border-r border-black uppercase">#</th>
                                             <th className="px-3 py-1 w-[100px] border-r border-black uppercase">CPF</th>
                                             <th className="px-3 py-1 border-r border-black uppercase">Nome do Candidato</th>
-                                            <th className="px-2 py-1 w-[50px] text-center border-r border-black uppercase">Canc.</th>
                                             <th className="px-2 py-1 w-[50px] text-center border-r border-black uppercase">Falt.</th>
                                             <th className="px-2 py-1 w-[50px] text-center border-r border-black uppercase">Apto</th>
                                             <th className="px-2 py-1 w-[50px] text-center border-r border-black uppercase">Inap.</th>
@@ -966,7 +965,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-4 h-4 border-2 border-black mx-auto rounded-sm"></div></td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-4 h-4 border-2 border-black mx-auto rounded-sm"></div></td>
                                                 <td className="px-2 py-1 border-r border-black"><div className="w-4 h-4 border-2 border-black mx-auto rounded-sm"></div></td>
-                                                <td className="px-2 py-1 border-r border-black"><div className="w-4 h-4 border-2 border-black mx-auto rounded-sm"></div></td>
                                                 <td className="px-3 py-1 border-black"></td>
                                             </tr>
                                         ))}
@@ -980,7 +978,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 {/* Assinatura do Examinador (Print Only) */}
                 <div className="hidden print:flex flex-col items-center mt-24 mb-20 break-inside-avoid">
                     <div className="w-96 border-b-2 border-black mb-2"></div>
-                    <span className="text-sm font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
+                    <span className="text-xs font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
                 
                 {/* Print Footer (Fixed at bottom) */}
