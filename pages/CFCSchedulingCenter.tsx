@@ -12,7 +12,8 @@ import {
   RequestType,
   SystemSettings,
   BlockedDate,
-  BancaResult
+  BancaResult,
+  RequestSource
 } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
 import { 
@@ -361,7 +362,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
   };
 
-  const daysOfWeek = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira'];
+  const daysOfWeek = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado', 'Domingo', 'Outros/Sem Data'];
 
   const hasAutoExpandedWaiting = React.useRef(false);
 
@@ -387,8 +388,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   // Logic to group and filter data
   const filteredRequests = requests.filter(r => {
-    // Removed strict RequestSource.SCHOOL filter to show all relevant candidates
-    // if (r.source !== RequestSource.SCHOOL) return false;
+    // Restore strict RequestSource.SCHOOL filter to avoid leaking STUDENT_DIRECT candidates that lack school/date/examiner
+    if (r.source !== RequestSource.SCHOOL) return false;
     
     if (user.role === UserRole.SCHOOL && r.schoolId !== user.schoolId) return false;
     if (user.role === UserRole.EXAMINER && r.examinerId !== user.examinerId) return false;
@@ -494,12 +495,19 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       setExpandedWaitingDays(prev => {
         const newExpanded = { ...prev };
         waitingConfirmation.forEach(r => {
-          if (!r.scheduledDate) return;
+          if (!r.scheduledDate) {
+            newExpanded['Outros/Sem Data'] = true;
+            return;
+          }
           const date = new Date(r.scheduledDate + 'T00:00:00');
           const dayIndex = date.getDay();
           if (dayIndex >= 1 && dayIndex <= 5) {
             const dayName = daysOfWeek[dayIndex - 1];
             newExpanded[dayName] = true;
+          } else if (dayIndex === 6) {
+            newExpanded['Sábado'] = true;
+          } else if (dayIndex === 0) {
+            newExpanded['Domingo'] = true;
           }
         });
         return newExpanded;
@@ -513,7 +521,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     'Terça-feira': [],
     'Quarta-feira': [],
     'Quinta-feira': [],
-    'Sexta-feira': []
+    'Sexta-feira': [],
+    'Sábado': [],
+    'Domingo': [],
+    'Outros/Sem Data': []
   };
 
   const groupedWaitingByDayOfWeek: Record<string, ExamRequest[]> = {
@@ -521,44 +532,73 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     'Terça-feira': [],
     'Quarta-feira': [],
     'Quinta-feira': [],
-    'Sexta-feira': []
+    'Sexta-feira': [],
+    'Sábado': [],
+    'Domingo': [],
+    'Outros/Sem Data': []
   };
 
   confirmed.forEach(r => {
-    if (!r.scheduledDate) return;
+    if (!r.scheduledDate) {
+      groupedByDayOfWeek['Outros/Sem Data'].push(r);
+      return;
+    }
     const date = new Date(r.scheduledDate + 'T00:00:00');
+    if (isNaN(date.getTime())) {
+      groupedByDayOfWeek['Outros/Sem Data'].push(r);
+      return;
+    }
     const dayIndex = date.getDay();
     // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
     if (dayIndex >= 1 && dayIndex <= 5) {
       const dayName = daysOfWeek[dayIndex - 1];
       groupedByDayOfWeek[dayName].push(r);
+    } else if (dayIndex === 6) {
+      groupedByDayOfWeek['Sábado'].push(r);
+    } else if (dayIndex === 0) {
+      groupedByDayOfWeek['Domingo'].push(r);
+    } else {
+      groupedByDayOfWeek['Outros/Sem Data'].push(r);
     }
   });
 
   waitingConfirmation.forEach(r => {
-    if (!r.scheduledDate) return;
+    if (!r.scheduledDate) {
+      groupedWaitingByDayOfWeek['Outros/Sem Data'].push(r);
+      return;
+    }
     const date = new Date(r.scheduledDate + 'T00:00:00');
+    if (isNaN(date.getTime())) {
+      groupedWaitingByDayOfWeek['Outros/Sem Data'].push(r);
+      return;
+    }
     const dayIndex = date.getDay();
     // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
     if (dayIndex >= 1 && dayIndex <= 5) {
       const dayName = daysOfWeek[dayIndex - 1];
       groupedWaitingByDayOfWeek[dayName].push(r);
+    } else if (dayIndex === 6) {
+      groupedWaitingByDayOfWeek['Sábado'].push(r);
+    } else if (dayIndex === 0) {
+      groupedWaitingByDayOfWeek['Domingo'].push(r);
+    } else {
+      groupedWaitingByDayOfWeek['Outros/Sem Data'].push(r);
     }
   });
 
   const getSchoolName = (id?: string | null) => {
     if (id === 'PCD') return systemSettings?.pcdExamName || 'PROVA DIRECAO PCD';
     if (id === 'CNH_BRASIL') return 'CNH DO BRASIL';
-    return schools.find(s => s.id === id)?.name || 'N/A';
+    return schools.find(s => s.id === id)?.name || 'ESCOLA EXCLUÍDA/NÃO VINCULADA';
   };
   const getExaminerName = (idOrName?: string | null) => {
-    if (!idOrName) return 'SEM IDENTIFICAÇÃO';
+    if (!idOrName) return 'SEM EXAMINADOR VINCULADO';
     const examiner = examiners.find(e => e.id === idOrName || e.name === idOrName);
     return examiner ? examiner.name : idOrName;
   };
 
   const formatDate = (dateStr?: string | null) => {
-    if (!dateStr) return 'Não definida';
+    if (!dateStr) return 'DATA NÃO INFORMADA';
     const [, month, day] = dateStr.split('-');
     return `${day}/${month}`;
   };
