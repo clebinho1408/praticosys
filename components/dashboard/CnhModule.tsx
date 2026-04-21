@@ -35,10 +35,10 @@ export const CnhModule: React.FC<ModuleProps> = ({ stats, title }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96 flex flex-col">
           <h3 className="text-lg font-bold text-gray-800 mb-4 uppercase tracking-wider">Distribuição de Resultados - {title}</h3>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={stats.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+              <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
+                <Pie data={stats.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} label={{ fontSize: 10 }}>
                   {stats.pieData.map((_: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                 </Pie>
                 <Tooltip />
@@ -49,16 +49,16 @@ export const CnhModule: React.FC<ModuleProps> = ({ stats, title }) => {
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96 flex flex-col">
           <h3 className="text-lg font-bold text-gray-800 mb-4 uppercase tracking-wider">Evolução Mensal (Apto/Inapto)</h3>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
+              <BarChart data={stats.chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} />
                 <Tooltip />
-                <Legend />
-                <Bar dataKey="apto" name="Apto" fill="#10B981" />
-                <Bar dataKey="inapto" name="Inapto" fill="#EF4444" />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 10, paddingTop: 10 }} />
+                <Bar dataKey="apto" name="Apto" fill="#10B981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="inapto" name="Inapto" fill="#EF4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -95,30 +95,30 @@ export const CnhModule: React.FC<ModuleProps> = ({ stats, title }) => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96 flex flex-col">
             <h4 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">Status das Bancas</h4>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                    <Pie data={stats.schedulePieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                    <PieChart margin={{ top: 0, right: 0, bottom: 20, left: 0 }}>
+                    <Pie data={stats.schedulePieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={65} label={{ fontSize: 10 }}>
                         {stats.schedulePieData.map((_: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
                     </Pie>
                     <Tooltip />
-                    <Legend />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: 10, paddingTop: 10 }} />
                     </PieChart>
                 </ResponsiveContainer>
             </div>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96 flex flex-col">
             <h4 className="text-sm font-bold text-gray-800 mb-4 uppercase tracking-wider">Ocupação de Vagas</h4>
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 min-h-0 overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.slotUsageChartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
+                    <BarChart data={stats.slotUsageChartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
                     <Tooltip />
-                    <Legend />
-                    <Bar dataKey="total" name="Total Vagas" fill="#94A3B8" />
-                    <Bar dataKey="used" name="Vagas Ocupadas" fill="#3B82F6" />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: 10, paddingTop: 10 }} />
+                    <Bar dataKey="total" name="Total Vagas" fill="#94A3B8" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="used" name="Vagas Ocupadas" fill="#3B82F6" radius={[4, 4, 0, 0]} />
                     </BarChart>
                 </ResponsiveContainer>
             </div>

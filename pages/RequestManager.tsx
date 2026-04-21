@@ -142,6 +142,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const isAdminOpSup = user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR;
+  const isConsultant = user.role === UserRole.CONSULTANT;
 
   // Estado para controlar quais grupos estão expandidos
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
@@ -791,7 +792,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                  req.status !== ExamStatus.WAITING_SCHEDULING && 
                  req.status !== ExamStatus.SCHEDULED && 
                  req.status !== ExamStatus.WAITING_RESULT && 
-                 req.status !== ExamStatus.DONE && (
+                 req.status !== ExamStatus.DONE && !isConsultant && (
                   <button
                     onClick={() => handleDeleteRequest(req.id)}
                     className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
@@ -1602,12 +1603,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         <div className="flex flex-col gap-4">
           {/* Action Button (Top Centered) */}
           <div className="w-full flex justify-center">
-            <button
-              onClick={() => openCreateModal()}
-              className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center gap-2 font-bold shadow-sm transition-colors w-full justify-center"
-            >
-              <Plus className="h-5 w-5" /> NOVO CANDIDATO
-            </button>
+            {!isConsultant && (
+              <button
+                onClick={() => openCreateModal()}
+                className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center gap-2 font-bold shadow-sm transition-colors w-full justify-center"
+              >
+                <Plus className="h-5 w-5" /> NOVO CANDIDATO
+              </button>
+            )}
           </div>
 
           {/* Search Filter */}
@@ -1697,12 +1700,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
           {/* Action Button (Right Side) */}
           <div className="w-full md:w-auto flex justify-end">
-            <button
-              onClick={() => openCreateModal()}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
-            >
-              <Plus className="h-4 w-4" /> Novo Candidato
-            </button>
+            {!isConsultant && (
+              <button
+                onClick={() => openCreateModal()}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
+              >
+                <Plus className="h-4 w-4" /> Novo Candidato
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -2901,7 +2906,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 {editingRequest?.status === ExamStatus.DONE && isAdminOpSup ? "Fechar" : "Cancelar"}
               </button>
-              {!(editingRequest?.status === ExamStatus.DONE && isAdminOpSup) && (
+                {!(editingRequest?.status === ExamStatus.DONE && isAdminOpSup) && !isConsultant && (
                 <button
                   type="button"
                   onClick={(e) => {

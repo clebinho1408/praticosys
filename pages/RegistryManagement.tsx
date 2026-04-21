@@ -2437,6 +2437,7 @@ const UsersManager: React.FC = () => {
       switch(role) {
           case UserRole.ADMIN: return 'Admin';
           case UserRole.OPERATOR: return 'Operador';
+          case UserRole.CONSULTANT: return 'Consultor';
           case UserRole.SUPERVISOR: return 'Supervisor';
           case UserRole.SCHOOL: return 'Autoescola';
           default: return role;
@@ -2510,15 +2511,19 @@ const UsersManager: React.FC = () => {
                           <Lock className="h-4 w-4" />
                       </button>
                   )}
-                  <button onClick={() => openModal(u)} className="text-blue-600 hover:text-blue-800" title="Editar"><Edit2 className="h-4 w-4" /></button>
-                  <button 
-                    onClick={() => handleDelete(u.id)} 
-                    className={`${u.role === UserRole.SCHOOL ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-800'}`} 
-                    title={u.role === UserRole.SCHOOL ? "Exclua a autoescola para remover este usuário" : "Excluir"}
-                    disabled={u.role === UserRole.SCHOOL}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {currentUser?.role !== UserRole.CONSULTANT && (
+                    <>
+                      <button onClick={() => openModal(u)} className="text-blue-600 hover:text-blue-800" title="Editar"><Edit2 className="h-4 w-4" /></button>
+                      <button 
+                        onClick={() => handleDelete(u.id)} 
+                        className={`${u.role === UserRole.SCHOOL ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-800'}`} 
+                        title={u.role === UserRole.SCHOOL ? "Exclua a autoescola para remover este usuário" : "Excluir"}
+                        disabled={u.role === UserRole.SCHOOL}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
@@ -2563,6 +2568,7 @@ const UsersManager: React.FC = () => {
                   <option value={UserRole.ADMIN}>Admin</option>
                   <option value={UserRole.SUPERVISOR}>Supervisor</option>
                   <option value={UserRole.OPERATOR}>Operador</option>
+                  <option value={UserRole.CONSULTANT}>Consultor</option>
                   <option value={UserRole.SCHOOL}>Autoescola</option>
                 </select>
               </div>

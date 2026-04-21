@@ -115,6 +115,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
   const [allRequests, setAllRequests] = useState<ExamRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const isConsultant = user.role === UserRole.CONSULTANT;
   
   const [selectedSchedule, setSelectedSchedule] = useState<ExamSchedule | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -756,7 +757,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           <span>Carro: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length}/{s.maxSlotsB}</span>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         {s.status !== 'CONCLUDED' && s.status !== 'CANCELLED' && user.role !== UserRole.SCHOOL && (
+                         {s.status !== 'CONCLUDED' && s.status !== 'CANCELLED' && user.role !== UserRole.SCHOOL && !isConsultant && (
                              <>
                                  <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
                                     <Edit2 className="h-4 w-4" />
@@ -787,12 +788,12 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     <ChevronRight className="h-4 w-4 rotate-180" /> Voltar para a lista
                 </button>
                 <div className="flex gap-2">
-                    {selectedSchedule.status !== 'CONCLUDED' && (
+                    {selectedSchedule.status !== 'CONCLUDED' && !isConsultant && (
                         <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 bg-white shadow-sm text-sm font-bold">
                             <Printer className="h-4 w-4" /> Imprimir Lista
                         </button>
                     )}
-                    {selectedSchedule.status === 'OPEN' && (
+                    {selectedSchedule.status === 'OPEN' && !isConsultant && (
                         <button onClick={handleOpenAddStudent} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-md text-sm font-bold">
                             <Plus className="h-4 w-4" /> Agendar Candidato
                         </button>
@@ -938,13 +939,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 <table className="hidden print:table w-full text-left border-collapse table-fixed">
                                     <thead className="border-2 border-black">
                                         <tr className="bg-white text-black font-bold border-b-2 border-black text-[10px]">
-                                            <th className="px-2 py-1 w-[40px] text-center border-r border-black uppercase">#</th>
+                                            <th className="px-2 py-1 w-[35px] text-center border-r border-black uppercase text-[9px]">#</th>
                                             <th className="px-3 py-1 w-[100px] border-r border-black uppercase">CPF</th>
-                                            <th className="px-3 py-1 border-r border-black uppercase">Nome do Candidato</th>
-                                            <th className="px-2 py-1 w-[50px] text-center border-r border-black uppercase">Falt.</th>
-                                            <th className="px-2 py-1 w-[50px] text-center border-r border-black uppercase">Apto</th>
-                                            <th className="px-2 py-1 w-[50px] text-center border-r border-black uppercase">Inap.</th>
-                                            <th className="px-3 py-1 w-[180px] border-black uppercase text-center">OBS.</th>
+                                            <th className="px-3 py-1 w-[300px] border-r border-black uppercase">Nome do Candidato</th>
+                                            <th className="px-2 py-1 w-[45px] text-center border-r border-black uppercase">Falt.</th>
+                                            <th className="px-2 py-1 w-[45px] text-center border-r border-black uppercase">Apto</th>
+                                            <th className="px-2 py-1 w-[45px] text-center border-r border-black uppercase">Inap.</th>
+                                            <th className="px-3 py-1 border-black uppercase text-center">OBS.</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y-2 divide-black border-2 border-black">
@@ -978,7 +979,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 {/* Assinatura do Examinador (Print Only) */}
                 <div className="hidden print:flex flex-col items-center mt-24 mb-20 break-inside-avoid">
                     <div className="w-96 border-b-2 border-black mb-2"></div>
-                    <span className="text-xs font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
                 
                 {/* Print Footer (Fixed at bottom) */}

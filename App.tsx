@@ -78,18 +78,18 @@ const App: React.FC = () => {
                   <Route path="dashboard/cnh" element={<CnhDoBrasil user={auth.user} view="dashboard" />} />
                   <Route path="requests/common" element={<CnhDoBrasil user={auth.user} view="requests" />} />
                   <Route path="scheduling/common" element={<CnhDoBrasil user={auth.user} view="scheduling" />} />
-                  <Route path="reports/cnh" element={<CnhDoBrasilReport />} />
+                  <Route path="reports/cnh" element={<CnhDoBrasilReport user={auth.user} />} />
 
                   {/* Prova Prática CFC */}
                   <Route path="dashboard/cfc" element={<ProvaPraticaCFCDashboard user={auth.user} />} />
                   <Route path="scheduling/cfc" element={<ProvaPraticaCFC user={auth.user} />} />
-                  <Route path="reports/cfc" element={<ProvaPraticaCFCReport />} />
+                  <Route path="reports/cfc" element={<ProvaPraticaCFCReport user={auth.user} />} />
 
                   {/* Prova Prática PCD */}
                   <Route path="dashboard/pcd" element={<ProvaPraticaPCD user={auth.user} view="dashboard" />} />
                   <Route path="requests/pcd" element={<ProvaPraticaPCD user={auth.user} view="requests" />} />
                   <Route path="scheduling/pcd" element={<ProvaPraticaPCD user={auth.user} view="scheduling" />} />
-                  <Route path="reports/pcd" element={<ProvaPraticaPCDReport />} />
+                  <Route path="reports/pcd" element={<ProvaPraticaPCDReport user={auth.user} />} />
 
                   {/* Cadastros */}
                   <Route path="users" element={<Cadastros />} />

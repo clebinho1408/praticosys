@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../services/api';
-import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor, BancaResult } from '../types';
+import { ExamRequest, ExamStatus, ExamSchedule, SystemSettings, Instructor, BancaResult, User, UserRole } from '../types';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, Legend
@@ -107,7 +107,9 @@ const CFCGeneralStats: React.FC<{
   setGeneralDateStart: (date: string) => void;
   setGeneralDateEnd: (date: string) => void;
   settings: SystemSettings | null;
-}> = ({ bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd, setGeneralDateStart, setGeneralDateEnd, settings }) => {
+  user?: User;
+}> = ({ bancaResults, requests, schools, examiners, generalDateStart, generalDateEnd, setGeneralDateStart, setGeneralDateEnd, settings, user }) => {
+  const isConsultant = user?.role === UserRole.CONSULTANT;
   const stats = useMemo(() => {
     let filteredRequests = requests.filter(r => r.examType === 'COMMON' || r.examType === 'PCD');
     
@@ -260,12 +262,14 @@ const CFCGeneralStats: React.FC<{
                       onChange={e => setGeneralDateEnd(e.target.value)} 
                   />
               </div>
-              <button 
-                  onClick={() => window.print()} 
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
-              >
-                  <Printer className="h-4 w-4" /> Imprimir
-              </button>
+              {!isConsultant && (
+                <button 
+                    onClick={() => window.print()} 
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                >
+                    <Printer className="h-4 w-4" /> Imprimir
+                </button>
+              )}
           </div>
       </div>
 
@@ -389,7 +393,8 @@ const CFCGeneralStats: React.FC<{
   );
 };
 
-const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
+const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTypeProp, user }) => {
+  const isConsultant = user?.role === UserRole.CONSULTANT;
   const { reportType: paramReportType } = useParams<{ reportType: string }>();
   const reportType = reportTypeProp || paramReportType;
   const [activeView, setActiveView] = useState<ReportView>('general-stats');
@@ -1030,6 +1035,7 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
             setGeneralDateStart={setGeneralDateStart}
             setGeneralDateEnd={setGeneralDateEnd}
             settings={settings}
+            user={user}
           />
         ) : (
           <>
@@ -1070,12 +1076,14 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                             onChange={e => setGeneralDateEnd(e.target.value)} 
                         />
                     </div>
-                    <button 
-                        onClick={() => window.print()} 
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
-                    >
-                        <Printer className="h-4 w-4" /> Imprimir
-                    </button>
+                    {!isConsultant && (
+                        <button 
+                            onClick={() => window.print()} 
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                        >
+                            <Printer className="h-4 w-4" /> Imprimir
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1299,12 +1307,14 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   </div>
                   
                   <div className="flex items-center gap-2">
-                      <button 
-                          onClick={() => window.print()} 
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
-                      >
-                          <Printer className="h-4 w-4" /> Imprimir
-                      </button>
+                      {!isConsultant && (
+                          <button 
+                              onClick={() => window.print()} 
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                          >
+                              <Printer className="h-4 w-4" /> Imprimir
+                          </button>
+                      )}
                   </div>
               </div>
 
@@ -1474,12 +1484,14 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-2">
-                      <button 
-                          onClick={() => window.print()} 
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
-                      >
-                          <Printer className="h-4 w-4" /> Imprimir
-                      </button>
+                      {!isConsultant && (
+                          <button 
+                              onClick={() => window.print()} 
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                          >
+                              <Printer className="h-4 w-4" /> Imprimir
+                          </button>
+                      )}
                   </div>
               </div>
 
@@ -1658,12 +1670,14 @@ const Reports: React.FC<{ reportTypeProp?: string }> = ({ reportTypeProp }) => {
                           </>
                       )}
 
-                      <button 
-                          onClick={() => window.print()} 
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
-                      >
-                          <Printer className="h-4 w-4" /> Imprimir
-                      </button>
+                      {!isConsultant && (
+                          <button 
+                              onClick={() => window.print()} 
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-sm text-sm font-bold transition-colors"
+                          >
+                              <Printer className="h-4 w-4" /> Imprimir
+                          </button>
+                      )}
                   </div>
               </div>
 
