@@ -156,7 +156,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        });
     }
 
-    if (user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR) {
+    if (user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR || user.role === UserRole.CONSULTANT) {
       items.push({ icon: Users, label: 'Cadastros', path: '/admin/users' });
       items.push({ icon: Settings, label: 'Configurações', path: '/admin/settings' });
     }

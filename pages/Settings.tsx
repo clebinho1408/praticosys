@@ -1,14 +1,15 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
-import { SystemSettings, City, Examiner, BlockedDate } from '../types';
+import { SystemSettings, City, Examiner, BlockedDate, UserRole, User } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert } from 'lucide-react';
 import { AlertModal } from '../components/CustomModals';
 import DatePicker from '../components/DatePicker';
 
 type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'RISK_AREA';
 
-const Settings: React.FC = () => {
+const Settings: React.FC<{ user: User }> = ({ user }) => {
+  const isConsultant = user?.role === UserRole.CONSULTANT;
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [newRestriction, setNewRestriction] = useState({ code: '', description: '' });
   const [editingRestriction, setEditingRestriction] = useState<{ code: string, description: string } | null>(null);
@@ -391,10 +392,12 @@ const Settings: React.FC = () => {
                                 <div className="flex items-start gap-6">
                                     <div className="h-32 w-32 border-2 border-dashed rounded-lg flex items-center justify-center bg-gray-50 overflow-hidden">{settings.logoUrl ? <img src={settings.logoUrl} className="h-full w-full object-contain p-2" /> : <span className="text-gray-400 text-xs">Sem Logo</span>}</div>
                                     <div className="flex-1 space-y-3">
-                                        <div className="flex gap-3">
-                                            <label className="cursor-pointer bg-white py-2 px-4 border rounded-md shadow-sm text-sm font-medium flex items-center gap-2"><Upload className="h-4 w-4" /> Carregar <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} /></label>
-                                            {settings.logoUrl && <button type="button" onClick={() => setSettings({...settings, logoUrl: ''})} className="py-2 px-4 border border-red-200 rounded-md text-red-600 flex items-center gap-2"><Trash2 className="h-4 w-4" /> Remover</button>}
-                                        </div>
+                                        {!isConsultant && (
+                                            <div className="flex gap-3">
+                                                <label className="cursor-pointer bg-white py-2 px-4 border rounded-md shadow-sm text-sm font-medium flex items-center gap-2"><Upload className="h-4 w-4" /> Carregar <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={handleLogoUpload} /></label>
+                                                {settings.logoUrl && <button type="button" onClick={() => setSettings({...settings, logoUrl: ''})} className="py-2 px-4 border border-red-200 rounded-md text-red-600 flex items-center gap-2"><Trash2 className="h-4 w-4" /> Remover</button>}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -403,50 +406,56 @@ const Settings: React.FC = () => {
 
                     {activeSubTabGeneral === 'CITIES' && (
                         <div className="space-y-6 animate-fadeIn">
-                            <div className="flex gap-4">
-                                <input 
-                                    type="text" 
-                                    placeholder="Nome da Cidade (MAIÚSCULA E SEM ACENTO)" 
-                                    value={editingCity ? editingCity.name : newCityName} 
-                                    onChange={e => handleCityNameChange(e.target.value)} 
-                                    className="flex-1 rounded-md border p-2 bg-white text-gray-900 uppercase" 
-                                />
-                                <button 
-                                    type="button" 
-                                    onClick={editingCity ? handleUpdateCity : handleAddCity} 
-                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
-                                >
-                                    {editingCity ? 'Atualizar' : 'Adicionar'}
-                                </button>
-                                {editingCity && (
+                            {!isConsultant && (
+                                <div className="flex gap-4">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Nome da Cidade (MAIÚSCULA E SEM ACENTO)" 
+                                        value={editingCity ? editingCity.name : newCityName} 
+                                        onChange={e => handleCityNameChange(e.target.value)} 
+                                        className="flex-1 rounded-md border p-2 bg-white text-gray-900 uppercase" 
+                                    />
                                     <button 
                                         type="button" 
-                                        onClick={() => setEditingCity(null)} 
-                                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                                        onClick={editingCity ? handleUpdateCity : handleAddCity} 
+                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
                                     >
-                                        Cancelar
+                                        {editingCity ? 'Atualizar' : 'Adicionar'}
                                     </button>
-                                )}
-                            </div>
+                                    {editingCity && (
+                                        <button 
+                                            type="button" 
+                                            onClick={() => setEditingCity(null)} 
+                                            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                                        >
+                                            Cancelar
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {cities.map(city => (
                                     <div key={city.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
                                         <span className="font-bold text-gray-700">{city.name}</span>
                                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button 
-                                                type="button" 
-                                                onClick={() => setEditingCity(city)} 
-                                                className="text-blue-600 hover:text-blue-800 text-sm font-bold"
-                                            >
-                                                Editar
-                                            </button>
-                                            <button 
-                                                type="button" 
-                                                onClick={() => handleDeleteCity(city.id)} 
-                                                className="text-red-600 hover:text-red-800"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </button>
+                                            {!isConsultant && (
+                                                <>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setEditingCity(city)} 
+                                                        className="text-blue-600 hover:text-blue-800 text-sm font-bold"
+                                                    >
+                                                        Editar
+                                                    </button>
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => handleDeleteCity(city.id)} 
+                                                        className="text-red-600 hover:text-red-800"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -470,39 +479,41 @@ const Settings: React.FC = () => {
                             </div>
 
                             <div className="space-y-4">
-                                <div className="flex gap-4">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Letra" 
-                                        maxLength={1}
-                                        value={editingRestriction ? editingRestriction.code : newRestriction.code} 
-                                        onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, code: e.target.value.toUpperCase()}) : setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} 
-                                        className="w-24 rounded-md border p-2 bg-white text-gray-900 uppercase" 
-                                    />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Descrição da Restrição" 
-                                        value={editingRestriction ? editingRestriction.description : newRestriction.description} 
-                                        onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, description: e.target.value}) : setNewRestriction({...newRestriction, description: e.target.value})} 
-                                        className="flex-1 rounded-md border p-2 bg-white text-gray-900" 
-                                    />
-                                    <button 
-                                        type="button" 
-                                        onClick={addRestriction} 
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
-                                    >
-                                        {editingRestriction ? 'Atualizar' : 'Adicionar'}
-                                    </button>
-                                    {editingRestriction && (
+                                {!isConsultant && (
+                                    <div className="flex gap-4">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Letra" 
+                                            maxLength={1}
+                                            value={editingRestriction ? editingRestriction.code : newRestriction.code} 
+                                            onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, code: e.target.value.toUpperCase()}) : setNewRestriction({...newRestriction, code: e.target.value.toUpperCase()})} 
+                                            className="w-24 rounded-md border p-2 bg-white text-gray-900 uppercase" 
+                                        />
+                                        <input 
+                                            type="text" 
+                                            placeholder="Descrição da Restrição" 
+                                            value={editingRestriction ? editingRestriction.description : newRestriction.description} 
+                                            onChange={e => editingRestriction ? setEditingRestriction({...editingRestriction, description: e.target.value}) : setNewRestriction({...newRestriction, description: e.target.value})} 
+                                            className="flex-1 rounded-md border p-2 bg-white text-gray-900" 
+                                        />
                                         <button 
                                             type="button" 
-                                            onClick={() => setEditingRestriction(null)} 
-                                            className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                                            onClick={addRestriction} 
+                                            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold"
                                         >
-                                            Cancelar
+                                            {editingRestriction ? 'Atualizar' : 'Adicionar'}
                                         </button>
-                                    )}
-                                </div>
+                                        {editingRestriction && (
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setEditingRestriction(null)} 
+                                                className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300"
+                                            >
+                                                Cancelar
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {(settings.restrictions || []).map(r => (
                                         <div key={r.code} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-100 group">
@@ -511,20 +522,24 @@ const Settings: React.FC = () => {
                                                 <span className="text-xs text-gray-500">{r.description}</span>
                                             </div>
                                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => startEditRestriction(r)} 
-                                                    className="text-blue-600 hover:text-blue-800 text-sm font-bold"
-                                                >
-                                                    Editar
-                                                </button>
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => removeRestriction(r.code)} 
-                                                    className="text-red-600 hover:text-red-800"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </button>
+                                                {!isConsultant && (
+                                                    <>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => startEditRestriction(r)} 
+                                                            className="text-blue-600 hover:text-blue-800 text-sm font-bold"
+                                                        >
+                                                            Editar
+                                                        </button>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => removeRestriction(r.code)} 
+                                                            className="text-red-600 hover:text-red-800"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -559,8 +574,9 @@ const Settings: React.FC = () => {
                                         </span>
                                         <button 
                                             type="button"
-                                            onClick={() => setSettings({ ...settings, blockWeekends: !settings.blockWeekends })}
-                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.blockWeekends ? 'bg-red-600' : 'bg-gray-200'}`}
+                                            onClick={() => !isConsultant && setSettings({ ...settings, blockWeekends: !settings.blockWeekends })}
+                                            disabled={isConsultant}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${settings.blockWeekends ? 'bg-red-600' : 'bg-gray-200'} ${isConsultant ? 'cursor-not-allowed opacity-50' : ''}`}
                                         >
                                             <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.blockWeekends ? 'translate-x-6' : 'translate-x-1'}`} />
                                         </button>
@@ -574,13 +590,15 @@ const Settings: React.FC = () => {
                                     <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                                         <Calendar className="h-5 w-5 text-blue-600" /> Datas Bloqueadas Manualmente
                                     </h3>
-                                    <button 
-                                        type="button"
-                                        onClick={handleAutoPopulateHolidays}
-                                        className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md border border-blue-200 hover:bg-blue-100 font-bold flex items-center gap-2"
-                                    >
-                                        <Plus className="h-3 w-3" /> Pré-cadastrar Feriados (Dias de Semana)
-                                    </button>
+                                    {!isConsultant && (
+                                        <button 
+                                            type="button"
+                                            onClick={handleAutoPopulateHolidays}
+                                            className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md border border-blue-200 hover:bg-blue-100 font-bold flex items-center gap-2"
+                                        >
+                                            <Plus className="h-3 w-3" /> Pré-cadastrar Feriados (Dias de Semana)
+                                        </button>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -606,13 +624,15 @@ const Settings: React.FC = () => {
                                         />
                                     </div>
                                     <div className="md:col-span-1 flex items-end">
-                                        <button 
-                                            type="button"
-                                            onClick={handleAddBlockedDate}
-                                            className="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition-colors"
-                                        >
-                                            Bloquear Data
-                                        </button>
+                                        {!isConsultant && (
+                                            <button 
+                                                type="button"
+                                                onClick={handleAddBlockedDate}
+                                                className="w-full bg-blue-600 text-white p-2 rounded font-bold hover:bg-blue-700 transition-colors"
+                                            >
+                                                Bloquear Data
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
 
@@ -1258,15 +1278,17 @@ const Settings: React.FC = () => {
                         </div>
                         
                         <div className="pt-4 flex justify-center">
-                            <button 
-                                type="button"
-                                onClick={handleResetData}
-                                disabled={saving}
-                                className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg shadow-red-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <Trash2 className="h-6 w-6" />
-                                ZERAR E RESETAR SISTEMA
-                            </button>
+                            {!isConsultant && (
+                                <button 
+                                    type="button"
+                                    onClick={handleResetData}
+                                    disabled={saving}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 rounded-xl font-black text-lg shadow-lg shadow-red-200 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Trash2 className="h-6 w-6" />
+                                    ZERAR E RESETAR SISTEMA
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -1274,9 +1296,11 @@ const Settings: React.FC = () => {
         </div>
 
         <div className="bg-gray-50 p-6 border-t flex justify-end">
-          <button type="submit" disabled={saving} className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold disabled:opacity-50 shadow-md transition-all">
-            {saving ? 'Salvando...' : 'Salvar Configurações'} <Save className="w-4 h-4 ml-2" />
-          </button>
+          {!isConsultant && (
+              <button type="submit" disabled={saving} className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold disabled:opacity-50 shadow-md transition-all">
+                {saving ? 'Salvando...' : 'Salvar Configurações'} <Save className="w-4 h-4 ml-2" />
+              </button>
+          )}
         </div>
       </form>
 

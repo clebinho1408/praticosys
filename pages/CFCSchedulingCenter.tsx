@@ -48,6 +48,7 @@ interface CFCSchedulingCenterProps {
 }
 
 const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
+  const isConsultant = user.role === UserRole.CONSULTANT;
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
@@ -1144,7 +1145,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           <p className="text-slate-500 text-sm">Gerencie os agendamentos de provas práticas</p>
         </div>
         <div className="flex items-center gap-3">
-          {user.role !== UserRole.SCHOOL && user.role !== UserRole.EXAMINER && (
+          {user.role !== UserRole.SCHOOL && user.role !== UserRole.EXAMINER && !isConsultant && (
             <button 
               onClick={() => setIsAutoGenerateModalOpen(true)}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md flex items-center gap-2 font-bold text-sm shadow-sm transition-colors"
@@ -1152,7 +1153,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               <RefreshCw className="h-4 w-4" /> Gerar Escalas Fixas Automaticamente
             </button>
           )}
-          {user.role !== UserRole.EXAMINER && (
+          {user.role !== UserRole.EXAMINER && !isConsultant && (
             <button 
               onClick={() => setIsTypeSelectionModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 font-bold text-sm shadow-sm transition-colors"
@@ -1392,7 +1393,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           <td className="px-4 py-3 text-slate-500 max-w-[250px] truncate" title={req.observation}>{req.observation || '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
-                              {user.role !== UserRole.SCHOOL && (
+                              {user.role !== UserRole.SCHOOL && !isConsultant && (
                                 <button 
                                   onClick={() => {
                                     setSelectedRequest(req);
@@ -1411,13 +1412,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   Situação: Aguardando na fila
                                 </span>
                               )}
-                              <button 
-                                onClick={() => handleDeleteAction(req)}
-                                className="border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
-                                title="Excluir"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              {!isConsultant && (
+                                <button 
+                                  onClick={() => handleDeleteAction(req)}
+                                  className="border border-red-100 text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1486,7 +1489,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               </td>
                               <td className="px-4 py-3">
                                 <div className="flex items-center justify-end gap-2">
-                                  {user.role !== UserRole.SCHOOL && (
+                                  {user.role !== UserRole.SCHOOL && !isConsultant && (
                                     <button 
                                       onClick={() => handleWhatsAppMessage(req)}
                                       className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
@@ -1495,20 +1498,24 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                       <MessageCircle className="h-4 w-4" />
                                     </button>
                                   )}
-                                  <button 
-                                    onClick={() => handleConfirmAction(req)}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 shadow-sm transition-colors text-xs font-bold"
-                                    title="Confirmar"
-                                  >
-                                    <CheckCircle className="h-4 w-4" /> Confirmar
-                                  </button>
-                                  <button 
-                                    onClick={() => handleCancelAction(req)}
-                                    className="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors text-xs font-bold"
-                                    title="Cancelar"
-                                  >
-                                    <XCircle className="h-4 w-4" /> Cancelar
-                                  </button>
+                                  {!isConsultant && (
+                                    <>
+                                      <button 
+                                        onClick={() => handleConfirmAction(req)}
+                                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 shadow-sm transition-colors text-xs font-bold"
+                                        title="Confirmar"
+                                      >
+                                        <CheckCircle className="h-4 w-4" /> Confirmar
+                                      </button>
+                                      <button 
+                                        onClick={() => handleCancelAction(req)}
+                                        className="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors text-xs font-bold"
+                                        title="Cancelar"
+                                      >
+                                        <XCircle className="h-4 w-4" /> Cancelar
+                                      </button>
+                                    </>
+                                  )}
                                 </div>
                               </td>
                             </tr>
@@ -1554,7 +1561,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       <span className="font-bold text-slate-700 text-sm uppercase tracking-tight">{dayName} ({groupedByDayOfWeek[dayName].length})</span>
                       {expandedDays[dayName] ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
                     </button>
-                    {user.role !== UserRole.SCHOOL && groupedByDayOfWeek[dayName].length > 0 && (
+                    {user.role !== UserRole.SCHOOL && !isConsultant && groupedByDayOfWeek[dayName].length > 0 && (
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1593,7 +1600,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               <td className="px-4 py-3 text-slate-600">
                                 {getExamTypeLabel(req)}
                               </td>
-                              {user.role !== UserRole.SCHOOL && (
+                              {user.role !== UserRole.SCHOOL && !isConsultant && (
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-2">
                                     <button 
@@ -1650,7 +1657,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                            <th className="px-4 py-3">Horário</th>
                            <th className="px-4 py-3">Examinador</th>
                            <th className="px-4 py-3">Exame</th>
-                           {user.role !== UserRole.SCHOOL && <th className="px-4 py-3 text-right">Ações</th>}
+                           {user.role !== UserRole.SCHOOL && !isConsultant && <th className="px-4 py-3 text-right">Ações</th>}
                          </tr>
                        </thead>
                        <tbody className="divide-y divide-slate-50">

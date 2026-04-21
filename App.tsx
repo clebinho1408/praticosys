@@ -92,10 +92,10 @@ const App: React.FC = () => {
                   <Route path="reports/pcd" element={<ProvaPraticaPCDReport user={auth.user} />} />
 
                   {/* Cadastros */}
-                  <Route path="users" element={<Cadastros />} />
+                  <Route path="users" element={<Cadastros user={auth.user!} />} />
                   
                   {/* Configurações */}
-                  <Route path="settings" element={<Configuracoes />} />
+                  <Route path="settings" element={<Configuracoes user={auth.user!} />} />
                   
                   {/* Student Database */}
                   <Route path="students" element={<StudentDatabase />} />

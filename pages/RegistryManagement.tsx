@@ -2271,7 +2271,7 @@ const MOTOS_CSV = `754;7;BIZ
 5001;185;AQUILA
 5002;185;DAYSTAR ROUTIER`;
 
-const RegistryManagement: React.FC = () => {
+const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<Tab>('USERS');
 
   return (
@@ -2319,10 +2319,10 @@ const RegistryManagement: React.FC = () => {
 
         {/* Content */}
         <div className="p-6">
-          {activeTab === 'USERS' && <UsersManager />}
-          {activeTab === 'SCHOOLS' && <SchoolsManager />}
-          {activeTab === 'EXAMINERS' && <ExaminersManager />}
-          {activeTab === 'INSTRUCTORS' && <InstructorsManager />}
+          {activeTab === 'USERS' && <UsersManager user={user} />}
+          {activeTab === 'SCHOOLS' && <SchoolsManager user={user} />}
+          {activeTab === 'EXAMINERS' && <ExaminersManager user={user} />}
+          {activeTab === 'INSTRUCTORS' && <InstructorsManager user={user} />}
         </div>
       </div>
     </div>
@@ -2331,12 +2331,11 @@ const RegistryManagement: React.FC = () => {
 
 // --- Sub-Components for each Manager ---
 
-const UsersManager: React.FC = () => {
+const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -2363,17 +2362,6 @@ const UsersManager: React.FC = () => {
     const [u, s] = await Promise.all([api.getUsers(), api.getSchoolsAsync()]);
     setUsers(u);
     setSchools(s);
-    
-    // Get current user from auth state
-    const stored = localStorage.getItem('praticosys_auth');
-    if (stored) {
-      try {
-        const auth = JSON.parse(stored);
-        if (auth.user) setCurrentUser(auth.user);
-      } catch (e) {
-        console.error('Failed to parse auth for UsersManager', e);
-      }
-    }
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -2477,9 +2465,11 @@ const UsersManager: React.FC = () => {
                 onChange={e => setSearchTerm(e.target.value)}
             />
         </div>
-        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
-          <Plus className="h-4 w-4" /> Novo Usuário
-        </button>
+        {user?.role !== UserRole.CONSULTANT && (
+          <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
+            <Plus className="h-4 w-4" /> Novo Usuário
+          </button>
+        )}
       </div>
 
       <div className="overflow-x-auto border rounded-lg">
@@ -2506,12 +2496,12 @@ const UsersManager: React.FC = () => {
                   {u.role !== UserRole.SCHOOL && '-'}
                 </td>
                 <td className="px-4 py-3 text-right space-x-2 flex justify-end">
-                  {currentUser?.role === UserRole.ADMIN && (
+                  {user?.role === UserRole.ADMIN && (
                       <button onClick={() => handleResetPassword(u.id)} className="text-yellow-600 hover:text-yellow-800" title="Resetar Senha para 123456">
                           <Lock className="h-4 w-4" />
                       </button>
                   )}
-                  {currentUser?.role !== UserRole.CONSULTANT && (
+                  {user?.role !== UserRole.CONSULTANT && (
                     <>
                       <button onClick={() => openModal(u)} className="text-blue-600 hover:text-blue-800" title="Editar"><Edit2 className="h-4 w-4" /></button>
                       <button 
@@ -2595,7 +2585,7 @@ const UsersManager: React.FC = () => {
   );
 };
 
-const SchoolsManager: React.FC = () => {
+const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -3036,9 +3026,11 @@ const SchoolsManager: React.FC = () => {
           </select>
         </div>
         
-        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
-          <Plus className="h-4 w-4" /> Nova Autoescola
-        </button>
+        {user?.role !== UserRole.CONSULTANT && (
+          <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
+            <Plus className="h-4 w-4" /> Nova Autoescola
+          </button>
+        )}
       </div>
 
       <div className="space-y-8">
@@ -3115,8 +3107,12 @@ const SchoolsManager: React.FC = () => {
                           <div className="text-[10px] text-gray-400 truncate max-w-[150px]">{s.address}</div>
                         </td>
                         <td className="px-4 py-3 text-right space-x-2">
-                          <button onClick={() => openModal(s)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
-                          <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                          {user?.role !== UserRole.CONSULTANT && (
+                            <>
+                              <button onClick={() => openModal(s)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
+                              <button onClick={() => handleDelete(s.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                            </>
+                          )}
                         </td>
                       </tr>
                     );
@@ -3251,7 +3247,7 @@ const SchoolsManager: React.FC = () => {
   );
 };
 
-const ExaminersManager: React.FC = () => {
+const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Examiner | null>(null);
@@ -3405,12 +3401,16 @@ const ExaminersManager: React.FC = () => {
             />
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <button onClick={handleSyncUsers} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-200 justify-center">
-            Sincronizar Usuários
-          </button>
-          <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 justify-center">
-            <Plus className="h-4 w-4" /> Novo Examinador
-          </button>
+          {user?.role !== UserRole.CONSULTANT && (
+            <>
+              <button onClick={handleSyncUsers} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-200 justify-center">
+                Sincronizar Usuários
+              </button>
+              <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 justify-center">
+                <Plus className="h-4 w-4" /> Novo Examinador
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -3441,8 +3441,12 @@ const ExaminersManager: React.FC = () => {
                   )}
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
-                  <button onClick={() => openModal(e)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
-                  <button onClick={() => handleDelete(e.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                  {user?.role !== UserRole.CONSULTANT && (
+                    <>
+                      <button onClick={() => openModal(e)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
+                      <button onClick={() => handleDelete(e.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
@@ -3498,7 +3502,7 @@ const ExaminersManager: React.FC = () => {
   );
 };
 
-const InstructorsManager: React.FC = () => {
+const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Instructor | null>(null);
@@ -3759,9 +3763,11 @@ const InstructorsManager: React.FC = () => {
                 onChange={e => setSearchTerm(e.target.value)}
             />
         </div>
-        <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
-          <Plus className="h-4 w-4" /> Novo Instrutor
-        </button>
+        {user?.role !== UserRole.CONSULTANT && (
+          <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
+            <Plus className="h-4 w-4" /> Novo Instrutor
+          </button>
+        )}
       </div>
 
       <div className="overflow-x-auto border rounded-lg">
@@ -3801,8 +3807,12 @@ const InstructorsManager: React.FC = () => {
                    )}
                 </td>
                 <td className="px-4 py-3 text-right space-x-2">
-                  <button onClick={() => openModal(inst)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
-                  <button onClick={() => handleDelete(inst.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                  {user?.role !== UserRole.CONSULTANT && (
+                    <>
+                      <button onClick={() => openModal(inst)} className="text-blue-600 hover:text-blue-800"><Edit2 className="h-4 w-4" /></button>
+                      <button onClick={() => handleDelete(inst.id)} className="text-red-600 hover:text-red-800"><Trash2 className="h-4 w-4" /></button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

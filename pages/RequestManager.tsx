@@ -635,7 +635,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     return (
       <div className={`flex items-center space-x-2 ${user.role === UserRole.INSTRUCTOR ? 'w-full' : 'justify-end'}`}>
-        {user.role !== UserRole.INSTRUCTOR && 
+        {user.role !== UserRole.INSTRUCTOR && user.role !== UserRole.CONSULTANT &&
          !(req.status === ExamStatus.WAITING_RESULT && isAdminOpSup) && 
          !(req.status === ExamStatus.DONE && isAdminOpSup) && 
          !(req.status === ExamStatus.CANCELLED && isAdminOpSup) && 

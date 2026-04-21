@@ -705,7 +705,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
              {/* Right Side Action */}
              <div className="w-full md:w-auto flex justify-end">
-                {user.role !== UserRole.SCHOOL && (
+                {user.role !== UserRole.SCHOOL && !isConsultant && (
                   <button 
                     onClick={() => handleOpenModal()}
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold transition-colors"
@@ -904,7 +904,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                 </div>
                                             </div>
 
-                                            {selectedSchedule.status !== 'CONCLUDED' && selectedSchedule.status !== 'CLOSED' && (
+                                            {selectedSchedule.status !== 'CONCLUDED' && selectedSchedule.status !== 'CLOSED' && !isConsultant && (
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     {/* Botão Confirmação */}
                                                     <button 
