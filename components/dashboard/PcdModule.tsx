@@ -33,31 +33,35 @@ export const PcdModule: React.FC<ModuleProps> = ({ stats, title }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96">
-          <h3 className="text-lg font-semibold mb-4">Resultados PCD - {title}</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={stats.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                {stats.pieData.map((_: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96 flex flex-col">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 uppercase tracking-wider">Resultados PCD - {title}</h3>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={stats.pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                  {stats.pieData.map((_: any, index: number) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96">
-          <h3 className="text-lg font-semibold mb-4">Evolução Mensal PCD</h3>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={stats.chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="apto" name="Apto" fill="#10B981" />
-              <Bar dataKey="inapto" name="Inapto" fill="#EF4444" />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-96 flex flex-col">
+          <h3 className="text-lg font-bold text-gray-800 mb-4 uppercase tracking-wider">Evolução Mensal PCD</h3>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="apto" name="Apto" fill="#10B981" />
+                <Bar dataKey="inapto" name="Inapto" fill="#EF4444" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 
