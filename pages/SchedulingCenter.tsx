@@ -165,15 +165,20 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
 
   const globalQueue = React.useMemo(() => {
     return allRequests
-      .filter(
-        (r) =>
-          r.status === ExamStatus.WAITING_SCHEDULING &&
-          (!type || r.examType === type),
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      );
+      .filter((r) => {
+        if (r.status !== ExamStatus.WAITING_SCHEDULING) return false;
+        
+        // Strict separation based on `type` prop
+        if (type === ExamType.PCD) {
+          // PCD Module
+          return r.examType === ExamType.PCD || r.schoolId === 'PCD';
+        } else if (type === ExamType.COMMON) {
+          // CNH do Brasil Module
+          return r.examType === ExamType.COMMON && (!r.schoolId || r.schoolId === 'CNH_BRASIL');
+        }
+        return false;
+      })
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }, [allRequests, type]);
 
   const getGlobalPosition = (id: string) => {
@@ -205,14 +210,19 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const fullAvailableRequests = React.useMemo(() => {
     return allRequests
      .filter(r => {
-         const matchesStatus = r.status === ExamStatus.WAITING_SCHEDULING;
-         const matchesType = r.examType === selectedSchedule?.type;
-         const matchesSchool = user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId;
-         const matchesSource = r.source === RequestSource.STUDENT_DIRECT;
-         return matchesStatus && matchesType && matchesSchool && matchesSource;
+         if (r.status !== ExamStatus.WAITING_SCHEDULING) return false;
+         
+         if (selectedSchedule?.type === ExamType.PCD || type === ExamType.PCD) {
+           // PCD Module
+           return r.examType === ExamType.PCD || r.schoolId === 'PCD';
+         } else if (selectedSchedule?.type === ExamType.COMMON || type === ExamType.COMMON) {
+           // CNH do Brasil Module
+           return r.examType === ExamType.COMMON && (!r.schoolId || r.schoolId === 'CNH_BRASIL');
+         }
+         return false;
      })
      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [allRequests, selectedSchedule, user]);
+  }, [allRequests, selectedSchedule, type]);
 
   const fullCandidatesA = fullAvailableRequests.filter(r => (r.intendedCategory === 'A' || r.intendedCategory === 'AB') && isValidForCategory(r, 'A'));
   const fullCandidatesB = fullAvailableRequests.filter(r => (r.intendedCategory === 'B' || r.intendedCategory === 'AB') && isValidForCategory(r, 'B'));

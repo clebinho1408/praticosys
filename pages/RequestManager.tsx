@@ -124,12 +124,14 @@ interface RequestManagerProps {
   user: User;
   typeFilter?: ExamType;
   sourceFilter?: RequestSource;
+  excludeRegularSchools?: boolean;
 }
 
 const RequestManager: React.FC<RequestManagerProps> = ({
   user,
   typeFilter,
   sourceFilter,
+  excludeRegularSchools,
 }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [allGlobalRequests, setAllGlobalRequests] = useState<ExamRequest[]>([]);
@@ -239,6 +241,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       // Prop Type Filtering
       if (typeFilter) {
         filtered = filtered.filter((r) => r.examType === typeFilter);
+      }
+
+      // Hide CFC items if we are in CNH module
+      if (excludeRegularSchools) {
+        filtered = filtered.filter(r => !r.schoolId || r.schoolId === 'CNH_BRASIL');
       }
 
       // Source Filtering

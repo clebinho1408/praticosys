@@ -152,12 +152,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, filterModule }) =
   };
 
   const cnhBrasilStats = useMemo(() => getModuleStats(
-    r => r.examType === 'COMMON' && r.source !== 'SCHOOL', 
+    r => r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL'), 
     s => s.type === 'COMMON'
   ), [requests, schedules]);
 
   const pcdStats = useMemo(() => getModuleStats(
-    r => r.examType === 'PCD', 
+    r => r.examType === 'PCD' || r.schoolId === 'PCD', 
     s => s.type === 'PCD'
   ), [requests, schedules]);
 

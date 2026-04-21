@@ -12,8 +12,7 @@ import {
   RequestType,
   SystemSettings,
   BlockedDate,
-  BancaResult,
-  RequestSource
+  BancaResult
 } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
 import { 
@@ -388,8 +387,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   // Logic to group and filter data
   const filteredRequests = requests.filter(r => {
-    // Restore strict RequestSource.SCHOOL filter to avoid leaking STUDENT_DIRECT candidates that lack school/date/examiner
-    if (r.source !== RequestSource.SCHOOL) return false;
+    // Strict separation: Exclude CNH Brasil and PCD and orphan STUDENT_DIRECT candidates
+    const isExplicitCnh = r.schoolId === 'CNH_BRASIL';
+    const isExplicitPcd = r.schoolId === 'PCD' || r.examType === 'PCD';
+    const isOrphan = !r.schoolId;
+
+    if (isExplicitCnh || isExplicitPcd || isOrphan) {
+      return false;
+    }
     
     if (user.role === UserRole.SCHOOL && r.schoolId !== user.schoolId) return false;
     if (user.role === UserRole.EXAMINER && r.examinerId !== user.examinerId) return false;

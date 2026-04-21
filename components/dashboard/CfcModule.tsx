@@ -74,7 +74,17 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
   }, []);
 
   const stats = useMemo(() => {
-    let filteredRequests = requests.filter(r => r.examType === 'COMMON' || r.examType === 'PCD');
+    let filteredRequests = requests.filter(r => {
+        const isExplicitCnh = r.schoolId === 'CNH_BRASIL';
+        const isExplicitPcd = r.schoolId === 'PCD' || r.examType === 'PCD';
+        const isOrphan = !r.schoolId;
+
+        // Prova Prática CFC should only include regular school requests
+        if (isExplicitCnh || isExplicitPcd || isOrphan) {
+            return false;
+        }
+        return true;
+    });
     
     if (user?.role === 'SCHOOL' && user.schoolId) {
         filteredRequests = filteredRequests.filter(r => r.schoolId === user.schoolId);
