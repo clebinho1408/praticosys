@@ -72,14 +72,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     'Sexta-feira': false
   });
 
-  const [expandedWaitingDays, setExpandedWaitingDays] = useState<Record<string, boolean>>({
-    'Segunda-feira': false,
-    'Terça-feira': false,
-    'Quarta-feira': false,
-    'Quinta-feira': false,
-    'Sexta-feira': false
-  });
-
   // Filters state
   const [filters, setFilters] = useState({
     status: 'ALL',
@@ -381,10 +373,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     setExpandedDays(prev => ({ ...prev, [day]: !prev[day] }));
   };
 
-  const toggleWaitingDay = (day: string) => {
-    setExpandedWaitingDays(prev => ({ ...prev, [day]: !prev[day] }));
-  };
-
   // Logic to group and filter data
   const filteredRequests = requests.filter(r => {
     // Strict separation: Exclude CNH Brasil and PCD and orphan STUDENT_DIRECT candidates
@@ -497,42 +485,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     if (user.role === UserRole.SCHOOL && waitingConfirmation.length > 0 && !hasAutoExpandedWaiting.current) {
       hasAutoExpandedWaiting.current = true;
       setExpandedSections(prev => ({ ...prev, waiting: true }));
-      setExpandedWaitingDays(prev => {
-        const newExpanded = { ...prev };
-        waitingConfirmation.forEach(r => {
-          if (!r.scheduledDate) {
-            newExpanded['Outros/Sem Data'] = true;
-            return;
-          }
-          const date = new Date(r.scheduledDate + 'T00:00:00');
-          const dayIndex = date.getDay();
-          if (dayIndex >= 1 && dayIndex <= 5) {
-            const dayName = daysOfWeek[dayIndex - 1];
-            newExpanded[dayName] = true;
-          } else if (dayIndex === 6) {
-            newExpanded['Sábado'] = true;
-          } else if (dayIndex === 0) {
-            newExpanded['Domingo'] = true;
-          }
-        });
-        return newExpanded;
-      });
     }
   }, [waitingConfirmation, user.role]);
 
   // Group confirmed by day of week
   const groupedByDayOfWeek: Record<string, ExamRequest[]> = {
-    'Segunda-feira': [],
-    'Terça-feira': [],
-    'Quarta-feira': [],
-    'Quinta-feira': [],
-    'Sexta-feira': [],
-    'Sábado': [],
-    'Domingo': [],
-    'Outros/Sem Data': []
-  };
-
-  const groupedWaitingByDayOfWeek: Record<string, ExamRequest[]> = {
     'Segunda-feira': [],
     'Terça-feira': [],
     'Quarta-feira': [],
@@ -564,30 +521,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       groupedByDayOfWeek['Domingo'].push(r);
     } else {
       groupedByDayOfWeek['Outros/Sem Data'].push(r);
-    }
-  });
-
-  waitingConfirmation.forEach(r => {
-    if (!r.scheduledDate) {
-      groupedWaitingByDayOfWeek['Outros/Sem Data'].push(r);
-      return;
-    }
-    const date = new Date(r.scheduledDate + 'T00:00:00');
-    if (isNaN(date.getTime())) {
-      groupedWaitingByDayOfWeek['Outros/Sem Data'].push(r);
-      return;
-    }
-    const dayIndex = date.getDay();
-    // 0 = Sunday, 1 = Monday, ..., 5 = Friday, 6 = Saturday
-    if (dayIndex >= 1 && dayIndex <= 5) {
-      const dayName = daysOfWeek[dayIndex - 1];
-      groupedWaitingByDayOfWeek[dayName].push(r);
-    } else if (dayIndex === 6) {
-      groupedWaitingByDayOfWeek['Sábado'].push(r);
-    } else if (dayIndex === 0) {
-      groupedWaitingByDayOfWeek['Domingo'].push(r);
-    } else {
-      groupedWaitingByDayOfWeek['Outros/Sem Data'].push(r);
     }
   });
 
@@ -630,17 +563,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       const timeB = b.scheduledTime || '00:00';
       return timeA.localeCompare(timeB);
     });
+  });
 
-    groupedWaitingByDayOfWeek[day].sort((a, b) => {
-      const examinerA = getExaminerName(a.examinerId).toUpperCase();
-      const examinerB = getExaminerName(b.examinerId).toUpperCase();
-      if (examinerA < examinerB) return -1;
-      if (examinerA > examinerB) return 1;
-      
-      const timeA = a.scheduledTime || '00:00';
-      const timeB = b.scheduledTime || '00:00';
-      return timeA.localeCompare(timeB);
-    });
+  waitingConfirmation.sort((a, b) => {
+    const examinerA = getExaminerName(a.examinerId).toUpperCase();
+    const examinerB = getExaminerName(b.examinerId).toUpperCase();
+    if (examinerA < examinerB) return -1;
+    if (examinerA > examinerB) return 1;
+    
+    const timeA = a.scheduledTime || '00:00';
+    const timeB = b.scheduledTime || '00:00';
+    return timeA.localeCompare(timeB);
   });
 
   const getRowClass = (req: ExamRequest) => {
@@ -1287,7 +1220,55 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       {/* ACCORDIONS */}
       <div className="space-y-4">
         {user.role === UserRole.EXAMINER ? (
-          <div className="border border-green-200 rounded-lg overflow-hidden shadow-sm">
+          <>
+            <div className="border border-orange-200 rounded-lg overflow-hidden shadow-sm">
+              <button 
+                onClick={() => toggleSection('extras')}
+                className="w-full flex items-center justify-between p-4 bg-orange-50/50 hover:bg-orange-50 transition-colors"
+              >
+                <div className="flex items-center gap-3 text-orange-700">
+                  <AlertTriangle className="h-5 w-5" />
+                  <span className="font-bold">Solicitações de Provas Extras ({extras.length})</span>
+                </div>
+                {expandedSections.extras ? <ChevronUp className="h-5 w-5 text-orange-400" /> : <ChevronDown className="h-5 w-5 text-orange-400" />}
+              </button>
+              
+              {expandedSections.extras && (
+                <div className="p-4 bg-white space-y-3">
+                  {extras.length > 0 ? (
+                    extras.map(req => {
+                      const dt = new Date(req.createdAt);
+                      const formattedDate = `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+                      return (
+                        <div key={req.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-2 shadow-sm">
+                          <div className="font-black text-black uppercase">{getSchoolName(req.schoolId)}</div>
+                          <div className="text-sm text-slate-700">
+                            <span className="font-bold">Tipo:</span> {renderRequestTypeText(req)}
+                          </div>
+                          <div className="text-sm text-slate-700">
+                            <span className="font-bold">Exame:</span> {getExamTypeLabel(req)}
+                          </div>
+                          {req.observation && (
+                            <div className="text-sm text-red-600">
+                              <span className="font-bold">Obs.:</span> {req.observation}
+                            </div>
+                          )}
+                          <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-200 mt-2">
+                            Cadastrado em: {formattedDate}
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="py-8 text-center text-slate-400 italic">
+                      Nenhuma solicitação extra.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="border border-green-200 rounded-lg overflow-hidden shadow-sm">
             <div className="p-4 bg-green-600 text-white flex justify-center">
               <div className="flex flex-wrap justify-center bg-green-700/60 p-1.5 rounded-xl shadow-inner gap-1">
                 <button 
@@ -1393,6 +1374,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               )}
             </div>
           </div>
+          </>
         ) : (
           <>
             {/* SECTION: EXTRAS */}
@@ -1495,89 +1477,73 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           </button>
           
           {expandedSections.waiting && (
-            <div className="p-4 bg-white space-y-4">
-              {daysOfWeek.map((dayName) => (
-                <div key={dayName} className="border border-slate-200 rounded-lg overflow-hidden">
-                  <div className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-200">
-                    <button 
-                      onClick={() => toggleWaitingDay(dayName)}
-                      className="flex-1 flex items-center justify-between hover:bg-slate-100 transition-colors p-1 rounded"
-                    >
-                      <span className="font-bold text-slate-700 text-sm uppercase tracking-tight">{dayName} ({groupedWaitingByDayOfWeek[dayName].length})</span>
-                      {expandedWaitingDays[dayName] ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
-                    </button>
-                  </div>
-                  
-                  {expandedWaitingDays[dayName] && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left text-xs">
-                        <thead>
-                          <tr className="bg-slate-50/50 text-slate-400 uppercase font-bold border-b border-slate-100">
-                            <th className="px-4 py-3">Tipo</th>
-                            <th className="px-4 py-3">Autoescola</th>
-                            <th className="px-4 py-3">Data</th>
-                            <th className="px-4 py-3">Horário</th>
-                            <th className="px-4 py-3">Examinador</th>
-                            <th className="px-4 py-3">Exame</th>
-                            <th className="px-4 py-3 text-right">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                          {groupedWaitingByDayOfWeek[dayName].map(req => (
-                            <tr key={req.id} className={getRowClass(req)}>
-                              <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
-                              <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
-                              <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)}</td>
-                              <td className="px-4 py-3 text-red-600 font-bold">{req.scheduledTime || '08:00'}</td>
-                              <td className="px-4 py-3 text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</td>
-                              <td className="px-4 py-3 text-slate-600">
-                                {getExamTypeLabel(req)}
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center justify-end gap-2">
-                                  {user.role !== UserRole.SCHOOL && !isConsultant && (
-                                    <button 
-                                      onClick={() => handleWhatsAppMessage(req)}
-                                      className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
-                                      title="Enviar WhatsApp"
-                                    >
-                                      <MessageCircle className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                  {!isConsultant && (
-                                    <>
-                                      <button 
-                                        onClick={() => handleConfirmAction(req)}
-                                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 shadow-sm transition-colors text-xs font-bold"
-                                        title="Confirmar"
-                                      >
-                                        <CheckCircle className="h-4 w-4" /> Confirmar
-                                      </button>
-                                      <button 
-                                        onClick={() => handleCancelAction(req)}
-                                        className="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors text-xs font-bold"
-                                        title="Cancelar"
-                                      >
-                                        <XCircle className="h-4 w-4" /> Cancelar
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          {groupedWaitingByDayOfWeek[dayName].length === 0 && (
-                            <tr>
-                              <td colSpan={7} className="px-4 py-8 text-center text-slate-400 italic">Nenhum agendamento para este dia.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+            <div className="p-0 bg-white">
+              {waitingConfirmation.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-bold">
+                        <th className="px-4 py-3">Tipo</th>
+                        <th className="px-4 py-3">Autoescola</th>
+                        <th className="px-4 py-3">Data</th>
+                        <th className="px-4 py-3">Horário</th>
+                        <th className="px-4 py-3">Examinador</th>
+                        <th className="px-4 py-3">Exame</th>
+                        <th className="px-4 py-3 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {waitingConfirmation.map(req => (
+                        <tr key={req.id} className={getRowClass(req)}>
+                          <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
+                          <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
+                          <td className="px-4 py-3 text-red-600 font-bold">{formatDate(req.scheduledDate)}</td>
+                          <td className="px-4 py-3 text-red-600 font-bold">{req.scheduledTime || '08:00'}</td>
+                          <td className="px-4 py-3 text-red-600 font-bold uppercase">{getExaminerName(req.examinerId)}</td>
+                          <td className="px-4 py-3 text-slate-600">
+                            {getExamTypeLabel(req)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-2">
+                              {user.role !== UserRole.SCHOOL && !isConsultant && (
+                                <button 
+                                  onClick={() => handleWhatsAppMessage(req)}
+                                  className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                  title="Enviar WhatsApp"
+                                >
+                                  <MessageCircle className="h-4 w-4" />
+                                </button>
+                              )}
+                              {!isConsultant && (
+                                <>
+                                  <button 
+                                    onClick={() => handleConfirmAction(req)}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 shadow-sm transition-colors text-xs font-bold"
+                                    title="Confirmar"
+                                  >
+                                    <CheckCircle className="h-4 w-4" /> Confirmar
+                                  </button>
+                                  <button 
+                                    onClick={() => handleCancelAction(req)}
+                                    className="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors text-xs font-bold"
+                                    title="Cancelar"
+                                  >
+                                    <XCircle className="h-4 w-4" /> Cancelar
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-              {waitingConfirmation.length === 0 && <p className="text-center py-4 text-slate-400 text-sm italic">Nenhum agendamento aguardando confirmação.</p>}
+              ) : (
+                <div className="p-8 text-center text-slate-400 italic">
+                  Nenhum agendamento aguardando confirmação.
+                </div>
+              )}
             </div>
           )}
         </div>

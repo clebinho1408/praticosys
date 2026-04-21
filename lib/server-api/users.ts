@@ -14,6 +14,7 @@ export default async function handler(req: any, res: any) {
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`);
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`);
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`);
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`);
       } catch (e) {
         console.warn("[API Users] Schema sync warning:", e);
       }
@@ -31,6 +32,7 @@ export default async function handler(req: any, res: any) {
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`);
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`);
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`);
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`);
       } catch (e) {
         console.warn("[API Users] Schema sync warning:", e);
       }

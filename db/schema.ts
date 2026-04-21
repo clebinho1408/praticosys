@@ -11,6 +11,7 @@ export const users = pgTable('users', {
   schoolId: text('school_id'), // Opcional, link para autoescola
   examinerId: text('examiner_id'), // Opcional, link para examinador
   instructorId: text('instructor_id'), // Opcional, link para instrutor
+  forcePasswordChange: boolean('force_password_change').default(true), // Força a troca de senha no primeiro acesso/reset
   createdAt: timestamp('created_at').defaultNow(),
 });
 

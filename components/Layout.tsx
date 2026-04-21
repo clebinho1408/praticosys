@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { Logo } from './Logo';
+import { ForcePasswordChangeModal } from './ForcePasswordChangeModal';
 import { 
   LayoutDashboard,
   FileText, 
@@ -45,6 +46,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showForcePassword, setShowForcePassword] = useState(!!user.forcePasswordChange);
+
+  useEffect(() => {
+    setShowForcePassword(!!user.forcePasswordChange);
+  }, [user.forcePasswordChange]);
 
   const getRoleLabel = (role: string) => {
     switch(role) {
@@ -243,6 +249,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row print:bg-white h-screen overflow-hidden print:h-auto print:overflow-visible">
+      {showForcePassword && (
+        <ForcePasswordChangeModal 
+          user={user} 
+          onSuccess={() => setShowForcePassword(false)} 
+        />
+      )}
+      
       {/* Sidebar Desktop */}
       <aside className="hidden md:flex w-64 bg-slate-900 border-r border-slate-800 flex-col flex-shrink-0 print:hidden z-20">
         <SidebarContent />

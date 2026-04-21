@@ -33,6 +33,7 @@ export default async function handler(req: any, res: any) {
     try {
         const { sql } = await import('drizzle-orm');
         await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`);
+        await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`);
     } catch (e) {
         console.warn("[Auth API] Schema sync warning:", e);
     }
@@ -48,10 +49,12 @@ export default async function handler(req: any, res: any) {
                     name: 'Administrador',
                     login: 'admin',
                     password: password, 
-                    role: 'ADMIN'
+                    role: 'ADMIN',
+                    forcePasswordChange: false
                 }).returning();
                 console.log("Admin criado com sucesso.");
-                return res.status(200).json(newAdmin[0]);
+                const { password: _, ...safeAdmin } = newAdmin[0];
+                return res.status(200).json(safeAdmin);
             } catch (err: any) {
                 console.error("Erro ao criar admin auto:", err);
                 return res.status(500).json({ error: 'Erro ao criar admin', details: err.message });
@@ -63,15 +66,17 @@ export default async function handler(req: any, res: any) {
     const user = result[0];
 
     if (login === 'admin' && !user.password) {
-        await db.update(users).set({ password }).where(eq(users.id, user.id));
-        return res.status(200).json(user);
+        const updatedAdmin = await db.update(users).set({ password, forcePasswordChange: false }).where(eq(users.id, user.id)).returning();
+        const { password: _, ...safeAdmin } = updatedAdmin[0];
+        return res.status(200).json(safeAdmin);
     }
 
     if (user.password && user.password !== password) {
         return res.status(401).json({ error: 'Senha incorreta' });
     }
     
-    return res.status(200).json(user);
+    const { password: _, ...userWithoutPassword } = user;
+    return res.status(200).json(userWithoutPassword);
 
   } catch (error: any) {
     console.error("CRITICAL AUTH ERROR:", error);

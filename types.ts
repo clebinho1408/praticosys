@@ -46,6 +46,7 @@ export interface User {
   instructorId?: string; // If role is INSTRUCTOR
   login: string;
   password?: string;
+  forcePasswordChange?: boolean;
 }
 
 export interface SchoolSchedule {

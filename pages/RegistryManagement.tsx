@@ -2416,7 +2416,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
           message: 'A senha deste usuário será redefinida para "123456". Deseja continuar?',
           isDestructive: false,
           onConfirm: async () => {
-              await api.updateUser(id, { password: '123456' } as any);
+              await api.updateUser(id, { password: '123456', forcePasswordChange: true } as any);
           }
       });
   }
