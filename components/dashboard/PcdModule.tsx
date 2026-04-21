@@ -61,29 +61,30 @@ export const PcdModule: React.FC<ModuleProps> = ({ stats, title }) => {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <h3 className="text-lg font-semibold mb-6">Estatísticas de Bancas PCD - {title}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                <p className="text-sm text-slate-500">Total</p>
-                <p className="text-2xl font-bold">{stats.totalSchedules}</p>
-            </div>
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <p className="text-sm text-blue-500">Abertas</p>
-                <p className="text-2xl font-bold text-blue-700">{stats.open}</p>
-            </div>
-            <div className="p-4 bg-green-50 rounded-lg border border-green-100">
-                <p className="text-sm text-green-500">Concluídas</p>
-                <p className="text-2xl font-bold text-green-700">{stats.concluded}</p>
-            </div>
-            <div className="p-4 bg-red-50 rounded-lg border border-red-100">
-                <p className="text-sm text-red-500">Canceladas</p>
-                <p className="text-2xl font-bold text-red-700">{stats.cancelled}</p>
-            </div>
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-sm text-gray-500">Fechadas</p>
-                <p className="text-2xl font-bold text-gray-700">{stats.closed}</p>
-            </div>
+      <div className="pt-4">
+        <h3 className="text-xl font-bold text-gray-800">Estatísticas de Bancas PCD - {title}</h3>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total</p>
+            <p className="text-2xl font-black text-slate-900">{stats.totalSchedules}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1">Abertas</p>
+            <p className="text-2xl font-black text-blue-700">{stats.open}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-green-500 uppercase tracking-wider mb-1">Concluídas</p>
+            <p className="text-2xl font-black text-green-700">{stats.concluded}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Canceladas</p>
+            <p className="text-2xl font-black text-red-700">{stats.cancelled}</p>
+        </div>
+        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Fechadas</p>
+            <p className="text-2xl font-black text-gray-600">{stats.closed}</p>
         </div>
       </div>
     </div>
