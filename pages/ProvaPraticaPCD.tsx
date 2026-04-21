@@ -10,7 +10,7 @@ interface Props {
 
 export default function ProvaPraticaPCD({ user, view }: Props) {
   if (!user) return null;
-  if (view === 'dashboard') return <AdminDashboard user={user} />;
+  if (view === 'dashboard') return <AdminDashboard user={user} filterModule="pcd" />;
   if (view === 'requests') return <RequestManager user={user} typeFilter={ExamType.PCD} />;
   if (view === 'scheduling') return <SchedulingCenter user={user} type={ExamType.PCD} />;
   return null;

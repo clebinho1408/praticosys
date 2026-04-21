@@ -175,6 +175,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   );
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [notificationData, setNotificationData] = useState({ title: '', message: '', id: '' });
+  const [notificationQueue, setNotificationQueue] = useState<{ title: string; message: string; id: string }[]>([]);
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [approvalData, setApprovalData] = useState<ExamRequest | null>(null);
   const [expandedWeekdays, setExpandedWeekdays] = useState<Record<string, boolean>>({});
@@ -262,6 +263,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     fetchRequests();
   }, [user, typeFilter]);
 
+  // Process Notification Queue
+  useEffect(() => {
+    if (!isNotificationModalOpen && notificationQueue.length > 0) {
+      const next = notificationQueue[0];
+      setNotificationData(next);
+      setIsNotificationModalOpen(true);
+    }
+  }, [isNotificationModalOpen, notificationQueue]);
+
   useEffect(() => {
     const eventSource = new EventSource('/api/events');
 
@@ -270,19 +280,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       if (user.role === UserRole.INSTRUCTOR) {
         const notifiedIds = JSON.parse(localStorage.getItem(`notified_requests_${user.id}`) || '[]');
         if (data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed && !notifiedIds.includes(data.id)) {
-          setNotificationData({ 
+          const newNotif = { 
             title: 'Nova Notificação', 
             message: `O candidato ${data.socialName || data.studentName} está aguardando confirmação para a prova!`,
             id: data.id
+          };
+          setNotificationQueue(prev => {
+            const exists = prev.some(n => n.id === newNotif.id);
+            if (exists) return prev;
+            return [...prev, newNotif];
           });
-          setIsNotificationModalOpen(true);
         } else if (data.status === ExamStatus.CANCELLED && !notifiedIds.includes(data.id)) {
-          setNotificationData({ 
+          const newNotif = { 
             title: 'Agendamento Recusado', 
             message: `O agendamento do candidato ${data.socialName || data.studentName} foi recusado. Motivo: ${data.cancellationReason || 'Não informado'}`,
             id: data.id
+          };
+          setNotificationQueue(prev => {
+            const exists = prev.some(n => n.id === newNotif.id);
+            if (exists) return prev;
+            return [...prev, newNotif];
           });
-          setIsNotificationModalOpen(true);
         }
       }
       fetchRequests(true);
@@ -311,29 +329,30 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       // Check for new rejections
       const newRejections = requests.filter(r => 
         r.status === ExamStatus.CANCELLED && !notifiedIds.includes(r.id)
-      );
+      ).map(r => ({
+        title: 'Agendamento Recusado', 
+        message: `O agendamento do candidato ${r.socialName || r.studentName} foi recusado. Motivo: ${r.cancellationReason || 'Não informado'}`,
+        id: r.id
+      }));
 
       // Check for new waiting confirmations
       const newWaitingConfirmations = requests.filter(r => 
         r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed && !notifiedIds.includes(r.id)
-      );
+      ).map(r => ({
+        title: 'Nova Notificação', 
+        message: `O candidato ${r.socialName || r.studentName} está aguardando confirmação para a prova!`,
+        id: r.id
+      }));
 
-      if (newRejections.length > 0) {
-        const last = newRejections[newRejections.length - 1];
-        setNotificationData({ 
-          title: 'Agendamento Recusado', 
-          message: `O agendamento do candidato ${last.socialName || last.studentName} foi recusado. Motivo: ${last.cancellationReason || 'Não informado'}`,
-          id: last.id
+      const allNew = [...newRejections, ...newWaitingConfirmations];
+      
+      if (allNew.length > 0) {
+        setNotificationQueue(prev => {
+          const existingIds = prev.map(n => n.id);
+          const trulyNew = allNew.filter(n => !notifiedIds.includes(n.id) && !existingIds.includes(n.id));
+          if (trulyNew.length === 0) return prev;
+          return [...prev, ...trulyNew];
         });
-        setIsNotificationModalOpen(true);
-      } else if (newWaitingConfirmations.length > 0) {
-        const last = newWaitingConfirmations[newWaitingConfirmations.length - 1];
-        setNotificationData({ 
-          title: 'Nova Notificação', 
-          message: `O candidato ${last.socialName || last.studentName} está aguardando confirmação para a prova!`,
-          id: last.id
-        });
-        setIsNotificationModalOpen(true);
       }
     }
   }, [requests, user]);
@@ -2210,16 +2229,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       <NotificationModal
         isOpen={isNotificationModalOpen}
         onClose={() => {
-          const notifiedIds = JSON.parse(localStorage.getItem(`notified_requests_${user.id}`) || '[]');
+          if (notificationData.id) {
+            const notifiedIds = JSON.parse(localStorage.getItem(`notified_requests_${user.id}`) || '[]');
+            const updatedNotified = Array.from(new Set([...notifiedIds, notificationData.id]));
+            localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify(updatedNotified));
+          }
           
-          // Mark all current relevant requests as notified so they don't show up again
-          const newRejections = requests.filter(r => r.status === ExamStatus.CANCELLED).map(r => r.id);
-          const newWaitingConfirmations = requests.filter(r => r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed).map(r => r.id);
-          
-          const allIdsToMark = Array.from(new Set([...notifiedIds, ...newRejections, ...newWaitingConfirmations]));
-          localStorage.setItem(`notified_requests_${user.id}`, JSON.stringify(allIdsToMark));
-          
+          setNotificationQueue(prev => prev.slice(1));
           setIsNotificationModalOpen(false);
+          setNotificationData({ title: '', message: '', id: '' });
         }}
         title={notificationData.title}
         message={notificationData.message}

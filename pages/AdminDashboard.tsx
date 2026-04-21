@@ -23,7 +23,12 @@ const StatCard: React.FC<{ title: string; value: number | string; icon: React.El
   </div>
 );
 
-const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
+interface AdminDashboardProps {
+  user: User;
+  filterModule?: 'cnh' | 'cfc' | 'pcd';
+}
+
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, filterModule }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,13 +163,13 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
 
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(tab || 'dashboard');
+  const [activeTab, setActiveTab] = useState(filterModule || tab || 'dashboard');
 
   useEffect(() => {
-    if (tab) {
+    if (tab && !filterModule) {
       setActiveTab(tab);
     }
-  }, [tab]);
+  }, [tab, filterModule]);
 
   const handleTabChange = (newTab: string) => {
     setActiveTab(newTab);
@@ -183,41 +188,45 @@ const AdminDashboard: React.FC<{ user: User }> = ({ user }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">
-          {user.role === UserRole.SCHOOL ? `Dashboard - ${user.name}` : 'Painel de Controle'}
+          {filterModule === 'cnh' ? 'Dashboard CNH do Brasil' : 
+           filterModule === 'pcd' ? 'Dashboard Prova Prática PCD' :
+           (user.role === UserRole.SCHOOL ? `Dashboard - ${user.name}` : 'Painel de Controle')}
         </h2>
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase">
             Última atualização: {new Date().toLocaleTimeString()}
         </div>
       </div>
 
-      <div className="flex gap-2 border-b overflow-x-auto custom-scrollbar">
-          <button 
-            onClick={() => handleTabChange('dashboard')}
-            className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'dashboard' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
-          >
-              Visão Geral
-          </button>
-          <button 
-            onClick={() => handleTabChange('cnh')}
-            className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'cnh' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
-          >
-              CNH do Brasil
-          </button>
-          <button 
-            onClick={() => handleTabChange('cfc')}
-            className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'cfc' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
-          >
-              Prova Prática CFC
-          </button>
-          <button 
-            onClick={() => handleTabChange('pcd')}
-            className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'pcd' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
-          >
-              Prova Prática PCD
-          </button>
-      </div>
+      {!filterModule && (
+        <div className="flex gap-2 border-b overflow-x-auto custom-scrollbar">
+            <button 
+              onClick={() => handleTabChange('dashboard')}
+              className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'dashboard' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+            >
+                Visão Geral
+            </button>
+            <button 
+              onClick={() => handleTabChange('cnh')}
+              className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'cnh' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+            >
+                CNH do Brasil
+            </button>
+            <button 
+              onClick={() => handleTabChange('cfc')}
+              className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'cfc' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+            >
+                Prova Prática CFC
+            </button>
+            <button 
+              onClick={() => handleTabChange('pcd')}
+              className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'pcd' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+            >
+                Prova Prática PCD
+            </button>
+        </div>
+      )}
 
-      {activeTab === 'dashboard' && (
+      {activeTab === 'dashboard' && !filterModule && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <StatCard title="Total de Bancas" value={totalBancas} icon={Calendar} color="bg-blue-600" />

@@ -10,7 +10,7 @@ interface Props {
 
 export default function CnhDoBrasil({ user, view }: Props) {
   if (!user) return null;
-  if (view === 'dashboard') return <AdminDashboard user={user} />;
+  if (view === 'dashboard') return <AdminDashboard user={user} filterModule="cnh" />;
   if (view === 'requests') return <RequestManager user={user} typeFilter={ExamType.COMMON} />;
   if (view === 'scheduling') return <SchedulingCenter user={user} type={ExamType.COMMON} />;
   return null;
