@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { User, UserRole } from '../types';
 import { Logo } from './Logo';
 import { 
+  LayoutDashboard,
   FileText, 
   Users, 
   Settings, 
@@ -100,6 +101,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Car,
          label: 'Prova Prática CFC',
          subItems: [
+           { label: 'Dashboard', path: '/admin/dashboard/cfc', icon: LayoutDashboard },
            { label: 'Agendamentos', path: '/admin/scheduling/cfc', icon: CalendarCheck }
          ]
        });
@@ -122,6 +124,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Map,
          label: 'CNH do Brasil',
          subItems: [
+           { label: 'Dashboard', path: '/admin/dashboard/cnh', icon: LayoutDashboard },
            { label: 'Bancas', path: '/admin/scheduling/common', icon: CalendarCheck },
            { label: 'Candidatos', path: '/admin/requests/common', icon: FileText },
            { label: 'Relatórios', path: '/admin/reports/cnh', icon: BarChart3 }
@@ -133,6 +136,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Car,
          label: 'Prova Prática CFC',
          subItems: [
+           { label: 'Dashboard', path: '/admin/dashboard/cfc', icon: LayoutDashboard },
            { label: 'Agendamentos', path: '/admin/scheduling/cfc', icon: CalendarCheck },
            { label: 'Relatórios', path: '/admin/reports/cfc', icon: BarChart3 }
          ]
@@ -143,6 +147,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Accessibility,
          label: 'Prova Prática PCD',
          subItems: [
+           { label: 'Dashboard', path: '/admin/dashboard/pcd', icon: LayoutDashboard },
            { label: 'Agendamentos', path: '/admin/scheduling/pcd', icon: CalendarCheck },
            { label: 'Candidatos', path: '/admin/requests/pcd', icon: FileText },
            { label: 'Relatórios', path: '/admin/reports/pcd', icon: BarChart3 }
