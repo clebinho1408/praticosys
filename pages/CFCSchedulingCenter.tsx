@@ -1170,7 +1170,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 onChange={e => setFilters({...filters, status: e.target.value})}
               >
                 <option value="ALL">Todos</option>
-                <option value="WAITING_SCHEDULING">Solicitações de Provas Extras</option>
+                <option value="WAITING_SCHEDULING">Pedidos Provas Extras</option>
                 <option value="WAITING_CONFIRMATION">Aguardando Confirmação</option>
                 <option value="CONFIRMED">Provas Confirmadas</option>
                 <option value="DONE">Provas Realizadas</option>
@@ -1239,7 +1239,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               >
                 <div className="flex items-center gap-3 text-orange-700">
                   <AlertTriangle className="h-5 w-5" />
-                  <span className="font-bold">Solicitações de Provas Extras ({extras.length})</span>
+                  <span className="font-bold">Pedidos Provas Extras ({extras.length})</span>
                 </div>
                 {expandedSections.extras ? <ChevronUp className="h-5 w-5 text-orange-400" /> : <ChevronDown className="h-5 w-5 text-orange-400" />}
               </button>
@@ -1396,7 +1396,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           >
             <div className="flex items-center gap-3 text-orange-700">
               <AlertTriangle className="h-5 w-5" />
-              <span className="font-bold">Solicitações de Provas Extras ({extras.length})</span>
+              <span className="font-bold">Pedidos Provas Extras ({extras.length})</span>
             </div>
             {expandedSections.extras ? <ChevronUp className="h-5 w-5 text-orange-400" /> : <ChevronDown className="h-5 w-5 text-orange-400" />}
           </button>
