@@ -385,7 +385,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
     
     if (user.role === UserRole.SCHOOL && r.schoolId !== user.schoolId) return false;
-    if (user.role === UserRole.EXAMINER && r.examinerId !== user.examinerId) return false;
+    
+    if (user.role === UserRole.EXAMINER) {
+      // Para examinadores, provas que não estão em WAITING_SCHEDULING (extras) precisam pertencer a ele
+      if (r.status !== ExamStatus.WAITING_SCHEDULING && r.examinerId !== user.examinerId) return false;
+    }
+
     if (filters.schoolId !== 'ALL' && r.schoolId !== filters.schoolId) return false;
     
     // Status filter logic
@@ -408,7 +413,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     if (filters.endDate && r.scheduledDate && r.scheduledDate > filters.endDate) return false;
 
     // Examiner filter
-    if (filters.examinerId !== 'ALL' && r.examinerId !== filters.examinerId) return false;
+    if (filters.examinerId !== 'ALL') {
+      if (user.role === UserRole.EXAMINER) {
+        if (r.status !== ExamStatus.WAITING_SCHEDULING && r.examinerId !== filters.examinerId) return false;
+      } else {
+        if (r.examinerId !== filters.examinerId) return false;
+      }
+    }
 
     return true;
   });
