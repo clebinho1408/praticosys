@@ -466,14 +466,24 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
             let filteredScheds = scheds;
 
             if (reportType === 'pcd') {
+                // PCD: apenas candidatos com examType PCD (schoolId === 'PCD' ou sem schoolId PCD)
                 filteredReqs = filteredReqs.filter(r => r.examType === 'PCD');
                 filteredScheds = filteredScheds.filter(s => s.type === 'PCD');
             } else if (reportType === 'cfc') {
-                // Prova Prática CFC includes both COMMON and PCD
-                filteredReqs = filteredReqs.filter(r => r.examType === 'COMMON' || r.examType === 'PCD');
-                filteredScheds = filteredScheds.filter(s => s.type === 'COMMON' || s.type === 'PCD');
+                // CFC: candidatos de autoescolas regulares (COMMON), excluindo CNH_BRASIL, PCD e órfãos sem schoolId
+                filteredReqs = filteredReqs.filter(r => {
+                    if (r.examType === 'PCD') return false;          // PCD é módulo separado
+                    if (!r.schoolId) return false;                    // sem escola = CNH do Brasil (orphan)
+                    if (r.schoolId === 'CNH_BRASIL') return false;    // CNH do Brasil explícito
+                    if (r.schoolId === 'PCD') return false;           // PCD explícito
+                    return r.examType === 'COMMON';                   // autoescola regular
+                });
+                filteredScheds = filteredScheds.filter(s => s.type === 'COMMON');
             } else if (reportType === 'cnh') {
-                filteredReqs = filteredReqs.filter(r => r.examType === 'COMMON');
+                // CNH do Brasil: candidatos COMMON sem schoolId OU com schoolId === 'CNH_BRASIL'
+                filteredReqs = filteredReqs.filter(r =>
+                    r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL')
+                );
                 filteredScheds = filteredScheds.filter(s => s.type === 'COMMON');
             }
 

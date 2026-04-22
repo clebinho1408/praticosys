@@ -152,12 +152,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, filterModule }) =
   };
 
   const cnhBrasilStats = useMemo(() => getModuleStats(
-    r => r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL'), 
-    s => s.type === 'COMMON'
+    // CNH do Brasil: COMMON sem schoolId ou com schoolId === 'CNH_BRASIL'
+    r => r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL'),
+    // Bancas CNH: type COMMON que tenham pelo menos um candidato CNH vinculado, OU sem nenhum candidato de autoescola
+    s => {
+      if (s.type !== 'COMMON') return false;
+      const candidatesInSchedule = requests.filter(r => r.scheduleId === s.id);
+      if (candidatesInSchedule.length === 0) return true; // banca vazia conta para CNH
+      return candidatesInSchedule.some(r => !r.schoolId || r.schoolId === 'CNH_BRASIL');
+    }
   ), [requests, schedules]);
 
   const pcdStats = useMemo(() => getModuleStats(
-    r => r.examType === 'PCD' || r.schoolId === 'PCD', 
+    // PCD: apenas examType PCD
+    r => r.examType === 'PCD',
+    // Bancas PCD: type PCD
     s => s.type === 'PCD'
   ), [requests, schedules]);
 
