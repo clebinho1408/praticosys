@@ -1230,16 +1230,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   // Global queue for WAITING_SCHEDULING to ensure unique positions across all users/schools
   const globalQueue = useMemo(() => {
     return allGlobalRequests
-      .filter(
-        (r) =>
-          r.status === ExamStatus.WAITING_SCHEDULING &&
-          (!typeFilter || r.examType === typeFilter),
-      )
+      .filter((r) => {
+        if (r.status !== ExamStatus.WAITING_SCHEDULING) return false;
+        if (typeFilter && r.examType !== typeFilter) return false;
+        // Aplicar o mesmo filtro de módulo para manter posições consistentes
+        if (excludeRegularSchools && r.schoolId && r.schoolId !== 'CNH_BRASIL') return false;
+        return true;
+      })
       .sort(
         (a, b) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
       );
-  }, [allGlobalRequests, typeFilter]);
+  }, [allGlobalRequests, typeFilter, excludeRegularSchools]);
 
   const getGlobalPosition = (id: string) => {
     const index = globalQueue.findIndex((r) => r.id === id);
@@ -1536,11 +1538,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ),
   };
 
-  // Sort filtered requests for WAITING_SCHEDULING by position
+  // Sort filtered requests for WAITING_SCHEDULING by position (createdAt ASC — mais antigo = 1º)
   const sortedWaitingScheduling = useMemo(() => {
     return [...groupedRequests[ExamStatus.WAITING_SCHEDULING]].sort((a, b) => {
       const posA = globalQueue.findIndex(r => r.id === a.id);
       const posB = globalQueue.findIndex(r => r.id === b.id);
+      // Fallback direto por createdAt caso o item não esteja na globalQueue
+      if (posA === -1 && posB === -1) {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      if (posA === -1) return 1;
+      if (posB === -1) return -1;
       return posA - posB;
     });
   }, [groupedRequests, globalQueue]);
