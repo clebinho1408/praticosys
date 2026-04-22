@@ -15,10 +15,6 @@ const parseBody = (req: any) => {
 };
 
 export default async function handler(req: any, res: any) {
-  console.log("[API/Requests] Handler called. examRequests defined:", !!examRequests);
-  if (examRequests) {
-    console.log("[API/Requests] examRequests name:", (examRequests as any)[Symbol.for('drizzle:Name')]);
-  }
   try {
     if (req.method === 'GET') {
       try {
@@ -39,7 +35,6 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'POST') {
       const body = parseBody(req);
-      console.log("[API/Requests] POST Body:", JSON.stringify(body));
 
       // Filtrar apenas campos que existem no schema para evitar erro do Drizzle
       const allowedFields = [
@@ -88,7 +83,6 @@ export default async function handler(req: any, res: any) {
 
     if (req.method === 'PUT') {
       const body = parseBody(req);
-      console.log("[API/Requests] PUT Body:", JSON.stringify(body));
       if (!body || !body.id) {
         return res.status(400).json({ error: 'ID is required for update' });
       }
@@ -122,8 +116,6 @@ export default async function handler(req: any, res: any) {
           }
         }
       }
-
-      console.log("[API/Requests] Filtered Updates:", JSON.stringify(filteredUpdates));
 
       try {
         const updated = await db.update(examRequests)

@@ -24,8 +24,20 @@ import { addClient } from './sse.js';
 
 export const app = express();
 
+const diagnosticsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_INTERNAL_DIAGNOSTICS === 'true';
+const destructiveOperationsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_DESTRUCTIVE_OPERATIONS === 'true';
+const verboseHttpLogsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_HTTP_LOGS === 'true';
+
+const rejectDisabledRoute = (res: any) => res.status(404).json({ error: 'Not Found' });
+const wrapWhen = (enabled: boolean, handler: any) => async (req: any, res: any) => {
+  if (!enabled) return rejectDisabledRoute(res);
+  return wrap(handler)(req, res);
+};
+
 app.use((req, _res, next) => {
-  console.log(`[Server] Request: ${req.method} ${req.url}`);
+  if (verboseHttpLogsEnabled) {
+    console.log(`[Server] Request: ${req.method} ${req.url}`);
+  }
   next();
 });
 
@@ -34,9 +46,10 @@ export async function createServer() {
 }
 
 app.get('/api/db-status', (_req, res) => {
+  if (!diagnosticsEnabled) return rejectDisabledRoute(res);
   res.json({
     hasUrl: !!process.env.DATABASE_URL,
-    hasViteUrl: !!process.env.VITE_NEON_DATABASE_URL,
+    hasLegacyViteUrl: !!process.env.VITE_NEON_DATABASE_URL,
     isMock: (db as any)._isMock || false,
   });
 });
@@ -65,12 +78,12 @@ app.all('/api/schedules', wrap(schedulesHandler));
 app.all('/api/banca-results', wrap(bancaResultsHandler));
 app.all('/api/schools', wrap(schoolsHandler));
 app.all('/api/settings', wrap(settingsHandler));
-app.all('/api/setup', wrap(setupHandler));
-app.all('/api/test', wrap(testHandler));
+app.all('/api/setup', wrapWhen(diagnosticsEnabled, setupHandler));
+app.all('/api/test', wrapWhen(diagnosticsEnabled, testHandler));
 app.all('/api/users', wrap(usersHandler));
 app.all('/api/blocked-dates', wrap(blockedDatesHandler));
 app.all('/api/cities', wrap(citiesHandler));
-app.all('/api/risk-area', wrap(riskAreaHandler));
+app.all('/api/risk-area', wrapWhen(destructiveOperationsEnabled, riskAreaHandler));
 
 // SSE Endpoint for real-time updates
 app.get('/api/events', (_req, res) => {

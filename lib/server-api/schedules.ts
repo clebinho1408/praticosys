@@ -124,7 +124,6 @@ export default async function handler(req: any, res: any) {
     // --- PUT: Atualizar ou Cancelar Banca ---
     if (req.method === 'PUT') {
       const body = parseBody(req);
-      console.log("[API/Schedules] PUT Body:", JSON.stringify(body));
       const { id, action, reason, createdAt, updatedAt, ...updates } = body;
       
       if (!id) {
@@ -186,8 +185,6 @@ export default async function handler(req: any, res: any) {
           filteredUpdates[key] = updates[key];
         }
       }
-
-      console.log("[API/Schedules] Filtered Updates:", JSON.stringify(filteredUpdates));
 
       try {
         // Edição Normal

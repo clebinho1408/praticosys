@@ -5,10 +5,12 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
-const rawUrl = process.env.DATABASE_URL || process.env.VITE_NEON_DATABASE_URL || "";
+const rawUrl = process.env.DATABASE_URL || "";
+const legacyUrl = process.env.VITE_NEON_DATABASE_URL || "";
+const selectedUrl = rawUrl || (process.env.NODE_ENV !== 'production' ? legacyUrl : "");
 
 // Tenta limpar a URL
-const cleanUrl = rawUrl
+const cleanUrl = selectedUrl
   .trim()
   .replace(/^psql\s+/, '') 
   .replace(/^['"]+|['"]+$/g, '');
@@ -17,8 +19,12 @@ let dbInstance;
 
 try {
   if (!cleanUrl) {
-    console.warn("AVISO: URL do banco de dados não encontrada nas variáveis de ambiente.");
+    console.warn("AVISO: URL do banco de dados não encontrada nas variáveis de ambiente seguras.");
     throw new Error("Missing Database URL");
+  }
+
+  if (!rawUrl && legacyUrl) {
+    console.warn("AVISO: usando VITE_NEON_DATABASE_URL apenas em ambiente não produtivo. Migre para DATABASE_URL.");
   }
   
   // Inicializa conexão real

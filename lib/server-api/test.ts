@@ -3,7 +3,7 @@ import { sql } from 'drizzle-orm';
 
 export default async function handler(_req: any, res: any) {
   try {
-    const rawUrl = process.env.DATABASE_URL || process.env.VITE_NEON_DATABASE_URL || "";
+    const rawUrl = process.env.DATABASE_URL || "";
     
     // Mascara a URL para segurança
     const maskedUrl = rawUrl.length > 10 

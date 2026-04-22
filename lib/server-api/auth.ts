@@ -26,8 +26,6 @@ export default async function handler(req: any, res: any) {
         }
     }
     const { login, password } = body;
-    
-    console.log(`Tentativa de login para: ${login}`);
 
     // Hotfix: Garantir que a coluna examiner_id existe
     try {
@@ -43,7 +41,6 @@ export default async function handler(req: any, res: any) {
     if (result.length === 0) {
         if (login === 'admin') {
             try {
-                console.log("Usuário admin não encontrado. Criando automaticamente...");
                 const newAdmin = await db.insert(users).values({
                     id: generateId(),
                     name: 'Administrador',
@@ -52,7 +49,6 @@ export default async function handler(req: any, res: any) {
                     role: 'ADMIN',
                     forcePasswordChange: false
                 }).returning();
-                console.log("Admin criado com sucesso.");
                 const { password: _, ...safeAdmin } = newAdmin[0];
                 return res.status(200).json(safeAdmin);
             } catch (err: any) {
