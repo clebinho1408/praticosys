@@ -37,7 +37,6 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Login e senha são obrigatórios' });
     }
 
-    // Hotfix: garantir colunas necessárias
     try {
       await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`);
       await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`);
@@ -48,47 +47,11 @@ export default async function handler(req: any, res: any) {
 
     const result = await db.select().from(users).where(eq(users.login, login));
 
-    // Auto-criação do admin apenas se ele realmente não existir
     if (result.length === 0) {
       if (login === 'admin') {
-        try {
-          const newAdmin = await db
-            .insert(users)
-            .values({
-              id: generateId(),
-              name: 'Administrador',
-              login: 'admin',
-              password,
-              role: 'ADMIN',
-              forcePasswordChange: false,
-            })
-            .returning();
-
-          let createdAdmin = newAdmin?.[0];
-
-          // fallback caso o returning venha vazio
-          if (!createdAdmin) {
-            const fallbackAdmin = await db
-              .select()
-              .from(users)
-              .where(eq(users.login, 'admin'));
-
-            createdAdmin = fallbackAdmin?.[0];
-          }
-
-          if (!createdAdmin) {
-            throw new Error('Admin criado mas não retornado pelo banco.');
-          }
-
-          const { password: _ignored, ...safeAdmin } = createdAdmin as any;
-          return res.status(200).json(safeAdmin);
-        } catch (err: any) {
-          console.error('Erro ao criar admin auto:', err);
-          return res.status(500).json({
-            error: 'Erro ao criar admin',
-            details: err.message,
-          });
-        }
+        return res.status(401).json({
+          error: 'Usuário admin não encontrado no banco. Crie ou ajuste o admin existente.'
+        });
       }
 
       return res.status(401).json({ error: 'Usuário não encontrado' });
@@ -96,7 +59,6 @@ export default async function handler(req: any, res: any) {
 
     const user = result[0] as any;
 
-    // Se o admin existir mas estiver sem senha, define a senha no primeiro login
     if (login === 'admin' && !user.password) {
       const updatedAdmin = await db
         .update(users)
@@ -122,7 +84,7 @@ export default async function handler(req: any, res: any) {
         throw new Error('Admin atualizado mas não retornado pelo banco.');
       }
 
-      const { password: _ignored, ...safeAdmin } = adminAfterUpdate as any;
+      const { password: _ignored, ...safeAdmin } = adminAfterUpdate;
       return res.status(200).json(safeAdmin);
     }
 
