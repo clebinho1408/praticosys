@@ -317,8 +317,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         api.getBancaResults()
       ]);
       
-      // Filter for CFC (COMMON and PCD)
-      let cfcReqs = reqs.filter(r => r.examType === ExamType.COMMON || r.examType === ExamType.PCD);
+      // Filter for CFC: COMMON de autoescolas regulares + PCD de autoescolas (excluindo CNH_BRASIL e órfãos)
+      const isCfcCandidate = (r: any) => {
+        if (r.examType === ExamType.PCD) return true;   // PCD sempre entra no CFC
+        if (!r.schoolId) return false;                  // sem schoolId = CNH do Brasil (orphan)
+        if (r.schoolId === 'CNH_BRASIL') return false;  // CNH do Brasil explícito
+        if (r.schoolId === 'PCD') return true;          // PCD explícito
+        return r.examType === ExamType.COMMON;          // autoescola regular COMMON
+      };
+      let cfcReqs = reqs.filter(isCfcCandidate);
       
       // Auto-update logic: move to DONE if 24h passed since confirmed exam
       const now = new Date();
@@ -337,7 +344,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       if (updatePromises.length > 0) {
         await Promise.all(updatePromises);
         const updatedReqs = await api.getRequests();
-        cfcReqs = updatedReqs.filter(r => r.examType === ExamType.COMMON || r.examType === ExamType.PCD);
+        cfcReqs = updatedReqs.filter(isCfcCandidate);
       }
       
       setRequests(cfcReqs);

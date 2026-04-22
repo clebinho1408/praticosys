@@ -478,13 +478,30 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                     if (r.schoolId === 'PCD') return false;           // PCD explícito
                     return r.examType === 'COMMON';                   // autoescola regular
                 });
-                filteredScheds = filteredScheds.filter(s => s.type === 'COMMON');
+                // Bancas CFC: COMMON com pelo menos um candidato de autoescola regular vinculado
+                filteredScheds = filteredScheds.filter(s => {
+                    if (s.type !== 'COMMON') return false;
+                    const linked = reqs.filter(r => r.scheduleId === s.id);
+                    if (linked.length === 0) return false; // banca vazia: não conta para CFC (conta para CNH)
+                    // Conta se tem pelo menos um candidato CFC vinculado
+                    return linked.some(r =>
+                        r.examType === 'COMMON' && r.schoolId && r.schoolId !== 'CNH_BRASIL' && r.schoolId !== 'PCD'
+                    );
+                });
             } else if (reportType === 'cnh') {
                 // CNH do Brasil: candidatos COMMON sem schoolId OU com schoolId === 'CNH_BRASIL'
                 filteredReqs = filteredReqs.filter(r =>
                     r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL')
                 );
-                filteredScheds = filteredScheds.filter(s => s.type === 'COMMON');
+                // Bancas CNH: COMMON com pelo menos um candidato CNH vinculado, OU bancas COMMON vazias
+                filteredScheds = filteredScheds.filter(s => {
+                    if (s.type !== 'COMMON') return false;
+                    const linked = reqs.filter(r => r.scheduleId === s.id);
+                    if (linked.length === 0) return true; // banca vazia conta para CNH
+                    return linked.some(r =>
+                        r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL')
+                    );
+                });
             }
 
             setRequests(filteredReqs);
