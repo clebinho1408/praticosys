@@ -100,7 +100,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           PráticoSys
         </h2>
         <p className="mt-2 text-center text-sm text-blue-200">
-          Sistema de Gestão de Provas Práticas
+          Sistema de Gestão de Exames Práticos
         </p>
       </div>
 
