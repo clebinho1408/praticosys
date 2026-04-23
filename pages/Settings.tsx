@@ -3,13 +3,15 @@ import React, { useEffect, useState, useRef } from 'react';
 import { api } from '../services/api';
 import { SystemSettings, City, Examiner, BlockedDate, UserRole, User } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert } from 'lucide-react';
-import { AlertModal } from '../components/CustomModals';
+import { AlertModal, ConfirmModal } from '../components/CustomModals';
 import DatePicker from '../components/DatePicker';
 
 type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'RISK_AREA';
 
 const Settings: React.FC<{ user: User }> = ({ user }) => {
   const isConsultant = user?.role === UserRole.CONSULTANT;
+  const [resetConfirmStep1, setResetConfirmStep1] = useState(false);
+  const [resetConfirmStep2, setResetConfirmStep2] = useState(false);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [newRestriction, setNewRestriction] = useState({ code: '', description: '' });
   const [editingRestriction, setEditingRestriction] = useState<{ code: string, description: string } | null>(null);
@@ -307,30 +309,34 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
     });
   };
 
-  const handleResetData = async () => {
-    if (!confirm('ATENÇÃO: Esta ação irá apagar TODOS os agendamentos, escalas e resultados do sistema. Os dados de cadastros (Escolas, Examinadores, Instrutores, Veículos, Usuários) e configurações serão mantidos. Deseja continuar?')) {
-      return;
-    }
+  const handleResetData = () => {
+    setResetConfirmStep1(true);
+  };
 
-    if (!confirm('CONFIRMAÇÃO FINAL: Você tem certeza absoluta? Esta ação não pode ser desfeita.')) {
-      return;
-    }
-
+  const executeResetData = async () => {
     setSaving(true);
     try {
-      await api.resetData();
+      const response = await fetch('/api/risk-area', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'RESET_DATA' })
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Erro desconhecido');
+      }
       setAlertConfig({
         isOpen: true,
         title: 'Dados Resetados',
         message: 'Todos os dados operacionais foram apagados com sucesso.',
         type: 'success'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error resetting data:', error);
       setAlertConfig({
         isOpen: true,
         title: 'Erro ao resetar',
-        message: 'Ocorreu um erro ao tentar resetar os dados.',
+        message: `Ocorreu um erro ao tentar resetar os dados: ${error.message}`,
         type: 'error'
       });
     } finally {
@@ -1310,6 +1316,30 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
+      />
+
+      {/* Reset Step 1 */}
+      <ConfirmModal
+        isOpen={resetConfirmStep1}
+        onClose={() => setResetConfirmStep1(false)}
+        onConfirm={() => { setResetConfirmStep1(false); setResetConfirmStep2(true); }}
+        title="⚠️ Atenção: Zona de Perigo"
+        message="Esta ação irá apagar TODOS os agendamentos, escalas e resultados do sistema. Os cadastros (Escolas, Examinadores, Instrutores, Usuários) e as configurações serão mantidos. Deseja continuar?"
+        confirmText="Sim, continuar"
+        cancelText="Cancelar"
+        isDestructive={true}
+      />
+
+      {/* Reset Step 2 */}
+      <ConfirmModal
+        isOpen={resetConfirmStep2}
+        onClose={() => setResetConfirmStep2(false)}
+        onConfirm={executeResetData}
+        title="🔴 Confirmação Final"
+        message="Você tem certeza absoluta? Esta ação NÃO pode ser desfeita. Todos os dados operacionais serão permanentemente apagados."
+        confirmText="SIM, ZERAR AGORA"
+        cancelText="Cancelar"
+        isDestructive={true}
       />
     </div>
   );

@@ -2423,11 +2423,13 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
 
   const getRoleName = (role: string) => {
       switch(role) {
-          case UserRole.ADMIN: return 'Admin';
+          case UserRole.ADMIN: return 'Administrador';
           case UserRole.OPERATOR: return 'Operador';
           case UserRole.CONSULTANT: return 'Consultor';
           case UserRole.SUPERVISOR: return 'Supervisor';
           case UserRole.SCHOOL: return 'Autoescola';
+          case UserRole.EXAMINER: return 'Examinador';
+          case UserRole.INSTRUCTOR: return 'Instrutor';
           default: return role;
       }
   }

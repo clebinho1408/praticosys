@@ -83,7 +83,7 @@ app.all('/api/test', wrapWhen(diagnosticsEnabled, testHandler));
 app.all('/api/users', wrap(usersHandler));
 app.all('/api/blocked-dates', wrap(blockedDatesHandler));
 app.all('/api/cities', wrap(citiesHandler));
-app.all('/api/risk-area', wrapWhen(destructiveOperationsEnabled, riskAreaHandler));
+app.all('/api/risk-area', wrap(riskAreaHandler));
 
 // SSE Endpoint for real-time updates
 app.get('/api/events', (_req, res) => {

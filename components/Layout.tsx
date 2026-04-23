@@ -125,6 +125,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        });
     } else {
 
+       // --- PAINEL DE CONTROLE GERAL ---
+       items.push({
+         icon: LayoutDashboard,
+         label: 'Painel de Controle',
+         path: '/admin/dashboard'
+       });
+
        // --- GRUPO: CNH DO BRASIL ---
        items.push({
          icon: Map,
@@ -161,7 +168,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        });
     }
 
-    if (user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR) {
+    if (user.role === UserRole.ADMIN) {
       items.push({ icon: Users, label: 'Cadastros', path: '/admin/users' });
       items.push({ icon: Settings, label: 'Configurações', path: '/admin/settings' });
     }
@@ -281,7 +288,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                       {location.pathname.includes('scheduling') ? 'Gestão de Prova Prática CFC' : 
                        location.pathname.includes('requests') ? 'Gestão de Candidatos' : 
                        location.pathname.includes('reports') ? 'Relatórios e Análises' :
-                       location.pathname.includes('users') ? 'Administração' : 'Painel Principal'}
+                       location.pathname.includes('users') ? 'Administração' :
+                       location.pathname.includes('settings') ? 'Configurações' :
+                       location.pathname === '/admin/dashboard' ? 'Painel de Controle' : 'Painel Principal'}
                    </h2>
                 </div>
             </div>

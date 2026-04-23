@@ -6,7 +6,6 @@ import Layout from './components/Layout';
 
 // Pages
 import Login from './pages/Login';
-import AdminDashboard from './pages/AdminDashboard';
 import CnhDoBrasil from './pages/CnhDoBrasil';
 import CnhDoBrasilReport from './pages/CnhDoBrasilReport';
 import ProvaPraticaCFC from './pages/ProvaPraticaCFC';
@@ -17,6 +16,7 @@ import Cadastros from './pages/Cadastros';
 import Configuracoes from './pages/Configuracoes';
 import StudentDatabase from './pages/StudentDatabase';
 import ProvaPraticaCFCDashboard from './pages/ProvaPraticaCFCDashboard';
+import DashboardGeral from './pages/DashboardGeral';
 
 const App: React.FC = () => {
   const [auth, setAuth] = useState<AuthState>(() => {
@@ -70,9 +70,12 @@ const App: React.FC = () => {
                         ? <Navigate to="/admin/scheduling/cfc" replace /> 
                         : auth.user?.role === UserRole.INSTRUCTOR
                         ? <Navigate to="/admin/requests/common" replace />
-                        : <AdminDashboard user={auth.user!} />
+                        : <Navigate to="/admin/dashboard" replace />
                     } 
                   />
+
+                  {/* Dashboard Geral */}
+                  <Route path="dashboard" element={<DashboardGeral user={auth.user!} />} />
                   
                   {/* CNH do Brasil */}
                   <Route path="dashboard/cnh" element={<CnhDoBrasil user={auth.user} view="dashboard" />} />
@@ -91,11 +94,25 @@ const App: React.FC = () => {
                   <Route path="scheduling/pcd" element={<ProvaPraticaPCD user={auth.user} view="scheduling" />} />
                   <Route path="reports/pcd" element={<ProvaPraticaPCDReport user={auth.user} />} />
 
-                  {/* Cadastros */}
-                  <Route path="users" element={<Cadastros user={auth.user!} />} />
+                  {/* Cadastros - ADMIN only */}
+                  <Route 
+                    path="users" 
+                    element={
+                      auth.user?.role === UserRole.ADMIN
+                        ? <Cadastros user={auth.user!} />
+                        : <Navigate to="/admin/dashboard" replace />
+                    } 
+                  />
                   
-                  {/* Configurações */}
-                  <Route path="settings" element={<Configuracoes user={auth.user!} />} />
+                  {/* Configurações - ADMIN only */}
+                  <Route 
+                    path="settings" 
+                    element={
+                      auth.user?.role === UserRole.ADMIN
+                        ? <Configuracoes user={auth.user!} />
+                        : <Navigate to="/admin/dashboard" replace />
+                    } 
+                  />
                   
                   {/* Student Database */}
                   <Route path="students" element={<StudentDatabase />} />

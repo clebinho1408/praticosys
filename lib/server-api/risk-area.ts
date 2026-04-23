@@ -2,13 +2,8 @@
 import { db } from '../../db/index.js';
 import { sql } from 'drizzle-orm';
 
-const canRunDestructiveOperation = () => process.env.NODE_ENV !== 'production' || process.env.ENABLE_DESTRUCTIVE_OPERATIONS === 'true';
-
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
-  if (!canRunDestructiveOperation()) {
-    return res.status(403).json({ error: 'Operação desabilitada neste ambiente' });
-  }
 
   try {
     const { action } = req.body;
