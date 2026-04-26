@@ -368,9 +368,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(() => {
-      fetchData(true);
-    }, 5000);
+    // Polling 8s — garante atualização em tempo real para todos os roles
+    // (Examinadores, Autoescolas, Admin, Supervisor, Operador, Consultor)
+    const interval = setInterval(() => fetchData(true), 8000);
     return () => clearInterval(interval);
   }, []);
 
