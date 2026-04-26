@@ -40,11 +40,14 @@ interface ModuleSummaryProps {
   cancelled: number;
   openSchedules: number;
   approvalRate: string;
+  rejectionRate: string;
+  showBancas?: boolean; // true = CNH do Brasil; false = CFC/PCD
 }
 
 const ModuleSummary: React.FC<ModuleSummaryProps> = ({
   title, icon: Icon, color, bgColor,
-  pending, scheduled, done, cancelled: _cancelled, openSchedules, approvalRate
+  pending, scheduled, done, cancelled: _cancelled, openSchedules, approvalRate, rejectionRate,
+  showBancas = false,
 }) => (
   <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden`}>
     <div className={`${bgColor} px-6 py-4 flex items-center gap-3`}>
@@ -66,7 +69,10 @@ const ModuleSummary: React.FC<ModuleSummaryProps> = ({
       </div>
     </div>
     <div className="border-t border-gray-50 px-5 py-3 flex justify-between text-xs text-gray-500 font-bold">
-      <span>Bancas abertas: <span className="text-blue-700">{openSchedules}</span></span>
+      {showBancas
+        ? <span>Bancas abertas: <span className="text-blue-700">{openSchedules}</span></span>
+        : <span>Reprovação: <span className="text-red-600">{rejectionRate}%</span></span>
+      }
       <span>Aprovação: <span className="text-green-700">{approvalRate}%</span></span>
     </div>
   </div>
@@ -119,14 +125,24 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
     const pcdReqs = requests.filter(r => r.examType === 'PCD' || r.schoolId === 'PCD');
     const pcdSched = schedules.filter(s => s.type === 'PCD');
 
+    // Filtro: últimos 12 meses
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const inLast12Months = (r: ExamRequest) => {
+      const dateStr = r.scheduledDate || r.createdAt?.split('T')[0];
+      if (!dateStr) return true;
+      return new Date(dateStr) >= twelveMonthsAgo;
+    };
+
     const moduleStats = (reqs: ExamRequest[], schs: ExamSchedule[]) => {
-      const pending = reqs.filter(r => r.status === ExamStatus.WAITING_SCHEDULING).length;
-      const scheduled = reqs.filter(r => r.status === ExamStatus.SCHEDULED).length;
-      const done = reqs.filter(r => r.status === ExamStatus.DONE).length;
-      const cancelled = reqs.filter(r => r.status === ExamStatus.CANCELLED).length;
+      const reqs12 = reqs.filter(inLast12Months);
+      const pending = reqs12.filter(r => r.status === ExamStatus.WAITING_SCHEDULING).length;
+      const scheduled = reqs12.filter(r => r.status === ExamStatus.SCHEDULED).length;
+      const done = reqs12.filter(r => r.status === ExamStatus.DONE).length;
+      const cancelled = reqs12.filter(r => r.status === ExamStatus.CANCELLED).length;
       const openSchedules = schs.filter(s => s.status === 'OPEN').length;
 
-      const allResults = reqs.flatMap(r => {
+      const allResults = reqs12.flatMap(r => {
         const list: string[] = [];
         if (r.examHistory && Array.isArray(r.examHistory)) {
           (r.examHistory as any[]).forEach((h: any) => list.push(h.result));
@@ -135,10 +151,12 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
         return list;
       });
       const aptos = allResults.filter(r => r === 'APTO').length;
-      const total = allResults.filter(r => r === 'APTO' || r === 'INAPTO').length;
+      const inaptos = allResults.filter(r => r === 'INAPTO').length;
+      const total = aptos + inaptos;
       const approvalRate = total > 0 ? ((aptos / total) * 100).toFixed(1) : '0';
+      const rejectionRate = total > 0 ? ((inaptos / total) * 100).toFixed(1) : '0';
 
-      return { pending, scheduled, done, cancelled, openSchedules, approvalRate };
+      return { pending, scheduled, done, cancelled, openSchedules, approvalRate, rejectionRate };
     };
 
     const cnh = moduleStats(cnhReqs, cnhSched);
@@ -167,11 +185,14 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
       { name: 'Cancelados', value: totalCancelled },
     ];
 
-    // Evolução mensal geral
+    // Evolução mensal — últimos 12 meses
     const monthlyData: Record<string, { name: string; sortKey: string; cnh: number; cfc: number; pcd: number }> = {};
+    const twelveMonthsAgoForChart = new Date();
+    twelveMonthsAgoForChart.setMonth(twelveMonthsAgoForChart.getMonth() - 12);
     [...cnhReqs, ...cfcReqs, ...pcdReqs].forEach(r => {
       const dateStr = (r.scheduledDate || r.createdAt?.split('T')[0]);
       if (!dateStr) return;
+      if (new Date(dateStr) < twelveMonthsAgoForChart) return;
       const [year, month] = dateStr.split('-');
       if (!year || !month) return;
       const sortKey = `${year}-${month}`;
@@ -184,7 +205,7 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
     });
     const monthlyChartData = Object.values(monthlyData)
       .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-      .slice(-6);
+      .slice(-12);
 
     return { cnh, cfc, pcd, totalAll, totalSchedules, totalPending, totalScheduled, totalDone, totalCancelled, moduleDistribution, statusDistribution, monthlyChartData };
   }, [requests, schedules]);
@@ -228,6 +249,7 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
           icon={Map}
           color="text-blue-700"
           bgColor="bg-blue-50"
+          showBancas={true}
           {...stats.cnh}
         />
         <ModuleSummary
@@ -235,6 +257,7 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
           icon={Car}
           color="text-emerald-700"
           bgColor="bg-emerald-50"
+          showBancas={false}
           {...stats.cfc}
         />
         <ModuleSummary
@@ -242,6 +265,7 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
           icon={Accessibility}
           color="text-purple-700"
           bgColor="bg-purple-50"
+          showBancas={false}
           {...stats.pcd}
         />
       </div>

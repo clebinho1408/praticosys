@@ -269,6 +269,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   useEffect(() => {
     fetchRequests();
+    // Polling de 5s para Instrutores (atualizações em tempo real sem SSE)
+    if (user.role === UserRole.INSTRUCTOR) {
+      const interval = setInterval(() => fetchRequests(true), 5000);
+      return () => clearInterval(interval);
+    }
   }, [user, typeFilter]);
 
   // Process Notification Queue

@@ -71,7 +71,7 @@ const ClosingCountdown: React.FC<{ date: string; time: string }> = ({ date, time
             
             const examDate = new Date(`${date.split('T')[0]}T${time}`);
             // Regra de fechamento: 24h antes da prova
-            const closingDate = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
+            const closingDate = new Date(examDate.getTime() - (12 * 60 * 60 * 1000));
             const now = new Date();
             
             const diff = closingDate.getTime() - now.getTime();
@@ -137,6 +137,10 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   // Schedule Delete Modal State
   const [isDeleteScheduleOpen, setIsDeleteScheduleOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null);
+
+  // Modal: vaga aberta na banca (candidato saiu)
+  const [vagaAbertaModal, setVagaAbertaModal] = useState<{ bancaCode: string; bancaId: string } | null>(null);
+  const prevStudentCounts = React.useRef<Record<string, number>>({});
 
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
@@ -251,7 +255,33 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
     }
   };
 
-  useEffect(() => { refreshData(); }, [type]);
+  useEffect(() => {
+    refreshData();
+    // Polling de 5s para atualizações em tempo real (complementa o SSE)
+    const interval = setInterval(() => refreshData(true), 5000);
+    return () => clearInterval(interval);
+  }, [type]);
+
+  // Detectar vaga aberta: compara contagem de candidatos por banca após refresh
+  useEffect(() => {
+    if (!schedules.length || !allRequests.length) return;
+    // Apenas Admin, Supervisor e Operador recebem a notificação
+    const notifyRoles: UserRole[] = [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.OPERATOR];
+    if (!notifyRoles.includes(user.role as UserRole)) return;
+
+    schedules.forEach(s => {
+      if (s.status !== 'OPEN') return;
+      const count = allRequests.filter(r =>
+        r.scheduleId === s.id && r.status === 'SCHEDULED'
+      ).length;
+      const prev = prevStudentCounts.current[s.id];
+      if (prev !== undefined && count < prev) {
+        // Vaga aberta — mostra modal
+        setVagaAbertaModal({ bancaCode: s.code || s.id, bancaId: s.id });
+      }
+      prevStudentCounts.current[s.id] = count;
+    });
+  }, [schedules, allRequests]);
 
   useEffect(() => {
     const eventSource = new EventSource('/api/events');
@@ -1274,6 +1304,48 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                   </div>
               </div>
           </div>
+      )}
+
+      {/* MODAL DE VAGA ABERTA NA BANCA */}
+      {vagaAbertaModal && (
+        <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border-2 border-green-200 animate-scaleIn">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-5 flex items-center gap-3">
+              <div className="bg-white/20 rounded-full p-2">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Vaga Disponível!</h3>
+                <p className="text-green-100 text-xs font-medium">Um candidato saiu da banca</p>
+              </div>
+            </div>
+            <div className="p-6 text-center">
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-5">
+                <p className="text-sm text-gray-600 font-medium">Uma vaga foi aberta na</p>
+                <p className="text-3xl font-black text-green-700 mt-1">Banca {vagaAbertaModal.bancaCode}</p>
+                <p className="text-xs text-gray-400 mt-1">Um candidato foi removido do agendamento</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setVagaAbertaModal(null);
+                    const sched = schedules.find(s => s.id === vagaAbertaModal.bancaId);
+                    if (sched) setSelectedSchedule(sched);
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors text-sm"
+                >
+                  Ver Banca
+                </button>
+                <button
+                  onClick={() => setVagaAbertaModal(null)}
+                  className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL DE EXCLUSÃO DE BANCA */}
