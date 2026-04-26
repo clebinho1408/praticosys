@@ -1,20 +1,9 @@
 import { ExamRequest, ExamSchedule, Examiner, Instructor, DrivingSchool, SystemSettings, User, City, BancaResult } from '../types';
 
-// In production (Cloudflare Pages), VITE_API_URL must be set to the Railway backend URL.
-// Fallback to the known Railway production URL when the env var is not set at build time.
-// In development, both are empty so relative /api paths work against the local server.
-function getBackendUrl(): string {
-  const envUrl = (import.meta as any).env?.VITE_API_URL;
-  if (envUrl) return envUrl;
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    const protocol = 'https:';
-    const host = 'praticosys-production.up.railway.app';
-    return protocol + '//' + host;
-  }
-  return '';
-}
-const BACKEND_URL = getBackendUrl();
-const API_BASE = BACKEND_URL + '/api';
+// With Cloudflare Pages Functions, the API runs on the same domain as the frontend.
+// All /api/* requests are handled by functions/api/* — no external backend needed.
+// In development, the Vite proxy forwards /api/* to localhost:3000.
+const API_BASE = '/api';
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {

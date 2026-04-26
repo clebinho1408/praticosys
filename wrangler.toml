@@ -1,0 +1,7 @@
+name = "praticosys"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+# Variáveis de ambiente são configuradas no Dashboard do Cloudflare Pages
+# Settings → Environment Variables → DATABASE_URL
