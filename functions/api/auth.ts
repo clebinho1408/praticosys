@@ -42,5 +42,3 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ r
     return error(e.message ?? 'Erro interno', 500);
   }
 };
-
-// helper imported by other functions - re-export for convenience
