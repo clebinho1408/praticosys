@@ -7,6 +7,10 @@ import * as dotenv from 'dotenv';
 // In production (Railway), variables are already in process.env — dotenv is a no-op.
 dotenv.config({ override: false });
 
+// Debug: log which env vars are present (values masked for security)
+console.log(`[DB] NODE_ENV=${process.env.NODE_ENV || '(not set)'}`);
+console.log(`[DB] DATABASE_URL=${process.env.DATABASE_URL ? '✅ definida (' + process.env.DATABASE_URL.substring(0, 20) + '...)' : '❌ NÃO DEFINIDA'}`);
+
 const rawUrl = process.env.DATABASE_URL || "";
 const legacyUrl = process.env.VITE_NEON_DATABASE_URL || "";
 const selectedUrl = rawUrl || (process.env.NODE_ENV !== 'production' ? legacyUrl : "");
