@@ -69,14 +69,18 @@ Após o deploy do Cloudflare Pages, volte ao Railway e adicione:
 
 ### 2.2 Configurar o build
 
-Na tela de configuração do Cloudflare Pages, use:
+Na tela de configuração do Cloudflare Pages, use **exatamente** estes valores:
 
 | Campo | Valor |
 |---|---|
-| **Framework preset** | `Vite` |
+| **Framework preset** | `None` ⚠️ (não selecione Vite!) |
 | **Build command** | `npm run build` |
 | **Build output directory** | `dist` |
-| **Root directory** | *(deixe vazio)* |
+| **Deploy command** | *(deixe em BRANCO)* |
+| **Root directory** | *(deixe em BRANCO)* |
+
+> ⚠️ **IMPORTANTE:** Selecionar o preset "Vite" faz o Cloudflare tentar usar `wrangler deploy`  
+> (modo Worker), o que falha com Vite 5. Use **"None"** e configure manualmente.
 
 ### 2.3 Configurar variáveis de ambiente
 
