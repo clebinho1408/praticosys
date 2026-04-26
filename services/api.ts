@@ -1,6 +1,10 @@
 import { ExamRequest, ExamSchedule, Examiner, Instructor, DrivingSchool, SystemSettings, User, City, BancaResult } from '../types';
 
-const API_BASE = '/api';
+// In production (Cloudflare Pages), VITE_API_URL must be set to the Railway backend URL.
+// e.g. https://praticosys-api.up.railway.app
+// In development, it defaults to '' so relative /api paths work against the local server.
+const BACKEND_URL = (import.meta as any).env?.VITE_API_URL || '';
+const API_BASE = `${BACKEND_URL}/api`;
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {

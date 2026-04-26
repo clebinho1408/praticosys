@@ -1,5 +1,7 @@
 import express from 'express';
 import * as dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Load environment variables
 dotenv.config();
@@ -24,9 +26,39 @@ import { addClient } from './sse.js';
 
 export const app = express();
 
-const diagnosticsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_INTERNAL_DIAGNOSTICS === 'true';
-const destructiveOperationsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_DESTRUCTIVE_OPERATIONS === 'true';
-const verboseHttpLogsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_HTTP_LOGS === 'true';
+const isProduction = process.env.NODE_ENV === 'production';
+const diagnosticsEnabled = !isProduction || process.env.ENABLE_INTERNAL_DIAGNOSTICS === 'true';
+const verboseHttpLogsEnabled = !isProduction || process.env.ENABLE_HTTP_LOGS === 'true';
+
+// ─── CORS ────────────────────────────────────────────────────────────────────
+// Allow the Cloudflare Pages frontend (set FRONTEND_URL in Railway env vars)
+const allowedOrigins: string[] = [];
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+// Also allow localhost for local development
+allowedOrigins.push('http://localhost:3000', 'http://localhost:5173');
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '';
+  if (
+    allowedOrigins.includes(origin) ||
+    // allow any *.pages.dev subdomain (Cloudflare preview deployments)
+    /^https:\/\/[^.]+\.pages\.dev$/.test(origin) ||
+    // allow any *.up.railway.app (Railway preview)
+    /^https:\/\/[^.]+\.up\.railway\.app$/.test(origin)
+  ) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+// ─────────────────────────────────────────────────────────────────────────────
 
 const rejectDisabledRoute = (res: any) => res.status(404).json({ error: 'Not Found' });
 const wrapWhen = (enabled: boolean, handler: any) => async (req: any, res: any) => {
@@ -54,10 +86,9 @@ app.get('/api/db-status', (_req, res) => {
   });
 });
 
-// Middleware to parse JSON bodies (needed for API handlers)
+// Middleware to parse JSON bodies
 app.use(express.json());
 
-// API Routes
 // Helper to wrap Vercel-style handlers for Express
 const wrap = (handler: any) => async (req: any, res: any) => {
   try {
@@ -70,6 +101,7 @@ const wrap = (handler: any) => async (req: any, res: any) => {
   }
 };
 
+// ─── API Routes ───────────────────────────────────────────────────────────────
 app.all('/api/auth', wrap(authHandler));
 app.all('/api/examiners', wrap(examinersHandler));
 app.all('/api/instructors', wrap(instructorsHandler));
@@ -90,13 +122,13 @@ app.get('/api/events', (_req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.flushHeaders(); // flush the headers to establish SSE with client
-
+  res.flushHeaders();
   addClient(res);
 });
+// ─────────────────────────────────────────────────────────────────────────────
 
 export async function setupVite() {
-  if (process.env.NODE_ENV !== 'production') {
+  if (!isProduction) {
     try {
       const viteModule = 'vite';
       const { createServer: createViteServer } = await import(/* @vite-ignore */ viteModule);
@@ -111,11 +143,31 @@ export async function setupVite() {
   }
 }
 
-// Only start the server if this file is run directly (not in Vercel)
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  setupVite().then(() => {
-    app.listen(3000, '0.0.0.0', () => {
-      console.log(`Server running on http://localhost:3000`);
+// ─── Server startup ───────────────────────────────────────────────────────────
+// In production (Railway): always start the HTTP server
+// In development: start with Vite middleware
+if (!process.env.VERCEL) {
+  const PORT = parseInt(process.env.PORT || '3000', 10);
+
+  if (isProduction) {
+    // In production, serve the built frontend from dist/
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    // dist/ is at the project root, two levels up from dist-server/lib/
+    const distPath = path.resolve(__dirname, '../../dist');
+    app.use(express.static(distPath));
+    // SPA fallback - any non-API route serves index.html
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'));
     });
-  });
+
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`[PráticoSys] Production server running on port ${PORT}`);
+    });
+  } else {
+    setupVite().then(() => {
+      app.listen(PORT, '0.0.0.0', () => {
+        console.log(`[PráticoSys] Dev server running on http://localhost:${PORT}`);
+      });
+    });
+  }
 }

@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "tsx lib/server.ts",
     "build": "vite build",
+    "build:server": "tsc --project tsconfig.server.json",
+    "start": "node dist-server/lib/server.js",
+    "start:dev": "tsx lib/server.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit",
     "db:push": "drizzle-kit push:pg",

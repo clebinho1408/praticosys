@@ -74,6 +74,12 @@ typings/
 .env.local
 .env.test
 .env.production
+# Keep template files (no sensitive data)
+!.env.railway
+!.env.cloudflare
+
+# Compiled server output
+dist-server/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

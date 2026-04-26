@@ -1,0 +1,19 @@
+# Nixpacks build configuration for Railway
+# Tells Railway how to build and start the PráticoSys backend
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = [
+  "npm run build:server"
+]
+
+[start]
+cmd = "node dist-server/lib/server.js"
+
+[variables]
+NODE_ENV = "production"
