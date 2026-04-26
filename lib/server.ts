@@ -78,6 +78,10 @@ export async function createServer() {
   return app;
 }
 
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', ts: Date.now() });
+});
+
 app.get('/api/db-status', (_req, res) => {
   if (!diagnosticsEnabled) return rejectDisabledRoute(res);
   res.json({
