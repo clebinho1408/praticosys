@@ -3,8 +3,9 @@ import * as dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from .env file (local dev only).
+// On Railway, variables are already injected into process.env — dotenv is a no-op.
+dotenv.config({ override: false });
 
 // Import API handlers
 import authHandler from './server-api/auth.js';
@@ -156,7 +157,8 @@ if (!process.env.VERCEL) {
     const distPath = path.resolve(__dirname, '../../dist');
     app.use(express.static(distPath));
     // SPA fallback - any non-API route serves index.html
-    app.get('*', (_req, res) => {
+    // Note: Express 5 (path-to-regexp v8) requires named wildcards, not bare '*'
+    app.get('/{*path}', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
 

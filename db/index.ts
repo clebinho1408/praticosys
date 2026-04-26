@@ -3,7 +3,9 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from './schema.js';
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+// Load .env file only in local development.
+// In production (Railway), variables are already in process.env — dotenv is a no-op.
+dotenv.config({ override: false });
 
 const rawUrl = process.env.DATABASE_URL || "";
 const legacyUrl = process.env.VITE_NEON_DATABASE_URL || "";
