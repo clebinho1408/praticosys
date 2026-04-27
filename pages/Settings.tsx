@@ -12,6 +12,8 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const isConsultant = user?.role === UserRole.CONSULTANT;
   const [resetConfirmStep1, setResetConfirmStep1] = useState(false);
   const [resetConfirmStep2, setResetConfirmStep2] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<{ message: string; removed: number } | null>(null);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [newRestriction, setNewRestriction] = useState({ code: '', description: '' });
   const [editingRestriction, setEditingRestriction] = useState<{ code: string, description: string } | null>(null);
@@ -1293,6 +1295,54 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                 >
                                     <Trash2 className="h-6 w-6" />
                                     ZERAR E RESETAR SISTEMA
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Limpeza de candidatos fantasma */}
+                    <div className="bg-orange-50 border border-orange-200 p-6 rounded-xl space-y-4">
+                        <div className="flex items-start gap-4">
+                            <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
+                                <ShieldAlert className="h-6 w-6 text-orange-600" />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-lg font-bold text-orange-800">Limpeza de Candidatos Fantasma</h3>
+                                <p className="text-sm text-orange-700 leading-relaxed">
+                                    Remove do banco de dados os registros de candidatos gerados automaticamente (sem nome real / CPF 000.000.000-00) que foram criados antes da correção do sistema.
+                                </p>
+                                <p className="text-sm text-orange-700">
+                                    <strong>Seguro de usar:</strong> apenas registros sem nome de candidato ou com CPF zerado são removidos. Candidatos reais não são afetados.
+                                </p>
+                            </div>
+                        </div>
+                        {cleanupResult && (
+                            <div className={`p-3 rounded-lg text-sm font-semibold ${cleanupResult.removed > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
+                                {cleanupResult.message}
+                            </div>
+                        )}
+                        <div className="pt-2 flex justify-center">
+                            {!isConsultant && (
+                                <button
+                                    type="button"
+                                    disabled={isCleaningUp}
+                                    onClick={async () => {
+                                        if (!window.confirm('Confirma a limpeza de candidatos fantasma (sem nome / CPF zerado)?')) return;
+                                        setIsCleaningUp(true);
+                                        setCleanupResult(null);
+                                        try {
+                                            const res = await api.cleanupPhantomRequests();
+                                            setCleanupResult({ message: res.message, removed: res.removed });
+                                        } catch (e: any) {
+                                            setCleanupResult({ message: `Erro: ${e.message}`, removed: 0 });
+                                        } finally {
+                                            setIsCleaningUp(false);
+                                        }
+                                    }}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    <Trash2 className="h-5 w-5" />
+                                    {isCleaningUp ? 'Limpando...' : 'Limpar Candidatos Fantasma'}
                                 </button>
                             )}
                         </div>

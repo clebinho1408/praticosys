@@ -177,6 +177,26 @@ export const cities = pgTable('cities', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+// Tabela de Slots de Escala CFC/PCD (vagas de agenda SEM candidato real)
+// Separado de exam_requests para nunca misturar agenda com candidatos
+export const examScheduleSlots = pgTable('exam_schedule_slots', {
+  id: text('id').primaryKey(),
+  schoolId: text('school_id').notNull(),          // ID da autoescola ou 'PCD'
+  examType: text('exam_type').notNull(),           // COMMON, PCD
+  requestType: text('request_type').notNull(),     // FIXA, REPOSICAO, EXTRA
+  intendedCategory: text('intended_category'),     // A, B, A,B, PCD
+  scheduledDate: text('scheduled_date'),           // YYYY-MM-DD
+  scheduledTime: text('scheduled_time'),           // HH:mm
+  examinerId: text('examiner_id'),
+  scheduleId: text('schedule_id'),                 // FK para exam_schedules.id (quando alocado)
+  scheduledCategory: text('scheduled_category'),   // A ou B (quando alocado na banca)
+  status: text('status').notNull().default('SCHEDULED'), // SCHEDULED, CANCELLED
+  cancellationReason: text('cancellation_reason'),
+  observation: text('observation'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Tabela de Resultados por Banca e Escola
 export const bancaResults = pgTable('banca_results', {
   id: text('id').primaryKey(),

@@ -120,4 +120,18 @@ export const api = {
   
   // --- RISK AREA ---
   resetData: () => request<void>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'RESET_DATA' }) }),
+  cleanupPhantomRequests: () => request<{ success: boolean; message: string; removed: number }>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'CLEANUP_PHANTOM_REQUESTS' }) }),
+
+  // --- SCHEDULE SLOTS (vagas de escala CFC/PCD — SEM candidato real) ---
+  // Tabela totalmente separada de exam_requests para nunca misturar agenda com candidatos.
+  getScheduleSlots: (params?: { schoolId?: string; scheduledDate?: string }) => {
+    const qs = params ? '?' + new URLSearchParams(params as any).toString() : '';
+    return request<any[]>(`/schedule-slots${qs}`);
+  },
+  createScheduleSlot: (data: any) =>
+    request<any>('/schedule-slots', { method: 'POST', body: JSON.stringify(data) }),
+  updateScheduleSlot: (id: string, data: any) =>
+    request<any>('/schedule-slots', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  deleteScheduleSlot: (id: string) =>
+    request<void>(`/schedule-slots?id=${id}`, { method: 'DELETE' }),
 };

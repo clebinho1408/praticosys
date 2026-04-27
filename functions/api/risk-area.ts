@@ -6,15 +6,30 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ r
   try {
     const db = getDb(env as any);
     const body = await parseBody<{ action: string }>(request);
-    if (body.action !== 'RESET_DATA') return error('Ação inválida', 400);
 
-    await db.execute(sql`DELETE FROM banca_results`);
-    await db.execute(sql`DELETE FROM exam_requests`);
-    await db.execute(sql`DELETE FROM exam_schedules`);
+    // Limpar dados operacionais completos
+    if (body.action === 'RESET_DATA') {
+      await db.execute(sql`DELETE FROM banca_results`);
+      await db.execute(sql`DELETE FROM exam_requests`);
+      await db.execute(sql`DELETE FROM exam_schedules`);
+      // Limpa também os slots de escala da nova tabela separada
+      try { await db.execute(sql`DELETE FROM exam_schedule_slots`); } catch {}
+      return json({ success: true, message: 'Todos os agendamentos, escalas e resultados foram zerados com sucesso.' });
+    }
 
-    return json({ success: true, message: 'Todos os agendamentos, escalas e resultados foram zerados com sucesso.' });
+    // Limpar apenas candidatos fantasma (sem nome real) que foram criados antes desta correção
+    if (body.action === 'CLEANUP_PHANTOM_REQUESTS') {
+      const result = await db.execute(sql`
+        DELETE FROM exam_requests
+        WHERE (student_name IS NULL OR student_name = '' OR student_name = 'Vaga Disponível')
+          AND (cpf IS NULL OR cpf = '' OR cpf = '00000000000')
+      `);
+      const count = (result as any).rowCount ?? 0;
+      return json({ success: true, message: `${count} candidatos fantasma removidos do banco de dados.`, removed: count });
+    }
+
+    return error('Ação inválida', 400);
   } catch (e: any) {
     return error(e.message ?? 'Erro interno', 500);
   }
 };
-
