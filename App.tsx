@@ -77,18 +77,22 @@ const App: React.FC = () => {
                   {/* Dashboard Geral */}
                   <Route path="dashboard" element={<DashboardGeral user={auth.user!} />} />
                   
-                  {/* CNH do Brasil — rotas em PT-BR */}
+                  {/* ══════════════════════════════════════════════════════ */}
+                  {/* CNH do Brasil — rotas em PT-BR                        */}
+                  {/* ══════════════════════════════════════════════════════ */}
                   <Route path="cnhdobrasil/dashboard"   element={<CnhDoBrasil user={auth.user} view="dashboard" />} />
                   <Route path="cnhdobrasil/bancas"      element={<CnhDoBrasil user={auth.user} view="scheduling" />} />
                   <Route path="cnhdobrasil/candidatos"  element={<CnhDoBrasil user={auth.user} view="requests" />} />
                   <Route path="cnhdobrasil/relatorios"  element={<CnhDoBrasilReport user={auth.user} />} />
-                  {/* Aliases legados (redirecionam para as novas rotas) */}
+                  {/* Aliases legados — redirecionam para as novas rotas PT-BR */}
                   <Route path="dashboard/cnh"      element={<Navigate to="/admin/cnhdobrasil/dashboard"  replace />} />
                   <Route path="requests/common"    element={<Navigate to="/admin/cnhdobrasil/candidatos" replace />} />
                   <Route path="scheduling/common"  element={<Navigate to="/admin/cnhdobrasil/bancas"     replace />} />
                   <Route path="reports/cnh"        element={<Navigate to="/admin/cnhdobrasil/relatorios" replace />} />
 
-                  {/* Prova Prática CFC — rotas em PT-BR */}
+                  {/* ══════════════════════════════════════════════════════ */}
+                  {/* Prova Prática CFC — rotas em PT-BR                    */}
+                  {/* ══════════════════════════════════════════════════════ */}
                   <Route path="cfc/dashboard"    element={<ProvaPraticaCFCDashboard user={auth.user} />} />
                   <Route path="cfc/agendamentos" element={<ProvaPraticaCFC user={auth.user} />} />
                   <Route path="cfc/relatorios"   element={<ProvaPraticaCFCReport user={auth.user} />} />
@@ -97,11 +101,13 @@ const App: React.FC = () => {
                   <Route path="scheduling/cfc" element={<Navigate to="/admin/cfc/agendamentos" replace />} />
                   <Route path="reports/cfc"    element={<Navigate to="/admin/cfc/relatorios"   replace />} />
 
-                  {/* Prova Prática PCD — rotas em PT-BR */}
-                  <Route path="pcd/dashboard"   element={<ProvaPraticaPCD user={auth.user} view="dashboard" />} />
+                  {/* ══════════════════════════════════════════════════════ */}
+                  {/* Prova Prática PCD — rotas em PT-BR                    */}
+                  {/* ══════════════════════════════════════════════════════ */}
+                  <Route path="pcd/dashboard"    element={<ProvaPraticaPCD user={auth.user} view="dashboard" />} />
                   <Route path="pcd/agendamentos" element={<ProvaPraticaPCD user={auth.user} view="scheduling" />} />
-                  <Route path="pcd/candidatos"  element={<ProvaPraticaPCD user={auth.user} view="requests" />} />
-                  <Route path="pcd/relatorios"  element={<ProvaPraticaPCDReport user={auth.user} />} />
+                  <Route path="pcd/candidatos"   element={<ProvaPraticaPCD user={auth.user} view="requests" />} />
+                  <Route path="pcd/relatorios"   element={<ProvaPraticaPCDReport user={auth.user} />} />
                   {/* Aliases legados */}
                   <Route path="dashboard/pcd"  element={<Navigate to="/admin/pcd/dashboard"    replace />} />
                   <Route path="requests/pcd"   element={<Navigate to="/admin/pcd/candidatos"   replace />} />
