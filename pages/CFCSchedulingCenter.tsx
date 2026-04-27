@@ -310,15 +310,28 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const fetchData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [reqs, schs, exms, settings, blocked, results] = await Promise.all([
+      const [reqs, slots, schs, exms, settings, blocked, results] = await Promise.all([
         api.getRequests(),
+        api.getScheduleSlots().catch(() => [] as any[]),   // nova tabela — fallback vazio se não existir ainda
         api.getSchoolsAsync(),
         api.getExaminersAsync(),
         api.getSettings(),
         fetch('/api/blocked-dates').then(res => res.ok ? res.json() : []),
         api.getBancaResults()
       ]);
-      
+
+      // Converte schedule-slots para o mesmo formato de ExamRequest
+      // Campo extra _isSlot=true identifica que é uma vaga de escala (sem candidato real)
+      const slotsAsRequests: any[] = (slots || []).map((s: any) => ({
+        ...s,
+        studentName: null,
+        cpf: null,
+        phone: null,
+        source: 'SCHOOL',
+        attendanceConfirmed: false,
+        _isSlot: true,          // flag para módulo CNH filtrar e nunca mostrar como candidato
+      }));
+
       // Filter for CFC: COMMON de autoescolas regulares + PCD de autoescolas (excluindo CNH_BRASIL e órfãos)
       const isCfcCandidate = (r: any) => {
         if (r.examType === ExamType.PCD) return true;   // PCD sempre entra no CFC
@@ -327,8 +340,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         if (r.schoolId === 'PCD') return true;          // PCD explícito
         return r.examType === ExamType.COMMON;          // autoescola regular COMMON
       };
+
+      // Candidatos reais da tabela exam_requests
       let cfcReqs = reqs.filter(isCfcCandidate);
       
+      // Slots de escala da tabela exam_schedule_slots (vagas sem candidato)
+      const cfcSlots = slotsAsRequests.filter(isCfcCandidate);
+
       // Auto-update logic: move to DONE if 24h passed since confirmed exam
       const now = new Date();
       const updatePromises = [];
@@ -349,7 +367,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         cfcReqs = updatedReqs.filter(isCfcCandidate);
       }
       
-      setRequests(cfcReqs);
+      // Mescla candidatos reais + slots de escala — slots sempre no final
+      setRequests([...cfcReqs, ...cfcSlots]);
       setSchools(schs);
       setExaminers(exms);
       setSystemSettings(settings);
@@ -692,13 +711,25 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     alert('Escala copiada para o WhatsApp!');
   };
 
+  // Helper: roteia update para a tabela correta (slot ou candidato real)
+  const updateItem = (item: any, data: any) =>
+    (item as any)._isSlot
+      ? api.updateScheduleSlot(item.id, data)
+      : api.updateRequest(item.id, data);
+
+  // Helper: roteia delete para a tabela correta
+  const deleteItem = (item: any) =>
+    (item as any)._isSlot
+      ? api.deleteScheduleSlot(item.id)
+      : api.deleteRequest(item.id);
+
   const handleConfirmAction = (req: ExamRequest) => {
     setConfirmConfig({
       title: 'Confirmar Agendamento',
       message: `Tem certeza que deseja confirmar o agendamento da autoescola ${getSchoolName(req.schoolId)} para o dia ${formatDate(req.scheduledDate)} às ${req.scheduledTime || '08:00'}?`,
       type: 'blue',
       onConfirm: async () => {
-        await api.updateRequest(req.id, { attendanceConfirmed: true });
+        await updateItem(req, { attendanceConfirmed: true });
         setIsConfirmModalOpen(false);
         fetchData(true);
       }
@@ -718,8 +749,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     if (!cancelRequest) return;
     
     try {
-      // Update original request to CANCELLED with reason
-      await api.updateRequest(cancelRequest.id, { 
+      // Update original request to CANCELLED with reason (roteia pela tabela correta)
+      await updateItem(cancelRequest, { 
         status: ExamStatus.CANCELLED,
         cancellationReason: cancelReason,
         observation: cancelReason || ''
@@ -1099,7 +1130,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
 
     try {
-      await api.updateRequest(selectedRequest.id, {
+      await updateItem(selectedRequest, {
         schoolId: selectedRequest.schoolId,
         intendedCategory: selectedRequest.intendedCategory,
         scheduledDate: selectedRequest.scheduledDate,
