@@ -65,11 +65,11 @@ const App: React.FC = () => {
                     path="/" 
                     element={
                       auth.user?.role === UserRole.SCHOOL
-                        ? <Navigate to="/admin/dashboard/cfc" replace />
+                        ? <Navigate to="/admin/cfc/agendamentos" replace />
                         : auth.user?.role === UserRole.EXAMINER
-                        ? <Navigate to="/admin/scheduling/cfc" replace /> 
+                        ? <Navigate to="/admin/cfc/agendamentos" replace /> 
                         : auth.user?.role === UserRole.INSTRUCTOR
-                        ? <Navigate to="/admin/requests/common" replace />
+                        ? <Navigate to="/admin/cnhdobrasil/candidatos" replace />
                         : <Navigate to="/admin/dashboard" replace />
                     } 
                   />
@@ -77,45 +77,64 @@ const App: React.FC = () => {
                   {/* Dashboard Geral */}
                   <Route path="dashboard" element={<DashboardGeral user={auth.user!} />} />
                   
-                  {/* CNH do Brasil */}
-                  <Route path="dashboard/cnh" element={<CnhDoBrasil user={auth.user} view="dashboard" />} />
-                  <Route path="requests/common" element={<CnhDoBrasil user={auth.user} view="requests" />} />
-                  <Route path="scheduling/common" element={<CnhDoBrasil user={auth.user} view="scheduling" />} />
-                  <Route path="reports/cnh" element={<CnhDoBrasilReport user={auth.user} />} />
+                  {/* CNH do Brasil — rotas em PT-BR */}
+                  <Route path="cnhdobrasil/dashboard"   element={<CnhDoBrasil user={auth.user} view="dashboard" />} />
+                  <Route path="cnhdobrasil/bancas"      element={<CnhDoBrasil user={auth.user} view="scheduling" />} />
+                  <Route path="cnhdobrasil/candidatos"  element={<CnhDoBrasil user={auth.user} view="requests" />} />
+                  <Route path="cnhdobrasil/relatorios"  element={<CnhDoBrasilReport user={auth.user} />} />
+                  {/* Aliases legados (redirecionam para as novas rotas) */}
+                  <Route path="dashboard/cnh"      element={<Navigate to="/admin/cnhdobrasil/dashboard"  replace />} />
+                  <Route path="requests/common"    element={<Navigate to="/admin/cnhdobrasil/candidatos" replace />} />
+                  <Route path="scheduling/common"  element={<Navigate to="/admin/cnhdobrasil/bancas"     replace />} />
+                  <Route path="reports/cnh"        element={<Navigate to="/admin/cnhdobrasil/relatorios" replace />} />
 
-                  {/* Prova Prática CFC */}
-                  <Route path="dashboard/cfc" element={<ProvaPraticaCFCDashboard user={auth.user} />} />
-                  <Route path="scheduling/cfc" element={<ProvaPraticaCFC user={auth.user} />} />
-                  <Route path="reports/cfc" element={<ProvaPraticaCFCReport user={auth.user} />} />
+                  {/* Prova Prática CFC — rotas em PT-BR */}
+                  <Route path="cfc/dashboard"    element={<ProvaPraticaCFCDashboard user={auth.user} />} />
+                  <Route path="cfc/agendamentos" element={<ProvaPraticaCFC user={auth.user} />} />
+                  <Route path="cfc/relatorios"   element={<ProvaPraticaCFCReport user={auth.user} />} />
+                  {/* Aliases legados */}
+                  <Route path="dashboard/cfc"  element={<Navigate to="/admin/cfc/dashboard"    replace />} />
+                  <Route path="scheduling/cfc" element={<Navigate to="/admin/cfc/agendamentos" replace />} />
+                  <Route path="reports/cfc"    element={<Navigate to="/admin/cfc/relatorios"   replace />} />
 
-                  {/* Prova Prática PCD */}
-                  <Route path="dashboard/pcd" element={<ProvaPraticaPCD user={auth.user} view="dashboard" />} />
-                  <Route path="requests/pcd" element={<ProvaPraticaPCD user={auth.user} view="requests" />} />
-                  <Route path="scheduling/pcd" element={<ProvaPraticaPCD user={auth.user} view="scheduling" />} />
-                  <Route path="reports/pcd" element={<ProvaPraticaPCDReport user={auth.user} />} />
+                  {/* Prova Prática PCD — rotas em PT-BR */}
+                  <Route path="pcd/dashboard"   element={<ProvaPraticaPCD user={auth.user} view="dashboard" />} />
+                  <Route path="pcd/agendamentos" element={<ProvaPraticaPCD user={auth.user} view="scheduling" />} />
+                  <Route path="pcd/candidatos"  element={<ProvaPraticaPCD user={auth.user} view="requests" />} />
+                  <Route path="pcd/relatorios"  element={<ProvaPraticaPCDReport user={auth.user} />} />
+                  {/* Aliases legados */}
+                  <Route path="dashboard/pcd"  element={<Navigate to="/admin/pcd/dashboard"    replace />} />
+                  <Route path="requests/pcd"   element={<Navigate to="/admin/pcd/candidatos"   replace />} />
+                  <Route path="scheduling/pcd" element={<Navigate to="/admin/pcd/agendamentos" replace />} />
+                  <Route path="reports/pcd"    element={<Navigate to="/admin/pcd/relatorios"   replace />} />
 
                   {/* Cadastros - ADMIN only */}
                   <Route 
-                    path="users" 
+                    path="usuarios" 
                     element={
                       auth.user?.role === UserRole.ADMIN
                         ? <Cadastros user={auth.user!} />
                         : <Navigate to="/admin/dashboard" replace />
                     } 
                   />
+                  {/* Alias legado */}
+                  <Route path="users" element={<Navigate to="/admin/usuarios" replace />} />
                   
                   {/* Configurações - ADMIN only */}
                   <Route 
-                    path="settings" 
+                    path="configuracoes" 
                     element={
                       auth.user?.role === UserRole.ADMIN
                         ? <Configuracoes user={auth.user!} />
                         : <Navigate to="/admin/dashboard" replace />
                     } 
                   />
+                  {/* Alias legado */}
+                  <Route path="settings" element={<Navigate to="/admin/configuracoes" replace />} />
                   
                   {/* Student Database */}
-                  <Route path="students" element={<StudentDatabase />} />
+                  <Route path="alunos"   element={<StudentDatabase />} />
+                  <Route path="students" element={<Navigate to="/admin/alunos" replace />} />
                 </Routes>
               </Layout>
             ) : (

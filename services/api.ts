@@ -113,7 +113,7 @@ export const api = {
         scheduledCategory: null, 
         status: 'WAITING_SCHEDULING', // ExamStatus.WAITING_SCHEDULING
         attendanceConfirmed: false,
-        createdAt: new Date().toISOString(),
+        // NOTE: Do NOT send createdAt here — it must preserve the original registration date
         updatedAt: new Date().toISOString()
       }) 
     }),

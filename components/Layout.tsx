@@ -107,21 +107,21 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Car,
          label: 'Prova Prática CFC',
          subItems: [
-           { label: 'Dashboard', path: '/admin/dashboard/cfc', icon: LayoutDashboard },
-           { label: 'Agendamentos', path: '/admin/scheduling/cfc', icon: CalendarCheck }
+           { label: 'Dashboard',      path: '/admin/cfc/dashboard',    icon: LayoutDashboard },
+           { label: 'Agendamentos',   path: '/admin/cfc/agendamentos', icon: CalendarCheck }
          ]
        });
     } else if (user.role === UserRole.EXAMINER) {
        items.push({
          icon: CalendarCheck,
          label: 'Agendamentos',
-         path: '/admin/scheduling/cfc'
+         path: '/admin/cfc/agendamentos'
        });
     } else if (user.role === UserRole.INSTRUCTOR) {
        items.push({
          icon: FileText,
          label: 'Candidatos',
-         path: '/admin/requests/common'
+         path: '/admin/cnhdobrasil/candidatos'
        });
     } else {
 
@@ -137,10 +137,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Map,
          label: 'CNH do Brasil',
          subItems: [
-           { label: 'Dashboard', path: '/admin/dashboard/cnh', icon: LayoutDashboard },
-           { label: 'Bancas', path: '/admin/scheduling/common', icon: CalendarCheck },
-           { label: 'Candidatos', path: '/admin/requests/common', icon: FileText },
-           { label: 'Relatórios', path: '/admin/reports/cnh', icon: BarChart3 }
+           { label: 'Dashboard',    path: '/admin/cnhdobrasil/dashboard',   icon: LayoutDashboard },
+           { label: 'Bancas',       path: '/admin/cnhdobrasil/bancas',      icon: CalendarCheck },
+           { label: 'Candidatos',   path: '/admin/cnhdobrasil/candidatos',  icon: FileText },
+           { label: 'Relatórios',   path: '/admin/cnhdobrasil/relatorios',  icon: BarChart3 }
          ]
        });
 
@@ -149,9 +149,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Car,
          label: 'Prova Prática CFC',
          subItems: [
-           { label: 'Dashboard', path: '/admin/dashboard/cfc', icon: LayoutDashboard },
-           { label: 'Agendamentos', path: '/admin/scheduling/cfc', icon: CalendarCheck },
-           { label: 'Relatórios', path: '/admin/reports/cfc', icon: BarChart3 }
+           { label: 'Dashboard',    path: '/admin/cfc/dashboard',    icon: LayoutDashboard },
+           { label: 'Agendamentos', path: '/admin/cfc/agendamentos', icon: CalendarCheck },
+           { label: 'Relatórios',   path: '/admin/cfc/relatorios',   icon: BarChart3 }
          ]
        });
 
@@ -160,17 +160,17 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          icon: Accessibility,
          label: 'Prova Prática PCD',
          subItems: [
-           { label: 'Dashboard', path: '/admin/dashboard/pcd', icon: LayoutDashboard },
-           { label: 'Agendamentos', path: '/admin/scheduling/pcd', icon: CalendarCheck },
-           { label: 'Candidatos', path: '/admin/requests/pcd', icon: FileText },
-           { label: 'Relatórios', path: '/admin/reports/pcd', icon: BarChart3 }
+           { label: 'Dashboard',    path: '/admin/pcd/dashboard',    icon: LayoutDashboard },
+           { label: 'Agendamentos', path: '/admin/pcd/agendamentos', icon: CalendarCheck },
+           { label: 'Candidatos',   path: '/admin/pcd/candidatos',   icon: FileText },
+           { label: 'Relatórios',   path: '/admin/pcd/relatorios',   icon: BarChart3 }
          ]
        });
     }
 
     if (user.role === UserRole.ADMIN) {
-      items.push({ icon: Users, label: 'Cadastros', path: '/admin/users' });
-      items.push({ icon: Settings, label: 'Configurações', path: '/admin/settings' });
+      items.push({ icon: Users, label: 'Cadastros', path: '/admin/usuarios' });
+      items.push({ icon: Settings, label: 'Configurações', path: '/admin/configuracoes' });
     }
 
     return items;
@@ -285,11 +285,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 </button>
                 <div className="hidden md:block">
                    <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">
-                      {location.pathname.includes('scheduling') ? 'Gestão de Prova Prática CFC' : 
-                       location.pathname.includes('requests') ? 'Gestão de Candidatos' : 
-                       location.pathname.includes('reports') ? 'Relatórios e Análises' :
-                       location.pathname.includes('users') ? 'Administração' :
-                       location.pathname.includes('settings') ? 'Configurações' :
+                      {location.pathname.includes('cnhdobrasil/bancas') ? 'CNH do Brasil — Bancas' :
+                       location.pathname.includes('cnhdobrasil/candidatos') ? 'CNH do Brasil — Candidatos' :
+                       location.pathname.includes('cnhdobrasil/relatorios') ? 'CNH do Brasil — Relatórios' :
+                       location.pathname.includes('cnhdobrasil/dashboard') ? 'CNH do Brasil — Dashboard' :
+                       location.pathname.includes('cnhdobrasil') ? 'CNH do Brasil' :
+                       location.pathname.includes('cfc/agendamentos') ? 'Prova Prática CFC — Agendamentos' :
+                       location.pathname.includes('cfc/relatorios') ? 'Prova Prática CFC — Relatórios' :
+                       location.pathname.includes('cfc/dashboard') ? 'Prova Prática CFC — Dashboard' :
+                       location.pathname.includes('pcd/agendamentos') ? 'Prova Prática PCD — Agendamentos' :
+                       location.pathname.includes('pcd/candidatos') ? 'Prova Prática PCD — Candidatos' :
+                       location.pathname.includes('pcd/relatorios') ? 'Prova Prática PCD — Relatórios' :
+                       location.pathname.includes('pcd/dashboard') ? 'Prova Prática PCD — Dashboard' :
+                       location.pathname.includes('usuarios') ? 'Administração' :
+                       location.pathname.includes('configuracoes') ? 'Configurações' :
                        location.pathname === '/admin/dashboard' ? 'Painel de Controle' : 'Painel Principal'}
                    </h2>
                 </div>

@@ -42,12 +42,15 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     if (method === 'POST') {
       const body = await parseBody<any>(request);
       const filtered = filterFields(body);
+      // IMPORTANT: Do NOT use default fallbacks for studentName/cpf/phone.
+      // Auto-generated slots (from schedule auto-generation) intentionally have no student data.
+      // The frontend (RequestManager) filters out records with no studentName from the Candidates view.
       const newItem = await db.insert(examRequests).values({
         id: filtered.id || randomUUID(),
         ...filtered,
-        studentName: filtered.studentName || 'Vaga Disponível',
-        cpf: filtered.cpf || '00000000000',
-        phone: filtered.phone || '00000000000',
+        studentName: filtered.studentName || null,
+        cpf: filtered.cpf || null,
+        phone: filtered.phone || null,
         createdAt: filtered.createdAt ? new Date(filtered.createdAt) : new Date(),
         updatedAt: new Date(),
       }).returning();
@@ -57,12 +60,11 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     if (method === 'PUT') {
       const body = await parseBody<any>(request);
       if (!body?.id) return error('ID obrigatório', 400);
-      const { id, updatedAt, ...updates } = body;
-      if (!updates.studentName) updates.studentName = 'Vaga Disponível';
-      if (!updates.cpf) updates.cpf = '00000000000';
-      if (!updates.phone) updates.phone = '00000000000';
-      const filtered = filterFields(updates, ['createdAt']);
-      if (filtered.createdAt) filtered.createdAt = new Date(filtered.createdAt);
+      const { id, updatedAt, createdAt, ...updates } = body;
+      // IMPORTANT: Do NOT overwrite studentName/cpf/phone with placeholders on update.
+      // Only set them if they are explicitly provided by the caller.
+      // IMPORTANT: Do NOT overwrite createdAt — it must reflect the real registration date.
+      const filtered = filterFields(updates);
       const updated = await db.update(examRequests)
         .set({ ...filtered, updatedAt: new Date() })
         .where(eq(examRequests.id, id))

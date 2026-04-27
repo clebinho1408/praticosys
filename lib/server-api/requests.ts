@@ -57,10 +57,10 @@ export default async function handler(req: any, res: any) {
       const newItem = await db.insert(examRequests).values({
         id: filteredBody.id || crypto.randomUUID(),
         ...filteredBody,
-        // Fallbacks para evitar erro de NOT NULL no banco de dados de produção (Vercel)
-        studentName: filteredBody.studentName || 'Vaga Disponível',
-        cpf: filteredBody.cpf || '00000000000',
-        phone: filteredBody.phone || '00000000000',
+        // Campos opcionais — não usar fallbacks genéricos
+        studentName: filteredBody.studentName || null,
+        cpf: filteredBody.cpf || null,
+        phone: filteredBody.phone || null,
         // Ensure dates are Date objects if they were passed as strings
         createdAt: filteredBody.createdAt ? new Date(filteredBody.createdAt) : new Date(),
         updatedAt: new Date()
@@ -89,10 +89,7 @@ export default async function handler(req: any, res: any) {
 
       const { id, updatedAt, ...updates } = body;
       
-      // Prevent nulling out required fields on Vercel
-      if (updates.studentName === null || updates.studentName === '') updates.studentName = 'Vaga Disponível';
-      if (updates.cpf === null || updates.cpf === '') updates.cpf = '00000000000';
-      if (updates.phone === null || updates.phone === '') updates.phone = '00000000000';
+      // Não sobrescrever campos com placeholders genéricos
 
       // Filtrar apenas campos que existem no schema para evitar erro do Drizzle
       // "Cannot read properties of undefined (reading 'name')"

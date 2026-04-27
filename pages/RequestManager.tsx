@@ -248,6 +248,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         filtered = filtered.filter(r => !r.schoolId || r.schoolId === 'CNH_BRASIL');
       }
 
+      // Hide auto-generated slots that have no real candidate (empty studentName or placeholder CPF).
+      // These are created by the auto-schedule generator and should never appear in the Candidates list.
+      filtered = filtered.filter(r => {
+        const name = r.studentName?.trim();
+        const cpf = r.cpf?.replace(/\D/g, '');
+        // Keep records that have a real student name (not empty, null, or 'Vaga Disponível')
+        return name && name !== 'Vaga Disponível' && cpf && cpf !== '00000000000';
+      });
+
       // Source Filtering
       if (sourceFilter) {
         filtered = filtered.filter((r) => r.source === sourceFilter);
@@ -622,8 +631,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           status: ExamStatus.WAITING_SCHEDULING,
           scheduleId: null,
           scheduledCategory: null,
-          createdAt: new Date().toISOString(), // Move to end of queue
-          updatedAt: new Date().toISOString()
+          // updatedAt is set automatically by the backend — this places candidate at end of queue
         });
         fetchRequests(true);
         setConfirmModalData(prev => ({ ...prev, isOpen: false }));
@@ -636,7 +644,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     
     const updates: any = { status };
     if (status === ExamStatus.WAITING_SCHEDULING) {
-      updates.createdAt = new Date().toISOString(); // Move to end of queue
+      // updatedAt is set automatically by the backend — places candidate at end of queue
     }
     
     await api.updateRequest(id, updates);
@@ -915,7 +923,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       // updates.scheduledDate = null;
       // updates.scheduledTime = null;
       updates.attendanceConfirmed = false;
-      updates.createdAt = new Date().toISOString(); // Move to end of queue
+      // updatedAt is set automatically by the backend — places candidate at end of queue
     }
 
     await api.updateRequest(editingRequest.id, updates);
@@ -1241,11 +1249,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         if (typeFilter && r.examType !== typeFilter) return false;
         // Aplicar o mesmo filtro de módulo para manter posições consistentes
         if (excludeRegularSchools && r.schoolId && r.schoolId !== 'CNH_BRASIL') return false;
+        // Excluir vagas automáticas sem candidato real
+        const name = r.studentName?.trim();
+        const cpf = r.cpf?.replace(/\D/g, '');
+        if (!name || name === 'Vaga Disponível' || !cpf || cpf === '00000000000') return false;
         return true;
       })
       .sort(
         (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
       );
   }, [allGlobalRequests, typeFilter, excludeRegularSchools]);
 
@@ -1544,14 +1556,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ),
   };
 
-  // Sort filtered requests for WAITING_SCHEDULING by position (createdAt ASC — mais antigo = 1º)
+  // Sort filtered requests for WAITING_SCHEDULING by position (updatedAt ASC — mais antigo = 1º)
   const sortedWaitingScheduling = useMemo(() => {
     return [...groupedRequests[ExamStatus.WAITING_SCHEDULING]].sort((a, b) => {
       const posA = globalQueue.findIndex(r => r.id === a.id);
       const posB = globalQueue.findIndex(r => r.id === b.id);
-      // Fallback direto por createdAt caso o item não esteja na globalQueue
+      // Fallback direto por updatedAt caso o item não esteja na globalQueue
       if (posA === -1 && posB === -1) {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
       }
       if (posA === -1) return 1;
       if (posB === -1) return -1;
@@ -1629,7 +1641,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 onClick={() => openCreateModal()}
                 className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center gap-2 font-bold shadow-sm transition-colors w-full justify-center"
               >
-                <Plus className="h-5 w-5" /> NOVO CANDIDATO
+                <Plus className="h-5 w-5" /> Novo Candidato
               </button>
             )}
           </div>
