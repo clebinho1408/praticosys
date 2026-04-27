@@ -322,21 +322,22 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
       // Converte schedule-slots para o mesmo formato de ExamRequest
       // Campo extra _isSlot=true identifica que é uma vaga de escala (sem candidato real)
+      // IMPORTANTE: preserva attendanceConfirmed do banco — não forçar false aqui
       const slotsAsRequests: any[] = (slots || []).map((s: any) => ({
         ...s,
         studentName: null,
         cpf: null,
         phone: null,
         source: 'SCHOOL',
-        attendanceConfirmed: false,
+        // attendanceConfirmed vem do banco — PCD e CNH_BRASIL são gravados com true
         _isSlot: true,          // flag para módulo CNH filtrar e nunca mostrar como candidato
       }));
 
-      // Filter for CFC: COMMON de autoescolas regulares + PCD de autoescolas (excluindo CNH_BRASIL e órfãos)
+      // Filter for CFC: COMMON de autoescolas regulares + PCD + CNH_BRASIL (todos os slots de escala)
       const isCfcCandidate = (r: any) => {
         if (r.examType === ExamType.PCD) return true;   // PCD sempre entra no CFC
-        if (!r.schoolId) return false;                  // sem schoolId = CNH do Brasil (orphan)
-        if (r.schoolId === 'CNH_BRASIL') return false;  // CNH do Brasil explícito
+        if (!r.schoolId) return false;                  // sem schoolId = orphan
+        if (r.schoolId === 'CNH_BRASIL') return !!(r as any)._isSlot; // CNH_BRASIL só aparece aqui se for slot de escala
         if (r.schoolId === 'PCD') return true;          // PCD explícito
         return r.examType === ExamType.COMMON;          // autoescola regular COMMON
       };
