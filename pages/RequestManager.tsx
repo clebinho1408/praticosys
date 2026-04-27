@@ -1897,7 +1897,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
                                 {(status === "WAITING_CONFIRMATION" || status === ExamStatus.SCHEDULED || status === ExamStatus.DONE) && (
                                   <div className="text-sm text-gray-700 mt-1">
-                                    Dados da Prova:
+                                    Dados do Exame:
                                     <div className="text-red-600 font-bold">
                                       {(() => {
                                         const schedule = schedules.find(s => s.id === req.scheduleId);
@@ -2072,7 +2072,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           )}
                           {status === "WAITING_CONFIRMATION" && user.role === UserRole.INSTRUCTOR && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
-                              Dados da Prova
+                              Dados do Exame
                             </th>
                           )}
                           {!((status === ExamStatus.IN_ANALYSIS || status === "WAITING_CONFIRMATION") && user.role === UserRole.INSTRUCTOR) && (

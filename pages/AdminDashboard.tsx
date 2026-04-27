@@ -198,7 +198,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, filterModule }) =
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">
           {filterModule === 'cnh' ? 'Dashboard CNH do Brasil' : 
-           filterModule === 'pcd' ? 'Dashboard Prova Prática PCD' :
+           filterModule === 'pcd' ? 'Dashboard Exame Prático PCD' :
            (user.role === UserRole.SCHOOL ? `Dashboard - ${user.name}` : 'Painel de Controle')}
         </h2>
         <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase">
@@ -224,13 +224,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, filterModule }) =
               onClick={() => handleTabChange('cfc')}
               className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'cfc' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
             >
-                Prova Prática CFC
+                Exame Prático CFC
             </button>
             <button 
               onClick={() => handleTabChange('pcd')}
               className={`px-4 py-2 font-bold text-sm whitespace-nowrap ${activeTab === 'pcd' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
             >
-                Prova Prática PCD
+                Exame Prático PCD
             </button>
         </div>
       )}
@@ -290,7 +290,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, filterModule }) =
 
       {activeTab === 'cnh' && <CnhModule stats={cnhBrasilStats} title="CNH do Brasil" />}
       {activeTab === 'cfc' && <CfcModule />}
-      {activeTab === 'pcd' && <PcdModule stats={pcdStats} title="Prova Prática PCD" />}
+      {activeTab === 'pcd' && <PcdModule stats={pcdStats} title="Exame Prático PCD" />}
     </div>
   );
 };

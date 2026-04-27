@@ -9,7 +9,7 @@ export default function ProvaPraticaCFCDashboard({ user }: Props) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">Dashboard - Prova Prática CFC</h2>
+        <h2 className="text-2xl font-bold text-gray-800">Dashboard - Exame Prático CFC</h2>
       </div>
       <CfcModule user={user} />
     </div>

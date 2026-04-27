@@ -191,6 +191,7 @@ export const examScheduleSlots = pgTable('exam_schedule_slots', {
   scheduleId: text('schedule_id'),                 // FK para exam_schedules.id (quando alocado)
   scheduledCategory: text('scheduled_category'),   // A ou B (quando alocado na banca)
   status: text('status').notNull().default('SCHEDULED'), // SCHEDULED, CANCELLED
+  attendanceConfirmed: boolean('attendance_confirmed').default(false), // true = vai para Provas Confirmadas
   cancellationReason: text('cancellation_reason'),
   observation: text('observation'),
   createdAt: timestamp('created_at').defaultNow(),

@@ -105,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     if (user.role === UserRole.SCHOOL) {
        items.push({
          icon: Car,
-         label: 'Prova Prática CFC',
+         label: 'Exame Prático CFC',
          subItems: [
            { label: 'Dashboard',      path: '/admin/cfc/dashboard',    icon: LayoutDashboard },
            { label: 'Agendamentos',   path: '/admin/cfc/agendamentos', icon: CalendarCheck }
@@ -147,7 +147,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        // --- GRUPO: PROVA PRÁTICA CFC ---
        items.push({
          icon: Car,
-         label: 'Prova Prática CFC',
+         label: 'Exame Prático CFC',
          subItems: [
            { label: 'Dashboard',    path: '/admin/cfc/dashboard',    icon: LayoutDashboard },
            { label: 'Agendamentos', path: '/admin/cfc/agendamentos', icon: CalendarCheck },
@@ -158,7 +158,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        // --- GRUPO: PROVA PRÁTICA PCD ---
        items.push({
          icon: Accessibility,
-         label: 'Prova Prática PCD',
+         label: 'Exame Prático PCD',
          subItems: [
            { label: 'Dashboard',    path: '/admin/pcd/dashboard',    icon: LayoutDashboard },
            { label: 'Agendamentos', path: '/admin/pcd/agendamentos', icon: CalendarCheck },
@@ -290,13 +290,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                        location.pathname.includes('cnhdobrasil/relatorios') ? 'CNH do Brasil — Relatórios' :
                        location.pathname.includes('cnhdobrasil/dashboard') ? 'CNH do Brasil — Dashboard' :
                        location.pathname.includes('cnhdobrasil') ? 'CNH do Brasil' :
-                       location.pathname.includes('cfc/agendamentos') ? 'Prova Prática CFC — Agendamentos' :
-                       location.pathname.includes('cfc/relatorios') ? 'Prova Prática CFC — Relatórios' :
-                       location.pathname.includes('cfc/dashboard') ? 'Prova Prática CFC — Dashboard' :
-                       location.pathname.includes('pcd/agendamentos') ? 'Prova Prática PCD — Agendamentos' :
-                       location.pathname.includes('pcd/candidatos') ? 'Prova Prática PCD — Candidatos' :
-                       location.pathname.includes('pcd/relatorios') ? 'Prova Prática PCD — Relatórios' :
-                       location.pathname.includes('pcd/dashboard') ? 'Prova Prática PCD — Dashboard' :
+                       location.pathname.includes('cfc/agendamentos') ? 'Exame Prático CFC — Agendamentos' :
+                       location.pathname.includes('cfc/relatorios') ? 'Exame Prático CFC — Relatórios' :
+                       location.pathname.includes('cfc/dashboard') ? 'Exame Prático CFC — Dashboard' :
+                       location.pathname.includes('pcd/agendamentos') ? 'Exame Prático PCD — Agendamentos' :
+                       location.pathname.includes('pcd/candidatos') ? 'Exame Prático PCD — Candidatos' :
+                       location.pathname.includes('pcd/relatorios') ? 'Exame Prático PCD — Relatórios' :
+                       location.pathname.includes('pcd/dashboard') ? 'Exame Prático PCD — Dashboard' :
                        location.pathname.includes('usuarios') ? 'Administração' :
                        location.pathname.includes('configuracoes') ? 'Configurações' :
                        location.pathname === '/admin/dashboard' ? 'Painel de Controle' : 'Painel Principal'}

@@ -173,8 +173,8 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
     // Distribuição por módulo
     const moduleDistribution = [
       { name: 'CNH do Brasil', value: cnhReqs.length },
-      { name: 'Prova Prática CFC', value: cfcReqs.length },
-      { name: 'Prova Prática PCD', value: pcdReqs.length },
+      { name: 'Exame Prático CFC', value: cfcReqs.length },
+      { name: 'Exame Prático PCD', value: pcdReqs.length },
     ];
 
     // Status geral
@@ -253,7 +253,7 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
           {...stats.cnh}
         />
         <ModuleSummary
-          title="Prova Prática CFC"
+          title="Exame Prático CFC"
           icon={Car}
           color="text-emerald-700"
           bgColor="bg-emerald-50"
@@ -261,7 +261,7 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
           {...stats.cfc}
         />
         <ModuleSummary
-          title="Prova Prática PCD"
+          title="Exame Prático PCD"
           icon={Accessibility}
           color="text-purple-700"
           bgColor="bg-purple-50"

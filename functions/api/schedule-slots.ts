@@ -12,7 +12,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     const method = request.method;
     const query = getQuery(request.url);
 
-    // Garante que a tabela existe
+    // Garante que a tabela existe com todos os campos
     try {
       await db.execute(sql`
         CREATE TABLE IF NOT EXISTS exam_schedule_slots (
@@ -27,12 +27,15 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
           schedule_id text,
           scheduled_category text,
           status text NOT NULL DEFAULT 'SCHEDULED',
+          attendance_confirmed boolean DEFAULT false,
           cancellation_reason text,
           observation text,
           created_at timestamp DEFAULT now(),
           updated_at timestamp DEFAULT now()
         )
       `);
+      // Adiciona coluna se já existia sem ela
+      await db.execute(sql`ALTER TABLE exam_schedule_slots ADD COLUMN IF NOT EXISTS attendance_confirmed boolean DEFAULT false`);
     } catch { /* já existe */ }
 
     if (method === 'GET') {
@@ -56,6 +59,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         scheduleId: body.scheduleId,
         scheduledCategory: body.scheduledCategory,
         status: body.status || 'SCHEDULED',
+        attendanceConfirmed: body.attendanceConfirmed ?? false,
         cancellationReason: body.cancellationReason,
         observation: body.observation,
         createdAt: new Date(),
@@ -70,7 +74,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const { id, createdAt, ...updates } = body;
       const allowed = ['schoolId','examType','requestType','intendedCategory',
         'scheduledDate','scheduledTime','examinerId','scheduleId','scheduledCategory',
-        'status','cancellationReason','observation'];
+        'status','attendanceConfirmed','cancellationReason','observation'];
       const filtered: any = {};
       for (const k of allowed) if (updates[k] !== undefined) filtered[k] = updates[k];
       const updated = await db.update(examScheduleSlots)
@@ -84,16 +88,6 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
       await db.delete(examScheduleSlots).where(eq(examScheduleSlots.id, id));
-      return json({ success: true });
-    }
-
-    // DELETE por data (limpar escala de um dia)
-    if (method === 'DELETE' && query.scheduledDate && query.schoolId) {
-      await db.delete(examScheduleSlots)
-        .where(and(
-          eq(examScheduleSlots.scheduledDate, query.scheduledDate),
-          eq(examScheduleSlots.schoolId, query.schoolId)
-        ));
       return json({ success: true });
     }
 
