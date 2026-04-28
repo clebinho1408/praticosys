@@ -132,6 +132,10 @@ export const examRequests = pgTable('exam_requests', {
   
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
+  // Preserva o updatedAt do momento em que o candidato estava na fila (WAITING_SCHEDULING).
+  // Ao entrar numa banca, este campo é salvo com o valor de updatedAt.
+  // Ao cancelar a banca, updatedAt é restaurado a partir deste campo → posição original na fila.
+  queueUpdatedAt: timestamp('queue_updated_at'),
 });
 
 // Configurações do Sistema (Single Row)

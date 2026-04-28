@@ -93,14 +93,18 @@ export const api = {
   saveBancaResult: (data: Partial<BancaResult>) => request<BancaResult>('/banca-results', { method: 'POST', body: JSON.stringify(data) }),
 
   // --- ACTIONS ---
-  assignStudentToSchedule: (requestId: string, scheduleId: string, category: string) => 
+  // currentUpdatedAt: valor atual de updatedAt do candidato antes de entrar na banca.
+  // Será salvo em queueUpdatedAt para restauração ao cancelar a banca.
+  assignStudentToSchedule: (requestId: string, scheduleId: string, category: string, currentUpdatedAt?: string) => 
     request<void>('/requests', { 
       method: 'PUT', 
       body: JSON.stringify({ 
         id: requestId, 
         scheduleId, 
         scheduledCategory: category,
-        status: 'SCHEDULED' // ExamStatus.SCHEDULED
+        status: 'SCHEDULED', // ExamStatus.SCHEDULED
+        // Salva o updatedAt atual (posição na fila) para restauração ao cancelar banca
+        queueUpdatedAt: currentUpdatedAt || new Date().toISOString(),
       }) 
     }),
 
@@ -113,6 +117,8 @@ export const api = {
         scheduledCategory: null, 
         status: 'WAITING_SCHEDULING', // ExamStatus.WAITING_SCHEDULING
         attendanceConfirmed: false,
+        // Limpar queueUpdatedAt ao remover manualmente da banca
+        queueUpdatedAt: null,
         // NOTE: Do NOT send createdAt here — it must preserve the original registration date
         updatedAt: new Date().toISOString()
       }) 

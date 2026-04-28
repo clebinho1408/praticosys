@@ -1,7 +1,7 @@
 // functions/api/schedules.ts  →  GET|POST|PUT|DELETE /api/schedules
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
 import { examSchedules, examRequests } from '../../db/schema.js';
-import { eq, and, desc, isNotNull } from 'drizzle-orm';
+import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string) => {
@@ -66,9 +66,32 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
       if (action === 'CANCEL') {
         const updated = await db.update(examSchedules).set({ status: 'CANCELLED', cancellationReason: reason }).where(eq(examSchedules.id, id)).returning();
-        await db.update(examRequests)
-          .set({ status: 'WAITING_SCHEDULING', scheduleId: null, scheduledDate: null, scheduledTime: null, scheduledCategory: null, examinerId: null, attendanceConfirmed: false, updatedAt: new Date() })
-          .where(eq(examRequests.scheduleId, id));
+
+        // Garantir que a coluna existe (migration segura)
+        try { await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS queue_updated_at timestamptz`); } catch {}
+
+        // Restaurar posição original na fila:
+        // - Se o candidato tem queueUpdatedAt salvo (entrou na banca depois desta feature), restaura updatedAt para esse valor.
+        // - Caso contrário (registros antigos sem queueUpdatedAt), mantém o updatedAt atual sem atualizar para now(),
+        //   pois qualquer timestamp anterior a agora é melhor que agora (coloca o candidato antes dos novos).
+        await db.execute(sql`
+          UPDATE exam_requests
+          SET
+            status              = 'WAITING_SCHEDULING',
+            schedule_id         = NULL,
+            scheduled_date      = NULL,
+            scheduled_time      = NULL,
+            scheduled_category  = NULL,
+            examiner_id         = NULL,
+            attendance_confirmed = FALSE,
+            -- Restaura updatedAt para o valor salvo em queueUpdatedAt.
+            -- Se queueUpdatedAt for NULL (registro legado), mantém o updatedAt existente
+            -- para não jogar o candidato para o final da fila.
+            updated_at = COALESCE(queue_updated_at, updated_at),
+            queue_updated_at    = NULL
+          WHERE schedule_id = ${id}
+        `);
+
         return json(updated[0] ?? { id, status: 'CANCELLED' });
       }
 

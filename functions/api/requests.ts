@@ -12,6 +12,8 @@ const ALLOWED_FIELDS = [
   'specialNeeds','status','result','scheduleId','scheduledDate',
   'scheduledTime','scheduledCategory','examinerId','attendanceConfirmed',
   'cancellationReason','observation','examHistory',
+  // Campo para preservar posição na fila ao entrar/sair de banca
+  'queueUpdatedAt',
 ];
 
 function filterFields(obj: any, extra: string[] = []) {
@@ -31,6 +33,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       try {
         await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`);
         await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS request_type text DEFAULT 'EXTRA'`);
+        await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS queue_updated_at timestamptz`);
       } catch {}
       if (query.cpf) {
         const clean = query.cpf.replace(/\D/g, '');

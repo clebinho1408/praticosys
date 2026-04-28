@@ -501,9 +501,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       if (!selectedSchedule) return;
       setLoading(true);
       try {
-          const updates = Object.entries(selectedCandidates).map(([id, cat]) => 
-              api.assignStudentToSchedule(id, selectedSchedule.id, cat)
-          );
+          const updates = Object.entries(selectedCandidates).map(([id, cat]) => {
+              // Passa o updatedAt atual do candidato para ser salvo como queueUpdatedAt.
+              // Isso permite restaurar a posição exata na fila se a banca for cancelada.
+              const req = allRequests.find(r => r.id === id);
+              const currentUpdatedAt = req?.updatedAt || new Date().toISOString();
+              return api.assignStudentToSchedule(id, selectedSchedule.id, cat, currentUpdatedAt);
+          });
           await Promise.all(updates);
           setIsAddStudentOpen(false);
           refreshData(true);
