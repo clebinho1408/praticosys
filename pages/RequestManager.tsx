@@ -2134,6 +2134,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           <th className="px-6 py-3 font-bold text-xs uppercase">
                             Candidato
                           </th>
+                          {/* Coluna REST.: mostra restrição de CNH para Admin/Sup/Op/Consultor nos cards Aguardando Agendamento e Agendados */}
+                          {(status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED) && (isAdminOpSup || isConsultant) && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase text-center w-20">
+                              REST.
+                            </th>
+                          )}
                           {(status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT || status === ExamStatus.DONE) && (
                             <th className="px-6 py-3 font-bold text-xs uppercase">
                               Cidade
@@ -2248,6 +2254,22 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 )}
                               </div>
                             </td>
+                            {/* Célula REST.: restrição de CNH para Admin/Sup/Op/Consultor nos cards Aguardando Agendamento e Agendados */}
+                            {(status === ExamStatus.WAITING_SCHEDULING || status === ExamStatus.SCHEDULED) && (isAdminOpSup || isConsultant) && (
+                              <td className="px-6 py-4 align-middle text-xs text-center">
+                                {req.cnhRestriction ? (
+                                  <button
+                                    onClick={() => setRestrictionModalData({ isOpen: true, restrictions: req.cnhRestriction! })}
+                                    className="font-bold text-orange-600 hover:text-orange-800 hover:underline leading-tight text-center"
+                                    title={`Restrições: ${req.cnhRestriction}`}
+                                  >
+                                    {req.cnhRestriction}
+                                  </button>
+                                ) : (
+                                  <span className="text-gray-400">-</span>
+                                )}
+                              </td>
+                            )}
                             {(status === ExamStatus.SCHEDULED || status === ExamStatus.WAITING_RESULT || status === ExamStatus.DONE) && (
                               <td className="px-6 py-4 align-middle text-xs text-black font-medium">
                                 {req.city || "-"}
@@ -3199,7 +3221,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   setIsErrorModalOpen(false);
                   if (errorField) {
                     // Se o campo estiver em outra aba, muda a aba
-                    if (["cpf", "studentName", "phone"].includes(errorField)) {
+                    if (["cpf", "studentName", "phone", "city"].includes(errorField)) {
                       setActiveTab("personal");
                     } else if (
                       [
@@ -3212,6 +3234,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                     }
 
                     // Foca no campo após um pequeno delay para garantir que a aba trocou
+                    // Para "city" (select) usamos delay maior para garantir que o DOM renderizou
+                    const focusDelay = errorField === "city" ? 200 : 100;
                     setTimeout(() => {
                       const element = document.getElementById(errorField);
                       if (element) {
@@ -3221,7 +3245,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           block: "center",
                         });
                       }
-                    }, 100);
+                    }, focusDelay);
                   }
                 }}
                 className="w-full py-2.5 px-4 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition-colors"
