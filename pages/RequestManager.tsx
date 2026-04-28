@@ -188,6 +188,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     message: string;
     onConfirm: () => void;
     type: 'confirm' | 'cancel';
+    confirmLabel?: string; // Label personalizado para o botão de ação
   }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'confirm' });
   const [restrictionModalData, setRestrictionModalData] = useState<{ isOpen: boolean; restrictions: string }>({ isOpen: false, restrictions: "" });
   const [historyModalData, setHistoryModalData] = useState<{ isOpen: boolean; request: ExamRequest | null }>({ isOpen: false, request: null });
@@ -278,9 +279,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   useEffect(() => {
     fetchRequests();
-    // Polling de 8s para Instrutores — atualizações em tempo real
-    // Garante que alterações feitas por Admin/Supervisor/Operador apareçam imediatamente
-    if (user.role === UserRole.INSTRUCTOR) {
+    // Polling de 8s para Instrutores e Admin/Supervisor/Operador — atualizações em tempo real.
+    // Instrutores: veem alterações de status feitas pelo admin (agendamentos, confirmações).
+    // Admin/Sup/Op: veem novos Pedidos de Agendamento enviados por instrutores instantaneamente.
+    if (user.role === UserRole.INSTRUCTOR || isAdminOpSup) {
       const interval = setInterval(() => fetchRequests(true), 8000);
       return () => clearInterval(interval);
     }
@@ -445,13 +447,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validação de Campos Obrigatórios
+    // Validação de Campos Obrigatórios (base)
     const requiredFields = [
       { field: "cpf", label: "CPF" },
       { field: "studentName", label: "Nome Completo" },
       { field: "phone", label: "Telefone" },
       { field: "intendedCategory", label: "Categoria Pretendida" },
     ];
+
+    // Cidade é obrigatória para Instrutores
+    if (user.role === UserRole.INSTRUCTOR) {
+      requiredFields.push({ field: "city", label: "Cidade" });
+    }
 
     for (const req of requiredFields) {
       if (!formData[req.field as keyof ExamRequest]) {
@@ -467,6 +474,34 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       setErrorField("cpf");
       setIsErrorModalOpen(true);
       return;
+    }
+
+    // Verificação de CPF duplicado (somente ao criar novo candidato)
+    if (!editingRequest) {
+      const cleanCpf = (formData.cpf || "").replace(/\D/g, "");
+      // Busca em todos os requests carregados (allGlobalRequests tem todos)
+      const duplicate = allGlobalRequests.find((r) => {
+        const rCpf = (r.cpf || "").replace(/\D/g, "");
+        return rCpf === cleanCpf && r.status !== ExamStatus.CANCELLED;
+      });
+      if (duplicate) {
+        const name = duplicate.socialName || duplicate.studentName || "este candidato";
+        const statusLabels: Record<string, string> = {
+          IN_ANALYSIS: "Pedidos de Agendamento",
+          WAITING_SCHEDULING: "Aguardando Agendamento",
+          SCHEDULED: "Agendado",
+          WAITING_RESULT: "Aguardando Resultado",
+          DONE: "Concluído",
+          RETEST: "Reteste",
+        };
+        const statusLabel = statusLabels[duplicate.status] || duplicate.status;
+        setErrorMessage(
+          `O candidato "${name}" já está cadastrado com este CPF e se encontra no card "${statusLabel}". Não é permitido cadastrar o mesmo CPF mais de uma vez.`
+        );
+        setErrorField("cpf");
+        setIsErrorModalOpen(true);
+        return;
+      }
     }
 
     // Validação específica por categoria
@@ -662,21 +697,32 @@ const RequestManager: React.FC<RequestManagerProps> = ({
          !(req.status === ExamStatus.CANCELLED && isAdminOpSup) && 
          !(req.status === ExamStatus.WAITING_SCHEDULING && isAdminOpSup) && 
          !(req.status === ExamStatus.SCHEDULED && isAdminOpSup) && (
-          isAnalysis && isAdminOpSup ? (
-            <button
-              onClick={() => {
-                openCreateModal(req);
-                setCheckedRequests(prev => {
-                  const next = new Set(prev);
-                  next.add(req.id);
-                  return next;
-                });
-              }}
-              className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 transition-colors"
-            >
-              Conferir
-            </button>
-          ) : (
+          isAnalysis && isAdminOpSup ? (() => {
+            // Sequencial: só o mais antigo não-conferido fica habilitado
+            const isNext = req.id === nextToReviewId;
+            return (
+              <button
+                disabled={!isNext}
+                onClick={() => {
+                  if (!isNext) return;
+                  openCreateModal(req);
+                  setCheckedRequests(prev => {
+                    const next = new Set(prev);
+                    next.add(req.id);
+                    return next;
+                  });
+                }}
+                title={isNext ? "Conferir este candidato" : "Aguardando conferência do candidato anterior"}
+                className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${
+                  isNext
+                    ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                    : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                }`}
+              >
+                Conferir
+              </button>
+            );
+          })() : (
             <button
               onClick={() => openCreateModal(req)}
               className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500"
@@ -809,13 +855,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   </button>
                 )}
 
+                {/* Excluir: Admin pode excluir candidatos em IN_ANALYSIS e WAITING_SCHEDULING */}
+                {user.role === UserRole.ADMIN && !isConsultant && (
+                  isAnalysis || req.status === ExamStatus.WAITING_SCHEDULING
+                ) && (
+                  <button
+                    onClick={() => handleDeleteRequest(req.id, req.socialName || req.studentName || undefined)}
+                    className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
+                    title="Excluir Candidato"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+
+                {/* Excluir para outros status que já existiam (RETEST, CANCELLED não-análise, etc.) */}
                 {user.role === UserRole.ADMIN && !isAnalysis && 
                  req.status !== ExamStatus.WAITING_SCHEDULING && 
                  req.status !== ExamStatus.SCHEDULED && 
                  req.status !== ExamStatus.WAITING_RESULT && 
                  req.status !== ExamStatus.DONE && !isConsultant && (
                   <button
-                    onClick={() => handleDeleteRequest(req.id)}
+                    onClick={() => handleDeleteRequest(req.id, req.socialName || req.studentName || undefined)}
                     className="p-1.5 border border-red-200 rounded hover:bg-red-50 text-red-600"
                     title="Excluir Candidato"
                   >
@@ -851,19 +911,26 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     fetchRequests(true);
   };
 
-  const handleDeleteRequest = async (id: string) => {
+  const handleDeleteRequest = async (id: string, name?: string) => {
     if (user.role !== UserRole.ADMIN) {
-      alert("Somente administradores podem excluir candidatos.");
+      setErrorMessage("Somente administradores podem excluir candidatos.");
+      setErrorField(null);
+      setIsErrorModalOpen(true);
       return;
     }
-    if (
-      window.confirm(
-        "Tem certeza que deseja EXCLUIR permanentemente este candidato? Esta ação não pode ser desfeita.",
-      )
-    ) {
-      await api.deleteRequest(id);
-      fetchRequests(true);
-    }
+    const displayName = name || "este candidato";
+    setConfirmModalData({
+      isOpen: true,
+      title: "Excluir Candidato",
+      message: `Tem certeza que deseja EXCLUIR permanentemente "${displayName}"? Esta ação não pode ser desfeita.`,
+      type: "cancel",
+      confirmLabel: "Excluir",
+      onConfirm: async () => {
+        await api.deleteRequest(id);
+        setConfirmModalData(prev => ({ ...prev, isOpen: false }));
+        fetchRequests(true);
+      },
+    });
   };
 
   const handleResultSave = async (e: React.FormEvent) => {
@@ -1570,6 +1637,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       return posA - posB;
     });
   }, [groupedRequests, globalQueue]);
+
+  // Para Admin/Sup/Op: próximo candidato a ser conferido (mais antigo IN_ANALYSIS ainda não conferido).
+  // Somente esse ID terá o botão "Conferir" habilitado — os demais ficam desabilitados até que
+  // o atual seja Aprovado ou Recusado (o que o remove de IN_ANALYSIS).
+  const nextToReviewId = useMemo(() => {
+    if (!isAdminOpSup) return null;
+    const inAnalysis = [...groupedRequests[ExamStatus.IN_ANALYSIS]]
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    // O próximo é o mais antigo que ainda não foi conferido (não está em checkedRequests)
+    const notYetChecked = inAnalysis.find(r => !checkedRequests.has(r.id));
+    return notYetChecked?.id ?? null;
+  }, [groupedRequests, checkedRequests, isAdminOpSup]);
 
   // Determine visible statuses based on filter
   const allStatuses = [
@@ -2314,7 +2393,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                     : 'bg-red-600 hover:bg-red-700'
                 }`}
               >
-                {confirmModalData.type === 'confirm' ? 'Confirmar' : 'Cancelar'}
+                {confirmModalData.confirmLabel ?? (confirmModalData.type === 'confirm' ? 'Confirmar' : 'Cancelar')}
               </button>
             </div>
           </div>
