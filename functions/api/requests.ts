@@ -71,6 +71,21 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       // Only set them if they are explicitly provided by the caller.
       // IMPORTANT: Do NOT overwrite createdAt — it must reflect the real registration date.
       const filtered = filterFields(updates);
+
+      // Converter queueUpdatedAt de string ISO → Date (ou null).
+      // O Drizzle mapeia este campo como timestamp e o PostgreSQL rejeita
+      // strings brutas no SET — causa o erro 500 ao confirmar agendamento.
+      if (filtered.queueUpdatedAt !== undefined) {
+        if (filtered.queueUpdatedAt === null) {
+          // manter null explicitamente
+        } else {
+          filtered.queueUpdatedAt = new Date(filtered.queueUpdatedAt);
+          if (isNaN((filtered.queueUpdatedAt as Date).getTime())) {
+            filtered.queueUpdatedAt = null;
+          }
+        }
+      }
+
       const updated = await db.update(examRequests)
         .set({ ...filtered, updatedAt: new Date() })
         .where(eq(examRequests.id, id))
