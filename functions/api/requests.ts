@@ -72,22 +72,28 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       // IMPORTANT: Do NOT overwrite createdAt — it must reflect the real registration date.
       const filtered = filterFields(updates);
 
-      // Converter queueUpdatedAt de string ISO → Date (ou null).
+      // Converter queueUpdatedAt de string ISO → Date (ou null explícito via sql).
       // O Drizzle mapeia este campo como timestamp e o PostgreSQL rejeita
       // strings brutas no SET — causa o erro 500 ao confirmar agendamento.
+      // Quando null, usar sql`NULL` para garantir que o Drizzle inclua o campo no SET.
+      let queueUpdatedAtValue: Date | null | ReturnType<typeof sql> | undefined = undefined;
       if (filtered.queueUpdatedAt !== undefined) {
         if (filtered.queueUpdatedAt === null) {
-          // manter null explicitamente
+          queueUpdatedAtValue = sql`NULL`; // força SET queue_updated_at = NULL no SQL
         } else {
-          filtered.queueUpdatedAt = new Date(filtered.queueUpdatedAt);
-          if (isNaN((filtered.queueUpdatedAt as Date).getTime())) {
-            filtered.queueUpdatedAt = null;
-          }
+          const parsed = new Date(filtered.queueUpdatedAt);
+          queueUpdatedAtValue = isNaN(parsed.getTime()) ? sql`NULL` : parsed;
         }
+        delete filtered.queueUpdatedAt; // será passado separadamente
+      }
+
+      const setPayload: any = { ...filtered, updatedAt: new Date() };
+      if (queueUpdatedAtValue !== undefined) {
+        setPayload.queueUpdatedAt = queueUpdatedAtValue;
       }
 
       const updated = await db.update(examRequests)
-        .set({ ...filtered, updatedAt: new Date() })
+        .set(setPayload)
         .where(eq(examRequests.id, id))
         .returning();
       return json(updated[0] ?? { id, ...updates });
