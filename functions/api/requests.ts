@@ -29,12 +29,15 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     const method = request.method;
     const query = getQuery(request.url);
 
+    // Migrations inline — rodam em TODOS os métodos para garantir que as colunas
+    // existam antes de qualquer leitura ou escrita, inclusive PUT com queueUpdatedAt.
+    try {
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`);
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS request_type text DEFAULT 'EXTRA'`);
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS queue_updated_at timestamptz`);
+    } catch {}
+
     if (method === 'GET') {
-      try {
-        await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`);
-        await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS request_type text DEFAULT 'EXTRA'`);
-        await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS queue_updated_at timestamptz`);
-      } catch {}
       if (query.cpf) {
         const clean = query.cpf.replace(/\D/g, '');
         return json(await db.select().from(examRequests).where(like(examRequests.cpf, `%${clean}%`)));
