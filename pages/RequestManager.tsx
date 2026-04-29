@@ -1420,7 +1420,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                   const schedule = schedules.find(s => s.id === req.scheduleId);
                                   const dateStr = schedule?.date || req.scheduledDate;
                                   const timeStr = schedule?.time || req.scheduledTime;
-                                  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                  const formattedDate = dateStr ? new Date(dateStr.split('T')[0] + 'T00:00:00').toLocaleDateString() : "-";
                                   return `${formattedDate} às ${timeStr || "-"}`;
                                 })()}
                               </span>
@@ -1452,7 +1452,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                   const schedule = schedules.find(s => s.id === req.scheduleId);
                                   const dateStr = schedule?.date || req.scheduledDate;
                                   const timeStr = schedule?.time || req.scheduledTime;
-                                  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                  const formattedDate = dateStr ? new Date(dateStr.split('T')[0] + 'T00:00:00').toLocaleDateString() : "-";
                                   return `${formattedDate} às ${timeStr || "-"}`;
                                 })()}
                               </td>
@@ -1982,7 +1982,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                         const schedule = schedules.find(s => s.id === req.scheduleId);
                                         const dateStr = schedule?.date || req.scheduledDate;
                                         const timeStr = schedule?.time || req.scheduledTime;
-                                        const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                        const formattedDate = dateStr ? new Date(dateStr.split('T')[0] + 'T00:00:00').toLocaleDateString() : "-";
                                         return `${formattedDate} às ${timeStr || "-"}`;
                                       })()}
                                     </div>
@@ -2067,7 +2067,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                       const schedule = schedules.find(s => s.id === req.scheduleId);
                                       const dateStr = schedule?.date || req.scheduledDate;
                                       const timeStr = schedule?.time || req.scheduledTime;
-                                      const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                      const formattedDate = dateStr ? new Date(dateStr.split('T')[0] + 'T00:00:00').toLocaleDateString() : "-";
                                       return `${formattedDate} às ${timeStr || "-"}`;
                                     })() : new Date(req.createdAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
                                   }
@@ -2191,7 +2191,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                   const schedule = schedules.find(s => s.id === req.scheduleId);
                                   const dateStr = schedule?.date || req.scheduledDate;
                                   const timeStr = schedule?.time || req.scheduledTime;
-                                  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                  const formattedDate = dateStr ? new Date(dateStr.split('T')[0] + 'T00:00:00').toLocaleDateString() : "-";
                                   return `${formattedDate} às ${timeStr || "-"}`;
                                 })()}
                               </td>
@@ -2294,7 +2294,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                   const dateStr = schedule?.date || req.scheduledDate;
                                   const timeStr = schedule?.time || req.scheduledTime;
                                   const codeStr = schedule?.code || "-";
-                                  const formattedDate = dateStr ? new Date(dateStr).toLocaleDateString() : "-";
+                                  const formattedDate = dateStr ? new Date(dateStr.split('T')[0] + 'T00:00:00').toLocaleDateString() : "-";
                                   
                                   return (
                                     <div className="flex flex-col gap-1">
