@@ -1091,25 +1091,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     const selectedVehicle = availableVehicles.find(v => v.plate === currentPlate);
 
-    // Para Categoria A: "DO CANDIDATO" habilita digitação livre da placa
-    // "DO CANDIDATO": para Categoria A, controlado por checkbox no container externo.
-    // Usamos a presença do valor "DO CANDIDATO" no instrutor para detectar o estado.
-    const isDoCandidato = categoryCode === "A" && currentInstructorName === "DO CANDIDATO";
+    // "DO CANDIDATO": controlado por um campo especial no formData.
+    // Quando marcado, o instrutor pode ser qualquer um (select habilitado)
+    // e a placa é digitada livremente.
+    // Usamos formData.doCandidatoMoto (boolean) para rastrear o estado do checkbox.
+    const isDoCandidato = categoryCode === "A" && !!(formData as any).doCandidatoMoto;
 
-    // Helper para definir instrutor como "DO CANDIDATO" via checkbox
+    // Helper para marcar/desmarcar o checkbox DO CANDIDATO
+    // Ao marcar: mantém o instrutor selecionado e limpa a placa (livre digitação).
+    // Ao desmarcar: mantém o instrutor e limpa a placa.
     const setDoCandidato = (checked: boolean) => {
-      const newName = checked ? "DO CANDIDATO" : "";
-      const newPlate = checked ? "" : "";
       if (formData.intendedCategory === "AB") {
         const otherPartInstr = formData.instructor?.split(" / ")[1] || "";
         const otherPartPlate = formData.vehiclePlate?.split(" / ")[1] || "";
         setFormData({
           ...formData,
-          instructor: `Moto: ${newName} / ${otherPartInstr}`,
-          vehiclePlate: `Moto: ${newPlate} / ${otherPartPlate}`,
-        });
+          doCandidatoMoto: checked,
+          instructor: `Moto: ${currentInstructorName} / ${otherPartInstr}`,
+          vehiclePlate: `Moto: ${checked ? "" : ""} / ${otherPartPlate}`,
+        } as any);
       } else {
-        setFormData({ ...formData, instructor: newName, vehiclePlate: newPlate });
+        setFormData({ ...formData, doCandidatoMoto: checked, vehiclePlate: "" } as any);
       }
     };
 
@@ -1156,22 +1158,38 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             <select
               id={`instructor_${categoryCode}`}
               className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
-              value={isDoCandidato ? "" : currentInstructorName}
-              disabled={isDoCandidato || user.role === UserRole.INSTRUCTOR || (!!editingRequest && isAdminOpSup)}
+              value={currentInstructorName}
+              disabled={user.role === UserRole.INSTRUCTOR || (!!editingRequest && isAdminOpSup)}
               onChange={(e) => {
                 const newName = e.target.value;
-                let newPlate = "";
 
+                // Quando DO CANDIDATO está marcado: só atualiza o instrutor,
+                // a placa permanece livre para digitação manual.
+                if (isDoCandidato) {
+                  if (formData.intendedCategory === "AB") {
+                    const otherPartInstr =
+                      formData.instructor?.split(" / ")[1] || "";
+                    const otherPartPlate =
+                      formData.vehiclePlate?.split(" / ")[1] || "";
+                    setFormData({
+                      ...formData,
+                      instructor: `Moto: ${newName} / ${otherPartInstr}`,
+                      vehiclePlate: `Moto: ${currentPlate} / ${otherPartPlate}`,
+                    } as any);
+                  } else {
+                    setFormData({ ...formData, instructor: newName } as any);
+                  }
+                  return;
+                }
+
+                // Comportamento padrão (DO CANDIDATO não marcado)
+                let newPlate = "";
                 if (newName === "A DEFINIR") {
                   newPlate = "A DEFINIR";
-                } else if (categoryCode === "A" && newName === "DO CANDIDATO") {
-                  // Placa será digitada manualmente — inicia vazio
-                  newPlate = "";
                 } else {
                   const newInstructor = instructors.find(
                     (i) => i.name === newName,
                   );
-                  // Auto-select first vehicle if available
                   const firstVehicle = newInstructor?.vehicles?.find(
                     (v) =>
                       v.type === (categoryCode === "A" ? "MOTO" : "CAR") &&
