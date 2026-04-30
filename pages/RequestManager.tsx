@@ -28,6 +28,7 @@ import {
   Calendar,
   CheckCircle,
   AlertOctagon,
+  AlertTriangle,
   Filter,
   Trash2,
   Check,
@@ -714,38 +715,23 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     return (
       <div className={`flex items-center space-x-2 ${user.role === UserRole.INSTRUCTOR ? 'w-full' : 'justify-end'}`}>
-        {user.role !== UserRole.INSTRUCTOR && user.role !== UserRole.CONSULTANT &&
+        {/* Candidatos Pendentes (IN_ANALYSIS): botão Editar para todos os usuários */}
+        {isAnalysis && user.role !== UserRole.CONSULTANT && (
+          <button
+            onClick={() => openCreateModal(req)}
+            className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500"
+            title="Editar"
+          >
+            <Edit className="h-4 w-4" />
+          </button>
+        )}
+        {/* Para outros status (não IN_ANALYSIS): manter lógica anterior */}
+        {!isAnalysis && user.role !== UserRole.INSTRUCTOR && user.role !== UserRole.CONSULTANT &&
          !(req.status === ExamStatus.WAITING_RESULT && isAdminOpSup) && 
          !(req.status === ExamStatus.DONE && isAdminOpSup) && 
          !(req.status === ExamStatus.CANCELLED && isAdminOpSup) && 
          !(req.status === ExamStatus.WAITING_SCHEDULING && isAdminOpSup) && 
          !(req.status === ExamStatus.SCHEDULED && isAdminOpSup) && (
-          isAnalysis && isAdminOpSup ? (() => {
-            // Sequencial: só o mais antigo não-conferido fica habilitado
-            const isNext = req.id === nextToReviewId;
-            return (
-              <button
-                disabled={!isNext}
-                onClick={() => {
-                  if (!isNext) return;
-                  openCreateModal(req);
-                  setCheckedRequests(prev => {
-                    const next = new Set(prev);
-                    next.add(req.id);
-                    return next;
-                  });
-                }}
-                title={isNext ? "Conferir este candidato" : "Aguardando conferência do candidato anterior"}
-                className={`px-3 py-1.5 text-xs font-bold rounded transition-colors ${
-                  isNext
-                    ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-                }`}
-              >
-                Conferir
-              </button>
-            );
-          })() : (
             <button
               onClick={() => openCreateModal(req)}
               className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500"
@@ -753,7 +739,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             >
               <Edit className="h-4 w-4" />
             </button>
-          )
         )}
 
         {statusGroup === "WAITING_CONFIRMATION" &&
@@ -803,31 +788,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             </div>
           )}
 
-        {isAnalysis && isAdminOpSup && (
-            <>
-              <button
-                disabled={!checkedRequests.has(req.id)}
-                onClick={() => {
-                  setApprovalData(req);
-                  setIsApprovalModalOpen(true);
-                }}
-                className={`p-1.5 border rounded transition-colors ${checkedRequests.has(req.id) ? 'border-green-200 hover:bg-green-50 text-green-600' : 'border-gray-100 text-gray-300 cursor-not-allowed'}`}
-                title="Aprovar"
-              >
-                <Check className="h-4 w-4" />
-              </button>
-              <button
-                disabled={!checkedRequests.has(req.id)}
-                onClick={() =>
-                  handleOpenRejectionModal(req.id)
-                }
-                className={`p-1.5 border rounded transition-colors ${checkedRequests.has(req.id) ? 'border-red-200 hover:bg-red-50 text-red-600' : 'border-gray-100 text-gray-300 cursor-not-allowed'}`}
-                title="Recusar"
-              >
-                <Ban className="h-4 w-4" />
-              </button>
-            </>
-          )}
+        {/* Aprovar/Recusar removidos do card Candidatos Pendentes conforme solicitado */}
 
         {req.status === ExamStatus.CANCELLED && isAdminOpSup ? (
           <div className="w-full text-right">
@@ -1131,7 +1092,26 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     const selectedVehicle = availableVehicles.find(v => v.plate === currentPlate);
 
     // Para Categoria A: "DO CANDIDATO" habilita digitação livre da placa
+    // "DO CANDIDATO": para Categoria A, controlado por checkbox no container externo.
+    // Usamos a presença do valor "DO CANDIDATO" no instrutor para detectar o estado.
     const isDoCandidato = categoryCode === "A" && currentInstructorName === "DO CANDIDATO";
+
+    // Helper para definir instrutor como "DO CANDIDATO" via checkbox
+    const setDoCandidato = (checked: boolean) => {
+      const newName = checked ? "DO CANDIDATO" : "";
+      const newPlate = checked ? "" : "";
+      if (formData.intendedCategory === "AB") {
+        const otherPartInstr = formData.instructor?.split(" / ")[1] || "";
+        const otherPartPlate = formData.vehiclePlate?.split(" / ")[1] || "";
+        setFormData({
+          ...formData,
+          instructor: `Moto: ${newName} / ${otherPartInstr}`,
+          vehiclePlate: `Moto: ${newPlate} / ${otherPartPlate}`,
+        });
+      } else {
+        setFormData({ ...formData, instructor: newName, vehiclePlate: newPlate });
+      }
+    };
 
     // Helper para atualizar placa no formData (respeitando formato AB)
     const updatePlate = (newPlate: string) => {
@@ -1155,6 +1135,18 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         >
           {categoryLabel}
         </h4>
+        {/* Checkbox "DO CANDIDATO" exclusivo para Categoria A */}
+        {categoryCode === "A" && (
+          <label className="flex items-center gap-2 mb-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-blue-600 cursor-pointer"
+              checked={isDoCandidato}
+              onChange={(e) => setDoCandidato(e.target.checked)}
+            />
+            <span className="text-sm font-bold text-blue-700">DO CANDIDATO</span>
+          </label>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1164,8 +1156,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             <select
               id={`instructor_${categoryCode}`}
               className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
-              value={currentInstructorName}
-              disabled={user.role === UserRole.INSTRUCTOR || (!!editingRequest && isAdminOpSup)}
+              value={isDoCandidato ? "" : currentInstructorName}
+              disabled={isDoCandidato || user.role === UserRole.INSTRUCTOR || (!!editingRequest && isAdminOpSup)}
               onChange={(e) => {
                 const newName = e.target.value;
                 let newPlate = "";
@@ -1232,10 +1224,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   <option value="A DEFINIR">A DEFINIR</option>
                 </>
               )}
-              {/* Opção "DO CANDIDATO" exclusiva para Categoria A (Moto) */}
-              {categoryCode === "A" && (
-                <option value="DO CANDIDATO">DO CANDIDATO</option>
-              )}
               {availableInstructors.map((inst) => (
                 <option key={inst.id} value={inst.name}>
                   {inst.name}
@@ -1247,7 +1235,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Veículo/Placa <span className="text-red-500">*</span>
             </label>
-            {/* Quando "DO CANDIDATO" selecionado em Cat A: campo de texto livre */}
+            {/* Quando "DO CANDIDATO" marcado em Cat A: campo de texto livre para placa */}
             {isDoCandidato ? (
               <input
                 type="text"
@@ -1706,7 +1694,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ExamStatus.SCHEDULED,
     ExamStatus.WAITING_RESULT,
     ExamStatus.DONE,
-    ExamStatus.CANCELLED,
+    // Card Candidatos Cancelados removido conforme solicitado
   ];
 
   const visibleStatuses = statusFilter === "ALL" ? allStatuses : [statusFilter];
@@ -1714,8 +1702,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const groupConfig = {
     [ExamStatus.IN_ANALYSIS]: {
       label: "Candidatos Pendentes",
-      color: "indigo",
-      icon: ClipboardList,
+      color: "red",
+      icon: AlertTriangle,
     },
     [ExamStatus.WAITING_SCHEDULING]: {
       label: "Aguardando Agendamento",
@@ -1744,7 +1732,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     },
     [ExamStatus.CANCELLED]: { 
       label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Candidatos Cancelados" : "Cancelado", 
-      color: "red", 
+      color: "gray", 
       icon: X 
     },
   };
@@ -1801,7 +1789,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               <option value={ExamStatus.SCHEDULED}>Candidatos Agendados</option>
               <option value={ExamStatus.WAITING_RESULT}>Aguardando Resultados</option>
               <option value={ExamStatus.DONE}>Candidatos Aprovados</option>
-              <option value={ExamStatus.CANCELLED}>Candidatos Cancelados</option>
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -1848,9 +1835,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 <option value={ExamStatus.DONE}>
                   {isAdminOpSup ? "Candidatos Aprovados" : "Realizado"}
                 </option>
-                <option value={ExamStatus.CANCELLED}>
-                  {isAdminOpSup ? "Candidatos Cancelados" : "Cancelado"}
-                </option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -1889,6 +1873,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             purple: "bg-purple-50",
             green: "bg-green-50",
             red: "bg-red-50",
+            gray: "bg-gray-50",
           };
           const textColors: Record<string, string> = {
             indigo: "text-indigo-700",
@@ -1898,6 +1883,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             purple: "text-purple-700",
             green: "text-green-700",
             red: "text-red-700",
+            gray: "text-gray-700",
           };
           const borderColors: Record<string, string> = {
             indigo: "border-l-4 border-l-indigo-400",
@@ -1907,6 +1893,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             purple: "border-l-4 border-l-purple-400",
             green: "border-l-4 border-l-green-400",
             red: "border-l-4 border-l-red-400",
+            gray: "border-l-4 border-l-gray-400",
           };
 
           return (
@@ -2213,9 +2200,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               {status === ExamStatus.IN_ANALYSIS ? "Instrutor" : "Histórico"}
                             </th>
                           )}
-                          {(user.role !== UserRole.INSTRUCTOR ||
-                            status === "WAITING_CONFIRMATION") && 
-                           !(status === ExamStatus.SCHEDULED && isAdminOpSup) && (
+                          {/* Coluna Pendência: somente no card Candidatos Pendentes */}
+                          {status === ExamStatus.IN_ANALYSIS && (
+                            <th className="px-6 py-3 font-bold text-xs uppercase text-red-600">
+                              Pendência
+                            </th>
+                          )}
+                          {/* Coluna Ações: todos exceto Instructor fora de WAITING_CONFIRMATION e não-Agendados Admin */}
+                          {!(status === ExamStatus.SCHEDULED && isAdminOpSup) && (
                             <th className={`px-6 py-3 font-bold text-xs uppercase text-right`}>
                               {status === ExamStatus.CANCELLED ? "Motivo" : "Ações"}
                             </th>
@@ -2379,9 +2371,27 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                 )}
                               </td>
                             )}
-                            {(user.role !== UserRole.INSTRUCTOR ||
-                              status === "WAITING_CONFIRMATION") && 
-                             !(status === ExamStatus.SCHEDULED && isAdminOpSup) && (
+                            {/* Célula Pendência: somente card Candidatos Pendentes */}
+                            {status === ExamStatus.IN_ANALYSIS && (
+                              <td className="px-6 py-4 align-middle text-xs">
+                                {(() => {
+                                  const missing: string[] = [];
+                                  if (!req.checklistVehicle) missing.push("VEÍCULO");
+                                  if (!req.practicalCourseInserted) missing.push("CURSO PRÁTICO");
+                                  if (!req.taxaPaga) missing.push("TAXA");
+                                  if (missing.length === 0) {
+                                    return <span className="text-green-600 font-bold">✓ Completo</span>;
+                                  }
+                                  return (
+                                    <span className="text-red-600 font-bold">
+                                      {missing.join(" · ")}
+                                    </span>
+                                  );
+                                })()}
+                              </td>
+                            )}
+                            {/* Ações: todos os usuários (tabela desktop oculta para Instructor) */}
+                            {!(status === ExamStatus.SCHEDULED && isAdminOpSup) && (
                               <td className={`px-6 py-4 align-middle text-right`}>
                                 {renderActions(req, status)}
                               </td>
@@ -2937,7 +2947,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           Checklists
                         </h4>
                         <div className="flex flex-wrap gap-6">
-                          {/* CHECKLIST VEÍCULO */}
+                          {/* VEÍCULO */}
                           <label className="flex items-center gap-2 cursor-pointer select-none">
                             <input
                               type="checkbox"
@@ -2951,7 +2961,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               }
                             />
                             <span className="text-sm font-medium text-gray-700">
-                              CHECKLIST VEÍCULO
+                              VEÍCULO
                             </span>
                           </label>
 

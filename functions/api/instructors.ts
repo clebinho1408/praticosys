@@ -26,16 +26,6 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const newId = randomUUID();
       const newItem = await db.insert(instructors).values({ id: newId, ...instructorData }).returning();
 
-      if (instructorData.cpf) {
-        const cpfNumbers = instructorData.cpf.replace(/\D/g, '');
-        if (cpfNumbers) {
-          await db.insert(users).values({
-            id: randomUUID(), name: instructorData.name, login: cpfNumbers,
-            password: '123456', role: 'INSTRUCTOR', instructorId: newId,
-          });
-        }
-      }
-
       if (Array.isArray(vehiclesList)) {
         for (const v of vehiclesList) {
           await db.insert(vehicles).values({
