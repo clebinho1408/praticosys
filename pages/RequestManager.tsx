@@ -562,7 +562,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     }
 
     try {
-      // Para Instrutores: determina status baseado nos 3 checkboxes.
+      // Para TODOS os usuários: status determinado pelos 3 checkboxes.
       // Se os 3 estiverem marcados → WAITING_SCHEDULING (Aguardando Agendamento).
       // Se falta algum → IN_ANALYSIS (Candidatos Pendentes).
       const allChecklistsDone =
@@ -570,22 +570,23 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         !!formData.practicalCourseInserted &&
         !!formData.taxaPaga;
 
-      const instructorStatus =
+      const checklistStatus =
         allChecklistsDone
           ? ExamStatus.WAITING_SCHEDULING
           : ExamStatus.IN_ANALYSIS;
 
       if (editingRequest) {
-        // Ao editar: se é Instrutor, recalcula o status com base nos checkboxes
-        // (exceto se o candidato já passou de IN_ANALYSIS / WAITING_SCHEDULING)
+        // Ao editar: recalcula o status com base nos checkboxes
+        // somente enquanto o candidato ainda está pendente (IN_ANALYSIS ou WAITING_SCHEDULING).
+        // Candidatos já agendados, concluídos etc. não têm o status alterado pela edição.
         const currentStatus = editingRequest.status;
         const isStillPending =
           currentStatus === ExamStatus.IN_ANALYSIS ||
           currentStatus === ExamStatus.WAITING_SCHEDULING;
 
         const updatedData: any = { ...formData };
-        if (user.role === UserRole.INSTRUCTOR && isStillPending) {
-          updatedData.status = instructorStatus;
+        if (isStillPending) {
+          updatedData.status = checklistStatus;
         }
         await api.updateRequest(editingRequest.id, updatedData);
       } else {
@@ -603,11 +604,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           const motoPlate = getVal(plateParts, "Moto: ");
           const carPlate = getVal(plateParts, "Carro: ");
 
-          const resolvedStatus =
-            user.role === UserRole.INSTRUCTOR
-              ? instructorStatus
-              : ExamStatus.WAITING_SCHEDULING;
-
           // Create A
           await api.createRequest({
             ...formData,
@@ -620,7 +616,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               (user.role === UserRole.SCHOOL
                 ? RequestSource.SCHOOL
                 : RequestSource.STUDENT_DIRECT),
-            status: resolvedStatus,
+            status: checklistStatus,
           });
 
           // Create B
@@ -635,7 +631,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               (user.role === UserRole.SCHOOL
                 ? RequestSource.SCHOOL
                 : RequestSource.STUDENT_DIRECT),
-            status: resolvedStatus,
+            status: checklistStatus,
           });
         } else {
           await api.createRequest({
@@ -646,10 +642,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               (user.role === UserRole.SCHOOL
                 ? RequestSource.SCHOOL
                 : RequestSource.STUDENT_DIRECT),
-            status:
-              user.role === UserRole.INSTRUCTOR
-                ? instructorStatus
-                : ExamStatus.WAITING_SCHEDULING,
+            status: checklistStatus,
           });
         }
       }
@@ -2938,9 +2931,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         "bg-green-50 border-green-100",
                       )}
 
-                    {/* Checklists de pré-agendamento — visível somente para Instrutores */}
-                    {user.role === UserRole.INSTRUCTOR && (
-                      <div className="border-t pt-4">
+                    {/* Checklists de pré-agendamento — visível para todos os usuários */}
+                    <div className="border-t pt-4">
                         <h4 className="font-bold text-sm mb-3 text-gray-800">
                           Checklists
                         </h4>
@@ -3006,7 +2998,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             : "⚠️ Preencha todos os itens para encaminhar para Aguardando Agendamento. Itens pendentes enviarão para Candidatos Pendentes."}
                         </p>
                       </div>
-                    )}
 
                     {formData.examType === ExamType.PCD && (
                       <div className="border-t pt-4">
