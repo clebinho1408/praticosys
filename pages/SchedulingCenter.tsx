@@ -29,7 +29,8 @@ import {
   CheckSquare,
   Bike,
   Car,
-  AlertOctagon
+  AlertOctagon,
+  FileText
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -137,6 +138,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   // Schedule Delete Modal State
   const [isDeleteScheduleOpen, setIsDeleteScheduleOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<string | null>(null);
+
+  // Comprovante de Agendamento
+  const [comprovanteReq, setComprovanteReq] = useState<ExamRequest | null>(null);
 
   // Modal: vaga aberta na banca (candidato saiu)
   const [vagaAbertaModal, setVagaAbertaModal] = useState<{ bancaCode: string; bancaId: string } | null>(null);
@@ -940,6 +944,15 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         {req.attendanceConfirmed ? 'Confirmado' : 'Confirmar'}
                                                     </button>
 
+                                                    {/* Botão Comprovante */}
+                                                    <button
+                                                        onClick={() => setComprovanteReq(req)}
+                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-all"
+                                                        title="Imprimir Comprovante de Agendamento"
+                                                    >
+                                                        <FileText className="h-4 w-4" />
+                                                    </button>
+
                                                     {/* Botão WhatsApp */}
                                                     <button 
                                                         onClick={() => handleWhatsApp(req)}
@@ -1331,6 +1344,164 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
           </div>
         </div>
       )}
+
+      {/* ════════════ MODAL COMPROVANTE DE AGENDAMENTO ════════════ */}
+      {comprovanteReq && selectedSchedule && (() => {
+        const req = comprovanteReq;
+        const sched = selectedSchedule;
+
+        // Format full date for the document body (e.g. "08/05/2026")
+        const fullDate = (() => {
+          const raw = sched.date.split('T')[0];
+          const [y, m, d] = raw.split('-');
+          return `${d}/${m}/${y}`;
+        })();
+
+        // City/state from agencyName or fallback
+        const agencyCity = settings?.agencyName || 'Balneário Camboriú';
+
+        // Exam location from CNH Brasil > Comunicação > Endereço Completo
+        const examAddress = settings?.defaultExamAddress || '';
+
+        // Candidate info
+        const candidateName = (req.socialName || req.studentName || '').toUpperCase();
+        const candidateCpf = req.cpf || '';
+        const category = req.scheduledCategory || req.intendedCategory || '-';
+
+        // CNH Restrictions
+        const restrictionText = (() => {
+          if (!req.cnhRestriction) return '';
+          const codes = req.cnhRestriction.split(',').map((c: string) => c.trim()).filter(Boolean);
+          if (codes.length === 0) return '';
+          const found = codes.map((code: string) => settings?.restrictions?.find(r => r.code === code)?.description || code);
+          return found.join(', ');
+        })();
+
+        // Localidade para assinatura (penultima linha): extrai cidade do agencyName
+        // Full today date in full Brazilian format
+        const today = new Date();
+        const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        const todayFormatted = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
+
+        return (
+          <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b bg-blue-50">
+                <h3 className="text-lg font-bold text-blue-800 flex items-center gap-2">
+                  <FileText className="h-5 w-5" /> Comprovante de Agendamento
+                </h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('comprovante-print-area');
+                      if (!el) return;
+                      const pri = window.open('', '_blank', 'width=800,height=900');
+                      if (!pri) { alert('Habilite pop-ups para imprimir.'); return; }
+                      pri.document.write(`
+                        <!DOCTYPE html><html><head>
+                        <meta charset="utf-8" />
+                        <title>Comprovante</title>
+                        <style>
+                          @page { margin: 18mm 15mm; }
+                          body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; margin: 0; }
+                          h1 { font-size: 13pt; text-align: center; text-transform: uppercase; margin: 10px 0 4px; }
+                          h2 { font-size: 11pt; text-align: center; text-transform: uppercase; margin: 2px 0 8px; letter-spacing: 1px; }
+                          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
+                          .header-agency { font-size: 10pt; font-weight: bold; text-transform: uppercase; margin: 0; }
+                          .body-text { font-size: 11pt; line-height: 1.8; margin: 0 0 10px; }
+                          .field { font-size: 11pt; margin: 4px 0; line-height: 1.7; }
+                          .field strong { font-weight: bold; }
+                          .notice { margin-top: 18px; font-size: 10pt; font-style: italic; line-height: 1.6; }
+                          .signature { margin-top: 48px; text-align: center; }
+                          .signature .line { border-top: 1.5px solid #000; width: 280px; margin: 0 auto 4px; }
+                          .signature p { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin: 0; }
+                          .location { margin-top: 32px; font-size: 11pt; }
+                          .logo { height: 56px; width: auto; display: block; margin: 0 auto 6px; }
+                        </style>
+                        </head><body>${el.innerHTML}</body></html>
+                      `);
+                      pri.document.close();
+                      pri.focus();
+                      setTimeout(() => { pri.print(); pri.close(); }, 350);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    <Printer className="h-4 w-4" /> Imprimir
+                  </button>
+                  <button
+                    onClick={() => setComprovanteReq(null)}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 rounded-md transition-colors"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable preview */}
+              <div className="overflow-y-auto max-h-[75vh] p-6 bg-gray-50">
+                {/* ──────────────────── DOCUMENT AREA ──────────────────── */}
+                <div id="comprovante-print-area" className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm" style={{fontFamily:'Arial, sans-serif', fontSize:'11pt', color:'#000', lineHeight:'1.7'}}>
+
+                  {/* Header */}
+                  <div className="header" style={{textAlign:'center', borderBottom:'2px solid #000', paddingBottom:'8px', marginBottom:'16px'}}>
+                    {settings?.logoUrl && (
+                      <img src={settings.logoUrl} className="logo" style={{height:'56px', display:'block', margin:'0 auto 6px'}} alt="logo" />
+                    )}
+                    <p className="header-agency" style={{fontSize:'10pt', fontWeight:'bold', textTransform:'uppercase', margin:'0 0 2px'}}>
+                      ESTADO DE SANTA CATARINA &nbsp;•&nbsp; DEPARTAMENTO ESTADUAL DE TRÂNSITO
+                    </p>
+                    <p style={{fontSize:'10pt', textTransform:'uppercase', margin:'0 0 4px'}}>
+                      {settings?.agencyName || 'AGÊNCIA REGIONAL'}
+                    </p>
+                  </div>
+
+                  {/* Title */}
+                  <h1 style={{fontSize:'14pt', fontWeight:'bold', textAlign:'center', textTransform:'uppercase', margin:'0 0 18px', letterSpacing:'1px'}}>
+                    COMPROVANTE DE AGENDAMENTO
+                  </h1>
+
+                  {/* Body text */}
+                  <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
+                    Eu&nbsp;<strong>{candidateName}</strong>,&nbsp;CPF&nbsp;<strong>{candidateCpf}</strong>,&nbsp;declaro estar ciente do&nbsp;<strong>AGENDAMENTO DO EXAME DA PROVA PRÁTICA</strong>;
+                  </p>
+
+                  {/* Exam details */}
+                  <div style={{margin:'0 0 6px'}}><strong>Data:</strong> {fullDate}</div>
+                  <div style={{margin:'0 0 6px'}}><strong>Hora:</strong> {sched.time}</div>
+                  {examAddress && (
+                    <div style={{margin:'0 0 6px'}}><strong>Local do Exame:</strong> {examAddress}</div>
+                  )}
+                  <div style={{margin:'0 0 6px'}}><strong>Categoria:</strong> {category}</div>
+                  <div style={{margin:'0 0 6px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
+
+                  {/* Notice */}
+                  <p style={{marginTop:'20px', fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.6', color:'#222'}}>
+                    <strong>Atenção:</strong> NÃO SE ESQUEÇA DE NO DIA PORTAR UM DOCUMENTO COM FOTO (VÁLIDO)
+                  </p>
+                  <p style={{fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.6', color:'#222', marginTop:'6px'}}>
+                    Caso não compareça, ou reprove ou tenha seu exame cancelado, fique ciente que terá que retornar aqui na agência para Remarcar seu novo exame.
+                  </p>
+
+                  {/* Location + date */}
+                  <p style={{marginTop:'28px', fontSize:'11pt'}}>
+                    {agencyCity}, SC, {todayFormatted}.
+                  </p>
+
+                  {/* Signature */}
+                  <div style={{marginTop:'52px', textAlign:'center'}}>
+                    <div style={{borderTop:'1.5px solid #000', width:'280px', margin:'0 auto 6px'}}></div>
+                    <p style={{fontSize:'11pt', fontWeight:'bold', textTransform:'uppercase', margin:'0'}}>
+                      {candidateName}
+                    </p>
+                  </div>
+
+                </div>{/* /comprovante-print-area */}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MODAL DE EXCLUSÃO DE BANCA */}
       {isDeleteScheduleOpen && scheduleToDelete && (
