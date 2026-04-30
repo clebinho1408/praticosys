@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { api } from '../services/api';
 import { SystemSettings, City, Examiner, BlockedDate, UserRole, User } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert, Car, Bike, Edit2 } from 'lucide-react';
 import { AlertModal, ConfirmModal } from '../components/CustomModals';
 import DatePicker from '../components/DatePicker';
 
@@ -21,7 +21,62 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
-  const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'RULES' | 'BLOCKED_DATES'>('AGENCY_DATA');
+  const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'RULES' | 'BLOCKED_DATES' | 'VEHICLES'>('AGENCY_DATA');
+
+  // ── VEHICLES tab state ────────────────────────────────────────────
+  type VehicleType = 'CAR' | 'MOTO';
+  const [vehicleTabType, setVehicleTabType] = useState<VehicleType>('CAR');
+  const [vehicleEntries, setVehicleEntries] = useState<{ id: string; type: VehicleType; brand: string; model: string }[]>([]);
+  const [vehicleForm, setVehicleForm] = useState({ brand: '', model: '' });
+  const [editingVehicleEntryId, setEditingVehicleEntryId] = useState<string | null>(null);
+  const [vehicleSearch, setVehicleSearch] = useState('');
+
+  const vehicleStorageKey = 'praticosys_vehicle_catalog';
+
+  const loadVehicleEntries = () => {
+    try {
+      const raw = localStorage.getItem(vehicleStorageKey);
+      if (raw) setVehicleEntries(JSON.parse(raw));
+    } catch { /* ignore */ }
+  };
+
+  const saveVehicleEntries = (entries: typeof vehicleEntries) => {
+    setVehicleEntries(entries);
+    localStorage.setItem(vehicleStorageKey, JSON.stringify(entries));
+  };
+
+  const handleAddVehicleEntry = () => {
+    const brand = vehicleForm.brand.trim().toUpperCase();
+    const model = vehicleForm.model.trim().toUpperCase();
+    if (!brand || !model) { alert('Preencha marca e modelo.'); return; }
+    if (editingVehicleEntryId) {
+      const updated = vehicleEntries.map(e => e.id === editingVehicleEntryId ? { ...e, brand, model } : e);
+      saveVehicleEntries(updated);
+      setEditingVehicleEntryId(null);
+    } else {
+      const newEntry = { id: Date.now().toString(), type: vehicleTabType, brand, model };
+      saveVehicleEntries([...vehicleEntries, newEntry]);
+    }
+    setVehicleForm({ brand: '', model: '' });
+  };
+
+  const handleEditVehicleEntry = (entry: { id: string; type: VehicleType; brand: string; model: string }) => {
+    setVehicleForm({ brand: entry.brand, model: entry.model });
+    setEditingVehicleEntryId(entry.id);
+    setVehicleTabType(entry.type);
+  };
+
+  const handleDeleteVehicleEntry = (id: string) => {
+    if (!confirm('Remover este veículo?')) return;
+    saveVehicleEntries(vehicleEntries.filter(e => e.id !== id));
+  };
+
+  const filteredVehicleEntries = useMemo(() => {
+    return vehicleEntries
+      .filter(e => e.type === vehicleTabType)
+      .filter(e => !vehicleSearch || e.brand.includes(vehicleSearch.toUpperCase()) || e.model.includes(vehicleSearch.toUpperCase()))
+      .sort((a, b) => a.brand.localeCompare(b.brand) || a.model.localeCompare(b.model));
+  }, [vehicleEntries, vehicleTabType, vehicleSearch]);
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'RESTRICTIONS'>('COMMUNICATION');
   const [cities, setCities] = useState<City[]>([]);
@@ -43,6 +98,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
     loadCities();
     loadExaminers();
     loadBlockedDates();
+    loadVehicleEntries();
   }, []);
 
   const loadBlockedDates = async () => {
@@ -383,6 +439,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                         <button type="button" onClick={() => setActiveSubTabGeneral('RESTRICTIONS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'RESTRICTIONS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>RESTRIÇÕES</button>
                         <button type="button" onClick={() => setActiveSubTabGeneral('RULES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'RULES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>REGRAS</button>
                         <button type="button" onClick={() => setActiveSubTabGeneral('BLOCKED_DATES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'BLOCKED_DATES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>BLOQUEIO DE DATAS</button>
+                        <button type="button" onClick={() => setActiveSubTabGeneral('VEHICLES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'VEHICLES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>VEÍCULOS</button>
                     </div>
 
                     {activeSubTabGeneral === 'AGENCY_DATA' && (
@@ -692,6 +749,135 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                     )}
                 </div>
             )}
+
+            {/* ═══════════════ VEÍCULOS SUB-TAB ═══════════════ */}
+            {activeTab === 'GENERAL' && activeSubTabGeneral === 'VEHICLES' && (
+                <div className="space-y-6 animate-fadeIn">
+                    {/* Type toggle */}
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => { setVehicleTabType('CAR'); setVehicleSearch(''); setVehicleForm({ brand: '', model: '' }); setEditingVehicleEntryId(null); }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${
+                                vehicleTabType === 'CAR' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                            }`}
+                        >
+                            <Car className="h-4 w-4" /> Carros
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setVehicleTabType('MOTO'); setVehicleSearch(''); setVehicleForm({ brand: '', model: '' }); setEditingVehicleEntryId(null); }}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${
+                                vehicleTabType === 'MOTO' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                            }`}
+                        >
+                            <Bike className="h-4 w-4" /> Motos
+                        </button>
+                    </div>
+
+                    {/* Add / Edit form */}
+                    {!isConsultant && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                            <h4 className="text-sm font-bold text-gray-700">{editingVehicleEntryId ? 'Editar Veículo' : `Adicionar ${vehicleTabType === 'CAR' ? 'Carro' : 'Moto'}`}</h4>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <input
+                                    type="text"
+                                    placeholder="Marca"
+                                    value={vehicleForm.brand}
+                                    onChange={e => setVehicleForm(prev => ({ ...prev, brand: e.target.value.toUpperCase() }))}
+                                    className="flex-1 rounded-md border p-2 bg-white text-gray-900 text-sm uppercase"
+                                />
+                                <input
+                                    type="text"
+                                    placeholder="Modelo"
+                                    value={vehicleForm.model}
+                                    onChange={e => setVehicleForm(prev => ({ ...prev, model: e.target.value.toUpperCase() }))}
+                                    className="flex-1 rounded-md border p-2 bg-white text-gray-900 text-sm uppercase"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handleAddVehicleEntry}
+                                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-bold text-sm whitespace-nowrap"
+                                >
+                                    {editingVehicleEntryId ? 'Atualizar' : 'Adicionar'}
+                                </button>
+                                {editingVehicleEntryId && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setEditingVehicleEntryId(null); setVehicleForm({ brand: '', model: '' }); }}
+                                        className="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300 font-bold text-sm"
+                                    >
+                                        Cancelar
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Search */}
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Buscar marca ou modelo..."
+                            value={vehicleSearch}
+                            onChange={e => setVehicleSearch(e.target.value)}
+                            className="w-full border rounded-md p-2 pl-4 bg-white text-gray-900 text-sm"
+                        />
+                    </div>
+
+                    {/* List */}
+                    <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm">
+                            <thead className="bg-gray-50 border-b">
+                                <tr>
+                                    <th className="px-4 py-3 text-left font-bold text-gray-600">Marca</th>
+                                    <th className="px-4 py-3 text-left font-bold text-gray-600">Modelo</th>
+                                    {!isConsultant && <th className="px-4 py-3 text-right font-bold text-gray-600">Ações</th>}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {filteredVehicleEntries.map(entry => (
+                                    <tr key={entry.id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 font-medium text-gray-900">{entry.brand}</td>
+                                        <td className="px-4 py-3 text-gray-700">{entry.model}</td>
+                                        {!isConsultant && (
+                                            <td className="px-4 py-3 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleEditVehicleEntry(entry)}
+                                                        className="text-blue-600 hover:text-blue-800 p-1"
+                                                        title="Editar"
+                                                    >
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteVehicleEntry(entry.id)}
+                                                        className="text-red-500 hover:text-red-700 p-1"
+                                                        title="Remover"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
+                                    </tr>
+                                ))}
+                                {filteredVehicleEntries.length === 0 && (
+                                    <tr>
+                                        <td colSpan={isConsultant ? 2 : 3} className="px-4 py-8 text-center text-gray-400 italic">
+                                            Nenhum {vehicleTabType === 'CAR' ? 'carro' : 'moto'} cadastrado{vehicleSearch ? ' para esta busca' : ''}.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p className="text-xs text-gray-400">Total: {filteredVehicleEntries.length} {vehicleTabType === 'CAR' ? 'carros' : 'motos'} cadastrados.</p>
+                </div>
+            )}
+
             {activeTab === 'CNH_BRASIL' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">

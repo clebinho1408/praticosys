@@ -452,46 +452,26 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   };
 
   const toggleCandidateSelection = (id: string, category: 'A' | 'B') => {
-      const candidatesList = category === 'A' ? fullCandidatesA : fullCandidatesB;
-      const index = candidatesList.findIndex(c => c.id === id);
-      if (index === -1) return;
-
       setSelectedCandidates(prev => {
           const newState = { ...prev };
           const isCurrentlySelected = newState[id] === category;
-          
+
           if (isCurrentlySelected) {
-              // Deselecting: must deselect all subsequent candidates in this category
-              for (let i = index; i < candidatesList.length; i++) {
-                  const candId = candidatesList[i].id;
-                  if (newState[candId] === category) {
-                      delete newState[candId];
-                  }
-              }
+              // Simply deselect this individual candidate
+              delete newState[id];
           } else {
-              // Selecting: must select all previous candidates in this category
-              // Check if we have enough slots
+              // Check slot limit before selecting
               const currentSelectedInThisCat = Object.values(newState).filter(c => c === category).length;
               const alreadyInBanca = allScheduledInThisBanca.filter(s => s.scheduledCategory === category).length;
               const maxSlots = category === 'A' ? (selectedSchedule?.maxSlotsA || 0) : (selectedSchedule?.maxSlotsB || 0);
-              
-              // Count how many new selections we are making
-              let newSelections = 0;
-              for (let i = 0; i <= index; i++) {
-                  if (newState[candidatesList[i].id] !== category) {
-                      newSelections++;
-                  }
-              }
 
-              if (alreadyInBanca + currentSelectedInThisCat + newSelections > maxSlots) {
-                  alert(`Não há vagas suficientes para selecionar até esta posição na Categoria ${category}.`);
+              if (alreadyInBanca + currentSelectedInThisCat + 1 > maxSlots) {
+                  alert(`Não há vagas suficientes na Categoria ${category}.`);
                   return prev;
               }
 
-              for (let i = 0; i <= index; i++) {
-                  const candId = candidatesList[i].id;
-                  newState[candId] = category;
-              }
+              // Allow selecting any individual candidate regardless of position
+              newState[id] = category;
           }
           return newState;
       });
@@ -857,7 +837,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         <div>
                             <h1 className="text-xl font-bold uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
                             <h2 className="text-2xl font-bold uppercase print:!text-black">
-                                LISTA PROVA PRÁTICA DA CNH DO BRASIL
+                                LISTA DO EXAME PRÁTICO DA CNH DO BRASIL
                             </h2>
                         </div>
                     </div>
@@ -980,37 +960,37 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 </div>
 
                                 {/* TABELA ORIGINAL (Apenas Impressão - COM as colunas de marcação) */}
-                                <table className="hidden print:table w-full text-left border-collapse table-fixed">
+                                <table className="hidden print:table w-full text-left border-collapse table-fixed" style={{fontSize:'8.5pt', lineHeight:'1.1'}}>
                                     <thead className="border-2 border-black">
-                                        <tr className="bg-white text-black font-bold border-b-2 border-black text-[10px]">
-                                            <th className="px-2 py-1 w-[35px] text-center border-r border-black uppercase text-[9px]">#</th>
-                                            <th className="px-3 py-1 w-[100px] border-r border-black uppercase">CPF</th>
-                                            <th className="px-3 py-1 w-[300px] border-r border-black uppercase">Nome do Candidato</th>
-                                            <th className="px-2 py-1 w-[45px] text-center border-r border-black uppercase">Falt.</th>
-                                            <th className="px-2 py-1 w-[45px] text-center border-r border-black uppercase">Apto</th>
-                                            <th className="px-2 py-1 w-[45px] text-center border-r border-black uppercase">Inap.</th>
-                                            <th className="px-3 py-1 border-black uppercase text-center">OBS.</th>
+                                        <tr className="bg-white text-black font-bold border-b-2 border-black">
+                                            <th className="px-1 py-0.5 w-[22px] text-center border-r border-black uppercase" style={{fontSize:'7.5pt'}}>#</th>
+                                            <th className="px-1 py-0.5 w-[82px] border-r border-black uppercase" style={{fontSize:'7.5pt'}}>CPF</th>
+                                            <th className="px-1 py-0.5 border-r border-black uppercase" style={{fontSize:'7.5pt'}}>Nome do Candidato</th>
+                                            <th className="px-1 py-0.5 w-[28px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Falt.</th>
+                                            <th className="px-1 py-0.5 w-[28px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Apto</th>
+                                            <th className="px-1 py-0.5 w-[28px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Inap.</th>
+                                            <th className="px-1 py-0.5 border-black uppercase text-center" style={{fontSize:'7.5pt', width:'18%'}}>OBS.</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y-2 divide-black border-2 border-black">
+                                    <tbody className="divide-y divide-black border-2 border-black">
                                         {students.map((req, idx) => (
-                                            <tr key={req.id} className="border-b-2 border-black print:!text-black">
-                                                <td className="px-2 py-1 text-center font-bold border-r border-black text-[10px]">{idx + 1}</td>
-                                                <td className="px-3 py-1 font-bold text-[10px] border-r border-black">{req.cpf}</td>
-                                                <td className="px-3 py-1 border-r border-black">
-                                                    <div className="font-bold uppercase text-[10px] truncate">{req.socialName || req.studentName}</div>
+                                            <tr key={req.id} className="border-b border-black print:!text-black">
+                                                <td className="px-1 py-0.5 text-center font-bold border-r border-black" style={{fontSize:'7.5pt'}}>{idx + 1}</td>
+                                                <td className="px-1 py-0.5 font-bold border-r border-black" style={{fontSize:'7.5pt'}}>{req.cpf}</td>
+                                                <td className="px-1 py-0.5 border-r border-black">
+                                                    <div className="font-bold uppercase truncate" style={{fontSize:'8pt'}}>{req.socialName || req.studentName}</div>
                                                     {(req.instructor || req.vehiclePlate) && (
-                                                        <div className="text-[8.5px] font-normal uppercase mt-0.5 leading-tight text-gray-700 print:text-gray-800 truncate">
+                                                        <div className="font-normal uppercase leading-tight text-gray-800 truncate" style={{fontSize:'6.5pt'}}>
                                                             {req.instructor && req.instructor}
                                                             {req.instructor && req.vehiclePlate && ' | '}
                                                             {req.vehiclePlate && `Placa: ${req.vehiclePlate}`}
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-2 py-1 border-r border-black"><div className="w-4 h-4 border-2 border-black mx-auto rounded-sm"></div></td>
-                                                <td className="px-2 py-1 border-r border-black"><div className="w-4 h-4 border-2 border-black mx-auto rounded-sm"></div></td>
-                                                <td className="px-2 py-1 border-r border-black"><div className="w-4 h-4 border-2 border-black mx-auto rounded-sm"></div></td>
-                                                <td className="px-3 py-1 border-black"></td>
+                                                <td className="px-1 py-0.5 border-r border-black"><div className="w-3 h-3 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-1 py-0.5 border-r border-black"><div className="w-3 h-3 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-1 py-0.5 border-r border-black"><div className="w-3 h-3 border-2 border-black mx-auto rounded-sm"></div></td>
+                                                <td className="px-1 py-0.5 border-black"></td>
                                             </tr>
                                         ))}
                                     </tbody>
