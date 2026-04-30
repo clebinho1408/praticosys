@@ -1720,7 +1720,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const groupConfig = {
     [ExamStatus.IN_ANALYSIS]: {
-      label: user.role === UserRole.INSTRUCTOR ? "Candidatos Pendentes" : (isAdminOpSup ? "Pedidos de Agendamento" : "Cadastros em Análise"),
+      label: "Candidatos Pendentes",
       color: "indigo",
       icon: ClipboardList,
     },
@@ -1841,7 +1841,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 <option value="ALL">Todos os Status</option>
                 <option value={ExamStatus.IN_ANALYSIS}>
-                  {isAdminOpSup ? "Pedidos de Agendamento" : (user.role === UserRole.INSTRUCTOR ? "Candidatos Pendentes" : "Cadastros em Análise")}
+                  {"Candidatos Pendentes"}
                 </option>
                 <option value={ExamStatus.WAITING_SCHEDULING}>
                   Aguardando Agendamento
