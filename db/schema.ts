@@ -108,6 +108,10 @@ export const examRequests = pgTable('exam_requests', {
   cnhRestriction: text('cnh_restriction'),
   instructor: text('instructor'), // New
   vehiclePlate: text('vehicle_plate'), // New
+  // Checklists de pré-agendamento (CNH do Brasil — Instrutor)
+  checklistVehicle: boolean('checklist_vehicle').default(false),       // CHECKLIST VEÍCULO
+  practicalCourseInserted: boolean('practical_course_inserted').default(false), // CURSO PRÁTICO INSERIDO
+  taxaPaga: boolean('taxa_paga').default(false),                        // TAXA
   
   // PCD
   disabilityType: text('disability_type'),

@@ -487,7 +487,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       if (duplicate) {
         const name = duplicate.socialName || duplicate.studentName || "este candidato";
         const statusLabels: Record<string, string> = {
-          IN_ANALYSIS: "Pedidos de Agendamento",
+          IN_ANALYSIS: "Candidatos Pendentes",
           WAITING_SCHEDULING: "Aguardando Agendamento",
           SCHEDULED: "Agendado",
           WAITING_RESULT: "Aguardando Resultado",
@@ -562,8 +562,32 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     }
 
     try {
+      // Para Instrutores: determina status baseado nos 3 checkboxes.
+      // Se os 3 estiverem marcados → WAITING_SCHEDULING (Aguardando Agendamento).
+      // Se falta algum → IN_ANALYSIS (Candidatos Pendentes).
+      const allChecklistsDone =
+        !!formData.checklistVehicle &&
+        !!formData.practicalCourseInserted &&
+        !!formData.taxaPaga;
+
+      const instructorStatus =
+        allChecklistsDone
+          ? ExamStatus.WAITING_SCHEDULING
+          : ExamStatus.IN_ANALYSIS;
+
       if (editingRequest) {
-        await api.updateRequest(editingRequest.id, formData);
+        // Ao editar: se é Instrutor, recalcula o status com base nos checkboxes
+        // (exceto se o candidato já passou de IN_ANALYSIS / WAITING_SCHEDULING)
+        const currentStatus = editingRequest.status;
+        const isStillPending =
+          currentStatus === ExamStatus.IN_ANALYSIS ||
+          currentStatus === ExamStatus.WAITING_SCHEDULING;
+
+        const updatedData: any = { ...formData };
+        if (user.role === UserRole.INSTRUCTOR && isStillPending) {
+          updatedData.status = instructorStatus;
+        }
+        await api.updateRequest(editingRequest.id, updatedData);
       } else {
         if (formData.intendedCategory === "AB") {
           const instructorParts = (formData.instructor || "").split(" / ");
@@ -579,6 +603,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           const motoPlate = getVal(plateParts, "Moto: ");
           const carPlate = getVal(plateParts, "Carro: ");
 
+          const resolvedStatus =
+            user.role === UserRole.INSTRUCTOR
+              ? instructorStatus
+              : ExamStatus.WAITING_SCHEDULING;
+
           // Create A
           await api.createRequest({
             ...formData,
@@ -591,10 +620,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               (user.role === UserRole.SCHOOL
                 ? RequestSource.SCHOOL
                 : RequestSource.STUDENT_DIRECT),
-            status:
-              user.role === UserRole.INSTRUCTOR
-                ? ExamStatus.IN_ANALYSIS
-                : ExamStatus.WAITING_SCHEDULING,
+            status: resolvedStatus,
           });
 
           // Create B
@@ -609,10 +635,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               (user.role === UserRole.SCHOOL
                 ? RequestSource.SCHOOL
                 : RequestSource.STUDENT_DIRECT),
-            status:
-              user.role === UserRole.INSTRUCTOR
-                ? ExamStatus.IN_ANALYSIS
-                : ExamStatus.WAITING_SCHEDULING,
+            status: resolvedStatus,
           });
         } else {
           await api.createRequest({
@@ -625,7 +648,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 : RequestSource.STUDENT_DIRECT),
             status:
               user.role === UserRole.INSTRUCTOR
-                ? ExamStatus.IN_ANALYSIS
+                ? instructorStatus
                 : ExamStatus.WAITING_SCHEDULING,
           });
         }
@@ -661,13 +684,20 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       message: "Tem certeza que deseja cancelar a presença deste candidato? Ele será removido da banca e voltará para o final da fila de agendamento.",
       type: "cancel",
       onConfirm: async () => {
+        // Limpa todos os campos de agendamento e queueUpdatedAt para que o
+        // candidato vá para o FINAL da fila (updatedAt = now() no backend).
+        // Sem limpar queueUpdatedAt o campo ficava "sujo" e poderia restaurar
+        // uma posição antiga ao cancelar a banca futuramente.
         await api.updateRequest(id, {
           attendanceConfirmed: false,
           status: ExamStatus.WAITING_SCHEDULING,
           scheduleId: null,
+          scheduledDate: null,
+          scheduledTime: null,
           scheduledCategory: null,
-          // updatedAt is set automatically by the backend — this places candidate at end of queue
-        });
+          examinerId: null,
+          queueUpdatedAt: null, // limpa posição salva — updatedAt=now() coloca no final da fila
+        } as any);
         fetchRequests(true);
         setConfirmModalData(prev => ({ ...prev, isOpen: false }));
       }
@@ -1094,7 +1124,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       currentPlate = formData.vehiclePlate || "";
     }
 
-    // Encontrar o objeto instrutor pelo nome (já que salvamos o nome no banco, não o ID... ideal seria ID, mas vamos manter compatibilidade)
+    // Encontrar o objeto instrutor pelo nome
     const selectedInstructor = instructors.find(
       (i) => i.name === currentInstructorName,
     );
@@ -1106,6 +1136,24 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       : [];
 
     const selectedVehicle = availableVehicles.find(v => v.plate === currentPlate);
+
+    // Para Categoria A: "DO CANDIDATO" habilita digitação livre da placa
+    const isDoCandidato = categoryCode === "A" && currentInstructorName === "DO CANDIDATO";
+
+    // Helper para atualizar placa no formData (respeitando formato AB)
+    const updatePlate = (newPlate: string) => {
+      if (formData.intendedCategory === "AB") {
+        const otherPartPlate =
+          formData.vehiclePlate?.split(" / ")[categoryCode === "A" ? 1 : 0] || "";
+        const finalPlate =
+          categoryCode === "A"
+            ? `Moto: ${newPlate} / ${otherPartPlate}`
+            : `${otherPartPlate} / Carro: ${newPlate}`;
+        setFormData({ ...formData, vehiclePlate: finalPlate });
+      } else {
+        setFormData({ ...formData, vehiclePlate: newPlate });
+      }
+    };
 
     return (
       <div className={`p-4 rounded-lg border ${colorClass}`}>
@@ -1131,6 +1179,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
                 if (newName === "A DEFINIR") {
                   newPlate = "A DEFINIR";
+                } else if (categoryCode === "A" && newName === "DO CANDIDATO") {
+                  // Placa será digitada manualmente — inicia vazio
+                  newPlate = "";
                 } else {
                   const newInstructor = instructors.find(
                     (i) => i.name === newName,
@@ -1188,6 +1239,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   <option value="A DEFINIR">A DEFINIR</option>
                 </>
               )}
+              {/* Opção "DO CANDIDATO" exclusiva para Categoria A (Moto) */}
+              {categoryCode === "A" && (
+                <option value="DO CANDIDATO">DO CANDIDATO</option>
+              )}
               {availableInstructors.map((inst) => (
                 <option key={inst.id} value={inst.name}>
                   {inst.name}
@@ -1199,52 +1254,49 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Veículo/Placa <span className="text-red-500">*</span>
             </label>
-            <select
-              className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
-              value={currentPlate}
-              disabled={(!!editingRequest && isAdminOpSup) || !currentInstructorName}
-              onChange={(e) => {
-                const newPlate = e.target.value;
-                if (formData.intendedCategory === "AB") {
-                  const otherPartPlate =
-                    formData.vehiclePlate?.split(" / ")[
-                      categoryCode === "A" ? 1 : 0
-                    ] || "";
-                  const finalPlate =
-                    categoryCode === "A"
-                      ? `Moto: ${newPlate} / ${otherPartPlate}`
-                      : `${otherPartPlate} / Carro: ${newPlate}`;
-                  setFormData({ ...formData, vehiclePlate: finalPlate });
-                } else {
-                  setFormData({ ...formData, vehiclePlate: newPlate });
-                }
-              }}
-            >
-              <option value="">Selecione...</option>
-              <option value="A DEFINIR">A DEFINIR</option>
-              {availableVehicles.map((v) => (
-                <option key={v.id} value={v.plate}>
-                  {v.model} - {v.plate}
-                </option>
-              ))}
-              {/* Fallback option if instructor has no vehicles list but has a plate property */}
-              {selectedInstructor &&
-                !availableVehicles.length &&
-                selectedInstructor.plate &&
-                selectedInstructor.category?.includes(categoryCode) && (
-                  <option value={selectedInstructor.plate}>
-                    {selectedInstructor.plate}
+            {/* Quando "DO CANDIDATO" selecionado em Cat A: campo de texto livre */}
+            {isDoCandidato ? (
+              <input
+                type="text"
+                className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 uppercase"
+                placeholder="Digite a placa do veículo"
+                value={currentPlate}
+                onChange={(e) => updatePlate(e.target.value.toUpperCase())}
+                maxLength={8}
+              />
+            ) : (
+              <select
+                className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
+                value={currentPlate}
+                disabled={(!!editingRequest && isAdminOpSup) || !currentInstructorName}
+                onChange={(e) => updatePlate(e.target.value)}
+              >
+                <option value="">Selecione...</option>
+                <option value="A DEFINIR">A DEFINIR</option>
+                {availableVehicles.map((v) => (
+                  <option key={v.id} value={v.plate}>
+                    {v.model} - {v.plate}
                   </option>
-                )}
-              {/* Allow manual entry if needed or show current value if not in list */}
-              {currentPlate &&
-                currentPlate !== "A DEFINIR" &&
-                !availableVehicles.some((v) => v.plate === currentPlate) &&
-                (!selectedInstructor ||
-                  selectedInstructor.plate !== currentPlate) && (
-                  <option value={currentPlate}>{currentPlate}</option>
-                )}
-            </select>
+                ))}
+                {/* Fallback option if instructor has no vehicles list but has a plate property */}
+                {selectedInstructor &&
+                  !availableVehicles.length &&
+                  selectedInstructor.plate &&
+                  selectedInstructor.category?.includes(categoryCode) && (
+                    <option value={selectedInstructor.plate}>
+                      {selectedInstructor.plate}
+                    </option>
+                  )}
+                {/* Allow manual entry if needed or show current value if not in list */}
+                {currentPlate &&
+                  currentPlate !== "A DEFINIR" &&
+                  !availableVehicles.some((v) => v.plate === currentPlate) &&
+                  (!selectedInstructor ||
+                    selectedInstructor.plate !== currentPlate) && (
+                    <option value={currentPlate}>{currentPlate}</option>
+                  )}
+              </select>
+            )}
           </div>
         </div>
         {selectedVehicle && (
@@ -1277,6 +1329,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         completedPracticalCourse: false,
         hasVehicle: false,
         practicalHours: 0,
+        checklistVehicle: false,
+        practicalCourseInserted: false,
+        taxaPaga: false,
       };
 
       // Se for instrutor, já preenche o nome dele
@@ -1665,7 +1720,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const groupConfig = {
     [ExamStatus.IN_ANALYSIS]: {
-      label: (isAdminOpSup || user.role === UserRole.INSTRUCTOR) ? "Pedidos de Agendamento" : "Cadastros em Análise",
+      label: user.role === UserRole.INSTRUCTOR ? "Candidatos Pendentes" : (isAdminOpSup ? "Pedidos de Agendamento" : "Cadastros em Análise"),
       color: "indigo",
       icon: ClipboardList,
     },
@@ -1748,7 +1803,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               onChange={(e) => handleStatusFilterChange(e.target.value)}
             >
               <option value="ALL">Todos os Status</option>
-              <option value={ExamStatus.IN_ANALYSIS}>Pedidos de Agendamento</option>
+              <option value={ExamStatus.IN_ANALYSIS}>Candidatos Pendentes</option>
               <option value={ExamStatus.WAITING_SCHEDULING}>Aguardando Agendamento</option>
               <option value={ExamStatus.SCHEDULED}>Candidatos Agendados</option>
               <option value={ExamStatus.WAITING_RESULT}>Aguardando Resultados</option>
@@ -1786,7 +1841,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 <option value="ALL">Todos os Status</option>
                 <option value={ExamStatus.IN_ANALYSIS}>
-                  {isAdminOpSup ? "Pedidos de Agendamento" : "Cadastros em Análise"}
+                  {isAdminOpSup ? "Pedidos de Agendamento" : (user.role === UserRole.INSTRUCTOR ? "Candidatos Pendentes" : "Cadastros em Análise")}
                 </option>
                 <option value={ExamStatus.WAITING_SCHEDULING}>
                   Aguardando Agendamento
@@ -2882,6 +2937,76 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                         "B",
                         "bg-green-50 border-green-100",
                       )}
+
+                    {/* Checklists de pré-agendamento — visível somente para Instrutores */}
+                    {user.role === UserRole.INSTRUCTOR && (
+                      <div className="border-t pt-4">
+                        <h4 className="font-bold text-sm mb-3 text-gray-800">
+                          Checklists
+                        </h4>
+                        <div className="flex flex-wrap gap-6">
+                          {/* CHECKLIST VEÍCULO */}
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 accent-blue-600 cursor-pointer"
+                              checked={!!formData.checklistVehicle}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  checklistVehicle: e.target.checked,
+                                })
+                              }
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              CHECKLIST VEÍCULO
+                            </span>
+                          </label>
+
+                          {/* CURSO PRÁTICO INSERIDO */}
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 accent-blue-600 cursor-pointer"
+                              checked={!!formData.practicalCourseInserted}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  practicalCourseInserted: e.target.checked,
+                                })
+                              }
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              CURSO PRÁTICO INSERIDO
+                            </span>
+                          </label>
+
+                          {/* TAXA */}
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4 accent-blue-600 cursor-pointer"
+                              checked={!!formData.taxaPaga}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  taxaPaga: e.target.checked,
+                                })
+                              }
+                            />
+                            <span className="text-sm font-medium text-gray-700">
+                              TAXA
+                            </span>
+                          </label>
+                        </div>
+                        {/* Aviso de destino da ficha */}
+                        <p className="mt-3 text-xs text-gray-500 italic">
+                          {formData.checklistVehicle && formData.practicalCourseInserted && formData.taxaPaga
+                            ? "✅ Todos os itens marcados — candidato será encaminhado para Aguardando Agendamento."
+                            : "⚠️ Preencha todos os itens para encaminhar para Aguardando Agendamento. Itens pendentes enviarão para Candidatos Pendentes."}
+                        </p>
+                      </div>
+                    )}
 
                     {formData.examType === ExamType.PCD && (
                       <div className="border-t pt-4">
