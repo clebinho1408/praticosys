@@ -1483,7 +1483,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
                   {/* Notice */}
                   <p style={{marginTop:'72px', fontSize:'10.5pt', lineHeight:'1.8', color:'#222'}}>
-                    <strong>Atenção: <strong>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação.</strong></strong>
+                    <strong>Atenção:</strong> <span style={{fontWeight:600}}>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação.</span>
                   </p>
                   <p style={{fontSize:'10.5pt', fontWeight:'bold', lineHeight:'1.8', color:'#222', marginTop:'32px', textAlign:'center'}}>
                     Declaro estar ciente de que, em caso de ausência, reprovação ou cancelamento do exame, será necessário retornar à agência para realizar novo agendamento.
@@ -1502,11 +1502,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     </p>
                   </div>
 
-                  {/* Print Footer – visible only in preview, injected separately for print */}
-                  <div style={{marginTop:'48px', borderTop:'2px solid #000', paddingTop:'6px', display:'flex', justifyContent:'space-between', fontSize:'8.5pt', fontWeight:'bold', color:'#000'}} className="print:hidden">
-                    <span>{(settings?.agencyAddress || '').toUpperCase()}</span>
-                    <span>IMPRESSÃO: {new Date().toLocaleString('pt-BR')}</span>
-                  </div>
 
                 </div>{/* /comprovante-print-area */}
               </div>
