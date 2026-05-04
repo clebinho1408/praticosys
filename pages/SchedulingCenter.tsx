@@ -1380,9 +1380,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         // Localidade para assinatura (penultima linha): extrai cidade do agencyName
         // Full today date in full Brazilian format
         const today = new Date();
-        const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+        const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
         const dayNum = today.getDate();
-        const monthName = months[today.getMonth()].toUpperCase();
+        const monthName = months[today.getMonth()];
         const yearNum = today.getFullYear();
         const todayFormatted = `${dayNum} de ${monthName} de ${yearNum}`;
 
@@ -1448,7 +1448,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 <div id="comprovante-print-area" className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm" style={{fontFamily:'Arial, sans-serif', fontSize:'11pt', color:'#000', lineHeight:'1.7'}}>
 
                   {/* Header */}
-                  <div className="header" style={{display:'flex', alignItems:'center', gap:'14px', marginBottom:'24px'}}>
+                  <div className="header" style={{display:'flex', alignItems:'center', gap:'14px', marginBottom:'48px'}}>
                     {settings?.logoUrl && (
                       <img src={settings.logoUrl} className="logo" style={{height:'64px', width:'auto', flexShrink:0}} alt="logo" />
                     )}
@@ -1462,7 +1462,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                   </div>
 
                   {/* Title */}
-                  <h1 style={{fontSize:'14pt', fontWeight:'bold', textAlign:'center', textTransform:'uppercase', margin:'0 0 18px', letterSpacing:'1px'}}>
+                  <h1 style={{fontSize:'14pt', fontWeight:'bold', textAlign:'center', textTransform:'uppercase', margin:'0 0 36px', letterSpacing:'1px'}}>
                     COMPROVANTE DE AGENDAMENTO
                   </h1>
 
@@ -1481,20 +1481,20 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                   <div style={{margin:'0 0 14px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
 
                   {/* Notice */}
-                  <p style={{marginTop:'36px', fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.8', color:'#222'}}>
+                  <p style={{marginTop:'72px', fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.8', color:'#222'}}>
                     <strong>Atenção:</strong> NÃO SE ESQUEÇA DE NO DIA PORTAR UM DOCUMENTO COM FOTO (VÁLIDO)
                   </p>
-                  <p style={{fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.8', color:'#222', marginTop:'14px'}}>
+                  <p style={{fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.8', color:'#222', marginTop:'32px'}}>
                     Caso não compareça, ou reprove ou tenha seu exame cancelado, fique ciente que terá que retornar aqui na agência para Remarcar seu novo exame.
                   </p>
 
                   {/* Location + date */}
-                  <p style={{marginTop:'52px', fontSize:'11pt'}}>
-                    {agencyCity}, SC, {todayFormatted}.
+                  <p style={{marginTop:'80px', fontSize:'11pt', textAlign:'center'}}>
+                    Balneário Camboriú, SC, {todayFormatted}.
                   </p>
 
                   {/* Signature */}
-                  <div style={{marginTop:'80px', textAlign:'center'}}>
+                  <div style={{marginTop:'100px', textAlign:'center'}}>
                     <div style={{borderTop:'1.5px solid #000', width:'280px', margin:'0 auto 6px'}}></div>
                     <p style={{fontSize:'11pt', fontWeight:'bold', textTransform:'uppercase', margin:'0'}}>
                       {candidateName}
