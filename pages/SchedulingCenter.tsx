@@ -978,10 +978,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                         <tr className="bg-white text-black font-bold border-b-2 border-black">
                                             <th className="px-1 py-0.5 w-[22px] text-center border-r border-black uppercase" style={{fontSize:'7.5pt'}}>#</th>
                                             <th className="px-1 py-0.5 w-[82px] border-r border-black uppercase" style={{fontSize:'7.5pt'}}>CPF</th>
-                                            <th className="px-1 py-0.5 border-r border-black uppercase" style={{fontSize:'7.5pt'}}>Nome do Candidato</th>
-                                            <th className="px-1 py-0.5 w-[28px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Falt.</th>
-                                            <th className="px-1 py-0.5 w-[28px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Apto</th>
-                                            <th className="px-1 py-0.5 w-[28px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Inap.</th>
+                                            <th className="px-1 py-0.5 w-[220px] border-r border-black uppercase" style={{fontSize:'7.5pt'}}>Nome do Candidato</th>
+                                            <th className="px-1 py-0.5 w-[42px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Falt.</th>
+                                            <th className="px-1 py-0.5 w-[42px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Apto</th>
+                                            <th className="px-1 py-0.5 w-[42px] text-center border-r border-black uppercase" style={{fontSize:'7pt'}}>Inap.</th>
                                             <th className="px-1 py-0.5 border-black uppercase text-center" style={{fontSize:'7.5pt', width:'18%'}}>OBS.</th>
                                         </tr>
                                     </thead>
