@@ -1422,7 +1422,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           .location { margin-top: 32px; font-size: 11pt; }
                           .logo { height: 64px; width: auto; flex-shrink: 0; }
                           .header-text { text-align: left; }
-                          .print-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 2px solid #000; padding: 6px 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 8.5pt; font-weight: bold; color: #000; box-sizing: border-box; }
+                          .print-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1.5px solid #000; padding: 3px 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 6.5pt; font-weight: bold; color: #000; box-sizing: border-box; white-space: nowrap; overflow: hidden; }
                         </style>
                         </head><body>${el.innerHTML}<div class="print-footer"><span>${(settings?.agencyAddress || '').toUpperCase()}</span><span>IMPRESSÃO: ${new Date().toLocaleString('pt-BR')}</span></div></body></html>
                       `);
