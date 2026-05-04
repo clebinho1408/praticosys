@@ -141,6 +141,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
 
   // Comprovante de Agendamento
   const [comprovanteReq, setComprovanteReq] = useState<ExamRequest | null>(null);
+  const [printedIds, setPrintedIds] = useState<Set<string>>(new Set());
 
   // Modal: vaga aberta na banca (candidato saiu)
   const [vagaAbertaModal, setVagaAbertaModal] = useState<{ bancaCode: string; bancaId: string } | null>(null);
@@ -896,7 +897,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 {/* LISTA CLEAN (Apenas Web - SEM as colunas de marcação) */}
                                 <div className="space-y-2 print:hidden">
                                     {students.map((req, idx) => (
-                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-3 rounded-md border transition-all hover:border-blue-200 bg-white ${req.attendanceConfirmed ? 'border-green-300 bg-green-100/40 shadow-sm' : 'border-gray-200'}`}>
+                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-3 rounded-md border transition-all hover:border-blue-200 ${printedIds.has(req.id) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
                                             <div className="flex items-center gap-4 flex-1 w-full">
                                                 <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 text-sm shrink-0">
                                                     {idx + 1}
@@ -934,32 +935,26 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
                                             {selectedSchedule.status !== 'CONCLUDED' && selectedSchedule.status !== 'CLOSED' && !isConsultant && (
                                                 <div className="flex items-center gap-2 shrink-0">
-                                                    {/* Botão Confirmação */}
-                                                    <button 
-                                                        onClick={() => toggleAttendance(req)}
-                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md font-medium text-xs transition-all ${req.attendanceConfirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                                                        title="Confirmar Presença/Agendamento"
-                                                    >
-                                                        {req.attendanceConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-                                                        {req.attendanceConfirmed ? 'Confirmado' : 'Confirmar'}
-                                                    </button>
-
                                                     {/* Botão Comprovante */}
                                                     <button
-                                                        onClick={() => setComprovanteReq(req)}
-                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-md transition-all"
+                                                        onClick={() => { setComprovanteReq(req); setPrintedIds(prev => new Set(prev).add(req.id)); }}
+                                                        className={`p-1.5 rounded-md transition-all ${printedIds.has(req.id) ? 'text-blue-700 bg-blue-100 hover:bg-blue-200' : 'text-blue-600 hover:bg-blue-50'}`}
                                                         title="Imprimir Comprovante de Agendamento"
                                                     >
                                                         <FileText className="h-4 w-4" />
                                                     </button>
 
-                                                    {/* Botão WhatsApp */}
-                                                    <button 
-                                                        onClick={() => handleWhatsApp(req)}
-                                                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-all"
-                                                        title="Enviar mensagem WhatsApp"
+                                                    {/* Botão Remover da Banca */}
+                                                    <button
+                                                        onClick={async () => {
+                                                            if (!confirm(`Remover ${req.socialName || req.studentName} da banca e devolver para Aguardando Agendamento?`)) return;
+                                                            await api.removeStudentFromSchedule(req.id);
+                                                            refreshData(true);
+                                                        }}
+                                                        className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-all"
+                                                        title="Remover da Banca"
                                                     >
-                                                        <MessageCircle className="h-4 w-4" />
+                                                        <X className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             )}
@@ -1471,7 +1466,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
                   {/* Body text */}
                   <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
-                    Eu&nbsp;<strong>{candidateName}</strong>,&nbsp;CPF&nbsp;<strong>{candidateCpf}</strong>,&nbsp;declaro estar ciente do&nbsp;<strong>AGENDAMENTO DO EXAME PRÁTICO</strong>;
+                    Eu&nbsp;<strong>{candidateName}</strong>, CPF <strong>{candidateCpf}</strong>, declaro estar ciente do&nbsp;<strong>AGENDAMENTO DO EXAME PRÁTICO</strong>;
                   </p>
 
                   {/* Exam details */}
