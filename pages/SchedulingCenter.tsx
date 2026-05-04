@@ -1422,8 +1422,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           .location { margin-top: 32px; font-size: 11pt; }
                           .logo { height: 64px; width: auto; flex-shrink: 0; }
                           .header-text { text-align: left; }
+                          .print-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 2px solid #000; padding: 6px 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 8.5pt; font-weight: bold; color: #000; box-sizing: border-box; }
                         </style>
-                        </head><body>${el.innerHTML}</body></html>
+                        </head><body>${el.innerHTML}<div class="print-footer"><span>${(settings?.agencyAddress || '').toUpperCase()}</span><span>IMPRESSÃO: ${new Date().toLocaleString('pt-BR')}</span></div></body></html>
                       `);
                       pri.document.close();
                       pri.focus();
@@ -1481,11 +1482,11 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                   <div style={{margin:'0 0 14px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
 
                   {/* Notice */}
-                  <p style={{marginTop:'72px', fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.8', color:'#222'}}>
-                    <strong>Atenção:</strong> NÃO SE ESQUEÇA DE NO DIA PORTAR UM DOCUMENTO COM FOTO (VÁLIDO)
+                  <p style={{marginTop:'72px', fontSize:'10.5pt', lineHeight:'1.8', color:'#222'}}>
+                    <strong>Atenção: <strong>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação.</strong></strong>
                   </p>
-                  <p style={{fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.8', color:'#222', marginTop:'32px'}}>
-                    Caso não compareça, ou reprove ou tenha seu exame cancelado, fique ciente que terá que retornar aqui na agência para Remarcar seu novo exame.
+                  <p style={{fontSize:'10.5pt', fontWeight:'bold', lineHeight:'1.8', color:'#222', marginTop:'32px', textAlign:'center'}}>
+                    Declaro estar ciente de que, em caso de ausência, reprovação ou cancelamento do exame, será necessário retornar à agência para realizar novo agendamento.
                   </p>
 
                   {/* Location + date */}
@@ -1499,6 +1500,12 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     <p style={{fontSize:'11pt', fontWeight:'bold', textTransform:'uppercase', margin:'0'}}>
                       {candidateName}
                     </p>
+                  </div>
+
+                  {/* Print Footer – visible only in preview, injected separately for print */}
+                  <div style={{marginTop:'48px', borderTop:'2px solid #000', paddingTop:'6px', display:'flex', justifyContent:'space-between', fontSize:'8.5pt', fontWeight:'bold', color:'#000'}} className="print:hidden">
+                    <span>{(settings?.agencyAddress || '').toUpperCase()}</span>
+                    <span>IMPRESSÃO: {new Date().toLocaleString('pt-BR')}</span>
                   </div>
 
                 </div>{/* /comprovante-print-area */}
