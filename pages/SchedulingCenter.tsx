@@ -1357,8 +1357,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
           return `${d}/${m}/${y}`;
         })();
 
-        // City/state from agencyName or fallback
-        const agencyCity = settings?.agencyName || 'Balneário Camboriú';
+        // Fixed city for signature line
+        const agencyCity = 'BALNEÁRIO CAMBORIÚ';
 
         // Exam location from CNH Brasil > Comunicação > Endereço Completo
         const examAddress = settings?.defaultExamAddress || '';
@@ -1381,7 +1381,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         // Full today date in full Brazilian format
         const today = new Date();
         const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-        const todayFormatted = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
+        const dayNum = today.getDate();
+        const monthName = months[today.getMonth()].toUpperCase();
+        const yearNum = today.getFullYear();
+        const todayFormatted = `${dayNum} de ${monthName} de ${yearNum}`;
 
         return (
           <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 animate-fadeIn">
@@ -1407,7 +1410,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           body { font-family: Arial, sans-serif; font-size: 11pt; color: #000; margin: 0; }
                           h1 { font-size: 13pt; text-align: center; text-transform: uppercase; margin: 10px 0 4px; }
                           h2 { font-size: 11pt; text-align: center; text-transform: uppercase; margin: 2px 0 8px; letter-spacing: 1px; }
-                          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 14px; }
+                          .header { display: flex; align-items: center; gap: 14px; padding-bottom: 0; margin-bottom: 20px; }
                           .header-agency { font-size: 10pt; font-weight: bold; text-transform: uppercase; margin: 0; }
                           .body-text { font-size: 11pt; line-height: 1.8; margin: 0 0 10px; }
                           .field { font-size: 11pt; margin: 4px 0; line-height: 1.7; }
@@ -1417,7 +1420,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           .signature .line { border-top: 1.5px solid #000; width: 280px; margin: 0 auto 4px; }
                           .signature p { font-size: 11pt; font-weight: bold; text-transform: uppercase; margin: 0; }
                           .location { margin-top: 32px; font-size: 11pt; }
-                          .logo { height: 56px; width: auto; display: block; margin: 0 auto 6px; }
+                          .logo { height: 64px; width: auto; flex-shrink: 0; }
+                          .header-text { text-align: left; }
                         </style>
                         </head><body>${el.innerHTML}</body></html>
                       `);
@@ -1444,16 +1448,17 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 <div id="comprovante-print-area" className="bg-white p-8 rounded-lg border border-gray-200 shadow-sm" style={{fontFamily:'Arial, sans-serif', fontSize:'11pt', color:'#000', lineHeight:'1.7'}}>
 
                   {/* Header */}
-                  <div className="header" style={{textAlign:'center', borderBottom:'2px solid #000', paddingBottom:'8px', marginBottom:'16px'}}>
+                  <div className="header" style={{display:'flex', alignItems:'center', gap:'14px', marginBottom:'24px'}}>
                     {settings?.logoUrl && (
-                      <img src={settings.logoUrl} className="logo" style={{height:'56px', display:'block', margin:'0 auto 6px'}} alt="logo" />
+                      <img src={settings.logoUrl} className="logo" style={{height:'64px', width:'auto', flexShrink:0}} alt="logo" />
                     )}
-                    <p className="header-agency" style={{fontSize:'10pt', fontWeight:'bold', textTransform:'uppercase', margin:'0 0 2px'}}>
-                      ESTADO DE SANTA CATARINA &nbsp;•&nbsp; DEPARTAMENTO ESTADUAL DE TRÂNSITO
-                    </p>
-                    <p style={{fontSize:'10pt', textTransform:'uppercase', margin:'0 0 4px'}}>
-                      {settings?.agencyName || 'AGÊNCIA REGIONAL'}
-                    </p>
+                    <div className="header-text" style={{textAlign:'left'}}>
+                      <p style={{fontSize:'10pt', fontWeight:'bold', textTransform:'uppercase', margin:'0 0 2px'}}>ESTADO DE SANTA CATARINA</p>
+                      <p style={{fontSize:'10pt', fontWeight:'bold', textTransform:'uppercase', margin:'0 0 2px'}}>DEPARTAMENTO ESTADUAL DE TRÂNSITO</p>
+                      <p style={{fontSize:'10pt', fontWeight:'bold', textTransform:'uppercase', margin:'0'}}>
+                        AGÊNCIA REGIONAL DE BALNEÁRIO CAMBORIÚ - SETOR CNH
+                      </p>
+                    </div>
                   </div>
 
                   {/* Title */}
@@ -1463,33 +1468,33 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
                   {/* Body text */}
                   <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
-                    Eu&nbsp;<strong>{candidateName}</strong>,&nbsp;CPF&nbsp;<strong>{candidateCpf}</strong>,&nbsp;declaro estar ciente do&nbsp;<strong>AGENDAMENTO DO EXAME DA PROVA PRÁTICA</strong>;
+                    Eu&nbsp;<strong>{candidateName}</strong>,&nbsp;CPF&nbsp;<strong>{candidateCpf}</strong>,&nbsp;declaro estar ciente do&nbsp;<strong>AGENDAMENTO DO EXAME PRÁTICO</strong>;
                   </p>
 
                   {/* Exam details */}
-                  <div style={{margin:'0 0 6px'}}><strong>Data:</strong> {fullDate}</div>
-                  <div style={{margin:'0 0 6px'}}><strong>Hora:</strong> {sched.time}</div>
+                  <div style={{margin:'0 0 14px'}}><strong>Data:</strong> {fullDate}</div>
+                  <div style={{margin:'0 0 14px'}}><strong>Hora:</strong> {sched.time}</div>
                   {examAddress && (
-                    <div style={{margin:'0 0 6px'}}><strong>Local do Exame:</strong> {examAddress}</div>
+                    <div style={{margin:'0 0 14px'}}><strong>Local do Exame:</strong> {examAddress}</div>
                   )}
-                  <div style={{margin:'0 0 6px'}}><strong>Categoria:</strong> {category}</div>
-                  <div style={{margin:'0 0 6px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
+                  <div style={{margin:'0 0 14px'}}><strong>Categoria:</strong> {category}</div>
+                  <div style={{margin:'0 0 14px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
 
                   {/* Notice */}
-                  <p style={{marginTop:'20px', fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.6', color:'#222'}}>
+                  <p style={{marginTop:'36px', fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.8', color:'#222'}}>
                     <strong>Atenção:</strong> NÃO SE ESQUEÇA DE NO DIA PORTAR UM DOCUMENTO COM FOTO (VÁLIDO)
                   </p>
-                  <p style={{fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.6', color:'#222', marginTop:'6px'}}>
+                  <p style={{fontSize:'10.5pt', fontStyle:'italic', lineHeight:'1.8', color:'#222', marginTop:'14px'}}>
                     Caso não compareça, ou reprove ou tenha seu exame cancelado, fique ciente que terá que retornar aqui na agência para Remarcar seu novo exame.
                   </p>
 
                   {/* Location + date */}
-                  <p style={{marginTop:'28px', fontSize:'11pt'}}>
+                  <p style={{marginTop:'52px', fontSize:'11pt'}}>
                     {agencyCity}, SC, {todayFormatted}.
                   </p>
 
                   {/* Signature */}
-                  <div style={{marginTop:'52px', textAlign:'center'}}>
+                  <div style={{marginTop:'80px', textAlign:'center'}}>
                     <div style={{borderTop:'1.5px solid #000', width:'280px', margin:'0 auto 6px'}}></div>
                     <p style={{fontSize:'11pt', fontWeight:'bold', textTransform:'uppercase', margin:'0'}}>
                       {candidateName}
