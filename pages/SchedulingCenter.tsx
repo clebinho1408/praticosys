@@ -942,6 +942,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         title="Imprimir Comprovante de Agendamento"
                                                     >
                                                         <FileText className="h-4 w-4" />
+                                                        <span className="text-xs font-medium">Comprovante</span>
                                                     </button>
 
                                                     {/* Botão Remover da Banca */}
@@ -1471,7 +1472,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
                   {/* Exam details */}
                   <div style={{margin:'0 0 14px'}}><strong>Data:</strong> {fullDate}</div>
-                  <div style={{margin:'0 0 14px'}}><strong>Hora:</strong> {sched.time}</div>
+                  <div style={{margin:'0 0 14px'}}><strong>Hora:</strong> {sched.time} <em style={{fontSize:'8.5pt', color:'#444'}}>(Chegar 20min antes)</em></div>
                   {examAddress && (
                     <div style={{margin:'0 0 14px'}}><strong>Local do Exame:</strong> {examAddress}</div>
                   )}

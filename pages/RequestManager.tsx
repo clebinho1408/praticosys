@@ -480,10 +480,23 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     // Verificação de CPF duplicado (somente ao criar novo candidato)
     if (!editingRequest) {
       const cleanCpf = (formData.cpf || "").replace(/\D/g, "");
+      const newCat = formData.intendedCategory || "";
       // Busca em todos os requests carregados (allGlobalRequests tem todos)
+      // Permite mesmo CPF somente se for para categoria diferente
       const duplicate = allGlobalRequests.find((r) => {
         const rCpf = (r.cpf || "").replace(/\D/g, "");
-        return rCpf === cleanCpf && r.status !== ExamStatus.CANCELLED;
+        if (rCpf !== cleanCpf) return false;
+        if (r.status === ExamStatus.CANCELLED) return false;
+        // Determina a categoria existente
+        const existingCat = r.intendedCategory || "";
+        // Bloqueia se as categorias se sobrepõem:
+        // A == A, B == B, AB sobrepõe A e B
+        const overlap = (a: string, b: string) => {
+          if (a === b) return true;
+          if (a === "AB" || b === "AB") return true;
+          return false;
+        };
+        return overlap(existingCat, newCat);
       });
       if (duplicate) {
         const name = duplicate.socialName || duplicate.studentName || "este candidato";
@@ -497,7 +510,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         };
         const statusLabel = statusLabels[duplicate.status] || duplicate.status;
         setErrorMessage(
-          `O candidato "${name}" já está cadastrado com este CPF e se encontra no card "${statusLabel}". Não é permitido cadastrar o mesmo CPF mais de uma vez.`
+          `O candidato "${name}" já está cadastrado com este CPF para a Categoria ${duplicate.intendedCategory || ''} e se encontra no card "${statusLabel}". Não é permitido cadastrar o mesmo CPF para a mesma categoria mais de uma vez.`
         );
         setErrorField("cpf");
         setIsErrorModalOpen(true);
