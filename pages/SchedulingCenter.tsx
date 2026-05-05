@@ -938,10 +938,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     {/* Botão Comprovante */}
                                                     <button
                                                         onClick={() => { setComprovanteReq(req); setPrintedIds(prev => new Set(prev).add(req.id)); }}
-                                                        className={`p-1.5 rounded-md transition-all ${printedIds.has(req.id) ? 'text-blue-700 bg-blue-100 hover:bg-blue-200' : 'text-blue-600 hover:bg-blue-50'}`}
+                                                        className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all ${printedIds.has(req.id) ? 'text-blue-700 bg-blue-100 hover:bg-blue-200' : 'text-blue-600 hover:bg-blue-50'}`}
                                                         title="Imprimir Comprovante de Agendamento"
                                                     >
-                                                        <FileText className="h-4 w-4" />
+                                                        <FileText className="h-4 w-4 shrink-0" />
                                                         <span className="text-xs font-medium">Comprovante</span>
                                                     </button>
 
