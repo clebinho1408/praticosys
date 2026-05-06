@@ -956,7 +956,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     {/* Botão Folha de Prova */}
                                                     <button
                                                         onClick={() => {
-                                                            const candidateName = (req.socialName || req.studentName || '').toUpperCase();
+                                                            const candidateName = (req.socialName || req.studentName || '').trim().toUpperCase();
                                                             const candidateCpf = req.cpf || '';
                                                             const category = (req.scheduledCategory || req.intendedCategory || '-').toUpperCase();
                                                             const examDate = (() => {
@@ -1542,7 +1542,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
         const examAddress = settings?.defaultExamAddress || '';
 
         // Candidate info
-        const candidateName = (req.socialName || req.studentName || '').toUpperCase();
+        const candidateName = (req.socialName || req.studentName || '').trim().toUpperCase();
         const candidateCpf = req.cpf || '';
         const category = req.scheduledCategory || req.intendedCategory || '-';
 
