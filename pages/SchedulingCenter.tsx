@@ -30,7 +30,8 @@ import {
   Bike,
   Car,
   AlertOctagon,
-  FileText
+  FileText,
+  ClipboardList
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -943,6 +944,179 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     >
                                                         <FileText className="h-4 w-4 shrink-0" />
                                                         <span className="text-xs font-medium">Comprovante</span>
+                                                    </button>
+
+                                                    {/* Botão Folha de Prova */}
+                                                    <button
+                                                        onClick={() => {
+                                                            const candidateName = (req.socialName || req.studentName || '').toUpperCase();
+                                                            const candidateCpf = req.cpf || '';
+                                                            const category = (req.scheduledCategory || req.intendedCategory || '-').toUpperCase();
+                                                            const examDate = (() => {
+                                                                const raw = (selectedSchedule.date || '').split('T')[0];
+                                                                const [y, m, d] = raw.split('-');
+                                                                return raw ? `${d}/${m}/${y}` : '';
+                                                            })();
+                                                            const examTime = selectedSchedule.time || '';
+
+                                                            const pri = window.open('', '_blank', 'width=900,height=1000');
+                                                            if (!pri) { alert('Habilite pop-ups para imprimir.'); return; }
+                                                            pri.document.write(`<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<title>Folha de Prova</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap');
+:root{--color-gravissima-bg:#ffebee;--color-gravissima-text:#b71c1c;--color-grave-bg:#fff3e0;--color-grave-text:#e65100;--color-media-bg:#fff8e1;--color-media-text:#f57f17;--color-leve-bg:#f1f8e9;--color-leve-text:#33691e;}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+body{font-family:'Roboto',Arial,sans-serif;font-size:10px;line-height:1.3;color:#000;margin:0;padding:0;background:white;}
+.page{width:210mm;min-height:297mm;padding:5mm 8mm;margin:0 auto;background:white;position:relative;page-break-after:always;}
+h1{font-size:18px;text-align:center;text-transform:uppercase;margin:0 0 4px 0;padding-bottom:4px;border-bottom:2px solid #000;}
+h2{font-size:13px;text-align:center;margin:0 0 6px 0;font-weight:normal;}
+.form-container{display:flex;gap:20px;margin-bottom:6px;border:1px solid #000;padding:6px;background-color:#f9f9f9;}
+.form-group{flex:1;display:flex;align-items:center;gap:10px;}
+.form-label{font-weight:bold;font-size:10.5px;}
+.form-value{flex:1;border-bottom:1px solid #000;height:20px;font-size:10.5px;font-weight:bold;padding:0 2px;line-height:20px;white-space:nowrap;overflow:hidden;}
+table{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:10.5px;}
+th,td{border:1px solid #000;padding:2.5px 4px;vertical-align:middle;}
+th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
+.section-header{background-color:#333;color:white;font-weight:bold;padding:4px;font-size:10.5px;text-transform:uppercase;}
+.gravissima{background-color:var(--color-gravissima-bg);color:var(--color-gravissima-text);font-weight:bold;}
+.grave{background-color:var(--color-grave-bg);color:var(--color-grave-text);font-weight:bold;}
+.media{background-color:var(--color-media-bg);color:var(--color-media-text);font-weight:bold;}
+.leve{background-color:var(--color-leve-bg);color:var(--color-leve-text);font-weight:bold;}
+.col-check{width:4%;text-align:center;}.col-multiple{width:4%;text-align:center;}.col-infracao{width:48%;}.col-artigo{width:10%;text-align:center;}.col-gravidade{width:18%;text-align:center;}.col-pontos{width:12%;text-align:center;}
+.checkbox-cell{text-align:center;vertical-align:middle;}
+.checkbox-square{display:inline-block;width:13px;height:13px;border:1.5px solid #000;background-color:white;}
+.result-box{margin-top:6px;margin-bottom:6px;border:2px solid #000;padding:8px;background-color:#f0f0f0;display:flex;justify-content:center;align-items:center;gap:30px;}
+.result-option{display:flex;align-items:center;gap:8px;font-weight:bold;font-size:10.5px;}
+.result-checkbox{display:inline-block;width:14px;height:14px;border:2px solid #000;background-color:white;}
+.signature-box{margin-top:6px;border:1px solid #000;padding:6px;background-color:#f9f9f9;}
+.signature-panel{border:1px solid #000;padding:8px;background-color:#fff;margin-bottom:12px;}
+.signature-panel:last-child{margin-bottom:0;}
+.signature-line{border-bottom:1px solid #000;height:55px;margin-top:10px;margin-bottom:3px;}
+.signature-label{text-align:center;font-size:9.5px;font-weight:bold;}
+.warning-box{border:2px solid #b71c1c;background-color:#fff8f8;padding:5px;margin:4px 0;font-size:9px;line-height:1.3;}
+.warning-title{color:#b71c1c;font-weight:bold;display:block;margin-bottom:3px;}
+.footer{position:absolute;bottom:5mm;left:8mm;right:8mm;text-align:center;font-size:10.5px;color:#000;}
+@media print{body{margin:0;}.page{box-shadow:none;margin:0;width:100%;height:auto;min-height:0;page-break-after:always;}.page:last-child{page-break-after:auto;}}
+</style></head><body>
+<div class="page">
+  <h1>FALTAS - INFRAÇÕES DO EXAME DE DIREÇÃO</h1>
+  <h2>Agência Regional de Balneário Camboriú</h2>
+  <div class="form-container">
+    <div class="form-group" style="flex:1.2;">
+      <span class="form-label">NOME:</span>
+      <div class="form-value">${candidateName}</div>
+    </div>
+    <div class="form-group" style="flex:0 0 auto;gap:6px;min-width:120px;">
+      <span class="form-label">CAT.:</span>
+      <div class="form-value" style="min-width:55px;">${category}</div>
+    </div>
+  </div>
+  <div class="form-container" style="margin-bottom:6px;">
+    <div class="form-group" style="flex:2;gap:6px;">
+      <span class="form-label">CPF:</span>
+      <div class="form-value">${candidateCpf}</div>
+    </div>
+    <div class="form-group" style="flex:1;gap:6px;">
+      <span class="form-label">DATA:</span>
+      <div class="form-value" style="min-width:80px;">${examDate}</div>
+    </div>
+    <div class="form-group" style="flex:0 0 auto;gap:6px;">
+      <span class="form-label">HORA:</span>
+      <div class="form-value" style="min-width:55px;">${examTime}</div>
+    </div>
+  </div>
+  <table><thead><tr><th colspan="8" class="section-header">1️⃣ SINALIZAÇÃO E PARADAS OBRIGATÓRIAS</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Avançar Sinal Vermelho / Parada Obrigatória</td><td class="col-artigo">208</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Não Dar Preferência em Interseção</td><td class="col-artigo">215</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Parar sobre Faixa de Pedestres</td><td class="col-artigo">183</td><td class="media">MÉDIA</td><td class="col-pontos">2</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">2️⃣ PEDESTRES E USUÁRIOS VULNERÁVEIS</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Não Dar Preferência a Pedestre na Faixa</td><td class="col-artigo">214-I</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Pedestre Ainda Atravessando</td><td class="col-artigo">214-II</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Ameaçar Pedestre</td><td class="col-artigo">170</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Distância Lateral de Bicicleta (1,5m)</td><td class="col-artigo">201</td><td class="media">MÉDIA</td><td class="col-pontos">2</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">3️⃣ MANOBRAS E CONVERSÕES</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Não Sinalizar Mudança de Direção</td><td class="col-artigo">196</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Conversão em Local Proibido</td><td class="col-artigo">207</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Retorno em Local Proibido</td><td class="col-artigo">206-I</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Retorno Prejudicando Circulação</td><td class="col-artigo">206-V</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">4️⃣ VELOCIDADE</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Velocidade Acima de 50% do Limite</td><td class="col-artigo">218-III</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Velocidade Acima de 20-50%</td><td class="col-artigo">218-II</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Não Reduzir em Zona Escolar/Hospital</td><td class="col-artigo">220</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">5️⃣ POSTURA E SEGURANÇA PESSOAL</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Braço para Fora da Janela</td><td class="col-artigo">252-I</td><td class="media">MÉDIA</td><td class="col-pontos">2</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Uma Mão no Volante</td><td class="col-artigo">252-V</td><td class="media">MÉDIA</td><td class="col-pontos">2</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Calçado Inadequado</td><td class="col-artigo">252-IV</td><td class="media">MÉDIA</td><td class="col-pontos">2</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Usar Celular/Fones</td><td class="col-artigo">252-VI</td><td class="media">MÉDIA</td><td class="col-pontos">2</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">6️⃣ CIRCULAÇÃO E PRIORIDADE</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Deixar Passagem a Veículo de Urgência</td><td class="col-artigo">189</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Seguir Veículo de Urgência</td><td class="col-artigo">190</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Forçar Passagem Entre Veículos Opostos</td><td class="col-artigo">191</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Transitar em Calçadas</td><td class="col-artigo">193</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Ultrapassar Coletivo Parado</td><td class="col-artigo">200</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Ultrapassar pelo Acostamento</td><td class="col-artigo">202-I</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Não Parar no Acostamento</td><td class="col-artigo">204</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Dirigir na Contramão</td><td class="col-artigo">186-I</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Ultrapassagem Proibida (Linha Contínua)</td><td class="col-artigo">203</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">7️⃣ USO DE EQUIPAMENTOS OBRIGATÓRIOS</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Sem Cinto de Segurança (Condutor)</td><td class="col-artigo">167</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Sem Cinto de Segurança (Passageiro)</td><td class="col-artigo">167</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Espelhos Retrovisores Inadequados</td><td class="col-artigo">230-VII</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">8️⃣ PARTIDA E PREPARAÇÃO</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Partir Sem Verificar Segurança</td><td class="col-artigo">229</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Engate de Marcha Sem Parar (Manual)</td><td class="col-artigo">230-XI</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Parar Motor Desnecessariamente</td><td class="col-artigo">230</td><td class="leve">LEVE</td><td class="col-pontos">1</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">9️⃣ PARADA E ESTACIONAMENTO</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Parar / Estacionar em Local Proibido</td><td class="col-artigo">181</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Estacionar sobre Faixa de Pedestre</td><td class="col-artigo">181-VIII</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Estacionar Afastado Demais da Guia</td><td class="col-artigo">181-III</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Estacionar em Fila Dupla</td><td class="col-artigo">181-XI</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  </tbody></table>
+  <table><thead><tr><th colspan="8" class="section-header">🔟 🚨 DESOBEDIÊNCIA AO EXAMINADOR</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Desobedecer Ordem da Autoridade/Examinador</td><td class="col-artigo">195</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  </tbody></table>
+  <div class="warning-box"><span class="warning-title">⚠️ DESOBEDIÊNCIA AO EXAMINADOR - Exemplos:</span>• Virar lado oposto ao pedido | • Não parar quando ordenado | • Recusar ajustar cinto/espelhos | • Ignorar ordem verbal ou gestual<br><b>Toda ordem do examinador deve ser obedecida imediatamente. Se não entender, peça para repetir.</b></div>
+  <table><thead><tr><th colspan="8" class="section-header">🏍️ INFRAÇÕES ESPECÍFICAS PARA MOTOCICLETAS (ACC E A)</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Sem Capacete de Segurança</td><td class="col-artigo">244-I</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Fazer Malabarismo / Uma Roda</td><td class="col-artigo">244-III</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Sem Segurar Guidom com Ambas as Mãos</td><td class="col-artigo">244-VII</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Capacete Sem Viseira ou Óculos</td><td class="col-artigo">244-X</td><td class="media">MÉDIA</td><td class="col-pontos">2</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Desatenção que Comprometa Segurança</td><td class="col-artigo">169</td><td class="leve">LEVE</td><td class="col-pontos">1</td></tr>
+  <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Não Sinalizar Mudança de Direção</td><td class="col-artigo">196</td><td class="grave">GRAVE</td><td class="col-pontos">4</td></tr>
+  </tbody></table>
+  <div class="result-box">
+    <div class="result-option"><div class="result-checkbox"></div><span>APTO</span></div>
+    <div class="result-option"><div class="result-checkbox"></div><span>INAPTO</span></div>
+    <div class="result-option"><div class="result-checkbox"></div><span>FALTOU</span></div>
+    <div class="result-option"><div class="result-checkbox"></div><span>CANCELADO</span></div>
+  </div>
+  <div class="signature-box">
+    <div style="text-align:center;font-weight:bold;margin-bottom:6px;font-size:10.5px;">ASSINATURAS</div>
+    <div class="signature-panel"><div class="signature-line"></div><div class="signature-label">Assinatura e Carimbo do Examinador</div></div>
+    <div class="signature-panel"><div class="signature-line"></div><div class="signature-label">Assinatura do Candidato</div></div>
+  </div>
+  <div class="footer"></div>
+</div>
+</body></html>`);
+                                                            pri.document.close();
+                                                            pri.focus();
+                                                            setTimeout(() => { pri.print(); pri.close(); }, 400);
+                                                        }}
+                                                        className="flex items-center gap-1 px-2 py-1.5 rounded-md transition-all text-green-700 hover:bg-green-50"
+                                                        title="Imprimir Folha de Prova"
+                                                    >
+                                                        <ClipboardList className="h-4 w-4 shrink-0" />
+                                                        <span className="text-xs font-medium">Folha de Prova</span>
                                                     </button>
 
                                                     {/* Botão Remover da Banca */}
