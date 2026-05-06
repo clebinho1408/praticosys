@@ -934,7 +934,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                 </div>
                                             </div>
 
-                                            {selectedSchedule.status !== 'CONCLUDED' && selectedSchedule.status !== 'CLOSED' && !isConsultant && (
+                                            {selectedSchedule.status !== 'CONCLUDED' && !isConsultant && (
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     {/* Botão Comprovante */}
                                                     <button
@@ -963,13 +963,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                             if (!pri) { alert('Habilite pop-ups para imprimir.'); return; }
                                                             pri.document.write(`<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="utf-8">
-<title>Folha de Prova</title>
+<title>Ficha Manual</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap');
 :root{--color-gravissima-bg:#ffebee;--color-gravissima-text:#b71c1c;--color-grave-bg:#fff3e0;--color-grave-text:#e65100;--color-media-bg:#fff8e1;--color-media-text:#f57f17;--color-leve-bg:#f1f8e9;--color-leve-text:#33691e;}
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 body{font-family:'Roboto',Arial,sans-serif;font-size:10px;line-height:1.3;color:#000;margin:0;padding:0;background:white;}
-.page{width:210mm;min-height:297mm;padding:5mm 8mm;margin:0 auto;background:white;position:relative;page-break-after:always;}
+@page{margin:4mm 5mm;}.page{width:210mm;min-height:297mm;padding:2mm 4mm;margin:0 auto;background:white;position:relative;page-break-after:always;}
 h1{font-size:18px;text-align:center;text-transform:uppercase;margin:0 0 4px 0;padding-bottom:4px;border-bottom:2px solid #000;}
 h2{font-size:13px;text-align:center;margin:0 0 6px 0;font-weight:normal;}
 .form-container{display:flex;gap:20px;margin-bottom:6px;border:1px solid #000;padding:6px;background-color:#f9f9f9;}
@@ -1001,8 +1001,8 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
 @media print{body{margin:0;}.page{box-shadow:none;margin:0;width:100%;height:auto;min-height:0;page-break-after:always;}.page:last-child{page-break-after:auto;}}
 </style></head><body>
 <div class="page">
-  <h1>FALTAS - INFRAÇÕES DO EXAME DE DIREÇÃO</h1>
-  <h2>Agência Regional de Balneário Camboriú</h2>
+  <h1>FICHA MANUAL DE FALTAS DO EXAME DE DIREÇÃO</h1>
+  <h2>${(settings?.agencyName || 'Agência Regional').toUpperCase()}</h2>
   <div class="form-container">
     <div class="form-group" style="flex:1.2;">
       <span class="form-label">NOME:</span>
@@ -1113,10 +1113,10 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                             setTimeout(() => { pri.print(); pri.close(); }, 400);
                                                         }}
                                                         className="flex items-center gap-1 px-2 py-1.5 rounded-md transition-all text-green-700 hover:bg-green-50"
-                                                        title="Imprimir Folha de Prova"
+                                                        title="Imprimir Ficha Manual"
                                                     >
                                                         <ClipboardList className="h-4 w-4 shrink-0" />
-                                                        <span className="text-xs font-medium">Folha de Prova</span>
+                                                        <span className="text-xs font-medium">Ficha Manual</span>
                                                     </button>
 
                                                     {/* Botão Remover da Banca */}
