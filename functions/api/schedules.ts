@@ -32,27 +32,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
               .set({ status: 'WAITING_RESULT', updatedAt: new Date() })
               .where(and(eq(examRequests.scheduleId, s.id), eq(examRequests.status, 'SCHEDULED')));
           }
-          if (calc === 'CLOSED' && s.status === 'OPEN') {
-            // Candidatos que não confirmaram presença antes do fechamento da banca
-            // voltam para WAITING_SCHEDULING. NÃO sobrescrever createdAt (data real de cadastro).
-            // updatedAt = now() para colocá-los no final da fila.
-            await db.execute(sql`
-              UPDATE exam_requests
-              SET
-                status              = 'WAITING_SCHEDULING',
-                schedule_id         = NULL,
-                scheduled_date      = NULL,
-                scheduled_time      = NULL,
-                scheduled_category  = NULL,
-                examiner_id         = NULL,
-                attendance_confirmed = FALSE,
-                queue_updated_at    = NULL,
-                updated_at          = NOW()
-              WHERE schedule_id = ${s.id}
-                AND status = 'SCHEDULED'
-                AND attendance_confirmed = FALSE
-            `);
-          }
+          // REMOVIDO: candidatos NÃO devem sair da banca automaticamente ao fechar.
+          // Remoção apenas via botão manual.
           updates.push(db.update(examSchedules).set({ status: calc }).where(eq(examSchedules.id, s.id)));
           s.status = calc;
         }
