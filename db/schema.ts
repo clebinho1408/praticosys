@@ -12,6 +12,7 @@ export const users = pgTable('users', {
   examinerId: text('examiner_id'), // Opcional, link para examinador
   instructorId: text('instructor_id'), // Opcional, link para instrutor
   forcePasswordChange: boolean('force_password_change').default(true), // Força a troca de senha no primeiro acesso/reset
+  allowedModules: jsonb('allowed_modules').$type<string[]>().default([]), // Módulos permitidos (apenas para OPERATOR)
   createdAt: timestamp('created_at').defaultNow(),
 });
 
