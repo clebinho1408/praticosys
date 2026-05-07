@@ -965,6 +965,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                                 return raw ? `${d}/${m}/${y}` : '';
                                                             })();
                                                             const examTime = selectedSchedule.time || '';
+                                                            const firstExaminer = (() => {
+                                                                const eid = selectedSchedule.examinerIds?.[0];
+                                                                if (!eid) return '';
+                                                                const ex = examiners.find(e => e.id === eid);
+                                                                if (!ex) return '';
+                                                                return ex.registrationNumber ? `${ex.registrationNumber} - ${ex.name}` : ex.name;
+                                                            })();
 
                                                             const pri = window.open('', '_blank', 'width=900,height=1000');
                                                             if (!pri) { alert('Habilite pop-ups para imprimir.'); return; }
@@ -1011,19 +1018,19 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
   <h1>FICHA MANUAL - FALTAS DO EXAME PRÁTICO DA CNH DO BRASIL</h1>
   <h2>${(settings?.agencyName || 'Agência Regional').toUpperCase()}</h2>
   <div class="form-container">
-    <div class="form-group" style="flex:1.2;">
+    <div class="form-group" style="flex:1.6;">
       <span class="form-label">NOME:</span>
       <div class="form-value">${candidateName}</div>
     </div>
-    <div class="form-group" style="flex:0 0 auto;gap:6px;min-width:120px;">
-      <span class="form-label">CAT.:</span>
-      <div class="form-value" style="min-width:55px;">${category}</div>
+    <div class="form-group" style="flex:1;gap:6px;">
+      <span class="form-label">CPF:</span>
+      <div class="form-value">${candidateCpf}</div>
     </div>
   </div>
   <div class="form-container" style="margin-bottom:6px;">
-    <div class="form-group" style="flex:2;gap:6px;">
-      <span class="form-label">CPF:</span>
-      <div class="form-value">${candidateCpf}</div>
+    <div class="form-group" style="flex:0 0 auto;gap:6px;min-width:80px;">
+      <span class="form-label">CAT.:</span>
+      <div class="form-value" style="min-width:50px;">${category}</div>
     </div>
     <div class="form-group" style="flex:1;gap:6px;">
       <span class="form-label">DATA:</span>
@@ -1033,6 +1040,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
       <span class="form-label">HORA:</span>
       <div class="form-value" style="min-width:55px;">${examTime}</div>
     </div>
+    ${firstExaminer ? `<div class="form-group" style="flex:2;gap:6px;"><span class="form-label">EXAMINADOR:</span><div class="form-value">${firstExaminer}</div></div>` : ''}
   </div>
   <table><thead><tr><th colspan="8" class="section-header">1️⃣ SINALIZAÇÃO E PARADAS OBRIGATÓRIAS</th></tr><tr><th class="col-check">X</th><th class="col-multiple">2x</th><th class="col-multiple">3x</th><th class="col-multiple">4x+</th><th class="col-infracao">Infração</th><th class="col-artigo">Artigo</th><th class="col-gravidade">Gravidade</th><th class="col-pontos">Pontos</th></tr></thead><tbody>
   <tr><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td class="checkbox-cell"><div class="checkbox-square"></div></td><td>Avançar Sinal Vermelho / Parada Obrigatória</td><td class="col-artigo">208</td><td class="gravissima">GRAVÍSSIMA</td><td class="col-pontos">6</td></tr>
@@ -1109,7 +1117,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
   </div>
   <div class="signature-box">
     <div style="text-align:center;font-weight:bold;margin-bottom:6px;font-size:10.5px;">ASSINATURAS</div>
-    <div class="signature-panel"><div class="signature-line"></div><div class="signature-label">Assinatura e Carimbo do Examinador</div></div>
+    <div class="signature-panel">${firstExaminer ? `<div style="font-size:9.5px;font-weight:bold;text-align:center;margin-bottom:4px;">${firstExaminer}</div>` : ''}<div class="signature-line"></div><div class="signature-label">Assinatura e Carimbo do Examinador</div></div>
     <div class="signature-panel"><div class="signature-line"></div><div class="signature-label">Assinatura do Candidato</div></div>
   </div>
   <div class="footer"></div>
@@ -1193,6 +1201,12 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
 
                 {/* Assinatura do Examinador (Print Only) */}
                 <div className="hidden print:flex flex-col items-center mt-24 mb-20 break-inside-avoid">
+                    {(() => {
+                        const eid = selectedSchedule.examinerIds?.[0];
+                        const ex = eid ? examiners.find(e => e.id === eid) : undefined;
+                        const label = ex ? (ex.registrationNumber ? `${ex.registrationNumber} - ${ex.name}` : ex.name) : '';
+                        return label ? <span className="text-[10px] font-bold uppercase tracking-widest text-black mb-2">{label}</span> : null;
+                    })()}
                     <div className="w-96 border-b-2 border-black mb-2"></div>
                     <span className="text-[10px] font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
@@ -1551,7 +1565,10 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
           if (!req.cnhRestriction) return '';
           const codes = req.cnhRestriction.split(',').map((c: string) => c.trim()).filter(Boolean);
           if (codes.length === 0) return '';
-          const found = codes.map((code: string) => settings?.restrictions?.find(r => r.code === code)?.description || code);
+          const found = codes.map((code: string) => {
+            const desc = settings?.restrictions?.find(r => r.code === code)?.description;
+            return desc ? `${code} - ${desc}` : code;
+          });
           return found.join(', ');
         })();
 
