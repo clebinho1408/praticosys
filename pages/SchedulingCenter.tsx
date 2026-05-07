@@ -1202,13 +1202,13 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                 {/* Assinatura do Examinador (Print Only) */}
                 <div className="hidden print:flex flex-col items-center mt-24 mb-20 break-inside-avoid">
                     <div className="w-96 border-b-2 border-black mb-1"></div>
-                    <span className="text-[8px] font-bold uppercase tracking-widest text-black mb-1">Assinatura do Examinador</span>
                     {(() => {
                         const eid = selectedSchedule.examinerIds?.[0];
                         const ex = eid ? examiners.find(e => e.id === eid) : undefined;
                         const label = ex ? (ex.registrationNumber ? `${ex.registrationNumber} - ${ex.name}` : ex.name) : '';
-                        return label ? <span className="text-[12px] font-bold uppercase tracking-wide text-black mt-0.5">{label}</span> : null;
+                        return label ? <span className="text-[12px] font-bold uppercase tracking-wide text-black mb-0.5">{label}</span> : null;
                     })()}
+                    <span className="text-[8px] font-bold uppercase tracking-widest text-black">Assinatura do Examinador</span>
                 </div>
                 
                 {/* Print Footer (Fixed at bottom) */}
