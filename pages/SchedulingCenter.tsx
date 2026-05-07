@@ -1117,7 +1117,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
   </div>
   <div class="signature-box">
     <div style="text-align:center;font-weight:bold;margin-bottom:6px;font-size:10.5px;">ASSINATURAS</div>
-    <div class="signature-panel">${firstExaminer ? `<div style="font-size:9.5px;font-weight:bold;text-align:center;margin-bottom:4px;">${firstExaminer}</div>` : ''}<div class="signature-line"></div><div class="signature-label">Assinatura e Carimbo do Examinador</div></div>
+    <div class="signature-panel"><div class="signature-line"></div><div class="signature-label">Assinatura e Carimbo do Examinador</div></div>
     <div class="signature-panel"><div class="signature-line"></div><div class="signature-label">Assinatura do Candidato</div></div>
   </div>
   <div class="footer"></div>
