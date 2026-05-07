@@ -37,6 +37,8 @@ export enum ExamStatus {
 
 export type ExamResult = 'APTO' | 'INAPTO' | 'FALTOU' | 'CANCELADO';
 
+export type OperatorModule = 'cnh' | 'cfc' | 'pcd';
+
 export interface User {
   id: string;
   name: string;
@@ -47,6 +49,7 @@ export interface User {
   login: string;
   password?: string;
   forcePasswordChange?: boolean;
+  allowedModules?: OperatorModule[]; // Only for OPERATOR role
 }
 
 export interface SchoolSchedule {

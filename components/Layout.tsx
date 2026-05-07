@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { User, UserRole } from '../types';
+import { User, UserRole, OperatorModule } from '../types';
 import { Logo } from './Logo';
 import { ForcePasswordChangeModal } from './ForcePasswordChangeModal';
 import { 
@@ -125,47 +125,61 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        });
     } else {
 
-       // --- PAINEL DE CONTROLE GERAL ---
-       items.push({
-         icon: LayoutDashboard,
-         label: 'Painel de Controle',
-         path: '/admin/dashboard'
-       });
+       // For OPERATOR: determine which modules are allowed
+       const isOperator = user.role === UserRole.OPERATOR;
+       const allowed: OperatorModule[] = (isOperator && user.allowedModules && user.allowedModules.length > 0)
+         ? user.allowedModules
+         : ['cnh', 'cfc', 'pcd'];
+
+       // --- PAINEL DE CONTROLE GERAL (only for non-operator or operators with all 3 modules) ---
+       if (!isOperator) {
+         items.push({
+           icon: LayoutDashboard,
+           label: 'Painel de Controle',
+           path: '/admin/dashboard'
+         });
+       }
 
        // --- GRUPO: CNH DO BRASIL ---
-       items.push({
-         icon: Map,
-         label: 'CNH do Brasil',
-         subItems: [
-           { label: 'Dashboard',    path: '/admin/cnhdobrasil/dashboard',   icon: LayoutDashboard },
-           { label: 'Bancas',       path: '/admin/cnhdobrasil/bancas',      icon: CalendarCheck },
-           { label: 'Candidatos',   path: '/admin/cnhdobrasil/candidatos',  icon: FileText },
-           { label: 'Relatórios',   path: '/admin/cnhdobrasil/relatorios',  icon: BarChart3 }
-         ]
-       });
+       if (!isOperator || allowed.includes('cnh')) {
+         items.push({
+           icon: Map,
+           label: 'CNH do Brasil',
+           subItems: [
+             { label: 'Dashboard',    path: '/admin/cnhdobrasil/dashboard',   icon: LayoutDashboard },
+             { label: 'Bancas',       path: '/admin/cnhdobrasil/bancas',      icon: CalendarCheck },
+             { label: 'Candidatos',   path: '/admin/cnhdobrasil/candidatos',  icon: FileText },
+             { label: 'Relatórios',   path: '/admin/cnhdobrasil/relatorios',  icon: BarChart3 }
+           ]
+         });
+       }
 
        // --- GRUPO: PROVA PRÁTICA CFC ---
-       items.push({
-         icon: Car,
-         label: 'Exame Prático CFC',
-         subItems: [
-           { label: 'Dashboard',    path: '/admin/cfc/dashboard',    icon: LayoutDashboard },
-           { label: 'Agendamentos', path: '/admin/cfc/agendamentos', icon: CalendarCheck },
-           { label: 'Relatórios',   path: '/admin/cfc/relatorios',   icon: BarChart3 }
-         ]
-       });
+       if (!isOperator || allowed.includes('cfc')) {
+         items.push({
+           icon: Car,
+           label: 'Exame Prático CFC',
+           subItems: [
+             { label: 'Dashboard',    path: '/admin/cfc/dashboard',    icon: LayoutDashboard },
+             { label: 'Agendamentos', path: '/admin/cfc/agendamentos', icon: CalendarCheck },
+             { label: 'Relatórios',   path: '/admin/cfc/relatorios',   icon: BarChart3 }
+           ]
+         });
+       }
 
        // --- GRUPO: PROVA PRÁTICA PCD ---
-       items.push({
-         icon: Accessibility,
-         label: 'Exame Prático PCD',
-         subItems: [
-           { label: 'Dashboard',    path: '/admin/pcd/dashboard',    icon: LayoutDashboard },
-           { label: 'Agendamentos', path: '/admin/pcd/agendamentos', icon: CalendarCheck },
-           { label: 'Candidatos',   path: '/admin/pcd/candidatos',   icon: FileText },
-           { label: 'Relatórios',   path: '/admin/pcd/relatorios',   icon: BarChart3 }
-         ]
-       });
+       if (!isOperator || allowed.includes('pcd')) {
+         items.push({
+           icon: Accessibility,
+           label: 'Exame Prático PCD',
+           subItems: [
+             { label: 'Dashboard',    path: '/admin/pcd/dashboard',    icon: LayoutDashboard },
+             { label: 'Agendamentos', path: '/admin/pcd/agendamentos', icon: CalendarCheck },
+             { label: 'Candidatos',   path: '/admin/pcd/candidatos',   icon: FileText },
+             { label: 'Relatórios',   path: '/admin/pcd/relatorios',   icon: BarChart3 }
+           ]
+         });
+       }
     }
 
     if (user.role === UserRole.ADMIN) {

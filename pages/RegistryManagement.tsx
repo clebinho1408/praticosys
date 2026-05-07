@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule, City } from '../types';
+import { User, UserRole, OperatorModule, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule, City } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
@@ -2341,7 +2341,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
   // Form State
-  const [formData, setFormData] = useState({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '' });
+  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[] }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'] });
 
   // Confirmation Modal State
   const [confirmState, setConfirmState] = useState<{
@@ -2369,25 +2369,32 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const openModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '' });
+      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'] });
     } else {
       setEditingUser(null);
-      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '' });
+      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'] });
     }
     setIsModalOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.role === UserRole.OPERATOR && formData.allowedModules.length === 0) {
+      alert('Selecione ao menos um módulo para o Operador.');
+      return;
+    }
     try {
+      const payload: any = { ...formData };
+      // Only persist allowedModules for OPERATOR role
+      if (formData.role !== UserRole.OPERATOR) delete payload.allowedModules;
       if (editingUser) {
-        await api.updateUser(editingUser.id, formData);
+        await api.updateUser(editingUser.id, payload);
       } else {
         if (users.some(u => u.login === formData.login)) {
             alert("Este login já está em uso.");
             return;
         }
-        await api.createUser(formData as any);
+        await api.createUser(payload);
       }
       setIsModalOpen(false);
       fetchData();
@@ -2573,6 +2580,36 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
+                </div>
+              )}
+              {formData.role === UserRole.OPERATOR && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Módulos Permitidos</label>
+                  <div className="space-y-2 border rounded p-3 bg-gray-50">
+                    {(['cnh', 'cfc', 'pcd'] as OperatorModule[]).map(mod => {
+                      const labels: Record<OperatorModule, string> = { cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD' };
+                      const isChecked = formData.allowedModules.includes(mod);
+                      return (
+                        <label key={mod} className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              const next = e.target.checked
+                                ? [...formData.allowedModules, mod]
+                                : formData.allowedModules.filter(m => m !== mod);
+                              setFormData({ ...formData, allowedModules: next });
+                            }}
+                            className="h-4 w-4 accent-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">{labels[mod]}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {formData.allowedModules.length === 0 && (
+                    <p className="text-xs text-red-500 mt-1">Selecione ao menos um módulo.</p>
+                  )}
                 </div>
               )}
               <div className="flex justify-end gap-3 mt-6">

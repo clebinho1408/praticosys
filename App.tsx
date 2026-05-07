@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthState, User, UserRole } from './types';
+import { AuthState, User, UserRole, OperatorModule } from './types';
 import Layout from './components/Layout';
 
 // Pages
@@ -70,6 +70,17 @@ const App: React.FC = () => {
                         ? <Navigate to="/admin/cfc/agendamentos" replace /> 
                         : auth.user?.role === UserRole.INSTRUCTOR
                         ? <Navigate to="/admin/cnhdobrasil/candidatos" replace />
+                        : auth.user?.role === UserRole.OPERATOR
+                        ? (() => {
+                            const mods: OperatorModule[] = (auth.user?.allowedModules && auth.user.allowedModules.length > 0)
+                              ? auth.user.allowedModules
+                              : ['cnh', 'cfc', 'pcd'];
+                            const first = mods[0];
+                            if (first === 'cnh') return <Navigate to="/admin/cnhdobrasil/candidatos" replace />;
+                            if (first === 'cfc') return <Navigate to="/admin/cfc/agendamentos" replace />;
+                            if (first === 'pcd') return <Navigate to="/admin/pcd/candidatos" replace />;
+                            return <Navigate to="/admin/dashboard" replace />;
+                          })()
                         : <Navigate to="/admin/dashboard" replace />
                     } 
                   />
