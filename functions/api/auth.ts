@@ -15,8 +15,11 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ r
     // ensure columns
     try {
       await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`);
+      await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`);
       await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`);
+      await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS instructor_id text`);
       await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`);
+      await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_modules jsonb DEFAULT '[]'::jsonb`);
     } catch {}
 
     const result = await db.select().from(users).where(eq(users.login, login));
