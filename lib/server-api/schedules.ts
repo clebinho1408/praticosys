@@ -48,27 +48,8 @@ export default async function handler(req: any, res: any) {
                  .where(and(eq(examRequests.scheduleId, s.id), eq(examRequests.status, 'SCHEDULED')));
            }
 
-           // Se mudou para CLOSED, remove candidatos não confirmados e volta para fila (por último)
-           if (calculatedStatus === 'CLOSED' && s.status === 'OPEN') {
-               await db.update(examRequests)
-                 .set({ 
-                     status: 'WAITING_SCHEDULING', 
-                     scheduleId: null,
-                     scheduledDate: null,
-                     scheduledTime: null,
-                     scheduledCategory: null,
-                     examinerId: null,
-                     attendanceConfirmed: false,
-                     createdAt: new Date(), // Coloca por último na fila
-                     updatedAt: new Date() 
-                 })
-                 .where(and(
-                     eq(examRequests.scheduleId, s.id), 
-                     eq(examRequests.status, 'SCHEDULED'),
-                     eq(examRequests.attendanceConfirmed, false)
-                 ));
-               broadcast('requests_updated', { scheduleId: s.id });
-           }
+           // REMOVIDO: candidatos NÃO devem sair da banca automaticamente ao fechar.
+           // Remoção apenas via botão manual de cancelamento da banca.
 
            updatesPromises.push(
                db.update(examSchedules).set({ status: calculatedStatus }).where(eq(examSchedules.id, s.id))
