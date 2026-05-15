@@ -481,15 +481,24 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     if (!editingRequest) {
       const cleanCpf = (formData.cpf || "").replace(/\D/g, "");
       const newCat = formData.intendedCategory || "";
-      // Busca em todos os requests carregados (allGlobalRequests tem todos)
-      // Permite mesmo CPF somente se for para categoria diferente
+
+      // Status considerados "em andamento" — bloqueiam novo cadastro na mesma categoria
+      const activeStatuses: string[] = [
+        ExamStatus.IN_ANALYSIS,
+        ExamStatus.WAITING_SCHEDULING,
+        ExamStatus.SCHEDULED,
+        ExamStatus.WAITING_RESULT,
+        ExamStatus.RETEST,
+      ];
+
       const duplicate = allGlobalRequests.find((r) => {
         const rCpf = (r.cpf || "").replace(/\D/g, "");
         if (rCpf !== cleanCpf) return false;
-        if (r.status === ExamStatus.CANCELLED) return false;
+        // Ignora registros encerrados (CANCELLED ou DONE) — pode recadastrar
+        if (!activeStatuses.includes(r.status)) return false;
         // Determina a categoria existente
         const existingCat = r.intendedCategory || "";
-        // Bloqueia se as categorias se sobrepõem:
+        // Bloqueia apenas se as categorias se sobrepõem:
         // A == A, B == B, AB sobrepõe A e B
         const overlap = (a: string, b: string) => {
           if (a === b) return true;
@@ -498,6 +507,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         };
         return overlap(existingCat, newCat);
       });
+
       if (duplicate) {
         const name = duplicate.socialName || duplicate.studentName || "este candidato";
         const statusLabels: Record<string, string> = {
@@ -505,12 +515,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           WAITING_SCHEDULING: "Aguardando Agendamento",
           SCHEDULED: "Agendado",
           WAITING_RESULT: "Aguardando Resultado",
-          DONE: "Concluído",
           RETEST: "Reteste",
         };
         const statusLabel = statusLabels[duplicate.status] || duplicate.status;
         setErrorMessage(
-          `O candidato "${name}" já está cadastrado com este CPF para a Categoria ${duplicate.intendedCategory || ''} e se encontra no card "${statusLabel}". Não é permitido cadastrar o mesmo CPF para a mesma categoria mais de uma vez.`
+          `O candidato "${name}" já possui um processo ativo para a Categoria ${duplicate.intendedCategory || ''} (${statusLabel}). Não é possível abrir um novo cadastro para a mesma categoria enquanto houver um em andamento.`
         );
         setErrorField("cpf");
         setIsErrorModalOpen(true);
