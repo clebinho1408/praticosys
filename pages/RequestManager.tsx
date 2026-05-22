@@ -284,7 +284,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     // Instrutores: veem alterações de status feitas pelo admin (agendamentos, confirmações).
     // Admin/Sup/Op: veem novos Pedidos de Agendamento enviados por instrutores instantaneamente.
     if (user.role === UserRole.INSTRUCTOR || isAdminOpSup) {
-      const interval = setInterval(() => fetchRequests(true), 8000);
+      const interval = setInterval(() => fetchRequests(true), 60000);
       return () => clearInterval(interval);
     }
   }, [user, typeFilter]);

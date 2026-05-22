@@ -271,7 +271,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   useEffect(() => {
     refreshData();
     // Polling de 5s para atualizações em tempo real (complementa o SSE)
-    const interval = setInterval(() => refreshData(true), 5000);
+    const interval = setInterval(() => refreshData(true), 60000);
     return () => clearInterval(interval);
   }, [type]);
 
