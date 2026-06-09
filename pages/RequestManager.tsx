@@ -161,6 +161,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [isResultConfirmOpen, setIsResultConfirmOpen] = useState(false);
   const [isChangeResultModalOpen, setIsChangeResultModalOpen] = useState(false);
   const [changeResultData, setChangeResultData] = useState<{
     requestId: string;
@@ -842,7 +843,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   </button>
                 )}
 
-                {req.status === ExamStatus.WAITING_RESULT && isAdminOpSup && (
+                {req.status === ExamStatus.WAITING_RESULT && (user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR) && (
                   <button
                     onClick={() => openResultModal(req)}
                     className="px-3 py-1.5 border border-green-200 rounded hover:bg-green-50 text-green-700 text-xs font-bold flex items-center gap-1"
@@ -939,8 +940,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     });
   };
 
-  const handleResultSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doResultSave = async () => {
     if (!editingRequest) return;
 
     const schedule = schedules.find((s) => s.id === editingRequest.scheduleId);
@@ -992,9 +992,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     // Se voltou para aguardando agendamento, limpa os dados do agendamento anterior
     if (nextStatus === ExamStatus.WAITING_SCHEDULING) {
       // MANTÉM o scheduleId para histórico na banca concluída
-      // updates.scheduleId = null;
-      // updates.scheduledDate = null;
-      // updates.scheduledTime = null;
       updates.attendanceConfirmed = false;
       // updatedAt is set automatically by the backend — places candidate at end of queue
     }
@@ -1002,7 +999,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     await api.updateRequest(editingRequest.id, updates);
 
     setIsResultModalOpen(false);
+    setIsResultConfirmOpen(false);
     fetchRequests(true);
+  };
+
+  const handleResultSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsResultConfirmOpen(true);
   };
 
   const openChangeResultModal = (
@@ -3229,7 +3232,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       {isResultModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-            <h3 className="text-lg font-bold mb-4">Lançar Resultado</h3>
+            <h3 className="text-lg font-bold mb-3">Lançar Resultado</h3>
+            {editingRequest && (
+              <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5">
+                <div className="text-sm font-bold text-gray-800 uppercase">{editingRequest.socialName || editingRequest.studentName}</div>
+                <div className="text-xs text-gray-500">CPF: {maskCpf(editingRequest.cpf)}</div>
+              </div>
+            )}
             <form onSubmit={handleResultSave} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -3283,6 +3292,41 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRMAR LANÇAMENTO DE RESULTADO */}
+      {isResultConfirmOpen && editingRequest && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+            <div className="flex flex-col items-center text-center gap-3">
+              <div className="bg-green-100 p-3 rounded-full">
+                <Gavel className="h-7 w-7 text-green-600" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800">Confirmar Resultado</h3>
+              <p className="text-sm text-gray-500">Confirme o lançamento do resultado para o candidato abaixo:</p>
+              <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-4 text-left space-y-1 mt-1">
+                <div className="text-sm font-bold text-gray-800 uppercase">{editingRequest.socialName || editingRequest.studentName}</div>
+                <div className="text-xs text-gray-500">CPF: {maskCpf(editingRequest.cpf)}</div>
+                <div className="text-xs text-gray-500 mt-2">Resultado: <span className={`font-bold ${resultData.result === 'APTO' ? 'text-green-600' : resultData.result === 'INAPTO' || resultData.result === 'FALTOU' ? 'text-red-600' : 'text-gray-600'}`}>{resultData.result}</span></div>
+                {resultData.observation && <div className="text-xs text-gray-400 mt-0.5">Obs: {resultData.observation}</div>}
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setIsResultConfirmOpen(false)}
+                className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 font-medium text-sm"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={doResultSave}
+                className="px-6 py-2 bg-green-600 text-white rounded-md font-bold hover:bg-green-700 shadow-sm text-sm"
+              >
+                Salvar Resultado
+              </button>
+            </div>
           </div>
         </div>
       )}

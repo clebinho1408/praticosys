@@ -31,7 +31,8 @@ import {
   Car,
   AlertOctagon,
   FileText,
-  ClipboardList
+  ClipboardList,
+  UserCheck
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -130,6 +131,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [studentSearch, setSearchTermInput] = useState('');
   const [selectedCandidates, setSelectedCandidates] = useState<Record<string, 'A' | 'B'>>({});
   const [expandedCategories, setExpandedCategories] = useState<{A: boolean, B: boolean}>({ A: false, B: false });
+  // Confirmation modal for scheduling a single candidate
+  const [scheduleConfirmCandidate, setScheduleConfirmCandidate] = useState<{ id: string; category: 'A' | 'B'; name: string; cpf: string } | null>(null);
 
   // Schedule Cancel Modal State
   const [isCancelScheduleOpen, setIsCancelScheduleOpen] = useState(false);
@@ -464,29 +467,23 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       setIsAddStudentOpen(true);
   };
 
-  const toggleCandidateSelection = (id: string, category: 'A' | 'B') => {
+  const toggleCandidateSelection = (id: string, category: 'A' | 'B', candName: string, candCpf: string) => {
       setSelectedCandidates(prev => {
-          const newState = { ...prev };
-          const isCurrentlySelected = newState[id] === category;
-
+          const isCurrentlySelected = prev[id] === category;
           if (isCurrentlySelected) {
-              // Simply deselect this individual candidate
-              delete newState[id];
+              // Deselect
+              return {};
           } else {
-              // Check slot limit before selecting
-              const currentSelectedInThisCat = Object.values(newState).filter(c => c === category).length;
+              // Check slot limit
               const alreadyInBanca = allScheduledInThisBanca.filter(s => s.scheduledCategory === category).length;
               const maxSlots = category === 'A' ? (selectedSchedule?.maxSlotsA || 0) : (selectedSchedule?.maxSlotsB || 0);
-
-              if (alreadyInBanca + currentSelectedInThisCat + 1 > maxSlots) {
+              if (alreadyInBanca + 1 > maxSlots) {
                   alert(`Não há vagas suficientes na Categoria ${category}.`);
                   return prev;
               }
-
-              // Allow selecting any individual candidate regardless of position
-              newState[id] = category;
+              // Single-select: replace any previous selection
+              return { [id]: category };
           }
-          return newState;
       });
   };
 
@@ -742,7 +739,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
              {/* Right Side Action */}
              <div className="w-full md:w-auto flex justify-end">
-                {user.role !== UserRole.SCHOOL && !isConsultant && (
+                {user.role !== UserRole.SCHOOL && !isConsultant && user.role !== UserRole.OPERATOR && (
                   <button 
                     onClick={() => handleOpenModal()}
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold transition-colors"
@@ -794,7 +791,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                           <span>Carro: {allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length}/{s.maxSlotsB}</span>
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                         {s.status !== 'CONCLUDED' && s.status !== 'CANCELLED' && user.role !== UserRole.SCHOOL && !isConsultant && (
+                         {s.status !== 'CONCLUDED' && s.status !== 'CANCELLED' && user.role !== UserRole.SCHOOL && !isConsultant && user.role !== UserRole.OPERATOR && (
                              <>
                                  <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
                                     <Edit2 className="h-4 w-4" />
@@ -953,8 +950,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         <span className="text-xs font-medium">Comprovante</span>
                                                     </button>
 
-                                                    {/* Botão Folha de Prova */}
-                                                    <button
+                                                    {/* Botão Ficha Manual */}
+                                                    {user.role !== UserRole.OPERATOR && (<button
                                                         onClick={() => {
                                                             const candidateName = (req.socialName || req.studentName || '').trim().toUpperCase();
                                                             const candidateCpf = req.cpf || '';
@@ -1133,9 +1130,10 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                     >
                                                         <ClipboardList className="h-4 w-4 shrink-0" />
                                                         <span className="text-xs font-medium">Ficha Manual</span>
-                                                    </button>
+                                                    </button>)}
 
                                                     {/* Botão Remover da Banca */}
+                                                    {user.role !== UserRole.OPERATOR && (
                                                     <button
                                                         onClick={async () => {
                                                             if (!confirm(`Remover ${req.socialName || req.studentName} da banca e devolver para Aguardando Agendamento?`)) return;
@@ -1147,6 +1145,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                     >
                                                         <X className="h-4 w-4" />
                                                     </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>
@@ -1276,7 +1275,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-md">
               <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
                   <div className="flex justify-between items-center p-5 border-b">
-                      <h3 className="text-lg font-bold text-gray-800">Agendar Candidatos</h3>
+                      <h3 className="text-lg font-bold text-gray-800">Agendar Candidato</h3>
                       <button onClick={() => setIsAddStudentOpen(false)} className="text-gray-400 hover:text-gray-600"><X className="h-6 w-6" /></button>
                   </div>
                   
@@ -1306,7 +1305,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                   <div className="text-left">
                                       <h4 className="font-bold text-gray-800">Categoria A (Moto)</h4>
                                       <span className="text-xs text-gray-500 font-medium">
-                                          {selectedCountA} selecionados / {remainingA} vagas restantes
+                                          {selectedCountA > 0 ? '1 selecionado' : '0 selecionados'} / {remainingA} vagas restantes
                                       </span>
                                   </div>
                               </div>
@@ -1317,16 +1316,17 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                               <div className="border-t bg-gray-50/50 p-2 max-h-60 overflow-y-auto space-y-1">
                                   {candidatesA.map(cand => {
                                       const isSelected = selectedCandidates[cand.id] === 'A';
-                                      const isDisabled = !isSelected && (remainingA <= 0 || selectedCandidates[cand.id] === 'B');
+                                      const isDisabled = !isSelected && remainingA <= 0;
                                       
                                       return (
                                           <label key={cand.id} className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors border ${isSelected ? 'bg-blue-50 border-blue-200' : 'bg-white border-transparent hover:border-gray-200'} ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
                                               <input 
-                                                type="checkbox" 
+                                                type="radio" 
+                                                name="candidateSelect"
                                                 className="hidden"
                                                 disabled={isDisabled}
                                                 checked={isSelected}
-                                                onChange={() => toggleCandidateSelection(cand.id, 'A')}
+                                                onChange={() => toggleCandidateSelection(cand.id, 'A', cand.socialName || cand.studentName || '', cand.cpf || '')}
                                               />
                                               <div className={isSelected ? 'text-blue-600' : 'text-gray-400'}>
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
@@ -1359,7 +1359,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                   <div className="text-left">
                                       <h4 className="font-bold text-gray-800">Categoria B (Carro)</h4>
                                       <span className="text-xs text-gray-500 font-medium">
-                                          {selectedCountB} selecionados / {remainingB} vagas restantes
+                                          {selectedCountB > 0 ? '1 selecionado' : '0 selecionados'} / {remainingB} vagas restantes
                                       </span>
                                   </div>
                               </div>
@@ -1370,16 +1370,17 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                               <div className="border-t bg-gray-50/50 p-2 max-h-60 overflow-y-auto space-y-1">
                                   {candidatesB.map(cand => {
                                       const isSelected = selectedCandidates[cand.id] === 'B';
-                                      const isDisabled = !isSelected && (remainingB <= 0 || selectedCandidates[cand.id] === 'A');
+                                      const isDisabled = !isSelected && remainingB <= 0;
                                       
                                       return (
                                           <label key={cand.id} className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-colors border ${isSelected ? 'bg-green-50 border-green-200' : 'bg-white border-transparent hover:border-gray-200'} ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''}`}>
                                               <input 
-                                                type="checkbox" 
+                                                type="radio" 
+                                                name="candidateSelect"
                                                 className="hidden"
                                                 disabled={isDisabled}
                                                 checked={isSelected}
-                                                onChange={() => toggleCandidateSelection(cand.id, 'B')}
+                                                onChange={() => toggleCandidateSelection(cand.id, 'B', cand.socialName || cand.studentName || '', cand.cpf || '')}
                                               />
                                               <div className={isSelected ? 'text-green-600' : 'text-gray-400'}>
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
@@ -1406,11 +1407,70 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                   <div className="p-5 border-t bg-gray-50 flex justify-end gap-3">
                       <button onClick={() => setIsAddStudentOpen(false)} className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 font-medium">Cancelar</button>
                       <button 
-                        onClick={handleConfirmBatchSchedule}
+                        onClick={() => {
+                            const entries = Object.entries(selectedCandidates);
+                            if (entries.length === 0) return;
+                            const [id, category] = entries[0];
+                            const req = allRequests.find(r => r.id === id);
+                            setScheduleConfirmCandidate({
+                                id,
+                                category,
+                                name: req?.socialName || req?.studentName || '',
+                                cpf: req?.cpf || '',
+                            });
+                        }}
                         disabled={Object.keys(selectedCandidates).length === 0}
                         className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
                       >
-                          Confirmar Agendamento ({Object.keys(selectedCandidates).length})
+                          Agendar Candidato
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+      {/* MODAL: CONFIRMAR AGENDAMENTO DE CANDIDATO */}
+      {scheduleConfirmCandidate && (
+          <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6">
+                  <div className="flex flex-col items-center text-center gap-3">
+                      <div className="bg-blue-100 p-3 rounded-full">
+                          <UserCheck className="h-7 w-7 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-800">Confirmar Agendamento</h3>
+                      <p className="text-sm text-gray-500">Você está prestes a agendar o candidato abaixo para esta banca:</p>
+                      <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-4 text-left space-y-1 mt-1">
+                          <div className="text-sm font-bold text-gray-800 uppercase">{scheduleConfirmCandidate.name}</div>
+                          <div className="text-xs text-gray-500">CPF: {maskCpf(scheduleConfirmCandidate.cpf)}</div>
+                          <div className="text-xs text-gray-500">Categoria: <span className="font-semibold text-blue-700">{scheduleConfirmCandidate.category === 'A' ? 'A (Moto)' : 'B (Carro)'}</span></div>
+                      </div>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                      <button
+                          onClick={() => setScheduleConfirmCandidate(null)}
+                          className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 font-medium text-sm"
+                      >
+                          Cancelar
+                      </button>
+                      <button
+                          onClick={async () => {
+                              const { id, category } = scheduleConfirmCandidate;
+                              setScheduleConfirmCandidate(null);
+                              setLoading(true);
+                              try {
+                                  const req = allRequests.find(r => r.id === id);
+                                  const currentUpdatedAt = req?.updatedAt || new Date().toISOString();
+                                  await api.assignStudentToSchedule(id, selectedSchedule!.id, category, currentUpdatedAt);
+                                  setIsAddStudentOpen(false);
+                                  refreshData(true);
+                              } catch {
+                                  alert('Erro ao agendar candidato.');
+                              } finally {
+                                  setLoading(false);
+                              }
+                          }}
+                          className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 shadow-sm text-sm"
+                      >
+                          Confirmar
                       </button>
                   </div>
               </div>

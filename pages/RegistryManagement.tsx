@@ -2379,14 +2379,14 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.role === UserRole.OPERATOR && formData.allowedModules.length === 0) {
-      alert('Selecione ao menos um módulo para o Operador.');
+    if ((formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && formData.allowedModules.length === 0) {
+      alert('Selecione ao menos um módulo para o Operador/Supervisor.');
       return;
     }
     try {
       const payload: any = { ...formData };
-      // Only persist allowedModules for OPERATOR role
-      if (formData.role !== UserRole.OPERATOR) delete payload.allowedModules;
+      // Only persist allowedModules for OPERATOR and SUPERVISOR roles
+      if (formData.role !== UserRole.OPERATOR && formData.role !== UserRole.SUPERVISOR) delete payload.allowedModules;
       if (editingUser) {
         await api.updateUser(editingUser.id, payload);
       } else {
@@ -2582,7 +2582,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                   </select>
                 </div>
               )}
-              {formData.role === UserRole.OPERATOR && (
+              {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && (
                 <div>
                   <label className="block text-sm font-medium mb-2">Módulos Permitidos</label>
                   <div className="space-y-2 border rounded p-3 bg-gray-50">
