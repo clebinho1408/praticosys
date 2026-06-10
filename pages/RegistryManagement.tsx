@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { User, UserRole, OperatorModule, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule, City } from '../types';
-import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
@@ -3579,6 +3579,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   const [accessoryInput, setAccessoryInput] = useState('');
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [plateLookupLoading, setPlateLookupLoading] = useState(false);
+  const [plateLookupMsg, setPlateLookupMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   // Confirm Modal State
   const [confirmState, setConfirmState] = useState<{
@@ -3623,6 +3625,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
     setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
     setAccessoryInput('');
     setEditingVehicleId(null);
+    setPlateLookupMsg(null);
     setIsModalOpen(true);
   };
 
@@ -3655,6 +3658,38 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value.replace(/\D/g, '');
       setFormData({...formData, cpf: val});
+  };
+
+  // --- Plate Lookup via SINESP ---
+  const handleLookupPlate = async () => {
+    const cleanPlate = newVehicle.plate.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (cleanPlate.length < 7) {
+      setPlateLookupMsg({ type: 'error', text: 'Placa incompleta. Use formato ABC1234 ou ABC1D23.' });
+      return;
+    }
+    setPlateLookupLoading(true);
+    setPlateLookupMsg(null);
+    try {
+      const result = await api.lookupVehicleByPlate(cleanPlate);
+      const brand = (result.brand || '').toUpperCase();
+      const model = (result.model || '').toUpperCase();
+      setNewVehicle(prev => ({
+        ...prev,
+        brand: brand || prev.brand,
+        model: model || prev.model,
+      }));
+      const parts = [brand, model, result.color, result.year].filter(Boolean).join(' · ');
+      setPlateLookupMsg({ type: 'success', text: `Encontrado: ${parts}` });
+    } catch (err: any) {
+      const msg = err?.message || '';
+      if (msg.includes('404') || msg.includes('não encontrado')) {
+        setPlateLookupMsg({ type: 'error', text: 'Veículo não encontrado para esta placa.' });
+      } else {
+        setPlateLookupMsg({ type: 'error', text: 'Serviço indisponível. Preencha marca e modelo manualmente.' });
+      }
+    } finally {
+      setPlateLookupLoading(false);
+    }
   };
 
   // --- Vehicle Management Logic ---
@@ -3882,7 +3917,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'B' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] }); setAccessoryInput(''); }} 
+                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] }); setAccessoryInput(''); setPlateLookupMsg(null); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'CARS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Car className="h-4 w-4" /> Carros
@@ -3892,7 +3927,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'A' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] }); setAccessoryInput(''); }} 
+                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] }); setAccessoryInput(''); setPlateLookupMsg(null); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'MOTOS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Bike className="h-4 w-4" /> Motos
@@ -3964,13 +3999,34 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                         </datalist>
                                     </div>
 
-                                    <input 
-                                        placeholder="Placa" 
-                                        className="border rounded p-2 text-sm bg-white font-mono uppercase" 
-                                        value={newVehicle.plate}
-                                        onChange={e => setNewVehicle({...newVehicle, plate: e.target.value})}
-                                    />
+                                    <div className="flex gap-1">
+                                        <input 
+                                            placeholder="Placa (ex: ABC1234)"
+                                            className="flex-1 border rounded p-2 text-sm bg-white font-mono uppercase min-w-0"
+                                            value={newVehicle.plate}
+                                            maxLength={8}
+                                            onChange={e => { setNewVehicle({...newVehicle, plate: e.target.value}); setPlateLookupMsg(null); }}
+                                            onBlur={() => { const p = newVehicle.plate.replace(/[^A-Z0-9]/gi, ''); if (p.length >= 7) handleLookupPlate(); }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={handleLookupPlate}
+                                            disabled={plateLookupLoading || newVehicle.plate.replace(/[^A-Z0-9]/gi, '').length < 7}
+                                            className="px-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-40 flex-shrink-0"
+                                            title="Consultar marca e modelo pela placa (SINESP)"
+                                        >
+                                            {plateLookupLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                                        </button>
+                                    </div>
                                 </div>
+                                {plateLookupMsg && (
+                                    <div className={`text-xs mt-1 flex items-center gap-1 ${plateLookupMsg.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                                        {plateLookupMsg.type === 'success'
+                                            ? <CheckCircle2 className="h-3 w-3" />
+                                            : <AlertCircle className="h-3 w-3" />}
+                                        {plateLookupMsg.text}
+                                    </div>
+                                )}
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                                     <div>

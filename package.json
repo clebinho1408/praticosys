@@ -36,6 +36,7 @@
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.2",
     "recharts": "^2.12.2",
+    "sinesp-api": "^3.0.0",
     "tailwindcss": "^4.2.1",
     "tsx": "^4.21.0",
     "typescript": "^5.2.2",

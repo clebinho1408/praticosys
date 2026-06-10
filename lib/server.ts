@@ -22,6 +22,7 @@ import usersHandler from './server-api/users.js';
 import blockedDatesHandler from './server-api/blocked-dates.js';
 import citiesHandler from './server-api/cities.js';
 import riskAreaHandler from './server-api/risk-area.js';
+import vehicleLookupHandler from './server-api/vehicle-lookup.js';
 import { db } from '../db/index.js';
 import { addClient } from './sse.js';
 
@@ -121,6 +122,7 @@ app.all('/api/users', wrap(usersHandler));
 app.all('/api/blocked-dates', wrap(blockedDatesHandler));
 app.all('/api/cities', wrap(citiesHandler));
 app.all('/api/risk-area', wrap(riskAreaHandler));
+app.get('/api/vehicle-lookup', wrap(vehicleLookupHandler));
 
 // SSE Endpoint for real-time updates
 app.get('/api/events', (_req, res) => {

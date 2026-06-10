@@ -54,6 +54,9 @@ export const api = {
   updateInstructor: (id: string, data: Partial<Instructor>) => request<Instructor>('/instructors', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteInstructor: (id: string) => request<void>(`/instructors?id=${id}`, { method: 'DELETE' }),
 
+  // --- VEHICLE LOOKUP (SINESP) ---
+  lookupVehicleByPlate: (plate: string) => request<{ plate: string; brand: string; model: string; color: string; year: string; state: string; city: string }>(`/vehicle-lookup?plate=${encodeURIComponent(plate)}`),
+
   // --- SCHOOLS ---
   getSchools: () => request<DrivingSchool[]>('/schools'),
   getSchoolsAsync: () => request<DrivingSchool[]>('/schools'),
