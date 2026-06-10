@@ -178,6 +178,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [editingRequest, setEditingRequest] = useState<ExamRequest | null>(
     null,
   );
+  // isViewOnly: true when opening modal in read-only mode
+  // - Admin/Supervisor/Operator viewing a DONE record
+  // - Operator opening ANY existing record (always view-only)
+  const isViewOnly = (editingRequest?.status === ExamStatus.DONE && isAdminOpSup)
+    || (!!editingRequest && user.role === UserRole.OPERATOR);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [notificationData, setNotificationData] = useState({ title: '', message: '', id: '' });
   const [notificationQueue, setNotificationQueue] = useState<{ title: string; message: string; id: string }[]>([]);
@@ -821,7 +826,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           </div>
         ) : (
           <>
-            {(req.status === ExamStatus.DONE || req.status === ExamStatus.WAITING_SCHEDULING) && isAdminOpSup && (
+            {(req.status === ExamStatus.DONE || req.status === ExamStatus.WAITING_SCHEDULING || req.status === ExamStatus.SCHEDULED) && isAdminOpSup && (
               <button
                 onClick={() => openCreateModal(req)}
                 className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
@@ -1184,7 +1189,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               id={`instructor_${categoryCode}`}
               className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
               value={currentInstructorName}
-              disabled={user.role === UserRole.INSTRUCTOR || (!!editingRequest && isAdminOpSup)}
+              disabled={user.role === UserRole.INSTRUCTOR || isViewOnly}
               onChange={(e) => {
                 const newName = e.target.value;
 
@@ -1292,7 +1297,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               <select
                 className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                 value={currentPlate}
-                disabled={(!!editingRequest && isAdminOpSup) || !currentInstructorName}
+                disabled={isViewOnly || !currentInstructorName}
                 onChange={(e) => updatePlate(e.target.value)}
               >
                 <option value="">Selecione...</option>
@@ -2654,7 +2659,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           <div className="bg-white md:rounded-lg shadow-xl w-full h-full md:h-auto md:max-w-2xl flex flex-col md:max-h-[90vh]">
             <div className="p-4 md:p-6 border-b flex justify-between items-center">
               <h3 className="text-lg font-bold text-gray-900">
-                {editingRequest?.status === ExamStatus.DONE && isAdminOpSup ? "Visualizar Candidato" : editingRequest ? "Editar Candidato" : "Novo Candidato"}
+                {isViewOnly ? "Visualizar Candidato" : editingRequest ? "Editar Candidato" : "Novo Candidato"}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -2706,7 +2711,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           required
                           className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.cpf || ""}
-                          disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
+                          disabled={isViewOnly}
                           onChange={(e) => {
                             const onlyNums = e.target.value.replace(/\D/g, "");
                             setFormData({ ...formData, cpf: onlyNums });
@@ -2724,7 +2729,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           required
                           className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.studentName || ""}
-                          disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
+                          disabled={isViewOnly}
                           onChange={(e) => {
                             // Remove acentos e converte para maiúsculas
                             const val = e.target.value
@@ -2746,7 +2751,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             id="socialName"
                             className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                             value={formData.socialName || ""}
-                            disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
+                            disabled={isViewOnly}
                             onChange={(e) => {
                               const val = e.target.value
                                 .normalize("NFD")
@@ -2769,7 +2774,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           required
                           className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.phone || ""}
-                          disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
+                          disabled={isViewOnly}
                           onChange={(e) => {
                             let val = e.target.value.replace(/\D/g, "");
                             if (val.length > 11) val = val.slice(0, 11);
@@ -2808,7 +2813,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           required
                           className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.city || ""}
-                          disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
+                          disabled={isViewOnly}
                           onChange={(e) =>
                             setFormData({ ...formData, city: e.target.value })
                           }
@@ -2829,7 +2834,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           <select
                             className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                             value={formData.examType || ExamType.COMMON}
-                            disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
+                            disabled={isViewOnly}
                             onChange={(e) =>
                               setFormData({
                                 ...formData,
@@ -2950,7 +2955,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           <input
                             className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                             value={formData.cnhRestriction || ""}
-                            disabled={editingRequest?.status === ExamStatus.DONE && isAdminOpSup}
+                            disabled={isViewOnly}
                             onChange={(e) => {
                               const val = e.target.value;
                               const letters = val
@@ -3207,9 +3212,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 onClick={() => setIsModalOpen(false)}
                 className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100 font-medium"
               >
-                {editingRequest?.status === ExamStatus.DONE && isAdminOpSup ? "Fechar" : "Cancelar"}
+                {isViewOnly ? "Fechar" : "Cancelar"}
               </button>
-                {!(editingRequest?.status === ExamStatus.DONE && isAdminOpSup) && !isConsultant && (
+                {!isViewOnly && !isConsultant && (
                 <button
                   type="button"
                   onClick={(e) => {

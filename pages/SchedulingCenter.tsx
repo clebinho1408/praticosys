@@ -600,6 +600,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   const getExaminerName = (id: string) => examiners.find(e => e.id === id)?.name || 'Desconhecido';
 
   const filteredSchedules = schedules.filter(s => {
+    // Operators only see OPEN bancas
+    if (user.role === UserRole.OPERATOR && s.status !== 'OPEN') return false;
+
     const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
     const matchesSearch = s.date.includes(searchTerm) || 
                           s.examinerIds.some(id => getExaminerName(id).toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -700,6 +703,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     />
                 </div>
                 
+                {user.role !== UserRole.OPERATOR && (
                 <div className="relative w-full md:w-40">
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <Filter className="h-4 w-4 text-gray-400" />
@@ -719,6 +723,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         <ChevronDown className="h-4 w-4 text-gray-400" />
                     </div>
                 </div>
+                )}
 
                 <div className="flex items-center gap-2">
                     <input 
