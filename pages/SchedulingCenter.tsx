@@ -921,7 +921,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         <span className="text-gray-300">|</span>
                                                         <span>Cidade: {req.city || '-'}</span>
                                                         <span className="text-gray-300">|</span>
-                                                        <span>Instrutor: {req.instructor || '-'}</span>
+                                                        <span>Instrutor: {req.instructor || '-'}{req.vehiclePlate ? ` · ${req.vehiclePlate}` : ''}</span>
                                                         {selectedSchedule.status === 'CONCLUDED' && (
                                                             req.status === 'WAITING_RESULT' ? (
                                                                 <>

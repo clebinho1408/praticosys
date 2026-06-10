@@ -873,7 +873,9 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                       examinerIds: schedule?.examinerIds || [],
                       examType: req.examType,
                       requestType: req.requestType,
-                      exameLabel: exameLabel
+                      exameLabel: exameLabel,
+                      instructor: req.instructor || '',
+                      vehiclePlate: req.vehiclePlate || ''
                   });
               });
           }
@@ -904,7 +906,9 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                        examinerIds: schedule?.examinerIds || [],
                        examType: req.examType,
                        requestType: req.requestType,
-                       exameLabel: exameLabel
+                       exameLabel: exameLabel,
+                       instructor: req.instructor || '',
+                       vehiclePlate: req.vehiclePlate || ''
                    });
                }
           }
@@ -1445,10 +1449,11 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                                           <table className="w-full text-sm text-left">
                                                               <thead>
                                                                   <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                                      <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[40%]">Nome</th>
-                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">CPF</th>
-                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Data/Hora</th>
-                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[20%]">Resultado</th>
+                                                                      <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[30%]">Nome</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">CPF</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[25%]">Instrutor / Placa</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Data/Hora</th>
+                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Resultado</th>
                                                                   </tr>
                                                               </thead>
                                                               <tbody className="divide-y divide-gray-100 print:divide-gray-200">
@@ -1456,6 +1461,11 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                                                       <tr key={item.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
                                                                           <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
                                                                           <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
+                                                                          <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                              {item.instructor ? (
+                                                                                  <span>{item.instructor}{item.vehiclePlate ? <span className="text-gray-400 font-mono ml-1">· {item.vehiclePlate}</span> : ''}</span>
+                                                                              ) : <span className="text-gray-300">-</span>}
+                                                                          </td>
                                                                           <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
                                                                               {new Date(item.date).toLocaleDateString()} às {item.time}
                                                                           </td>
