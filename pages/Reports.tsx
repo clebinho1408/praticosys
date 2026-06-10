@@ -1449,27 +1449,30 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                                           <table className="w-full text-sm text-left">
                                                               <thead>
                                                                   <tr className="text-xs text-gray-400 border-b print:text-black print:border-black">
-                                                                      <th className="px-6 py-2 pl-14 font-medium print:pl-2 print:py-1 print:text-[10px] print:w-[30%]">Nome</th>
-                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">CPF</th>
-                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[25%]">Instrutor / Placa</th>
-                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Data/Hora</th>
-                                                                      <th className="px-6 py-2 font-medium print:px-2 print:py-1 print:text-[10px] print:w-[15%]">Resultado</th>
+                                                                      <th className="px-3 py-2 pl-10 font-medium w-[22%] print:pl-2 print:py-1 print:text-[10px] print:w-[22%]">Nome</th>
+                                                                      <th className="px-3 py-2 font-medium whitespace-nowrap print:px-1 print:py-1 print:text-[10px] print:w-[13%]">CPF</th>
+                                                                      <th className="px-3 py-2 font-medium print:px-1 print:py-1 print:text-[10px] print:w-[30%]">Instrutor / Placa</th>
+                                                                      <th className="px-3 py-2 font-medium whitespace-nowrap print:px-1 print:py-1 print:text-[10px] print:w-[18%]">Data/Hora</th>
+                                                                      <th className="px-3 py-2 font-medium whitespace-nowrap print:px-1 print:py-1 print:text-[10px] print:w-[17%]">Resultado</th>
                                                                   </tr>
                                                               </thead>
                                                               <tbody className="divide-y divide-gray-100 print:divide-gray-200">
                                                                   {items.map((item: any) => (
                                                                       <tr key={item.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                                          <td className="px-6 py-3 w-1/3 font-medium text-gray-800 uppercase pl-14 print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
-                                                                          <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
-                                                                          <td className="px-6 py-3 text-gray-500 print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          <td className="px-3 py-2 pl-10 font-medium text-gray-800 uppercase text-xs print:pl-2 print:py-0.5 print:text-[10px] print:text-black">{item.studentName}</td>
+                                                                          <td className="px-3 py-2 text-gray-500 whitespace-nowrap text-xs print:px-1 print:py-0.5 print:text-[10px] print:text-black">{item.cpf}</td>
+                                                                          <td className="px-3 py-2 text-gray-500 text-xs print:px-1 print:py-0.5 print:text-[10px] print:text-black">
                                                                               {item.instructor ? (
-                                                                                  <span>{item.instructor}{item.vehiclePlate ? <span className="text-gray-400 font-mono ml-1">· {item.vehiclePlate}</span> : ''}</span>
+                                                                                  <span className="flex flex-col leading-tight">
+                                                                                      <span className="uppercase">{item.instructor}</span>
+                                                                                      {item.vehiclePlate && <span className="font-mono text-gray-400 print:text-black">{item.vehiclePlate}</span>}
+                                                                                  </span>
                                                                               ) : <span className="text-gray-300">-</span>}
                                                                           </td>
-                                                                          <td className="px-6 py-3 text-gray-500 font-medium print:px-2 print:py-0.5 print:text-[10px] print:text-black">
+                                                                          <td className="px-3 py-2 text-gray-500 font-medium whitespace-nowrap text-xs print:px-1 print:py-0.5 print:text-[10px] print:text-black">
                                                                               {new Date(item.date).toLocaleDateString()} às {item.time}
                                                                           </td>
-                                                                          <td className="px-6 py-3 print:px-2 print:py-0.5 print:text-[10px]">
+                                                                          <td className="px-3 py-2 whitespace-nowrap print:px-1 print:py-0.5 print:text-[10px]">
                                                                               {item.result ? (
                                                                                   <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
                                                                                       item.result === 'APTO' ? 'bg-green-100 text-green-700' : 
