@@ -496,7 +496,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
               // Isso permite restaurar a posição exata na fila se a banca for cancelada.
               const req = allRequests.find(r => r.id === id);
               const currentUpdatedAt = req?.updatedAt || new Date().toISOString();
-              return api.assignStudentToSchedule(id, selectedSchedule.id, cat, currentUpdatedAt);
+              return api.assignStudentToSchedule(id, selectedSchedule.id, cat, currentUpdatedAt, user.name);
           });
           await Promise.all(updates);
           setIsAddStudentOpen(false);
@@ -913,8 +913,19 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     {idx + 1}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <div className="text-sm font-bold text-gray-900 uppercase truncate">
-                                                        {req.socialName || req.studentName}
+                                                    <div className="relative group inline-block max-w-full">
+                                                        <div className="text-sm font-bold text-gray-900 uppercase truncate cursor-default">
+                                                            {req.socialName || req.studentName}
+                                                        </div>
+                                                        {req.scheduledBy && (
+                                                            <div className="absolute bottom-full left-0 mb-1 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                                                <div className="bg-gray-800 text-white text-xs rounded-md px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                                                                    <span className="text-gray-400">Agendado por:</span>{' '}
+                                                                    <span className="font-semibold">{req.scheduledBy}</span>
+                                                                </div>
+                                                                <div className="w-2 h-2 bg-gray-800 rotate-45 ml-2 -mt-1"></div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="flex gap-2 text-xs text-gray-500">
                                                         <span>CPF: {maskCpf(req.cpf)}</span>

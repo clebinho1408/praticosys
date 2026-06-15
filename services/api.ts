@@ -98,7 +98,8 @@ export const api = {
   // --- ACTIONS ---
   // currentUpdatedAt: valor atual de updatedAt do candidato antes de entrar na banca.
   // Será salvo em queueUpdatedAt para restauração ao cancelar a banca.
-  assignStudentToSchedule: (requestId: string, scheduleId: string, category: string, currentUpdatedAt?: string) => 
+  // scheduledBy: nome do usuário do sistema que colocou o candidato na banca.
+  assignStudentToSchedule: (requestId: string, scheduleId: string, category: string, currentUpdatedAt?: string, scheduledBy?: string) => 
     request<void>('/requests', { 
       method: 'PUT', 
       body: JSON.stringify({ 
@@ -108,6 +109,8 @@ export const api = {
         status: 'SCHEDULED', // ExamStatus.SCHEDULED
         // Salva o updatedAt atual (posição na fila) para restauração ao cancelar banca
         queueUpdatedAt: currentUpdatedAt || new Date().toISOString(),
+        // Registra quem colocou o candidato na banca
+        scheduledBy: scheduledBy || null,
       }) 
     }),
 

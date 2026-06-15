@@ -141,6 +141,8 @@ export const examRequests = pgTable('exam_requests', {
   // Ao entrar numa banca, este campo é salvo com o valor de updatedAt.
   // Ao cancelar a banca, updatedAt é restaurado a partir deste campo → posição original na fila.
   queueUpdatedAt: timestamp('queue_updated_at'),
+  // Usuário do sistema que colocou o candidato na banca
+  scheduledBy: text('scheduled_by'),
 });
 
 // Configurações do Sistema (Single Row)

@@ -190,6 +190,8 @@ export interface ExamRequest {
   // Timestamp da última vez que o candidato estava na fila (WAITING_SCHEDULING).
   // Salvo ao entrar na banca; restaurado em updatedAt ao cancelar a banca.
   queueUpdatedAt?: string | null;
+  // Usuário do sistema que colocou o candidato na banca
+  scheduledBy?: string | null;
 }
 
 export interface Restriction {

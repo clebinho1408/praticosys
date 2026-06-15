@@ -16,6 +16,8 @@ const ALLOWED_FIELDS = [
   'queueUpdatedAt',
   // Checklists de pré-agendamento (CNH do Brasil — Instrutor)
   'checklistVehicle','practicalCourseInserted','taxaPaga',
+  // Usuário que colocou o candidato na banca
+  'scheduledBy',
 ];
 
 function filterFields(obj: any, extra: string[] = []) {
@@ -40,6 +42,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS checklist_vehicle boolean DEFAULT false`);
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS practical_course_inserted boolean DEFAULT false`);
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS taxa_paga boolean DEFAULT false`);
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS scheduled_by text`);
     } catch {}
 
     if (method === 'GET') {

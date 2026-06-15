@@ -44,7 +44,9 @@ export default async function handler(req: any, res: any) {
         'cnhRestriction', 'instructor', 'vehiclePlate', 'disabilityType',
         'specialNeeds', 'status', 'result', 'scheduleId', 'scheduledDate',
         'scheduledTime', 'scheduledCategory', 'examinerId', 'attendanceConfirmed',
-        'cancellationReason', 'observation', 'examHistory'
+        'cancellationReason', 'observation', 'examHistory',
+        // Usuário que colocou o candidato na banca
+        'scheduledBy'
       ];
 
       const filteredBody: any = {};
@@ -100,7 +102,9 @@ export default async function handler(req: any, res: any) {
         'cnhRestriction', 'instructor', 'vehiclePlate', 'disabilityType',
         'specialNeeds', 'status', 'result', 'scheduleId', 'scheduledDate',
         'scheduledTime', 'scheduledCategory', 'examinerId', 'attendanceConfirmed',
-        'cancellationReason', 'observation', 'examHistory', 'createdAt'
+        'cancellationReason', 'observation', 'examHistory', 'createdAt',
+        // Usuário que colocou o candidato na banca
+        'scheduledBy'
       ];
 
       const filteredUpdates: any = {};
