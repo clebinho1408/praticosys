@@ -1769,11 +1769,12 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                           .location { margin-top: 32px; font-size: 11pt; }
                           .logo { height: 64px; width: auto; flex-shrink: 0; }
                           .header-text { text-align: left; }
-                          .print-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1.5px solid #000; padding: 3px 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; font-weight: bold; color: #000; box-sizing: border-box; white-space: nowrap; overflow: hidden; }
+                          body { padding-bottom: 28mm; }
+                          .print-footer { position: fixed; bottom: 12mm; left: 0; width: 100%; background: #fff; border-top: 1.5px solid #000; padding: 3px 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; font-weight: bold; color: #000; box-sizing: border-box; white-space: nowrap; overflow: hidden; }
                           .print-footer .footer-left { text-align: left; }
                           .print-footer .footer-right { text-align: right; }
                         </style>
-                        </head><body>${el.innerHTML}<div class="print-footer"><span class="footer-left">${(settings?.agencyAddress || '').toUpperCase()}</span><span class="footer-right">IMPRESSÃO: ${new Date().toLocaleString('pt-BR')}</span></div></body></html>
+                        </head><body>${el.innerHTML}<div class="print-footer"><span class="footer-left">${(settings?.agencyAddress || '').toUpperCase()}</span><span class="footer-right">IMPRESSÃO: ${user.name} - ${new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span></div></body></html>
                       `);
                       pri.document.close();
                       pri.focus();
@@ -1853,7 +1854,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                   </p>
 
                   {/* Signature */}
-                  <div style={{marginTop:'100px', textAlign:'center'}}>
+                  <div style={{marginTop:'160px', textAlign:'center'}}>
                     <div style={{borderTop:'1.5px solid #000', width:'360px', margin:'0 auto 6px'}}></div>
                     <p style={{fontSize:'11pt', fontWeight:'bold', textTransform:'uppercase', margin:'0'}}>
                       {candidateName}
