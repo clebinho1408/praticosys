@@ -559,6 +559,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       `Categoria: ${category}`,
       `Restrição da CNH: ${restrictionText}`,
       ``,
+      ...(req.instructor ? [`Instrutor: ${req.instructor}`] : []),
+      ...(req.vehiclePlate ? [`Placa: ${req.vehiclePlate}`] : []),
+      ``,
       `---`,
       ``,
       `ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação.`,
@@ -1826,6 +1829,12 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                   )}
                   <div style={{margin:'0 0 14px'}}><strong>Categoria:</strong> {category}</div>
                   <div style={{margin:'0 0 14px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
+                  {req.instructor && (
+                    <div style={{margin:'14px 0 14px'}}><strong>Instrutor:</strong> {req.instructor}</div>
+                  )}
+                  {req.vehiclePlate && (
+                    <div style={{margin:'0 0 14px'}}><strong>Placa:</strong> {req.vehiclePlate}</div>
+                  )}
 
                   {/* Notice */}
                   <p style={{marginTop:'72px', fontSize:'10.5pt', lineHeight:'1.8', color:'#222'}}>
