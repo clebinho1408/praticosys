@@ -551,7 +551,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     const bodyLines = [
       `COMPROVANTE DE AGENDAMENTO`,
       ``,
-      `Eu, ${candidateName}, portador(a) do CPF ${candidateCpf}, declaro estar ciente do AGENDAMENTO DO EXAME PRÁTICO;`,
+      `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para EXAME PRÁTICO:`,
       ``,
       `Data: ${fullDate}`,
       `Hora: ${examTime} (Chegar 20min antes)`,
