@@ -13,7 +13,8 @@ import {
   ChevronRight, 
   X, 
   Printer, 
-  Trash2, 
+  Trash2,
+  Mail,
   Edit2, 
   Ban, 
   Users,
@@ -506,6 +507,75 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       } finally {
           setLoading(false);
       }
+  };
+
+  const handleEnviarEmailComprovante = (req: ExamRequest) => {
+    if (!selectedSchedule) return;
+
+    const candidateEmail = req.email?.trim() || '';
+    if (!candidateEmail) {
+      alert(`O candidato ${req.socialName || req.studentName} não possui e-mail cadastrado.\nCadastre o e-mail na aba Candidatos antes de enviar.`);
+      return;
+    }
+
+    // Monta dados do comprovante (mesma lógica do preview)
+    const candidateName = (req.socialName || req.studentName || '').trim().toUpperCase();
+    const candidateCpf = req.cpf || '';
+    const category = (req.scheduledCategory || req.intendedCategory || '-').toUpperCase();
+
+    const fullDate = (() => {
+      const raw = (selectedSchedule.date || '').split('T')[0];
+      const [y, m, d] = raw.split('-');
+      return raw ? `${d}/${m}/${y}` : '-';
+    })();
+
+    const examTime = selectedSchedule.time || '-';
+    const examAddress = settings?.defaultExamAddress || '';
+
+    const restrictionText = (() => {
+      if (!req.cnhRestriction) return 'Nenhuma';
+      const codes = req.cnhRestriction.split(',').map((c: string) => c.trim()).filter(Boolean);
+      if (codes.length === 0) return 'Nenhuma';
+      return codes.map((code: string) => {
+        const desc = settings?.restrictions?.find((r: any) => r.code === code)?.description;
+        return desc ? `${code} - ${desc}` : code;
+      }).join(', ');
+    })();
+
+    const today = new Date();
+    const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const todayFormatted = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
+
+    const subject = encodeURIComponent(`Comprovante de Agendamento - Exame Prático CNH - ${candidateName}`);
+
+    const bodyLines = [
+      `COMPROVANTE DE AGENDAMENTO`,
+      `ESTADO DE SANTA CATARINA - DEPARTAMENTO ESTADUAL DE TRÂNSITO`,
+      `AGÊNCIA REGIONAL DE BALNEÁRIO CAMBORIÚ - SETOR CNH`,
+      ``,
+      `Eu, ${candidateName}, portador(a) do CPF ${candidateCpf}, declaro estar ciente do AGENDAMENTO DO EXAME PRÁTICO;`,
+      ``,
+      `Data: ${fullDate}`,
+      `Hora: ${examTime} (Chegar 20min antes)`,
+      ...(examAddress ? [`Local do Exame: ${examAddress}`] : []),
+      `Categoria: ${category}`,
+      `Restrição da CNH: ${restrictionText}`,
+      ``,
+      `---`,
+      ``,
+      `ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação.`,
+      ``,
+      `Em caso de ausência ou reprovação: será necessário enviar novo e-mail para provapraticabc@detran.sc.gov.br solicitando um novo agendamento.`,
+      ``,
+      `Em caso de cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
+      ``,
+      `---`,
+      ``,
+      `Balneário Camboriú, SC, ${todayFormatted}.`,
+    ];
+
+    const body = encodeURIComponent(bodyLines.join('\n'));
+    window.open(`mailto:${candidateEmail}?subject=${subject}&body=${body}`, '_blank');
   };
 
   const handleSaveSchedule = async (e: React.FormEvent) => {
@@ -1147,6 +1217,15 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                         <ClipboardList className="h-4 w-4 shrink-0" />
                                                         <span className="text-xs font-medium">Ficha Manual</span>
                                                     </button>)}
+
+                                                    {/* Botão Enviar Comprovante por E-mail */}
+                                                    <button
+                                                        onClick={() => handleEnviarEmailComprovante(req)}
+                                                        className={`p-1.5 rounded-md transition-all ${req.email ? 'text-green-600 hover:bg-green-50' : 'text-gray-300 cursor-not-allowed'}`}
+                                                        title={req.email ? `Enviar comprovante por e-mail para ${req.email}` : 'Candidato sem e-mail cadastrado'}
+                                                    >
+                                                        <Mail className="h-4 w-4" />
+                                                    </button>
 
                                                     {/* Botão Remover da Banca */}
                                                     {user.role !== UserRole.OPERATOR && (
