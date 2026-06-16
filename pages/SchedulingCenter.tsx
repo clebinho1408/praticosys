@@ -33,7 +33,9 @@ import {
   AlertOctagon,
   FileText,
   ClipboardList,
-  UserCheck
+  UserCheck,
+  Copy,
+  Check
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -146,6 +148,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
 
   // Comprovante de Agendamento
   const [comprovanteReq, setComprovanteReq] = useState<ExamRequest | null>(null);
+  const [copiedDates, setCopiedDates] = useState(false);
   // printedIds: persiste em localStorage por scheduleId para sobreviver a troca de usuário/cache
   const [printedIds, setPrintedIds] = useState<Set<string>>(() => {
     try { const raw = localStorage.getItem('praticosys_printed_comprovante'); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
@@ -575,6 +578,66 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     window.open(`mailto:${candidateEmail}?subject=${subject}&body=${body}`, '_blank');
   };
 
+  const handleCopyAvailableDates = () => {
+    // Pega apenas bancas ABERTAS do período filtrado, ordena por data crescente
+    const openSchedules = schedules
+      .filter(s => {
+        if (s.status !== 'OPEN') return false;
+        if (type && s.type !== type) return false;
+        if (startDate || endDate) {
+          const schedTime = new Date(s.date).getTime();
+          if (startDate && schedTime < new Date(startDate).getTime()) return false;
+          if (endDate && schedTime > new Date(endDate).getTime()) return false;
+        }
+        return true;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    if (openSchedules.length === 0) {
+      alert('Não há bancas abertas no período filtrado.');
+      return;
+    }
+
+    const lines: string[] = [
+      'Datas e Horários disponíveis para o Exame Prático:',
+      '',
+    ];
+
+    for (const s of openSchedules) {
+      const raw = (s.date || '').split('T')[0];
+      const [y, m, d] = raw.split('-');
+      const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
+
+      const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A' && r.status === 'SCHEDULED').length;
+      const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B' && r.status === 'SCHEDULED').length;
+      const availA = Math.max(0, (s.maxSlotsA || 0) - occupiedA);
+      const availB = Math.max(0, (s.maxSlotsB || 0) - occupiedB);
+
+      lines.push(`Data: ${dateFormatted}`);
+      lines.push(`Hora: ${s.time || '-'}`);
+      lines.push(`Vagas disponíveis Cat. A: ${availA}`);
+      lines.push(`Vagas disponíveis Cat. B: ${availB}`);
+      lines.push('');
+    }
+
+    lines.push('Escolha uma data para a sua Categoria e informe na resposta deste email.');
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopiedDates(true);
+      setTimeout(() => setCopiedDates(false), 2500);
+    }).catch(() => {
+      // fallback para navegadores sem clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = lines.join('\n');
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiedDates(true);
+      setTimeout(() => setCopiedDates(false), 2500);
+    });
+  };
+
   const handleSaveSchedule = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -806,6 +869,14 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
                     />
+                    {/* Botão copiar datas disponíveis */}
+                    <button
+                        onClick={handleCopyAvailableDates}
+                        title="Copiar datas e vagas das bancas abertas"
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm font-medium transition-all ${copiedDates ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-slate-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'}`}
+                    >
+                        {copiedDates ? <><Check className="h-4 w-4" /><span>Copiado!</span></> : <><Copy className="h-4 w-4" /><span>Copiar datas</span></>}
+                    </button>
                 </div>
              </div>
 
