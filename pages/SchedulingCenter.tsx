@@ -1770,9 +1770,9 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                           .logo { height: 64px; width: auto; flex-shrink: 0; }
                           .header-text { text-align: left; }
                           body { padding-bottom: 20mm; }
-                          .print-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1.5px solid #000; padding: 4px 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; font-weight: bold; color: #000; box-sizing: border-box; white-space: nowrap; overflow: hidden; }
-                          .print-footer .footer-left { text-align: left; }
-                          .print-footer .footer-right { text-align: right; }
+                          .print-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #fff; border-top: 1.5px solid #000; padding: 4px 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; font-weight: bold; color: #000; box-sizing: border-box; gap: 8px; }
+                          .print-footer .footer-left { text-align: left; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                          .print-footer .footer-right { text-align: right; flex-shrink: 0; white-space: nowrap; }
                         </style>
                         </head><body>${el.innerHTML}<div class="print-footer"><span class="footer-left">${(settings?.agencyAddress || '').toUpperCase()}</span><span class="footer-right">IMPRESSÃO: ${user.name} - ${new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span></div></body></html>
                       `);
