@@ -1758,8 +1758,11 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                   <p style={{marginTop:'72px', fontSize:'10.5pt', lineHeight:'1.8', color:'#222'}}>
                     <strong>Atenção:</strong> <span style={{fontWeight:600}}>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação.</span>
                   </p>
-                  <p style={{fontSize:'10.5pt', fontWeight:'bold', lineHeight:'1.8', color:'#222', marginTop:'32px', textAlign:'center'}}>
-                    Declaro estar ciente de que, em caso de ausência, reprovação ou cancelamento do exame, será necessário retornar à agência para realizar novo agendamento.
+                  <p style={{fontSize:'10pt', lineHeight:'1.7', color:'#222', marginTop:'28px', textAlign:'justify'}}>
+                    <strong>Em caso de ausência ou reprovação:</strong> será necessário enviar novo e-mail para <strong>provapraticabc@detran.sc.gov.br</strong> solicitando um novo agendamento.
+                  </p>
+                  <p style={{fontSize:'10pt', lineHeight:'1.7', color:'#222', marginTop:'12px', textAlign:'justify'}}>
+                    <strong>Em caso de cancelamento por:</strong> incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar <strong>20 dias</strong> antes de solicitar novo agendamento.
                   </p>
 
                   {/* Location + date */}
