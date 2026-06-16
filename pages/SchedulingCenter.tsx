@@ -546,12 +546,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const todayFormatted = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
 
-    const subject = encodeURIComponent(`Comprovante de Agendamento - Exame Prático CNH - ${candidateName}`);
+    const subject = encodeURIComponent(`Comprovante de Agendamento - Cat. ${category} - ${candidateName}`);
 
     const bodyLines = [
       `COMPROVANTE DE AGENDAMENTO`,
-      `ESTADO DE SANTA CATARINA - DEPARTAMENTO ESTADUAL DE TRÂNSITO`,
-      `AGÊNCIA REGIONAL DE BALNEÁRIO CAMBORIÚ - SETOR CNH`,
       ``,
       `Eu, ${candidateName}, portador(a) do CPF ${candidateCpf}, declaro estar ciente do AGENDAMENTO DO EXAME PRÁTICO;`,
       ``,
@@ -568,10 +566,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       `Em caso de ausência ou reprovação: será necessário enviar novo e-mail para provapraticabc@detran.sc.gov.br solicitando um novo agendamento.`,
       ``,
       `Em caso de cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
-      ``,
-      `---`,
-      ``,
-      `Balneário Camboriú, SC, ${todayFormatted}.`,
     ];
 
     const body = encodeURIComponent(bodyLines.join('\n'));
