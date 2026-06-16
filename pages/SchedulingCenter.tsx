@@ -549,7 +549,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const todayFormatted = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
 
-    const subject = encodeURIComponent(`Comprovante de Agendamento - Cat. ${category} - ${candidateName}`);
+    const subject = encodeURIComponent(`Comprovante de Agendamento - Cat. ${category} - Data: ${fullDate} ${examTime}`);
 
     const bodyLines = [
       `COMPROVANTE DE AGENDAMENTO`,
