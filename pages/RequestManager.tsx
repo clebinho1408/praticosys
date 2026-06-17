@@ -458,7 +458,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     const requiredFields = [
       { field: "cpf", label: "CPF" },
       { field: "studentName", label: "Nome Completo" },
-      { field: "phone", label: "Telefone" },
+
       { field: "intendedCategory", label: "Categoria Pretendida" },
     ];
 
@@ -2765,29 +2765,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           />
                         </div>
                       )}
-                      <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          E-mail
-                        </label>
-                        <input
-                          id="email"
-                          type="email"
-                          className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
-                          value={formData.email || ""}
-                          disabled={isViewOnly}
-                          placeholder="exemplo@email.com"
-                          onChange={(e) =>
-                            setFormData({ ...formData, email: e.target.value.trim() })
-                          }
-                        />
-                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Telefone <span className="text-red-500">*</span>
+                          Telefone
                         </label>
                         <input
                           id="phone"
-                          required
                           className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                           value={formData.phone || ""}
                           disabled={isViewOnly}
