@@ -149,6 +149,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   // Comprovante de Agendamento
   const [comprovanteReq, setComprovanteReq] = useState<ExamRequest | null>(null);
   const [copiedDates, setCopiedDates] = useState(false);
+  const [copiedReqId, setCopiedReqId] = useState<string | null>(null);
   // printedIds: persiste em localStorage por scheduleId para sobreviver a troca de usuário/cache
   const [printedIds, setPrintedIds] = useState<Set<string>>(() => {
     try { const raw = localStorage.getItem('praticosys_printed_comprovante'); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
@@ -512,16 +513,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       }
   };
 
-  const handleEnviarEmailComprovante = (req: ExamRequest) => {
-    if (!selectedSchedule) return;
+  const buildComprovanteBody = (req: ExamRequest): string => {
+    if (!selectedSchedule) return '';
 
-    const candidateEmail = req.email?.trim() || '';
-    if (!candidateEmail) {
-      alert(`O candidato ${req.socialName || req.studentName} não possui e-mail cadastrado.\nCadastre o e-mail na aba Candidatos antes de enviar.`);
-      return;
-    }
-
-    // Monta dados do comprovante (mesma lógica do preview)
     const candidateName = (req.socialName || req.studentName || '').trim().toUpperCase();
     const candidateCpf = req.cpf || '';
     const category = (req.scheduledCategory || req.intendedCategory || '-').toUpperCase();
@@ -544,12 +538,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         return desc ? `${code} - ${desc}` : code;
       }).join(', ');
     })();
-
-    const today = new Date();
-    const months = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-    const todayFormatted = `${today.getDate()} de ${months[today.getMonth()]} de ${today.getFullYear()}`;
-
-    const subject = encodeURIComponent(`Comprovante de Agendamento - Cat. ${category} - Data: ${fullDate} ${examTime}`);
 
     const bodyLines = [
       `COMPROVANTE DE AGENDAMENTO`,
@@ -574,8 +562,47 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       `Em caso de cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
     ];
 
-    const body = encodeURIComponent(bodyLines.join('\n'));
+    return bodyLines.join('\n');
+  };
+
+  const handleEnviarEmailComprovante = (req: ExamRequest) => {
+    if (!selectedSchedule) return;
+
+    const candidateEmail = req.email?.trim() || '';
+    if (!candidateEmail) {
+      alert(`O candidato ${req.socialName || req.studentName} não possui e-mail cadastrado.\nCadastre o e-mail na aba Candidatos antes de enviar.`);
+      return;
+    }
+
+    const category = (req.scheduledCategory || req.intendedCategory || '-').toUpperCase();
+    const fullDate = (() => {
+      const raw = (selectedSchedule.date || '').split('T')[0];
+      const [y, m, d] = raw.split('-');
+      return raw ? `${d}/${m}/${y}` : '-';
+    })();
+    const examTime = selectedSchedule.time || '-';
+
+    const subject = encodeURIComponent(`Comprovante de Agendamento - Cat. ${category} - Data: ${fullDate} ${examTime}`);
+    const body = encodeURIComponent(buildComprovanteBody(req));
     window.open(`mailto:${candidateEmail}?subject=${subject}&body=${body}`, '_blank');
+  };
+
+  const handleCopyComprovante = async (req: ExamRequest) => {
+    const text = buildComprovanteBody(req);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setCopiedReqId(req.id);
+    setTimeout(() => setCopiedReqId(null), 2500);
   };
 
   const handleCopyAvailableDates = () => {
@@ -1286,13 +1313,15 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                         <span className="text-xs font-medium">Ficha Manual</span>
                                                     </button>)}
 
-                                                    {/* Botão Enviar Comprovante por E-mail */}
+                                                    {/* Botão Copiar Comprovante */}
                                                     <button
-                                                        onClick={() => handleEnviarEmailComprovante(req)}
-                                                        className={`p-1.5 rounded-md transition-all ${req.email ? 'text-green-600 hover:bg-green-50' : 'text-gray-300 cursor-not-allowed'}`}
-                                                        title={req.email ? `Enviar comprovante por e-mail para ${req.email}` : 'Candidato sem e-mail cadastrado'}
+                                                        onClick={() => handleCopyComprovante(req)}
+                                                        className={`p-1.5 rounded-md transition-all ${copiedReqId === req.id ? 'text-green-600 bg-green-50' : 'text-blue-600 hover:bg-blue-50'}`}
+                                                        title="Copiar comprovante para área de transferência"
                                                     >
-                                                        <Mail className="h-4 w-4" />
+                                                        {copiedReqId === req.id
+                                                            ? <Check className="h-4 w-4" />
+                                                            : <Copy className="h-4 w-4" />}
                                                     </button>
 
                                                     {/* Botão Remover da Banca */}
