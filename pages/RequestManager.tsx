@@ -1267,10 +1267,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               }}
             >
               {user.role !== UserRole.INSTRUCTOR && (
-                <>
-                  <option value="">Selecione...</option>
-                  <option value="A DEFINIR">A DEFINIR</option>
-                </>
+                <option value="">Selecione...</option>
               )}
               {availableInstructors.map((inst) => (
                 <option key={inst.id} value={inst.name}>
@@ -1301,7 +1298,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 onChange={(e) => updatePlate(e.target.value)}
               >
                 <option value="">Selecione...</option>
-                <option value="A DEFINIR">A DEFINIR</option>
                 {availableVehicles.map((v) => (
                   <option key={v.id} value={v.plate}>
                     {v.model} - {v.plate}
