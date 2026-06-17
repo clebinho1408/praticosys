@@ -1121,27 +1121,36 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     const selectedVehicle = availableVehicles.find(v => v.plate === currentPlate);
 
-    // "DO CANDIDATO": controlado por um campo especial no formData.
-    // Quando marcado, o instrutor pode ser qualquer um (select habilitado)
-    // e a placa é digitada livremente.
-    // Usamos formData.doCandidatoMoto (boolean) para rastrear o estado do checkbox.
-    const isDoCandidato = categoryCode === "A" && !!(formData as any).doCandidatoMoto;
+    // "Inserir placa manualmente": controlado por campos especiais no formData.
+    // Quando marcado, a placa é digitada livremente.
+    // doCandidatoMoto → Cat A, doCandidatoCarro → Cat B
+    const flagKey = categoryCode === "A" ? "doCandidatoMoto" : "doCandidatoCarro";
+    const isDoCandidato = !!(formData as any)[flagKey];
 
-    // Helper para marcar/desmarcar o checkbox DO CANDIDATO
-    // Ao marcar: mantém o instrutor selecionado e limpa a placa (livre digitação).
-    // Ao desmarcar: mantém o instrutor e limpa a placa.
+    // Helper para marcar/desmarcar o checkbox
     const setDoCandidato = (checked: boolean) => {
       if (formData.intendedCategory === "AB") {
-        const otherPartInstr = formData.instructor?.split(" / ")[1] || "";
-        const otherPartPlate = formData.vehiclePlate?.split(" / ")[1] || "";
-        setFormData({
-          ...formData,
-          doCandidatoMoto: checked,
-          instructor: `Moto: ${currentInstructorName} / ${otherPartInstr}`,
-          vehiclePlate: `Moto: ${checked ? "" : ""} / ${otherPartPlate}`,
-        } as any);
+        if (categoryCode === "A") {
+          const otherPartInstr = formData.instructor?.split(" / ")[1] || "";
+          const otherPartPlate = formData.vehiclePlate?.split(" / ")[1] || "";
+          setFormData({
+            ...formData,
+            [flagKey]: checked,
+            instructor: `Moto: ${currentInstructorName} / ${otherPartInstr}`,
+            vehiclePlate: `Moto: / ${otherPartPlate}`,
+          } as any);
+        } else {
+          const otherPartInstr = formData.instructor?.split(" / ")[0] || "";
+          const otherPartPlate = formData.vehiclePlate?.split(" / ")[0] || "";
+          setFormData({
+            ...formData,
+            [flagKey]: checked,
+            instructor: `${otherPartInstr} / Carro: ${currentInstructorName}`,
+            vehiclePlate: `${otherPartPlate} / Carro: `,
+          } as any);
+        }
       } else {
-        setFormData({ ...formData, doCandidatoMoto: checked, vehiclePlate: "" } as any);
+        setFormData({ ...formData, [flagKey]: checked, vehiclePlate: "" } as any);
       }
     };
 
@@ -1167,18 +1176,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         >
           {categoryLabel}
         </h4>
-        {/* Checkbox "DO CANDIDATO" exclusivo para Categoria A */}
-        {categoryCode === "A" && (
-          <label className="flex items-center gap-2 mb-3 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              className="w-4 h-4 accent-blue-600 cursor-pointer"
-              checked={isDoCandidato}
-              onChange={(e) => setDoCandidato(e.target.checked)}
-            />
-            <span className="text-sm font-bold text-blue-700">DO CANDIDATO</span>
-          </label>
-        )}
+        {/* Checkbox "Inserir placa manualmente" para Cat A e Cat B */}
+        <label className="flex items-center gap-2 mb-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            className={`w-4 h-4 cursor-pointer ${categoryCode === "A" ? "accent-blue-600" : "accent-green-600"}`}
+            checked={isDoCandidato}
+            disabled={isViewOnly}
+            onChange={(e) => setDoCandidato(e.target.checked)}
+          />
+          <span className={`text-sm font-bold ${categoryCode === "A" ? "text-blue-700" : "text-green-700"}`}>Inserir placa manualmente</span>
+        </label>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1280,7 +1288,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Veículo/Placa <span className="text-red-500">*</span>
             </label>
-            {/* Quando "DO CANDIDATO" marcado em Cat A: campo de texto livre para placa */}
+            {/* Quando "Inserir placa manualmente" marcado: campo de texto livre para placa */}
             {isDoCandidato ? (
               <input
                 type="text"
