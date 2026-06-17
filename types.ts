@@ -85,6 +85,8 @@ export interface Examiner {
   canExamCommon?: boolean;
   canExamPCD?: boolean;
   categories?: string[]; // ['A', 'B', 'C', 'D', 'E', 'PCD']
+  defaultMaxSlotsA?: number | null; // Vagas padrão Cat. A por examinador
+  defaultMaxSlotsB?: number | null; // Vagas padrão Cat. B por examinador
 }
 
 export interface Vehicle {

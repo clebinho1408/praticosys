@@ -12,6 +12,8 @@ export default async function handler(req: any, res: any) {
       try {
         console.log("[API Examiners] Executando ALTER TABLE...");
         await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS categories jsonb DEFAULT '[]'::jsonb`);
+        await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_a integer`);
+        await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_b integer`);
         console.log("[API Examiners] ALTER TABLE executado.");
       } catch (e) {
         console.error("[API Examiners] Schema sync error:", e);
@@ -27,6 +29,8 @@ export default async function handler(req: any, res: any) {
       
       try {
         await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS categories jsonb DEFAULT '[]'::jsonb`);
+        await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_a integer`);
+        await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_b integer`);
       } catch (e) {
         console.warn("[API Examiners] Schema sync warning:", e);
       }

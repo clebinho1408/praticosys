@@ -1443,14 +1443,52 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                   <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-2 rounded-md transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}`}>
                                       <input type="checkbox" className="hidden" checked={scheduleForm.examinerIds.includes(ex.id)} onChange={(e) => {
                                             const ids = e.target.checked ? [...scheduleForm.examinerIds, ex.id].slice(0, 3) : scheduleForm.examinerIds.filter(id => id !== ex.id);
-                                            setScheduleForm({...scheduleForm, examinerIds: ids});
+                                            // Recalcula vagas com base nos examinadores selecionados
+                                            const fallbackA = settings?.defaultMaxSlotsA ?? 10;
+                                            const fallbackB = settings?.defaultMaxSlotsB ?? 10;
+                                            let newSlotsA = fallbackA;
+                                            let newSlotsB = fallbackB;
+                                            if (ids.length > 0) {
+                                              const selectedExaminers = examiners.filter(e => ids.includes(e.id));
+                                              const withA = selectedExaminers.filter(e => e.defaultMaxSlotsA != null);
+                                              const withB = selectedExaminers.filter(e => e.defaultMaxSlotsB != null);
+                                              newSlotsA = withA.length > 0 ? Math.max(...withA.map(e => e.defaultMaxSlotsA!)) : fallbackA;
+                                              newSlotsB = withB.length > 0 ? Math.max(...withB.map(e => e.defaultMaxSlotsB!)) : fallbackB;
+                                            }
+                                            setScheduleForm({...scheduleForm, examinerIds: ids, maxSlotsA: newSlotsA, maxSlotsB: newSlotsB});
                                       }} />
                                       <div className={`h-4 w-4 rounded border flex items-center justify-center ${scheduleForm.examinerIds.includes(ex.id) ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'}`}>
                                           {scheduleForm.examinerIds.includes(ex.id) && <CheckCircle2 className="h-3 w-3" />}
                                       </div>
-                                      <span className="text-sm font-medium">{ex.name}</span>
+                                      <span className="text-sm font-medium">{ex.name}
+                                        {(ex.defaultMaxSlotsA != null || ex.defaultMaxSlotsB != null) && (
+                                          <span className="ml-2 text-xs font-normal text-gray-400">
+                                            ({ex.defaultMaxSlotsA != null ? `A:${ex.defaultMaxSlotsA}` : ''}{ex.defaultMaxSlotsA != null && ex.defaultMaxSlotsB != null ? ' ' : ''}{ex.defaultMaxSlotsB != null ? `B:${ex.defaultMaxSlotsB}` : ''})
+                                          </span>
+                                        )}
+                                      </span>
                                   </label>
                               ))}
+                          </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Vagas Cat. A (Moto)</label>
+                              <input
+                                  type="number" min="0" max="99"
+                                  className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                                  value={scheduleForm.maxSlotsA}
+                                  onChange={e => setScheduleForm({...scheduleForm, maxSlotsA: Number(e.target.value)})}
+                              />
+                          </div>
+                          <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Vagas Cat. B (Carro)</label>
+                              <input
+                                  type="number" min="0" max="99"
+                                  className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                                  value={scheduleForm.maxSlotsB}
+                                  onChange={e => setScheduleForm({...scheduleForm, maxSlotsB: Number(e.target.value)})}
+                              />
                           </div>
                       </div>
                       <div className="flex justify-end gap-3 pt-4">

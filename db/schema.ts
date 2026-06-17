@@ -41,6 +41,8 @@ export const examiners = pgTable('examiners', {
   canExamCommon: boolean('can_exam_common').default(true),
   canExamPCD: boolean('can_exam_pcd').default(false),
   categories: jsonb('categories').$type<string[]>().default([]),
+  defaultMaxSlotsA: integer('default_max_slots_a'),
+  defaultMaxSlotsB: integer('default_max_slots_b'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

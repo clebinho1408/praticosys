@@ -7,6 +7,8 @@ import { randomUUID } from 'crypto';
 async function ensureSchema(db: any) {
   try {
     await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS categories jsonb DEFAULT '[]'::jsonb`);
+    await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_a integer`);
+    await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_b integer`);
   } catch {}
 }
 

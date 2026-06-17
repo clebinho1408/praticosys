@@ -1028,7 +1028,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Examiner | null>(null);
-  const [formData, setFormData] = useState<{ name: string; registrationNumber: string; categories: string[] }>({ name: '', registrationNumber: '', categories: [] });
+  const [formData, setFormData] = useState<{ name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string }>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '' });
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1053,17 +1053,28 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
 
   const openModal = (ex?: Examiner) => {
     setEditing(ex || null);
-    setFormData(ex ? { name: ex.name, registrationNumber: ex.registrationNumber, categories: ex.categories || [] } : { name: '', registrationNumber: '', categories: [] });
+    setFormData(ex ? {
+      name: ex.name,
+      registrationNumber: ex.registrationNumber,
+      categories: ex.categories || [],
+      defaultMaxSlotsA: ex.defaultMaxSlotsA != null ? String(ex.defaultMaxSlotsA) : '',
+      defaultMaxSlotsB: ex.defaultMaxSlotsB != null ? String(ex.defaultMaxSlotsB) : '',
+    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '' });
     setIsModalOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      defaultMaxSlotsA: formData.defaultMaxSlotsA !== '' ? Number(formData.defaultMaxSlotsA) : null,
+      defaultMaxSlotsB: formData.defaultMaxSlotsB !== '' ? Number(formData.defaultMaxSlotsB) : null,
+    };
     try {
       if (editing) {
-        await api.updateExaminer(editing.id, formData);
+        await api.updateExaminer(editing.id, payload);
       } else {
-        const newEx = await api.createExaminer(formData);
+        const newEx = await api.createExaminer(payload);
         // Create user for the new examiner
         await api.createUser({
           name: newEx.name,
@@ -1198,6 +1209,8 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Matrícula</th>
               <th className="px-4 py-3">Categoria</th>
+              <th className="px-4 py-3 text-center">Vagas A</th>
+              <th className="px-4 py-3 text-center">Vagas B</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -1217,6 +1230,8 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                     <span className="text-xs text-gray-500">-</span>
                   )}
                 </td>
+                <td className="px-4 py-3 text-center text-sm">{e.defaultMaxSlotsA != null ? e.defaultMaxSlotsA : <span className="text-gray-400">—</span>}</td>
+                <td className="px-4 py-3 text-center text-sm">{e.defaultMaxSlotsB != null ? e.defaultMaxSlotsB : <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-right space-x-2">
                   {user?.role !== UserRole.CONSULTANT && (
                     <>
@@ -1228,7 +1243,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
               </tr>
             ))}
             {filteredExaminers.length === 0 && (
-                <tr><td colSpan={4} className="p-4 text-center text-gray-500">Nenhum examinador encontrado.</td></tr>
+                <tr><td colSpan={6} className="p-4 text-center text-gray-500">Nenhum examinador encontrado.</td></tr>
             )}
           </tbody>
         </table>
@@ -1251,6 +1266,28 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   <p className="text-xs text-gray-500">Apenas letras, sem acentos, maiúsculo.</p>
               </div>
               <div><label className="block text-sm font-medium">Matrícula</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.registrationNumber} onChange={e => setFormData({...formData, registrationNumber: e.target.value})} /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Vagas Cat. A (Moto)</label>
+                  <input
+                    type="number" min="0" max="99"
+                    className="w-full border rounded p-2 bg-white text-gray-900"
+                    placeholder="Padrão do sistema"
+                    value={formData.defaultMaxSlotsA}
+                    onChange={e => setFormData({...formData, defaultMaxSlotsA: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Vagas Cat. B (Carro)</label>
+                  <input
+                    type="number" min="0" max="99"
+                    className="w-full border rounded p-2 bg-white text-gray-900"
+                    placeholder="Padrão do sistema"
+                    value={formData.defaultMaxSlotsB}
+                    onChange={e => setFormData({...formData, defaultMaxSlotsB: e.target.value})}
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <label className="block text-sm font-medium">Categoria</label>
                 <div className="flex flex-wrap gap-3">
