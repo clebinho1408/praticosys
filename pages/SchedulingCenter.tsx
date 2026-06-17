@@ -567,7 +567,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       ``,
       `---`,
       ``,
-      `ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação.`,
+      `ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV - Licença de Aprendizagem de Direção Veicular.`,
       ``,
       `Em caso de ausência ou reprovação: será necessário enviar novo e-mail para provapraticabc@detran.sc.gov.br solicitando um novo agendamento.`,
       ``,
@@ -1910,7 +1910,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
 
                   {/* Notice */}
                   <p style={{marginTop:'72px', fontSize:'10.5pt', lineHeight:'1.8', color:'#222'}}>
-                    <strong>Atenção:</strong> <span style={{fontWeight:600}}>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação.</span>
+                    <strong>Atenção:</strong> <span style={{fontWeight:600}}>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV - Licença de Aprendizagem de Direção Veicular.</span>
                   </p>
                   <p style={{fontSize:'10pt', lineHeight:'1.7', color:'#222', marginTop:'28px', textAlign:'justify'}}>
                     <strong>Em caso de ausência ou reprovação:</strong> será necessário enviar novo e-mail para <strong>provapraticabc@detran.sc.gov.br</strong> solicitando um novo agendamento.
