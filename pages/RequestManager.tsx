@@ -540,11 +540,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ) {
       const motoInstr =
         formData.intendedCategory === "AB"
-          ? formData.instructor?.split(" / ")[0]?.replace("Moto: ", "")
+          ? formData.instructor?.split(" / ")[0]?.replace(/^Moto:\s*/, "")
           : formData.instructor;
       const motoPlate =
         formData.intendedCategory === "AB"
-          ? formData.vehiclePlate?.split(" / ")[0]?.replace("Moto: ", "")
+          ? formData.vehiclePlate?.split(" / ")[0]?.replace(/^Moto:\s*/, "")
           : formData.vehiclePlate;
 
       if (!motoInstr || !motoPlate) {
@@ -563,11 +563,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ) {
       const carInstr =
         formData.intendedCategory === "AB"
-          ? formData.instructor?.split(" / ")[1]?.replace("Carro: ", "")
+          ? formData.instructor?.split(" / ")[1]?.replace(/^Carro:\s*/, "")
           : formData.instructor;
       const carPlate =
         formData.intendedCategory === "AB"
-          ? formData.vehiclePlate?.split(" / ")[1]?.replace("Carro: ", "")
+          ? formData.vehiclePlate?.split(" / ")[1]?.replace(/^Carro:\s*/, "")
           : formData.vehiclePlate;
 
       if (!carInstr || !carPlate) {
@@ -1094,14 +1094,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     if (formData.intendedCategory === "AB") {
       if (categoryCode === "A") {
         currentInstructorName =
-          formData.instructor?.split(" / ")[0]?.replace("Moto: ", "") || "";
+          formData.instructor?.split(" / ")[0]?.replace(/^Moto:\s*/, "") || "";
         currentPlate =
-          formData.vehiclePlate?.split(" / ")[0]?.replace("Moto: ", "") || "";
+          formData.vehiclePlate?.split(" / ")[0]?.replace(/^Moto:\s*/, "") || "";
       } else {
         currentInstructorName =
-          formData.instructor?.split(" / ")[1]?.replace("Carro: ", "") || "";
+          formData.instructor?.split(" / ")[1]?.replace(/^Carro:\s*/, "") || "";
         currentPlate =
-          formData.vehiclePlate?.split(" / ")[1]?.replace("Carro: ", "") || "";
+          formData.vehiclePlate?.split(" / ")[1]?.replace(/^Carro:\s*/, "") || "";
       }
     } else {
       currentInstructorName = formData.instructor || "";
@@ -1612,8 +1612,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     if (req.intendedCategory === "AB") {
       const plates = req.vehiclePlate.split(" / ");
-      const motoPlate = plates[0]?.replace("Moto: ", "");
-      const carroPlate = plates[1]?.replace("Carro: ", "");
+      const motoPlate = plates[0]?.replace(/^Moto:\s*/, "");
+      const carroPlate = plates[1]?.replace(/^Carro:\s*/, "");
       
       const moto = findVehicle(motoPlate);
       const carro = findVehicle(carroPlate);
