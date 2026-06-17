@@ -1201,19 +1201,31 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               onChange={(e) => {
                 const newName = e.target.value;
 
-                // Quando DO CANDIDATO está marcado: só atualiza o instrutor,
+                // Quando "Inserir placa manualmente" está marcado: só atualiza o instrutor,
                 // a placa permanece livre para digitação manual.
                 if (isDoCandidato) {
                   if (formData.intendedCategory === "AB") {
-                    const otherPartInstr =
-                      formData.instructor?.split(" / ")[1] || "";
-                    const otherPartPlate =
-                      formData.vehiclePlate?.split(" / ")[1] || "";
-                    setFormData({
-                      ...formData,
-                      instructor: `Moto: ${newName} / ${otherPartInstr}`,
-                      vehiclePlate: `Moto: ${currentPlate} / ${otherPartPlate}`,
-                    } as any);
+                    if (categoryCode === "A") {
+                      const otherPartInstr =
+                        formData.instructor?.split(" / ")[1] || "";
+                      const otherPartPlate =
+                        formData.vehiclePlate?.split(" / ")[1] || "";
+                      setFormData({
+                        ...formData,
+                        instructor: `Moto: ${newName} / ${otherPartInstr}`,
+                        vehiclePlate: `Moto: ${currentPlate} / ${otherPartPlate}`,
+                      } as any);
+                    } else {
+                      const otherPartInstr =
+                        formData.instructor?.split(" / ")[0] || "";
+                      const otherPartPlate =
+                        formData.vehiclePlate?.split(" / ")[0] || "";
+                      setFormData({
+                        ...formData,
+                        instructor: `${otherPartInstr} / Carro: ${newName}`,
+                        vehiclePlate: `${otherPartPlate} / Carro: ${currentPlate}`,
+                      } as any);
+                    }
                   } else {
                     setFormData({ ...formData, instructor: newName } as any);
                   }
