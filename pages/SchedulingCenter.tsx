@@ -539,27 +539,26 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       }).join(', ');
     })();
 
+    const categoryEmoji = category === 'A' ? '🏍️' : category === 'B' ? '🚗' : '🏍️/🚗';
+
     const bodyLines = [
-      `COMPROVANTE DE AGENDAMENTO`,
-      ``,
       `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para EXAME PRÁTICO:`,
       ``,
-      `Data: ${fullDate}`,
-      `Hora: ${examTime} (Chegar 20min antes)`,
-      ...(examAddress ? [`Local do Exame: ${examAddress}`] : []),
-      `Categoria: ${category}`,
-      `Restrição da CNH: ${restrictionText}`,
+      `📅 Data: ${fullDate}`,
+      `⏰ Hora: ${examTime} (Chegar 20 min antes)`,
+      ...(examAddress ? [`📍 Local do Exame: ${examAddress}`] : []),
       ``,
-      ...(req.instructor ? [`Instrutor: ${req.instructor} (A presença do seu instrutor é obrigatória no dia)`] : []),
-      ...(req.vehiclePlate ? [`Placa: ${req.vehiclePlate}`] : []),
+      `${categoryEmoji} Categoria: ${category}`,
+      `♿ Restrição da CNH: ${restrictionText}`,
       ``,
-      `---`,
+      ...(req.instructor ? [`👨‍🏫 Instrutor: ${req.instructor}`] : []),
+      ...(req.vehiclePlate ? [`🚗 Placa: ${req.vehiclePlate}`] : []),
       ``,
-      `ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV - Licença de Aprendizagem de Direção Veicular.`,
+      `⚠️ ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV — Licença de Aprendizagem de Direção Veicular.`,
       ``,
-      `Em caso de ausência ou reprovação: será necessário enviar novo e-mail para provapraticabc@detran.sc.gov.br solicitando um novo agendamento.`,
+      `❌ Em caso de ausência ou reprovação: será necessário enviar novo e-mail para provapraticabc@detran.sc.gov.br solicitando um novo agendamento.`,
       ``,
-      `Em caso de cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
+      `🚫 Em caso de cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
     ];
 
     return bodyLines.join('\n');
@@ -625,29 +624,51 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       return;
     }
 
-    const lines: string[] = [
-      'Datas e Horários disponíveis para o Exame Prático:',
-      '',
-    ];
+    // Separa bancas com vagas A e bancas com vagas B
+    const schedulesWithA: { date: string; time: string }[] = [];
+    const schedulesWithB: { date: string; time: string }[] = [];
 
     for (const s of openSchedules) {
       const raw = (s.date || '').split('T')[0];
       const [y, m, d] = raw.split('-');
       const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
+      const time = s.time || '-';
 
       const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A' && r.status === 'SCHEDULED').length;
       const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B' && r.status === 'SCHEDULED').length;
       const availA = Math.max(0, (s.maxSlotsA || 0) - occupiedA);
       const availB = Math.max(0, (s.maxSlotsB || 0) - occupiedB);
 
-      lines.push(`Data: ${dateFormatted}`);
-      lines.push(`Hora: ${s.time || '-'}`);
-      lines.push(`Vagas disponíveis Cat. A: ${availA}`);
-      lines.push(`Vagas disponíveis Cat. B: ${availB}`);
-      lines.push('');
+      if (availA > 0) schedulesWithA.push({ date: dateFormatted, time });
+      if (availB > 0) schedulesWithB.push({ date: dateFormatted, time });
     }
 
-    lines.push('Escolha uma data para a sua Categoria e informe na resposta deste email.');
+    const lines: string[] = [
+      'Datas e Horários disponíveis para o Exame Prático:',
+    ];
+
+    if (schedulesWithA.length > 0) {
+      lines.push('');
+      lines.push('🏍️ Categoria A:');
+      lines.push('');
+      for (const s of schedulesWithA) {
+        lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}`);
+      }
+    }
+
+    if (schedulesWithB.length > 0) {
+      lines.push('');
+      lines.push('🚗 Categoria B:');
+      lines.push('');
+      for (const s of schedulesWithB) {
+        lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}`);
+      }
+    }
+
+    lines.push('');
+    lines.push('👉 Escolha uma data para sua categoria.');
+    lines.push('');
+    lines.push('⚠️ ATENÇÃO: É OBRIGATÓRIA a presença do instrutor no dia da prova.');
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopiedDates(true);
