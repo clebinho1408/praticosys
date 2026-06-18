@@ -542,6 +542,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     const categoryEmoji = category === 'A' ? '🏍️' : category === 'B' ? '🚗' : '🏍️/🚗';
 
     const bodyLines = [
+      `COMPROVANTE DE AGENDAMENTO`,
+      ``,
       `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para EXAME PRÁTICO:`,
       ``,
       `📅 Data: ${fullDate}`,
