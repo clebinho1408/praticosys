@@ -150,6 +150,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [comprovanteReq, setComprovanteReq] = useState<ExamRequest | null>(null);
   const [copiedDates, setCopiedDates] = useState(false);
   const [copiedReqId, setCopiedReqId] = useState<string | null>(null);
+  const [copyDatesMenuOpen, setCopyDatesMenuOpen] = useState(false);
   // printedIds: persiste em localStorage por scheduleId para sobreviver a troca de usuário/cache
   const [printedIds, setPrintedIds] = useState<Set<string>>(() => {
     try { const raw = localStorage.getItem('praticosys_printed_comprovante'); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
@@ -319,6 +320,14 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
       eventSource.close();
     };
   }, [type]);
+
+  // Fecha o menu dropdown de copiar datas ao clicar fora
+  useEffect(() => {
+    if (!copyDatesMenuOpen) return;
+    const handler = () => setCopyDatesMenuOpen(false);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [copyDatesMenuOpen]);
 
   const injectEmojis = (text: string) => {
     const emojiMap: Record<string, string> = {
@@ -606,7 +615,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     setTimeout(() => setCopiedReqId(null), 2500);
   };
 
-  const handleCopyAvailableDates = () => {
+  const handleCopyAvailableDates = (filter: 'A' | 'B' | 'AB') => {
+    setCopyDatesMenuOpen(false);
     // Pega apenas bancas ABERTAS do período filtrado, ordena por data crescente
     const openSchedules = schedules
       .filter(s => {
@@ -649,7 +659,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       'Datas e Horários disponíveis para o Exame Prático:',
     ];
 
-    if (schedulesWithA.length > 0) {
+    if ((filter === 'A' || filter === 'AB') && schedulesWithA.length > 0) {
       lines.push('');
       lines.push('🏍️ Categoria A:');
       lines.push('');
@@ -658,7 +668,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       }
     }
 
-    if (schedulesWithB.length > 0) {
+    if ((filter === 'B' || filter === 'AB') && schedulesWithB.length > 0) {
       lines.push('');
       lines.push('🚗 Categoria B:');
       lines.push('');
@@ -919,14 +929,30 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         value={endDate}
                         onChange={e => setEndDate(e.target.value)}
                     />
-                    {/* Botão copiar datas disponíveis */}
-                    <button
-                        onClick={handleCopyAvailableDates}
-                        title="Copiar datas e vagas das bancas abertas"
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm font-medium transition-all ${copiedDates ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-slate-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'}`}
-                    >
-                        {copiedDates ? <><Check className="h-4 w-4" /><span>Copiado!</span></> : <><Copy className="h-4 w-4" /><span>Copiar datas</span></>}
-                    </button>
+                    {/* Botão copiar datas disponíveis com dropdown de categoria */}
+                    <div className="relative" onClick={e => e.stopPropagation()}>
+                        <button
+                            onClick={() => setCopyDatesMenuOpen(v => !v)}
+                            title="Copiar datas e vagas das bancas abertas"
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-md border text-sm font-medium transition-all ${copiedDates ? 'bg-green-50 border-green-300 text-green-700' : 'bg-white border-slate-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300'}`}
+                        >
+                            {copiedDates ? <><Check className="h-4 w-4" /><span>Copiado!</span></> : <><Copy className="h-4 w-4" /><span>Copiar datas</span><ChevronDown className="h-3.5 w-3.5 ml-0.5" /></>}
+                        </button>
+                        {copyDatesMenuOpen && (
+                            <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[160px] py-1 text-sm">
+                                <button onClick={() => handleCopyAvailableDates('A')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                                    <span>🏍️</span><span>Categoria A</span>
+                                </button>
+                                <button onClick={() => handleCopyAvailableDates('B')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                                    <span>🚗</span><span>Categoria B</span>
+                                </button>
+                                <div className="border-t border-gray-100 my-1" />
+                                <button onClick={() => handleCopyAvailableDates('AB')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                                    <span>🏍️🚗</span><span>Categoria AB</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
              </div>
 
