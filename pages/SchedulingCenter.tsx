@@ -1127,17 +1127,20 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                     {idx + 1}
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <div className="relative group inline-block max-w-full">
-                                                        <div className="text-sm font-bold text-gray-900 uppercase truncate cursor-default">
+                                                    <div className="relative group w-full">
+                                                        <div
+                                                            className="text-sm font-bold text-gray-900 uppercase truncate cursor-default"
+                                                            title={req.scheduledBy ? `Agendado por: ${req.scheduledBy}` : undefined}
+                                                        >
                                                             {req.socialName || req.studentName}
                                                         </div>
                                                         {req.scheduledBy && (
-                                                            <div className="absolute bottom-full left-0 mb-1 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                                                            <div className="absolute bottom-full left-0 mb-2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                                                                 <div className="bg-gray-800 text-white text-xs rounded-md px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                                                                     <span className="text-gray-400">Agendado por:</span>{' '}
                                                                     <span className="font-semibold">{req.scheduledBy}</span>
                                                                 </div>
-                                                                <div className="w-2 h-2 bg-gray-800 rotate-45 ml-2 -mt-1"></div>
+                                                                <div className="w-2 h-2 bg-gray-800 rotate-45 ml-3 -mt-1"></div>
                                                             </div>
                                                         )}
                                                     </div>
@@ -1738,7 +1741,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                               try {
                                   const req = allRequests.find(r => r.id === id);
                                   const currentUpdatedAt = req?.updatedAt || new Date().toISOString();
-                                  await api.assignStudentToSchedule(id, selectedSchedule!.id, category, currentUpdatedAt);
+                                  await api.assignStudentToSchedule(id, selectedSchedule!.id, category, currentUpdatedAt, user.name);
                                   setIsAddStudentOpen(false);
                                   refreshData(true);
                               } catch {
