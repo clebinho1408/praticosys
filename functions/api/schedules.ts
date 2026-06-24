@@ -11,7 +11,7 @@ const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string
   const examDate = new Date(`${cleanDate}T${timeStr}`);
   const msPerHr = 60 * 60 * 1000;
   if (now > new Date(examDate.getTime() + 4 * msPerHr)) return 'CONCLUDED';
-  if (now > new Date(examDate.getTime() - 12 * msPerHr)) return 'CLOSED';
+  if (now > new Date(examDate.getTime() - 24 * msPerHr)) return 'CLOSED';
   return 'OPEN';
 };
 

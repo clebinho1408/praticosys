@@ -19,7 +19,7 @@ const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string
     
     // Regras de Tempo
     const msPerHr = 60 * 60 * 1000;
-    const closeThreshold = new Date(examDate.getTime() - (12 * msPerHr)); // 12h antes
+    const closeThreshold = new Date(examDate.getTime() - (24 * msPerHr)); // 24h antes
     const concludedThreshold = new Date(examDate.getTime() + (4 * msPerHr)); // 4h depois
 
     if (now > concludedThreshold) return 'CONCLUDED';
