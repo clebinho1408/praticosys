@@ -76,8 +76,8 @@ const ClosingCountdown: React.FC<{ date: string; time: string }> = ({ date, time
             if (!date || !time) return;
             
             const examDate = new Date(`${date.split('T')[0]}T${time}`);
-            // Regra de fechamento: 24h antes da prova
-            const closingDate = new Date(examDate.getTime() - (24 * 60 * 60 * 1000));
+            // Regra de fechamento: 12h antes da prova
+            const closingDate = new Date(examDate.getTime() - (12 * 60 * 60 * 1000));
             const now = new Date();
             
             const diff = closingDate.getTime() - now.getTime();
