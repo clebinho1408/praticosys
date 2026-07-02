@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "PráticoSys"
+version = "1.0.0"
+id = "artifacts/praticosys"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 26112
+
+[services.development]
+run = "pnpm --filter @workspace/praticosys run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/praticosys", "run", "build" ]
+publicDir = "artifacts/praticosys/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "26112"
+BASE_PATH = "/"

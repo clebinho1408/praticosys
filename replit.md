@@ -1,36 +1,53 @@
-# [Project name]
+# PráticoSys
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Sistema de Gestão de Exames Práticos para DETRAN — gerenciamento de candidatos, bancas de prova, examinadores e autoescolas.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
+- `pnpm --filter @workspace/praticosys run dev` — run the frontend (port configured via PORT env)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- Frontend: React + Vite + TailwindCSS + shadcn/ui, HashRouter
+- API: Express 5 (port 8080), served at `/api/*`
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/praticosys/` — React+Vite frontend (Brazilian Portuguese UI)
+- `artifacts/api-server/` — Express API server
+- `artifacts/api-server/src/routes/praticosys.ts` — All PráticoSys API routes
+- `lib/db/src/schema/praticosys.ts` — Database schema (Drizzle)
+- `lib/db/src/schema/index.ts` — Re-exports praticosys schema
+- `.migration-backup/` — Original Vercel/Cloudflare Pages source files
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Frontend uses HashRouter (not BrowserRouter) to avoid server-side routing issues
+- Frontend proxies `/api/*` to `http://localhost:8080` via Vite dev server proxy
+- All Vercel-style `handler(req, res)` functions were converted to Express Router handlers
+- SSE (Server-Sent Events) for real-time updates is in the same routes file
+- Original Neon serverless DB replaced with Replit's node-postgres pool via `lib/db`
+- `onConflictDoNothing()` used for idempotent user creation (instructors auto-create users)
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Login system with role-based access (ADMIN, EXAMINER, INSTRUCTOR, school users)
+- Manage examiners, instructors, driving schools (CFCs), and cities
+- Create and manage exam schedules (bancas) for practical driving tests
+- Process exam requests from candidates (via school or direct)
+- Real-time updates via SSE when schedules/requests are updated
+- Vehicle plate lookup via external API (apicarros.com)
+- System settings (agency name, default slots, WhatsApp message templates)
+- Blocked dates management (holidays, manual blocks)
 
 ## User preferences
 
@@ -38,7 +55,10 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Admin user is created automatically on first `/api/setup` call
+- First admin login sets the password (no default password enforced)
+- `pnpm --filter @workspace/db run push` must be re-run after schema changes
+- The `schedule-slots` table is separate from `exam_requests` — used for CFC/PCD slot bookings without real candidates
 
 ## Pointers
 
