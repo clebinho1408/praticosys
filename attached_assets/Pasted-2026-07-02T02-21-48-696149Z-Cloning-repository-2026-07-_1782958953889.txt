@@ -1,0 +1,44 @@
+2026-07-02T02:21:48.696149Z	Cloning repository...
+2026-07-02T02:21:49.733726Z	From https://github.com/clebinho1408/praticosys
+2026-07-02T02:21:49.734093Z	 * branch            206c830d7290fa74f135b91f626e362132912c7a -> FETCH_HEAD
+2026-07-02T02:21:49.734202Z	
+2026-07-02T02:21:49.76046Z	HEAD is now at 206c830 fix(bancas): reverte fechamento automático para 12h antes do exame
+2026-07-02T02:21:49.760808Z	
+2026-07-02T02:21:49.837409Z	
+2026-07-02T02:21:49.83778Z	Using v2 root directory strategy
+2026-07-02T02:21:49.853622Z	Success: Finished cloning repository files
+2026-07-02T02:21:51.999723Z	Checking for configuration in a Wrangler configuration file (BETA)
+2026-07-02T02:21:52.000313Z	
+2026-07-02T02:21:52.000652Z	Found wrangler.toml file. Reading build configuration...
+2026-07-02T02:21:52.007007Z	pages_build_output_dir: dist
+2026-07-02T02:21:52.007193Z	Build environment variables: (none found)
+2026-07-02T02:21:52.203899Z	Successfully read the Wrangler configuration file.
+2026-07-02T02:21:52.650097Z	Detected the following tools from environment: npm@10.9.2, nodejs@22.16.0
+2026-07-02T02:21:52.650668Z	Installing project dependencies: npm clean-install --progress=false
+2026-07-02T02:21:57.226387Z	npm warn deprecated har-validator@5.1.5: this library is no longer supported
+2026-07-02T02:21:57.875281Z	npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+2026-07-02T02:21:57.890666Z	npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+2026-07-02T02:21:57.899113Z	npm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142
+2026-07-02T02:21:58.192887Z	npm warn deprecated uuid@3.4.0: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-07-02T02:22:06.433121Z	
+2026-07-02T02:22:06.433565Z	added 306 packages, and audited 307 packages in 12s
+2026-07-02T02:22:06.433698Z	
+2026-07-02T02:22:06.43378Z	44 packages are looking for funding
+2026-07-02T02:22:06.433841Z	  run `npm fund` for details
+2026-07-02T02:22:06.484409Z	
+2026-07-02T02:22:06.485072Z	18 vulnerabilities (1 low, 11 moderate, 4 high, 2 critical)
+2026-07-02T02:22:06.485205Z	
+2026-07-02T02:22:06.48528Z	To address issues that do not require attention, run:
+2026-07-02T02:22:06.485323Z	  npm audit fix
+2026-07-02T02:22:06.485375Z	
+2026-07-02T02:22:06.485437Z	To address all issues (including breaking changes), run:
+2026-07-02T02:22:06.485481Z	  npm audit fix --force
+2026-07-02T02:22:06.485518Z	
+2026-07-02T02:22:06.485575Z	Run `npm audit` for details.
+2026-07-02T02:22:06.579473Z	Executing user command: pnpm run cf-build
+2026-07-02T02:22:08.065981Z	 ERR_PNPM_NO_SCRIPT  Missing script: cf-build
+2026-07-02T02:22:08.06625Z	
+2026-07-02T02:22:08.066309Z	Command "cf-build" not found. Did you mean "pnpm run build"?
+2026-07-02T02:22:08.122859Z	Failed: Error while executing user command. Exited with error code: 1
+2026-07-02T02:22:08.131032Z	Failed: build command exited with code: 1
+2026-07-02T02:22:08.990121Z	Failed: error occurred while running build command
