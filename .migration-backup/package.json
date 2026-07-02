@@ -1,0 +1,51 @@
+{
+  "name": "praticosys",
+  "version": "1.0.0",
+  "description": "Sistema de Gestão de Provas do Detran",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx lib/server.ts",
+    "build": "vite build",
+    "build:server": "tsc --project tsconfig.server.json",
+    "start": "node dist-server/lib/server.js",
+    "start:dev": "tsx lib/server.ts",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit",
+    "db:push": "drizzle-kit push:pg",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/express": "^5.0.6",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.27",
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.1",
+    "express": "^5.2.1",
+    "lucide-react": "^0.344.0",
+    "motion": "^12.38.0",
+    "postcss": "^8.5.6",
+    "react": "^18.2.0",
+    "react-day-picker": "^9.14.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.2",
+    "recharts": "^2.12.2",
+    "sinesp-api": "^3.0.0",
+    "tailwindcss": "^4.2.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.2.2",
+    "uuid": "^13.0.0",
+    "vite": "^5.1.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260426.1",
+    "drizzle-kit": "^0.31.10",
+    "pg": "^8.11.3"
+  }
+}
