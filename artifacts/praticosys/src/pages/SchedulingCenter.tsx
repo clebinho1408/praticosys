@@ -637,10 +637,12 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     }
 
     const todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD no fuso local
+    const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const tomorrowStr = tomorrowDate.toLocaleDateString('sv-SE');
 
     // Separa bancas com vagas A e bancas com vagas B
-    const schedulesWithA: { date: string; time: string; isToday: boolean }[] = [];
-    const schedulesWithB: { date: string; time: string; isToday: boolean }[] = [];
+    const schedulesWithA: { date: string; time: string; isToday: boolean; isTomorrow: boolean }[] = [];
+    const schedulesWithB: { date: string; time: string; isToday: boolean; isTomorrow: boolean }[] = [];
 
     for (const s of openSchedules) {
       const raw = (s.date || '').split('T')[0];
@@ -648,14 +650,15 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
       const time = s.time || '-';
       const isToday = raw === todayStr;
+      const isTomorrow = raw === tomorrowStr;
 
       const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A' && r.status === 'SCHEDULED').length;
       const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B' && r.status === 'SCHEDULED').length;
       const availA = Math.max(0, (s.maxSlotsA || 0) - occupiedA);
       const availB = Math.max(0, (s.maxSlotsB || 0) - occupiedB);
 
-      if (availA > 0) schedulesWithA.push({ date: dateFormatted, time, isToday });
-      if (availB > 0) schedulesWithB.push({ date: dateFormatted, time, isToday });
+      if (availA > 0) schedulesWithA.push({ date: dateFormatted, time, isToday, isTomorrow });
+      if (availB > 0) schedulesWithB.push({ date: dateFormatted, time, isToday, isTomorrow });
     }
 
     const lines: string[] = [
@@ -667,7 +670,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       lines.push('🏍️ Categoria A:');
       lines.push('');
       for (const s of schedulesWithA) {
-        const aviso = !s.isToday ? ' (Confirmar hoje até às 17:30)' : '';
+        const aviso = s.isTomorrow ? ' (Confirmar hoje até às 17:30)' : '';
         lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
       }
     }
@@ -677,7 +680,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       lines.push('🚗 Categoria B:');
       lines.push('');
       for (const s of schedulesWithB) {
-        const aviso = !s.isToday ? ' (Confirmar hoje até às 17:30)' : '';
+        const aviso = s.isTomorrow ? ' (Confirmar hoje até às 17:30)' : '';
         lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
       }
     }
