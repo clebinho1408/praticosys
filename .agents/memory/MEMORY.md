@@ -1,0 +1,1 @@
+- [Cloudflare Pages setup](cloudflare-deploy.md) — dual-mode backend: Express in dev (Replit), Pages Functions in prod; DATABASE_URL must point to Neon in production.

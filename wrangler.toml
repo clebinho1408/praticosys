@@ -1,0 +1,10 @@
+name = "praticosys"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "artifacts/praticosys/dist/public"
+
+# Environment variables são configuradas no dashboard do Cloudflare Pages.
+# Nunca commite DATABASE_URL aqui — use "Settings > Environment variables" no painel.
+
+# Para fazer deploy local (opcional):
+# wrangler pages deploy artifacts/praticosys/dist/public --project-name=praticosys
