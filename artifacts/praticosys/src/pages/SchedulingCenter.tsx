@@ -515,8 +515,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
           await Promise.all(updates);
           setIsAddStudentOpen(false);
           refreshData(true);
-      } catch (err) {
-          alert('Erro ao agendar candidatos.');
+      } catch (err: any) {
+          alert('Erro ao agendar candidatos.\n' + (err?.message || ''));
       } finally {
           setLoading(false);
       }
@@ -1752,8 +1752,8 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                   await api.assignStudentToSchedule(id, selectedSchedule!.id, category, currentUpdatedAt, user.name);
                                   setIsAddStudentOpen(false);
                                   refreshData(true);
-                              } catch {
-                                  alert('Erro ao agendar candidato.');
+                              } catch (err: any) {
+                                  alert('Erro ao agendar candidato.\n' + (err?.message || ''));
                               } finally {
                                   setLoading(false);
                               }

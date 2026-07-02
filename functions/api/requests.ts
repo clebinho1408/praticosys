@@ -67,6 +67,10 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       if (!body?.id) return error('ID obrigatório', 400);
       const { id, updatedAt, createdAt, ...updates } = body;
       const filtered = filterFields(updates);
+      // Converte campos timestamp de string para Date (drizzle neon-http requer Date)
+      if (filtered.queueUpdatedAt && typeof filtered.queueUpdatedAt === 'string') {
+        filtered.queueUpdatedAt = new Date(filtered.queueUpdatedAt);
+      }
       const updated = await db.update(examRequests)
         .set({ ...filtered, updatedAt: new Date() })
         .where(eq(examRequests.id, id))
@@ -83,6 +87,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     return error('Method Not Allowed', 405);
   } catch (e: any) {
+    console.error('[requests] erro:', e);
     return error(e.message ?? 'Erro interno', 500);
   }
 };
