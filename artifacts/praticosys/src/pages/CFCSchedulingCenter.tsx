@@ -2421,25 +2421,38 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             <input
                               type="number"
                               min={1}
-                              max={
-                                ['C', 'D', 'E'].includes(cat)
-                                  ? 10 - (newRequest.categories.filter(c => ['C', 'D', 'E'].includes(c)).length - 1)
-                                  : 10
-                              }
+                              max={(() => {
+                                if (!['C', 'D', 'E'].includes(cat)) return 10;
+                                const cdeCats = newRequest.categories.filter(c => ['C', 'D', 'E'].includes(c));
+                                if (cdeCats.length <= 1) return 10;
+                                const cdeOrder = (['C', 'D', 'E'] as string[]).filter(c => cdeCats.includes(c));
+                                const catIdx = cdeOrder.indexOf(cat);
+                                const preceding = cdeOrder.slice(0, catIdx);
+                                const following = cdeOrder.slice(catIdx + 1);
+                                const precedingSum = preceding.reduce((s, c) => s + (newRequest.categoryQuantities[c] || 0), 0);
+                                return Math.max(1, 10 - precedingSum - following.length);
+                              })()}
                               value={newRequest.categoryQuantities[cat] ?? ''}
                               onClick={e => e.preventDefault()}
                               onChange={e => {
                                 const rawVal = parseInt(e.target.value) || 1;
                                 const cdeCats = newRequest.categories.filter(c => ['C', 'D', 'E'].includes(c));
                                 if (['C', 'D', 'E'].includes(cat) && cdeCats.length > 1) {
-                                  const maxForThis = 10 - (cdeCats.length - 1);
+                                  // Hierarquia C → D → E: ao ajustar X, apenas os "seguintes" redistribuem
+                                  const cdeOrder = (['C', 'D', 'E'] as string[]).filter(c => cdeCats.includes(c));
+                                  const catIdx = cdeOrder.indexOf(cat);
+                                  const preceding = cdeOrder.slice(0, catIdx);
+                                  const following = cdeOrder.slice(catIdx + 1);
+                                  const precedingSum = preceding.reduce((s, c) => s + (newRequest.categoryQuantities[c] || 0), 0);
+                                  const maxForThis = Math.max(1, 10 - precedingSum - following.length);
                                   const clampedVal = Math.min(maxForThis, Math.max(1, rawVal));
-                                  const remaining = 10 - clampedVal;
-                                  const otherCDE = cdeCats.filter(c => c !== cat);
-                                  const base = Math.floor(remaining / otherCDE.length);
-                                  const extra = remaining % otherCDE.length;
+                                  const remaining = 10 - precedingSum - clampedVal;
                                   const newQtys = { ...newRequest.categoryQuantities, [cat]: clampedVal };
-                                  otherCDE.forEach((c, i) => { newQtys[c] = base + (i < extra ? 1 : 0); });
+                                  if (following.length > 0) {
+                                    const base = Math.floor(remaining / following.length);
+                                    const extra = remaining % following.length;
+                                    following.forEach((c, i) => { newQtys[c] = base + (i < extra ? 1 : 0); });
+                                  }
                                   setNewRequest({ ...newRequest, categoryQuantities: newQtys });
                                 } else {
                                   setNewRequest({
