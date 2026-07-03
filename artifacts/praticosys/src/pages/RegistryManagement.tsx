@@ -1271,6 +1271,22 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   <p className="text-xs text-gray-500">Apenas letras, sem acentos, maiúsculo.</p>
               </div>
               <div><label className="block text-sm font-medium">Matrícula</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.registrationNumber} onChange={e => setFormData({...formData, registrationNumber: e.target.value})} /></div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Categoria</label>
+                <div className="flex flex-wrap gap-3">
+                  {['A', 'B', 'C', 'D', 'E'].map(cat => (
+                    <label key={cat} className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded border hover:bg-gray-100">
+                      <input 
+                        type="checkbox" 
+                        checked={formData.categories?.includes(cat)} 
+                        onChange={() => toggleCategory(cat)}
+                        className="w-4 h-4 text-blue-600"
+                      />
+                      <span className="text-sm font-bold">{cat}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium mb-1">Vagas Cat. A (Moto)</label>
@@ -1305,22 +1321,6 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   />
                 </div>
               )}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Categoria</label>
-                <div className="flex flex-wrap gap-3">
-                  {['A', 'B', 'C', 'D', 'E'].map(cat => (
-                    <label key={cat} className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded border hover:bg-gray-100">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.categories?.includes(cat)} 
-                        onChange={() => toggleCategory(cat)}
-                        className="w-4 h-4 text-blue-600"
-                      />
-                      <span className="text-sm font-bold">{cat}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
