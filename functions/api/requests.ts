@@ -17,8 +17,8 @@ const ALLOWED_FIELDS = [
 ];
 
 function deriveModulo(data: any): string {
-  if (data.examType === 'PCD') return 'PCD';
-  if (!data.schoolId || data.schoolId === 'CNH_BRASIL') return 'CNH_BRASIL';
+  if (data.examType === 'PCD' || data.schoolId === 'PCD') return 'PCD';
+  if (!data.schoolId || data.schoolId === '' || data.schoolId === 'CNH_BRASIL') return 'CNH_BRASIL';
   return 'CFC';
 }
 
@@ -64,10 +64,11 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         UPDATE exam_requests
         SET modulo = CASE
           WHEN exam_type = 'PCD' THEN 'PCD'
-          WHEN school_id IS NULL OR school_id = 'CNH_BRASIL' THEN 'CNH_BRASIL'
+          WHEN school_id IS NULL OR school_id = '' OR school_id = 'CNH_BRASIL' THEN 'CNH_BRASIL'
+          WHEN school_id = 'PCD' THEN 'PCD'
           ELSE 'CFC'
         END
-        WHERE modulo IS NULL
+        WHERE modulo IS NULL OR modulo = ''
       `);
     } catch {}
 
