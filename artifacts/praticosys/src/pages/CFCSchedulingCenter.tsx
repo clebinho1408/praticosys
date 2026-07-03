@@ -2401,9 +2401,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 return;
                               }
 
-                              // Remove quantidade da categoria desmarcada
+                              // Atualiza quantidades ao marcar/desmarcar categoria
                               const newQtys = { ...newRequest.categoryQuantities };
                               if (!e.target.checked) delete newQtys[cat];
+
+                              // Redistribui automaticamente C/D/E para somar exatamente 10
+                              const newCdeCats = newCats.filter(c => ['C', 'D', 'E'].includes(c));
+                              if (newCdeCats.length > 0) {
+                                const base = Math.floor(10 / newCdeCats.length);
+                                const extra = 10 % newCdeCats.length;
+                                newCdeCats.forEach((c, i) => { newQtys[c] = base + (i < extra ? 1 : 0); });
+                              }
                               
                               setNewRequest({...newRequest, categories: newCats, categoryQuantities: newQtys});
                             }}
@@ -2413,13 +2421,33 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             <input
                               type="number"
                               min={1}
-                              max={10}
+                              max={
+                                ['C', 'D', 'E'].includes(cat)
+                                  ? 10 - (newRequest.categories.filter(c => ['C', 'D', 'E'].includes(c)).length - 1)
+                                  : 10
+                              }
                               value={newRequest.categoryQuantities[cat] ?? ''}
                               onClick={e => e.preventDefault()}
-                              onChange={e => setNewRequest({
-                                ...newRequest,
-                                categoryQuantities: { ...newRequest.categoryQuantities, [cat]: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) }
-                              })}
+                              onChange={e => {
+                                const rawVal = parseInt(e.target.value) || 1;
+                                const cdeCats = newRequest.categories.filter(c => ['C', 'D', 'E'].includes(c));
+                                if (['C', 'D', 'E'].includes(cat) && cdeCats.length > 1) {
+                                  const maxForThis = 10 - (cdeCats.length - 1);
+                                  const clampedVal = Math.min(maxForThis, Math.max(1, rawVal));
+                                  const remaining = 10 - clampedVal;
+                                  const otherCDE = cdeCats.filter(c => c !== cat);
+                                  const base = Math.floor(remaining / otherCDE.length);
+                                  const extra = remaining % otherCDE.length;
+                                  const newQtys = { ...newRequest.categoryQuantities, [cat]: clampedVal };
+                                  otherCDE.forEach((c, i) => { newQtys[c] = base + (i < extra ? 1 : 0); });
+                                  setNewRequest({ ...newRequest, categoryQuantities: newQtys });
+                                } else {
+                                  setNewRequest({
+                                    ...newRequest,
+                                    categoryQuantities: { ...newRequest.categoryQuantities, [cat]: Math.min(10, Math.max(1, rawVal)) }
+                                  });
+                                }
+                              }}
                               className="w-14 border border-orange-300 bg-orange-50 rounded p-1 text-sm text-center font-bold focus:ring-2 focus:ring-orange-400 outline-none"
                               placeholder="Qtd"
                               title={`Quantidade categoria ${cat} (máx. 10)`}
