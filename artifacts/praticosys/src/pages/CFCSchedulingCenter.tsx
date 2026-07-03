@@ -1253,8 +1253,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const handleDeleteAction = (req: ExamRequest) => {
     setConfirmConfig({
-      title: 'Excluir Agendamento',
-      message: 'Tem certeza que deseja excluir permanentemente este agendamento?',
+      title: user.role === UserRole.SCHOOL ? 'Excluir Pedido' : 'Excluir Agendamento',
+      message: user.role === UserRole.SCHOOL ? 'Tem certeza que deseja excluir permanentemente este pedido?' : 'Tem certeza que deseja excluir permanentemente este agendamento?',
       type: 'red',
       onConfirm: async () => {
         await api.deleteRequest(req.id);
@@ -1277,8 +1277,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     <div className="space-y-6 pb-10">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Agendamentos</h1>
-          <p className="text-slate-500 text-sm">Gerencie os agendamentos de provas práticas</p>
+          <h1 className="text-2xl font-bold text-slate-900">{user.role === UserRole.SCHOOL ? 'Pedidos' : 'Agendamentos'}</h1>
+          <p className="text-slate-500 text-sm">{user.role === UserRole.SCHOOL ? 'Gerencie os pedidos de provas práticas' : 'Gerencie os agendamentos de provas práticas'}</p>
         </div>
         <div className="flex items-center gap-3">
           {user.role !== UserRole.SCHOOL && user.role !== UserRole.EXAMINER && !isConsultant && (
@@ -2123,7 +2123,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-slate-100">
-              <h2 className="text-lg font-bold text-slate-800">Tipo de Agendamento</h2>
+              <h2 className="text-lg font-bold text-slate-800">{user.role === UserRole.SCHOOL ? 'Tipo de Pedido' : 'Tipo de Agendamento'}</h2>
             </div>
             <div className={`p-6 grid ${showReposition ? 'grid-cols-2' : 'grid-cols-1'} gap-4`}>
               <button 
@@ -2183,7 +2183,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 <Bell className="h-12 w-12" />
               </div>
               <div className="space-y-3">
-                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Novo Agendamento!</h3>
+                <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{user.role === UserRole.SCHOOL ? 'Novo Pedido!' : 'Novo Agendamento!'}</h3>
                 <p className="text-slate-600 font-medium text-lg">
                   Existe um novo agendamento aguardando a sua confirmação no sistema.
                 </p>
@@ -3069,7 +3069,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             <div className="p-6 border-b bg-red-50 border-red-100 text-red-700">
               <h3 className="text-lg font-bold flex items-center gap-2">
                 <XCircle className="h-5 w-5" />
-                Cancelar Agendamento
+                {user.role === UserRole.SCHOOL ? 'Cancelar Pedido' : 'Cancelar Agendamento'}
               </h3>
             </div>
             <div className="p-6 space-y-4">

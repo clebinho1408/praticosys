@@ -108,7 +108,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
          label: 'Exame Prático CFC',
          subItems: [
            { label: 'Dashboard',      path: '/admin/cfc/dashboard',    icon: LayoutDashboard },
-           { label: 'Agendamentos',   path: '/admin/cfc/agendamentos', icon: CalendarCheck }
+           { label: 'Pedidos',   path: '/admin/cfc/agendamentos', icon: CalendarCheck }
          ]
        });
     } else if (user.role === UserRole.EXAMINER) {
@@ -304,7 +304,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                        location.pathname.includes('cnhdobrasil/relatorios') ? 'CNH do Brasil — Relatórios' :
                        location.pathname.includes('cnhdobrasil/dashboard') ? 'CNH do Brasil — Dashboard' :
                        location.pathname.includes('cnhdobrasil') ? 'CNH do Brasil' :
-                       location.pathname.includes('cfc/agendamentos') ? 'Exame Prático CFC — Agendamentos' :
+                       location.pathname.includes('cfc/agendamentos') ? (user.role === UserRole.SCHOOL ? 'Exame Prático CFC — Pedidos' : 'Exame Prático CFC — Agendamentos') :
                        location.pathname.includes('cfc/relatorios') ? 'Exame Prático CFC — Relatórios' :
                        location.pathname.includes('cfc/dashboard') ? 'Exame Prático CFC — Dashboard' :
                        location.pathname.includes('pcd/agendamentos') ? 'Exame Prático PCD — Agendamentos' :
