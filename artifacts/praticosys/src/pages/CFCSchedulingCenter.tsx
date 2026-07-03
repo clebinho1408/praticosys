@@ -337,6 +337,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       // Filter for CFC: usa coluna modulo quando disponível, fallback para lógica legada
       const isCfcCandidate = (r: any) => {
         if (r.modulo) return r.modulo === 'CFC';
+        // Slots de escala PCD gerados pelo CFC (schoolId='PCD', _isSlot=true) → incluir antes do check de examType
+        if ((r as any)._isSlot && r.schoolId === 'PCD') return true;
         // fallback legado para registros sem modulo (após backfill, raro)
         if (r.examType === ExamType.PCD) return false;
         if (!r.schoolId) return false;
