@@ -852,7 +852,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     .filter(r => {
         const matchesStatus = r.status === ExamStatus.WAITING_SCHEDULING;
         const matchesType = r.examType === selectedSchedule?.type;
-        const matchesSearch = (r.socialName || r.studentName).toLowerCase().includes(studentSearch.toLowerCase()) || r.cpf.includes(studentSearch);
+        const matchesSearch = (r.socialName || r.studentName || '').toLowerCase().includes(studentSearch.toLowerCase()) || (r.cpf || '').includes(studentSearch);
         const matchesSchool = user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId;
         const matchesSource = r.source === RequestSource.STUDENT_DIRECT;
         
