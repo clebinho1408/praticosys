@@ -1225,7 +1225,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                 <td className="px-4 py-3 text-gray-500">{e.registrationNumber}</td>
                 <td className="px-4 py-3 space-x-1">
                   {e.categories && e.categories.length > 0 ? (
-                    e.categories.map(cat => (
+                    [...e.categories].sort((a, b) => ['A','B','C','D','E'].indexOf(a) - ['A','B','C','D','E'].indexOf(b)).map(cat => (
                       <span key={cat} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded inline-block mb-1">
                         {cat}
                       </span>
