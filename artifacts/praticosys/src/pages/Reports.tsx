@@ -466,40 +466,45 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
             let filteredScheds = scheds;
 
             if (reportType === 'pcd') {
-                // PCD: apenas candidatos com examType PCD (schoolId === 'PCD' ou sem schoolId PCD)
-                filteredReqs = filteredReqs.filter(r => r.examType === 'PCD');
+                // PCD: usa modulo quando disponível, fallback legado
+                filteredReqs = filteredReqs.filter(r =>
+                    r.modulo ? r.modulo === 'PCD' : r.examType === 'PCD'
+                );
                 filteredScheds = filteredScheds.filter(s => s.type === 'PCD');
             } else if (reportType === 'cfc') {
-                // CFC: candidatos de autoescolas regulares (COMMON), excluindo CNH_BRASIL, PCD e órfãos sem schoolId
-                filteredReqs = filteredReqs.filter(r => {
-                    if (r.examType === 'PCD') return false;          // PCD é módulo separado
-                    if (!r.schoolId) return false;                    // sem escola = CNH do Brasil (orphan)
-                    if (r.schoolId === 'CNH_BRASIL') return false;    // CNH do Brasil explícito
-                    if (r.schoolId === 'PCD') return false;           // PCD explícito
-                    return r.examType === 'COMMON';                   // autoescola regular
-                });
-                // Bancas CFC: COMMON com pelo menos um candidato de autoescola regular vinculado
+                // CFC: autoescolas regulares — usa modulo quando disponível, fallback legado
+                filteredReqs = filteredReqs.filter(r =>
+                    r.modulo ? r.modulo === 'CFC' : (
+                        r.examType !== 'PCD' &&
+                        !!r.schoolId &&
+                        r.schoolId !== 'CNH_BRASIL' &&
+                        r.schoolId !== 'PCD' &&
+                        r.examType === 'COMMON'
+                    )
+                );
+                // Bancas CFC: COMMON com pelo menos um candidato CFC vinculado
                 filteredScheds = filteredScheds.filter(s => {
                     if (s.type !== 'COMMON') return false;
                     const linked = reqs.filter(r => r.scheduleId === s.id);
-                    if (linked.length === 0) return false; // banca vazia: não conta para CFC (conta para CNH)
-                    // Conta se tem pelo menos um candidato CFC vinculado
+                    if (linked.length === 0) return false;
                     return linked.some(r =>
-                        r.examType === 'COMMON' && r.schoolId && r.schoolId !== 'CNH_BRASIL' && r.schoolId !== 'PCD'
+                        r.modulo ? r.modulo === 'CFC' : (
+                            r.examType === 'COMMON' && r.schoolId && r.schoolId !== 'CNH_BRASIL' && r.schoolId !== 'PCD'
+                        )
                     );
                 });
             } else if (reportType === 'cnh') {
-                // CNH do Brasil: candidatos COMMON sem schoolId OU com schoolId === 'CNH_BRASIL'
+                // CNH do Brasil: usa modulo quando disponível, fallback legado
                 filteredReqs = filteredReqs.filter(r =>
-                    r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL')
+                    r.modulo ? r.modulo === 'CNH_BRASIL' : (r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL'))
                 );
                 // Bancas CNH: COMMON com pelo menos um candidato CNH vinculado, OU bancas COMMON vazias
                 filteredScheds = filteredScheds.filter(s => {
                     if (s.type !== 'COMMON') return false;
                     const linked = reqs.filter(r => r.scheduleId === s.id);
-                    if (linked.length === 0) return true; // banca vazia conta para CNH
+                    if (linked.length === 0) return true;
                     return linked.some(r =>
-                        r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL')
+                        r.modulo ? r.modulo === 'CNH_BRASIL' : (r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL'))
                     );
                 });
             }
