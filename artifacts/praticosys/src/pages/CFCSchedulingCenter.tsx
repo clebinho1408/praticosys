@@ -1057,6 +1057,24 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
     if (user.role === UserRole.SCHOOL) {
       if (newRequest.requestType === RequestType.EXTRA) {
+        // Validação de limites de quantidade por categoria
+        const qtyA = newRequest.categoryQuantities['A'] || 0;
+        const qtyB = newRequest.categoryQuantities['B'] || 0;
+        const qtyCDE = (['C', 'D', 'E'] as string[]).reduce((sum, c) => sum + (newRequest.categoryQuantities[c] || 0), 0);
+
+        if (qtyA > 10) {
+          alert('A quantidade da categoria A não pode ultrapassar 10.');
+          return;
+        }
+        if (qtyB > 10) {
+          alert('A quantidade da categoria B não pode ultrapassar 10.');
+          return;
+        }
+        if (qtyCDE > 10) {
+          alert('A soma das quantidades das categorias C, D e E não pode ultrapassar 10.');
+          return;
+        }
+
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
@@ -2394,15 +2412,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             <input
                               type="number"
                               min={1}
+                              max={10}
                               value={newRequest.categoryQuantities[cat] ?? ''}
                               onClick={e => e.preventDefault()}
                               onChange={e => setNewRequest({
                                 ...newRequest,
-                                categoryQuantities: { ...newRequest.categoryQuantities, [cat]: Math.max(1, parseInt(e.target.value) || 1) }
+                                categoryQuantities: { ...newRequest.categoryQuantities, [cat]: Math.min(10, Math.max(1, parseInt(e.target.value) || 1)) }
                               })}
                               className="w-14 border border-orange-300 bg-orange-50 rounded p-1 text-sm text-center font-bold focus:ring-2 focus:ring-orange-400 outline-none"
                               placeholder="Qtd"
-                              title={`Quantidade categoria ${cat}`}
+                              title={`Quantidade categoria ${cat} (máx. 10)`}
                             />
                           )}
                         </label>
