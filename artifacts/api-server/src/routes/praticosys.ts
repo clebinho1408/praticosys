@@ -118,7 +118,10 @@ router.delete("/schools", async (req, res) => {
 
 // ─── EXAMINERS ────────────────────────────────────────────────────────────────
 router.get("/examiners", async (_req, res) => {
-  try { return res.json(await db.select().from(examiners)); }
+  try {
+    try { await db.execute(sql`ALTER TABLE examiners ADD COLUMN IF NOT EXISTS default_max_slots_mudanca integer`); } catch {}
+    return res.json(await db.select().from(examiners));
+  }
   catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/examiners", async (req, res) => {

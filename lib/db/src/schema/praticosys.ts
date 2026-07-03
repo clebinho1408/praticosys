@@ -39,6 +39,7 @@ export const examiners = pgTable('examiners', {
   categories: jsonb('categories').$type<string[]>().default([]),
   defaultMaxSlotsA: integer('default_max_slots_a'),
   defaultMaxSlotsB: integer('default_max_slots_b'),
+  defaultMaxSlotsMudanca: integer('default_max_slots_mudanca'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

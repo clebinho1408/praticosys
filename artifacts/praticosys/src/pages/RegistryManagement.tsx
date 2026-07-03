@@ -1028,7 +1028,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Examiner | null>(null);
-  const [formData, setFormData] = useState<{ name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string }>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '' });
+  const [formData, setFormData] = useState<{ name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string; defaultMaxSlotsMudanca: string }>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '' });
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1059,16 +1059,19 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       categories: ex.categories || [],
       defaultMaxSlotsA: ex.defaultMaxSlotsA != null ? String(ex.defaultMaxSlotsA) : '',
       defaultMaxSlotsB: ex.defaultMaxSlotsB != null ? String(ex.defaultMaxSlotsB) : '',
-    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '' });
+      defaultMaxSlotsMudanca: ex.defaultMaxSlotsMudanca != null ? String(ex.defaultMaxSlotsMudanca) : '',
+    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '' });
     setIsModalOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const hasMudanca = formData.categories.some(c => ['C', 'D', 'E'].includes(c));
     const payload = {
       ...formData,
       defaultMaxSlotsA: formData.defaultMaxSlotsA !== '' ? Number(formData.defaultMaxSlotsA) : null,
       defaultMaxSlotsB: formData.defaultMaxSlotsB !== '' ? Number(formData.defaultMaxSlotsB) : null,
+      defaultMaxSlotsMudanca: hasMudanca && formData.defaultMaxSlotsMudanca !== '' ? Number(formData.defaultMaxSlotsMudanca) : null,
     };
     try {
       if (editing) {
@@ -1211,6 +1214,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
               <th className="px-4 py-3">Categoria</th>
               <th className="px-4 py-3 text-center">Vagas A</th>
               <th className="px-4 py-3 text-center">Vagas B</th>
+              <th className="px-4 py-3 text-center">Vagas Mud.</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -1232,6 +1236,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                 </td>
                 <td className="px-4 py-3 text-center text-sm">{e.defaultMaxSlotsA != null ? e.defaultMaxSlotsA : <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-center text-sm">{e.defaultMaxSlotsB != null ? e.defaultMaxSlotsB : <span className="text-gray-400">—</span>}</td>
+                <td className="px-4 py-3 text-center text-sm">{e.categories?.some(c => ['C','D','E'].includes(c)) ? (e.defaultMaxSlotsMudanca != null ? e.defaultMaxSlotsMudanca : <span className="text-gray-400">—</span>) : <span className="text-gray-300">-</span>}</td>
                 <td className="px-4 py-3 text-right space-x-2">
                   {user?.role !== UserRole.CONSULTANT && (
                     <>
@@ -1288,10 +1293,22 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   />
                 </div>
               </div>
+              {formData.categories.some(c => ['C', 'D', 'E'].includes(c)) && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Vagas Cat. C, D, E (Mud. Cat.)</label>
+                  <input
+                    type="number" min="0" max="99"
+                    className="w-full border rounded p-2 bg-white text-gray-900"
+                    placeholder="Padrão do sistema"
+                    value={formData.defaultMaxSlotsMudanca}
+                    onChange={e => setFormData({...formData, defaultMaxSlotsMudanca: e.target.value})}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <label className="block text-sm font-medium">Categoria</label>
                 <div className="flex flex-wrap gap-3">
-                  {['A', 'B', 'C', 'D', 'E', 'PCD'].map(cat => (
+                  {['A', 'B', 'C', 'D', 'E'].map(cat => (
                     <label key={cat} className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded border hover:bg-gray-100">
                       <input 
                         type="checkbox" 
