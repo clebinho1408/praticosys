@@ -230,6 +230,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [newRequest, setNewRequest] = useState({
     schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
     categories: [] as string[],
+    categoryQuantities: {} as Record<string, number>,
     examinerId: '',
     date: '',
     time: '',
@@ -587,6 +588,23 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     if (!dateStr) return 'DATA NÃO INFORMADA';
     const [, month, day] = dateStr.split('-');
     return `${day}/${month}`;
+  };
+
+  const parseQtyFromObs = (obs?: string | null): Record<string, number> | null => {
+    if (!obs) return null;
+    const match = obs.match(/^\[Qtd:(.*?)\]/);
+    if (!match) return null;
+    const result: Record<string, number> = {};
+    match[1].split(',').forEach(part => {
+      const [cat, qty] = part.split('=');
+      if (cat && qty) result[cat.trim()] = parseInt(qty) || 0;
+    });
+    return Object.keys(result).length > 0 ? result : null;
+  };
+
+  const cleanObsFromQty = (obs?: string | null): string => {
+    if (!obs) return '';
+    return obs.replace(/^\[Qtd:.*?\]\s*/, '');
   };
 
   const getExamTypeLabel = (req: ExamRequest) => {
@@ -1099,6 +1117,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
 
     try {
+      // Monta prefixo de quantidade por categoria para pedidos Extra
+      let finalObservation = newRequest.observation;
+      if (newRequest.requestType === RequestType.EXTRA) {
+        const qtyParts = newRequest.categories
+          .filter(c => newRequest.categoryQuantities[c])
+          .map(c => `${c}=${newRequest.categoryQuantities[c]}`);
+        if (qtyParts.length > 0) {
+          const prefix = `[Qtd:${qtyParts.join(',')}]`;
+          finalObservation = finalObservation ? `${prefix} ${finalObservation}` : prefix;
+        }
+      }
+
       await api.createRequest({
         schoolId: newRequest.schoolId,
         source: 'SCHOOL',
@@ -1110,7 +1140,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         scheduledDate: newRequest.date,
         scheduledTime: newRequest.time,
         examinerId: newRequest.examinerId,
-        observation: newRequest.observation
+        observation: finalObservation
       });
 
       setIsNewModalOpen(false);
@@ -1119,6 +1149,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       setNewRequest({
         schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
         categories: [],
+        categoryQuantities: {},
         examinerId: '',
         date: '',
         time: '',
@@ -1138,6 +1169,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     setNewRequest({
       schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
       categories: [],
+      categoryQuantities: {},
       examinerId: '',
       date: '',
       time: '',
@@ -1511,12 +1543,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         <th className="px-4 py-3">Tipo</th>
                         <th className="px-4 py-3">Autoescola</th>
                         <th className="px-4 py-3">Exame</th>
+                        <th className="px-4 py-3">Qtd. por Cat.</th>
                         <th className="px-4 py-3">Observações</th>
                         <th className="px-4 py-3 text-right">Ações</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                      {extras.map(req => (
+                      {extras.map(req => {
+                        const qtys = parseQtyFromObs(req.observation);
+                        const cleanObs = cleanObsFromQty(req.observation);
+                        return (
                         <tr key={req.id} className={getRowClass(req)}>
                           <td className="px-4 py-3 text-slate-500 text-center">{new Date(req.createdAt).toLocaleString()}</td>
                           <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
@@ -1528,7 +1564,20 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           <td className="px-4 py-3 text-slate-600">
                             {getExamTypeLabel(req)}
                           </td>
-                          <td className="px-4 py-3 text-slate-500 max-w-[250px] truncate" title={req.observation}>{req.observation || '-'}</td>
+                          <td className="px-4 py-3">
+                            {qtys ? (
+                              <div className="flex flex-wrap gap-1">
+                                {Object.entries(qtys).map(([cat, qty]) => (
+                                  <span key={cat} className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-orange-200">
+                                    {cat}: {qty}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-300 italic text-xs">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate" title={cleanObs || undefined}>{cleanObs || '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
                               {user.role !== UserRole.SCHOOL && !isConsultant && (
@@ -1562,7 +1611,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2087,6 +2137,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   setNewRequest({
                     schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
                     categories: [],
+                    categoryQuantities: {},
                     examinerId: '',
                     date: '',
                     time: '',
@@ -2330,11 +2381,30 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 alert('Não é permitido selecionar categorias A/B junto com C/D/E.');
                                 return;
                               }
+
+                              // Remove quantidade da categoria desmarcada
+                              const newQtys = { ...newRequest.categoryQuantities };
+                              if (!e.target.checked) delete newQtys[cat];
                               
-                              setNewRequest({...newRequest, categories: newCats});
+                              setNewRequest({...newRequest, categories: newCats, categoryQuantities: newQtys});
                             }}
                           />
                           <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{cat}</span>
+                          {newRequest.requestType === RequestType.EXTRA && newRequest.categories.includes(cat) && (
+                            <input
+                              type="number"
+                              min={1}
+                              value={newRequest.categoryQuantities[cat] ?? ''}
+                              onClick={e => e.preventDefault()}
+                              onChange={e => setNewRequest({
+                                ...newRequest,
+                                categoryQuantities: { ...newRequest.categoryQuantities, [cat]: Math.max(1, parseInt(e.target.value) || 1) }
+                              })}
+                              className="w-14 border border-orange-300 bg-orange-50 rounded p-1 text-sm text-center font-bold focus:ring-2 focus:ring-orange-400 outline-none"
+                              placeholder="Qtd"
+                              title={`Quantidade categoria ${cat}`}
+                            />
+                          )}
                         </label>
                       ))
                     )}
