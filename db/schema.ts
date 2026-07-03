@@ -115,6 +115,7 @@ export const examRequests = pgTable('exam_requests', {
   attendanceConfirmed: boolean('attendance_confirmed').default(false),
   cancellationReason: text('cancellation_reason'),
   observation: text('observation'),
+  categoryQuantities: jsonb('category_quantities').$type<Record<string, number>>(),
   examHistory: jsonb('exam_history').default([]),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

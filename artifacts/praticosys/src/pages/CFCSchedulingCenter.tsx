@@ -1135,17 +1135,13 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
 
     try {
-      // Monta prefixo de quantidade por categoria para pedidos Extra
-      let finalObservation = newRequest.observation;
-      if (newRequest.requestType === RequestType.EXTRA) {
-        const qtyParts = newRequest.categories
-          .filter(c => newRequest.categoryQuantities[c])
-          .map(c => `${c}=${newRequest.categoryQuantities[c]}`);
-        if (qtyParts.length > 0) {
-          const prefix = `[Qtd:${qtyParts.join(',')}]`;
-          finalObservation = finalObservation ? `${prefix} ${finalObservation}` : prefix;
-        }
-      }
+      const categoryQuantities = newRequest.requestType === RequestType.EXTRA
+        ? Object.fromEntries(
+            newRequest.categories
+              .filter(c => newRequest.categoryQuantities[c])
+              .map(c => [c, newRequest.categoryQuantities[c]])
+          )
+        : undefined;
 
       await api.createRequest({
         schoolId: newRequest.schoolId,
@@ -1158,7 +1154,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         scheduledDate: newRequest.date,
         scheduledTime: newRequest.time,
         examinerId: newRequest.examinerId,
-        observation: finalObservation
+        observation: newRequest.observation,
+        categoryQuantities: Object.keys(categoryQuantities ?? {}).length > 0 ? categoryQuantities : undefined,
       });
 
       setIsNewModalOpen(false);
@@ -1568,8 +1565,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     </thead>
                     <tbody className="divide-y divide-slate-50">
                       {extras.map(req => {
-                        const qtys = parseQtyFromObs(req.observation);
-                        const cleanObs = cleanObsFromQty(req.observation);
+                        const qtys = (req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0)
+                          ? req.categoryQuantities
+                          : parseQtyFromObs(req.observation);
+                        const cleanObs = (req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0)
+                          ? (req.observation || '')
+                          : cleanObsFromQty(req.observation);
                         return (
                         <tr key={req.id} className={getRowClass(req)}>
                           <td className="px-4 py-3 text-slate-500 text-center">{new Date(req.createdAt).toLocaleString()}</td>

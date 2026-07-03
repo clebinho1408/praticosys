@@ -10,7 +10,7 @@ const ALLOWED_FIELDS = [
   'cnhRestriction','instructor','vehiclePlate','disabilityType',
   'specialNeeds','status','result','scheduleId','scheduledDate',
   'scheduledTime','scheduledCategory','examinerId','attendanceConfirmed',
-  'cancellationReason','observation','examHistory',
+  'cancellationReason','observation','categoryQuantities','examHistory',
   'queueUpdatedAt',
   'checklistVehicle','practicalCourseInserted','taxaPaga',
   'scheduledBy',
@@ -37,6 +37,22 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS practical_course_inserted boolean DEFAULT false`);
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS taxa_paga boolean DEFAULT false`);
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS scheduled_by text`);
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS category_quantities jsonb`);
+      await db.execute(sql`
+        UPDATE exam_requests
+        SET
+          category_quantities = (
+            SELECT COALESCE(jsonb_object_agg(m[1], (m[2])::int), '{}'::jsonb)
+            FROM regexp_matches(
+              substring(observation from '^\\[Qtd:([A-Z0-9=,]+)\\]'),
+              '([A-Z]+)=([0-9]+)',
+              'g'
+            ) AS m
+          ),
+          observation = regexp_replace(observation, '^\\[Qtd:[A-Z0-9=,]+\\] *', '')
+        WHERE category_quantities IS NULL
+          AND observation LIKE '[Qtd:%'
+      `);
     } catch {}
 
     if (method === 'GET') {

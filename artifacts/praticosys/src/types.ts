@@ -183,6 +183,7 @@ export interface ExamRequest {
   scheduledCategory?: string | null; // New: Specific category for this schedule instance (A or B)
   examinerId?: string | null; // Kept for backward compatibility or primary examiner
   observation?: string;
+  categoryQuantities?: Record<string, number> | null;
   
   attendanceConfirmed?: boolean; // New: Confirmed via WhatsApp/Phone
   cancellationReason?: string; // Reason for cancellation

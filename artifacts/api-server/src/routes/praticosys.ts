@@ -287,7 +287,7 @@ const ALLOWED_REQ_FIELDS = [
   "practicalCourseInserted", "taxaPaga", "disabilityType", "specialNeeds",
   "status", "result", "scheduleId", "scheduledDate", "scheduledTime",
   "scheduledCategory", "examinerId", "attendanceConfirmed", "cancellationReason",
-  "observation", "examHistory", "scheduledBy", "queueUpdatedAt"
+  "observation", "categoryQuantities", "examHistory", "scheduledBy", "queueUpdatedAt"
 ];
 
 router.get("/requests", async (req, res) => {
