@@ -246,14 +246,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         }
       }
 
-      // Prop Type Filtering
+      // Prop Type Filtering — usa modulo quando disponível, fallback para examType
       if (typeFilter) {
-        filtered = filtered.filter((r) => r.examType === typeFilter);
+        if (typeFilter === ExamType.PCD) {
+          filtered = filtered.filter(r => r.modulo ? r.modulo === 'PCD' : r.examType === ExamType.PCD);
+        } else if (typeFilter === ExamType.COMMON) {
+          // CNH do Brasil: modulo === 'CNH_BRASIL' ou fallback legado
+          filtered = filtered.filter(r => r.modulo ? r.modulo === 'CNH_BRASIL' : (r.examType === ExamType.COMMON && (!r.schoolId || r.schoolId === 'CNH_BRASIL')));
+        } else {
+          filtered = filtered.filter(r => r.examType === typeFilter);
+        }
       }
 
-      // Hide CFC items if we are in CNH module
-      if (excludeRegularSchools) {
-        filtered = filtered.filter(r => !r.schoolId || r.schoolId === 'CNH_BRASIL');
+      // Hide CFC items if we are in CNH module (redundante quando modulo já filtra, mas mantido como segurança)
+      if (excludeRegularSchools && !typeFilter) {
+        filtered = filtered.filter(r => r.modulo ? r.modulo === 'CNH_BRASIL' : (!r.schoolId || r.schoolId === 'CNH_BRASIL'));
       }
 
       // Hide auto-generated slots that have no real candidate (empty studentName or placeholder CPF).

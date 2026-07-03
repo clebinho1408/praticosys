@@ -194,13 +194,11 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
       .filter((r) => {
         if (r.status !== ExamStatus.WAITING_SCHEDULING) return false;
         
-        // Strict separation based on `type` prop
+        // Strict separation based on `type` prop — usa modulo quando disponível
         if (type === ExamType.PCD) {
-          // PCD Module
-          return r.examType === ExamType.PCD || r.schoolId === 'PCD';
+          return r.modulo ? r.modulo === 'PCD' : (r.examType === ExamType.PCD || r.schoolId === 'PCD');
         } else if (type === ExamType.COMMON) {
-          // CNH do Brasil Module
-          return r.examType === ExamType.COMMON && (!r.schoolId || r.schoolId === 'CNH_BRASIL');
+          return r.modulo ? r.modulo === 'CNH_BRASIL' : (r.examType === ExamType.COMMON && (!r.schoolId || r.schoolId === 'CNH_BRASIL'));
         }
         return false;
       })
@@ -239,11 +237,9 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
          if (r.status !== ExamStatus.WAITING_SCHEDULING) return false;
          
          if (selectedSchedule?.type === ExamType.PCD || type === ExamType.PCD) {
-           // PCD Module
-           return r.examType === ExamType.PCD || r.schoolId === 'PCD';
+           return r.modulo ? r.modulo === 'PCD' : (r.examType === ExamType.PCD || r.schoolId === 'PCD');
          } else if (selectedSchedule?.type === ExamType.COMMON || type === ExamType.COMMON) {
-           // CNH do Brasil Module
-           return r.examType === ExamType.COMMON && (!r.schoolId || r.schoolId === 'CNH_BRASIL');
+           return r.modulo ? r.modulo === 'CNH_BRASIL' : (r.examType === ExamType.COMMON && (!r.schoolId || r.schoolId === 'CNH_BRASIL'));
          }
          return false;
      })

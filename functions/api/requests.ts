@@ -13,8 +13,14 @@ const ALLOWED_FIELDS = [
   'cancellationReason','observation','categoryQuantities','examHistory',
   'queueUpdatedAt',
   'checklistVehicle','practicalCourseInserted','taxaPaga',
-  'scheduledBy',
+  'scheduledBy','modulo',
 ];
+
+function deriveModulo(data: any): string {
+  if (data.examType === 'PCD') return 'PCD';
+  if (!data.schoolId || data.schoolId === 'CNH_BRASIL') return 'CNH_BRASIL';
+  return 'CFC';
+}
 
 function filterFields(obj: any, extra: string[] = []) {
   const fields = [...ALLOWED_FIELDS, ...extra];
@@ -53,6 +59,16 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         WHERE category_quantities IS NULL
           AND observation LIKE '[Qtd:%'
       `);
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS modulo text`);
+      await db.execute(sql`
+        UPDATE exam_requests
+        SET modulo = CASE
+          WHEN exam_type = 'PCD' THEN 'PCD'
+          WHEN school_id IS NULL OR school_id = 'CNH_BRASIL' THEN 'CNH_BRASIL'
+          ELSE 'CFC'
+        END
+        WHERE modulo IS NULL
+      `);
     } catch {}
 
     if (method === 'GET') {
@@ -66,6 +82,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     if (method === 'POST') {
       const body = await parseBody<any>(request);
       const filtered = filterFields(body);
+      if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
       const newItem = await db.insert(examRequests).values({
         id: filtered.id || crypto.randomUUID(),
         ...filtered,

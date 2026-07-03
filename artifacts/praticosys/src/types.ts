@@ -184,7 +184,8 @@ export interface ExamRequest {
   examinerId?: string | null; // Kept for backward compatibility or primary examiner
   observation?: string;
   categoryQuantities?: Record<string, number> | null;
-  
+  modulo?: string | null; // 'CFC' | 'PCD' | 'CNH_BRASIL'
+
   attendanceConfirmed?: boolean; // New: Confirmed via WhatsApp/Phone
   cancellationReason?: string; // Reason for cancellation
   

@@ -334,13 +334,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         _isSlot: true,          // flag para módulo CNH filtrar e nunca mostrar como candidato
       }));
 
-      // Filter for CFC: COMMON de autoescolas regulares + PCD + CNH_BRASIL (todos os slots de escala)
+      // Filter for CFC: usa coluna modulo quando disponível, fallback para lógica legada
       const isCfcCandidate = (r: any) => {
-        if (r.examType === ExamType.PCD) return true;   // PCD sempre entra no CFC
-        if (!r.schoolId) return false;                  // sem schoolId = orphan
-        if (r.schoolId === 'CNH_BRASIL') return !!(r as any)._isSlot; // CNH_BRASIL só aparece aqui se for slot de escala
-        if (r.schoolId === 'PCD') return true;          // PCD explícito
-        return r.examType === ExamType.COMMON;          // autoescola regular COMMON
+        if (r.modulo) return r.modulo === 'CFC' || r.modulo === 'PCD'; // PCD entra no CFC
+        // fallback legado para registros sem modulo
+        if (r.examType === ExamType.PCD) return true;
+        if (!r.schoolId) return false;
+        if (r.schoolId === 'CNH_BRASIL') return !!(r as any)._isSlot;
+        if (r.schoolId === 'PCD') return true;
+        return r.examType === ExamType.COMMON;
       };
 
       // Candidatos reais da tabela exam_requests
@@ -1147,6 +1149,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         schoolId: newRequest.schoolId,
         source: 'SCHOOL',
         examType: isPcd ? ExamType.PCD : ExamType.COMMON,
+        modulo: isPcd ? 'PCD' : 'CFC',
         requestType: newRequest.requestType,
         intendedCategory: isPcd ? 'PCD' : newRequest.categories.join(','),
         status: newRequest.date ? ExamStatus.SCHEDULED : ExamStatus.WAITING_SCHEDULING,

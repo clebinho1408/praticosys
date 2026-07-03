@@ -109,20 +109,20 @@ const DashboardGeral: React.FC<DashboardGeralProps> = ({ user: _user }) => {
   const stats = useMemo(() => {
     // --- CNH do Brasil ---
     const cnhReqs = requests.filter(r =>
-      r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL')
+      r.modulo ? r.modulo === 'CNH_BRASIL' : (r.examType === 'COMMON' && (!r.schoolId || r.schoolId === 'CNH_BRASIL'))
     );
     const cnhSched = schedules.filter(s => s.type === 'COMMON');
 
     // --- CFC ---
-    const cfcReqs = requests.filter(r => {
-      if (r.examType === 'PCD') return false;
-      if (!r.schoolId || r.schoolId === 'CNH_BRASIL' || r.schoolId === 'PCD') return false;
-      return r.examType === 'COMMON';
-    });
+    const cfcReqs = requests.filter(r =>
+      r.modulo ? r.modulo === 'CFC' : (!r.examType || r.examType !== 'PCD') && r.schoolId && r.schoolId !== 'CNH_BRASIL' && r.schoolId !== 'PCD' && r.examType === 'COMMON'
+    );
     const cfcSched = schedules.filter(s => s.type === 'COMMON');
 
     // --- PCD ---
-    const pcdReqs = requests.filter(r => r.examType === 'PCD' || r.schoolId === 'PCD');
+    const pcdReqs = requests.filter(r =>
+      r.modulo ? r.modulo === 'PCD' : (r.examType === 'PCD' || r.schoolId === 'PCD')
+    );
     const pcdSched = schedules.filter(s => s.type === 'PCD');
 
     // Filtro: últimos 12 meses

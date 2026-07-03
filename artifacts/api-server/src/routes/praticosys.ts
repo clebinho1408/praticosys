@@ -287,11 +287,31 @@ const ALLOWED_REQ_FIELDS = [
   "practicalCourseInserted", "taxaPaga", "disabilityType", "specialNeeds",
   "status", "result", "scheduleId", "scheduledDate", "scheduledTime",
   "scheduledCategory", "examinerId", "attendanceConfirmed", "cancellationReason",
-  "observation", "categoryQuantities", "examHistory", "scheduledBy", "queueUpdatedAt"
+  "observation", "categoryQuantities", "examHistory", "scheduledBy", "queueUpdatedAt",
+  "modulo"
 ];
+
+function deriveModulo(data: any): string {
+  if (data.examType === 'PCD') return 'PCD';
+  if (!data.schoolId || data.schoolId === 'CNH_BRASIL') return 'CNH_BRASIL';
+  return 'CFC';
+}
 
 router.get("/requests", async (req, res) => {
   try {
+    // Migration: add modulo column and backfill existing records
+    try {
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS modulo text`);
+      await db.execute(sql`
+        UPDATE exam_requests
+        SET modulo = CASE
+          WHEN exam_type = 'PCD' THEN 'PCD'
+          WHEN school_id IS NULL OR school_id = 'CNH_BRASIL' THEN 'CNH_BRASIL'
+          ELSE 'CFC'
+        END
+        WHERE modulo IS NULL
+      `);
+    } catch {}
     const { cpf } = req.query as any;
     if (cpf) {
       const clean = cpf.replace(/\D/g, "");
@@ -305,6 +325,7 @@ router.post("/requests", async (req, res) => {
     const body = req.body;
     const filtered: any = {};
     for (const k of ALLOWED_REQ_FIELDS) { if (body[k] !== undefined) filtered[k] = body[k]; }
+    if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
     const item = await db.insert(examRequests).values({
       id: filtered.id || crypto.randomUUID(), ...filtered,
       createdAt: new Date(), updatedAt: new Date()
