@@ -35,7 +35,8 @@ import {
   Copy,
   Bell,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  Pencil
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
@@ -1720,13 +1721,27 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
                               {user.role !== UserRole.SCHOOL && !isConsultant && (
-                                <button 
-                                  onClick={() => handleWhatsAppMessage(req)}
-                                  className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
-                                  title="Enviar WhatsApp"
-                                >
-                                  <MessageCircle className="h-4 w-4" />
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedRequest(req);
+                                      setIsFromDoneCard(false);
+                                      setIsEditModalOpen(true);
+                                      setActiveEditTab('dados');
+                                    }}
+                                    className="bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                    title="Editar Vagas Liberadas"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleWhatsAppMessage(req)}
+                                    className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
+                                    title="Enviar WhatsApp"
+                                  >
+                                    <MessageCircle className="h-4 w-4" />
+                                  </button>
+                                </>
                               )}
                               {!isConsultant && (
                                 <>
