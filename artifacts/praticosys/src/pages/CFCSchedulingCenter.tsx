@@ -88,6 +88,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [copiedRequestId, setCopiedRequestId] = useState<string | null>(null);
   const prevWaitingIdsRef = React.useRef<string[]>([]);
   // Refs para evitar que o polling (fetchData) resete as seleções do modal de geração
   const schoolsRef = React.useRef(schools);
@@ -711,6 +712,30 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     if (whatsappWindowRef) {
       whatsappWindowRef.focus();
     }
+  };
+
+  const handleCopyConfirmationMessage = (req: ExamRequest) => {
+    const schoolName = getSchoolName(req.schoolId);
+    const agencyName = systemSettings?.agencyName || 'DETRAN';
+    const tipo = req.requestType === RequestType.FIXA ? 'Fixa'
+      : req.requestType === RequestType.REPOSICAO ? 'Reposição'
+      : 'Extra';
+    const data = formatDate(req.scheduledDate);
+    const horario = req.scheduledTime || '08:00';
+    const exame = getExamTypeLabel(req);
+    const examinerName = getExaminerName(req.examinerId);
+    const vagas = req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0
+      ? Object.entries(req.categoryQuantities).map(([cat, qty]) => `${cat}: ${qty}`).join(', ')
+      : '—';
+
+    const text = `👋😊 Olá, ${schoolName}!\n\n🏢 Aqui é do ${agencyName} – Setor de Exame Prático.\n\n📋 Estamos confirmando o agendamento da Prova Prática (Tipo: ${tipo}), marcada para:\n\n📅 ${data}\n🕒 ${horario}\n📝 Exame: ${exame}\n🧑‍🧒‍🧒 Vagas Liberadas: ${vagas}\n👨‍💼 Examinador: ${examinerName}\n\n✅ Por favor, posso confirmar?`;
+
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedRequestId(req.id);
+      setTimeout(() => setCopiedRequestId(null), 2000);
+    }).catch(() => {
+      alert('Não foi possível copiar. Verifique as permissões do navegador.');
+    });
   };
 
   const copyDayScheduleToWhatsApp = (dayName: string, dayRequests: ExamRequest[]) => {
@@ -1733,12 +1758,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   >
                                     <Pencil className="h-4 w-4" />
                                   </button>
-                                  <button 
-                                    onClick={() => handleWhatsAppMessage(req)}
-                                    className="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors"
-                                    title="Enviar WhatsApp"
+                                  <button
+                                    onClick={() => handleCopyConfirmationMessage(req)}
+                                    className={`text-white p-2 rounded-md flex items-center justify-center shadow-sm transition-colors ${copiedRequestId === req.id ? 'bg-green-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+                                    title="Copiar Mensagem de Confirmação"
                                   >
-                                    <MessageCircle className="h-4 w-4" />
+                                    {copiedRequestId === req.id ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                                   </button>
                                 </>
                               )}
