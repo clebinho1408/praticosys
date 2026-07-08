@@ -2385,8 +2385,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       const newSchoolId = e.target.value;
                       setNewRequest({
                         ...newRequest, 
-                        schoolId: newSchoolId, 
-                        categories: newSchoolId === 'CNH_BRASIL' ? ['A', 'B'] : []
+                        schoolId: newSchoolId,
+                        examType: '',
+                        categories: newSchoolId === 'CNH_BRASIL' ? ['A', 'B'] : [],
+                        categoryQuantities: {}
                       });
                     }}
                     disabled={user.role === UserRole.SCHOOL}
@@ -2415,18 +2417,22 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     <input type="text" value="PCD" readOnly className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none" />
                   ) : newRequest.schoolId === 'CNH_BRASIL' ? (
                     <input type="text" value="1º Habilitação" readOnly className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none" />
-                  ) : (
-                    <select
-                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                      value={newRequest.examType}
-                      onChange={e => setNewRequest({...newRequest, examType: e.target.value, categories: [], categoryQuantities: {}})}
-                    >
-                      <option value="">Selecione o tipo de exame</option>
-                      <option value="1HAB">1º Habilitação</option>
-                      <option value="MUD_CAT">Mudança Categoria</option>
-                      <option value="MISTO">Misto (1º Hab. e Mud. Cat.)</option>
-                    </select>
-                  )}
+                  ) : (() => {
+                    const selectedSchool = newRequest.schoolId ? schools.find(s => s.id === newRequest.schoolId) : null;
+                    const hasCDE = !selectedSchool || (selectedSchool.services || []).some((s: string) => ['C', 'D', 'E'].includes(s));
+                    return (
+                      <select
+                        className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                        value={newRequest.examType}
+                        onChange={e => setNewRequest({...newRequest, examType: e.target.value, categories: [], categoryQuantities: {}})}
+                      >
+                        <option value="">Selecione o tipo de exame</option>
+                        <option value="1HAB">1º Habilitação</option>
+                        {hasCDE && <option value="MUD_CAT">Mudança Categoria</option>}
+                        {hasCDE && <option value="MISTO">Misto (1º Hab. e Mud. Cat.)</option>}
+                      </select>
+                    );
+                  })()}
                 </div>
 
                 {/* Categoria — filtrada pelo tipo de exame selecionado */}
