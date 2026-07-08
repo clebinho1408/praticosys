@@ -764,8 +764,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       byExaminer[exName].forEach(req => {
         const schoolName = getSchoolName(req.schoolId).toUpperCase();
         const time = req.scheduledTime || '08:00';
-        const isMudCat = getExamTypeLabel(req) === 'Mudança Categoria';
-        text += `_*${schoolName} - ${time}${isMudCat ? ' (Mud. Cat.)' : ''}*_\n`;
+        const isMudCat = req.examType !== 'MISTO' && getExamTypeLabel(req) === 'Mudança Categoria';
+        const isMisto = req.examType === 'MISTO';
+        text += `_*${schoolName} - ${time}${isMudCat ? ' (Mud. Cat.)' : ''}${isMisto ? ' (1º Hab. e Mud. Cat.)' : ''}*_\n`;
       });
       text += `\n`;
     });
@@ -1816,7 +1817,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           
           {expandedSections.confirmed && (
             <div className="p-4 bg-white space-y-4">
-              {daysOfWeek.map((dayName) => (
+              {daysOfWeek.filter(d => d !== 'Outros/Sem Data').map((dayName) => (
                 <div key={dayName} className="border border-slate-200 rounded-lg overflow-hidden">
                   <div className="w-full flex items-center justify-between p-3 bg-slate-50 border-b border-slate-200">
                     <button 
