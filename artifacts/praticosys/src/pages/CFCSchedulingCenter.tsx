@@ -1244,6 +1244,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         scheduledTime: selectedRequest.scheduledTime,
         examinerId: selectedRequest.examinerId,
         observation: selectedRequest.observation,
+        categoryQuantities: selectedRequest.categoryQuantities,
         status: newStatus,
         attendanceConfirmed: selectedRequest.attendanceConfirmed
       });
@@ -1704,19 +1705,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             {getExamTypeLabel(req)}
                           </td>
                           <td className="px-4 py-3 text-slate-700">
-                            {(() => {
-                              const parsed = parseQtyFromObs(req.observation);
-                              if (!parsed || Object.keys(parsed).length === 0) return <span className="text-slate-400">—</span>;
-                              return (
-                                <div className="flex flex-wrap gap-1">
-                                  {Object.entries(parsed).map(([cat, qty]) => (
-                                    <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
-                                      {cat}: {qty}
-                                    </span>
-                                  ))}
-                                </div>
-                              );
-                            })()}
+                            {req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {Object.entries(req.categoryQuantities).map(([cat, qty]) => (
+                                  <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
+                                    {cat}: {qty}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
@@ -2607,31 +2606,28 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Vagas Liberadas por Categoria</label>
                           <div className="flex flex-wrap items-center gap-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                            {(selectedRequest.intendedCategory || '').split(',').filter(Boolean).filter(c => c !== 'PCD').map(cat => {
-                              const parsed = parseQtyFromObs(selectedRequest.observation) || {};
-                              const cleanObs = cleanObsFromQty(selectedRequest.observation);
-                              const cats = (selectedRequest.intendedCategory || '').split(',').filter(Boolean).filter(c => c !== 'PCD');
-                              return (
-                                <div key={cat} className="flex items-center gap-2">
-                                  <span className="text-sm font-bold text-slate-700 min-w-[18px]">{cat}</span>
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    value={parsed[cat] ?? ''}
-                                    onChange={e => {
-                                      const val = parseInt(e.target.value);
-                                      const currentParsed = parseQtyFromObs(selectedRequest.observation) || {};
-                                      const newParsed = { ...currentParsed, [cat]: isNaN(val) ? 0 : val };
-                                      const parts = cats.map(c => `${c}=${newParsed[c] || 0}`);
-                                      const prefix = `[Qtd:${parts.join(',')}] `;
-                                      setSelectedRequest({ ...selectedRequest, observation: prefix + cleanObs });
-                                    }}
-                                    className="w-16 border border-orange-300 bg-white rounded p-1 text-sm text-center font-bold focus:ring-2 focus:ring-orange-400 outline-none"
-                                    placeholder="0"
-                                  />
-                                </div>
-                              );
-                            })}
+                            {(selectedRequest.intendedCategory || '').split(',').filter(Boolean).filter(c => c !== 'PCD').map(cat => (
+                              <div key={cat} className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-slate-700 min-w-[18px]">{cat}</span>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  value={selectedRequest.categoryQuantities?.[cat] ?? ''}
+                                  onChange={e => {
+                                    const val = parseInt(e.target.value);
+                                    setSelectedRequest({
+                                      ...selectedRequest,
+                                      categoryQuantities: {
+                                        ...(selectedRequest.categoryQuantities || {}),
+                                        [cat]: isNaN(val) ? 0 : val
+                                      }
+                                    });
+                                  }}
+                                  className="w-16 border border-orange-300 bg-white rounded p-1 text-sm text-center font-bold focus:ring-2 focus:ring-orange-400 outline-none"
+                                  placeholder="0"
+                                />
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
