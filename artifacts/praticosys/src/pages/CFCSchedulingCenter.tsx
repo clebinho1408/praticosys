@@ -236,6 +236,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
     categories: [] as string[],
     categoryQuantities: {} as Record<string, number>,
+    examType: '',
     examinerId: '',
     date: '',
     time: '',
@@ -1064,7 +1065,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const handleSubmitNew = async () => {
     const isFixa = newRequest.requestType === RequestType.FIXA;
     const isPcd = newRequest.schoolId === 'PCD';
-    const basicFieldsOk = newRequest.schoolId && (isPcd || newRequest.categories.length > 0);
+    const isCnhBrasil = newRequest.schoolId === 'CNH_BRASIL';
+    const needsExamType = !isPcd && !isCnhBrasil && newRequest.schoolId !== '';
+    const examTypeOk = !needsExamType || !!newRequest.examType;
+    const basicFieldsOk = newRequest.schoolId && examTypeOk && (isPcd || newRequest.categories.length > 0);
     const fixaFieldsOk = !isFixa || (newRequest.date && newRequest.time && newRequest.examinerId);
 
     if (!basicFieldsOk || !fixaFieldsOk) {
@@ -1072,26 +1076,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       return;
     }
 
+    // Para pedidos EXTRA: todas as categorias selecionadas devem ter Qtd preenchida
+    if (newRequest.requestType === RequestType.EXTRA && !isPcd) {
+      const missingQty = newRequest.categories.filter(c => !newRequest.categoryQuantities[c] || newRequest.categoryQuantities[c] <= 0);
+      if (missingQty.length > 0) {
+        alert(`Informe a quantidade para as categorias: ${missingQty.join(', ')}`);
+        return;
+      }
+    }
+
     if (user.role === UserRole.SCHOOL) {
       if (newRequest.requestType === RequestType.EXTRA) {
-        // Validação de limites de quantidade por categoria
-        const qtyA = newRequest.categoryQuantities['A'] || 0;
-        const qtyB = newRequest.categoryQuantities['B'] || 0;
-        const qtyCDE = (['C', 'D', 'E'] as string[]).reduce((sum, c) => sum + (newRequest.categoryQuantities[c] || 0), 0);
-
-        if (qtyA > 10) {
-          alert('A quantidade da categoria A não pode ultrapassar 10.');
-          return;
-        }
-        if (qtyB > 10) {
-          alert('A quantidade da categoria B não pode ultrapassar 10.');
-          return;
-        }
-        if (qtyCDE > 10) {
-          alert('A soma das quantidades das categorias C, D e E não pode ultrapassar 10.');
-          return;
-        }
-
         const now = new Date();
         const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
@@ -1183,6 +1178,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
         categories: [],
         categoryQuantities: {},
+        examType: '',
         examinerId: '',
         date: '',
         time: '',
@@ -1203,6 +1199,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
       categories: [],
       categoryQuantities: {},
+      examType: '',
       examinerId: '',
       date: '',
       time: '',
@@ -2175,6 +2172,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     schoolId: user.role === UserRole.SCHOOL ? user.schoolId || '' : '',
                     categories: [],
                     categoryQuantities: {},
+                    examType: '',
                     examinerId: '',
                     date: '',
                     time: '',
@@ -2261,23 +2259,31 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
               <div className="space-y-4 text-center">
                 <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Aviso de Limite de Vagas</h3>
                 <div className="bg-slate-50 p-6 rounded-xl border border-slate-100 text-left space-y-4">
-                  <p className="text-slate-600 font-medium leading-relaxed">
-                    A autoescola está ciente de que serão oferecidas no máximo as seguintes quantidades de vagas por categoria:
-                  </p>
-                  <ul className="space-y-2">
-                    <li className="flex items-center gap-3 text-slate-700 font-bold">
-                      <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                      Categoria A: {systemSettings?.defaultMaxSlotsA || 10} vagas
-                    </li>
-                    <li className="flex items-center gap-3 text-slate-700 font-bold">
-                      <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                      Categoria B: {systemSettings?.defaultMaxSlotsB || 10} vagas
-                    </li>
-                    <li className="flex items-center gap-3 text-slate-700 font-bold">
-                      <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                      Categorias C, D e E (juntas): {systemSettings?.defaultMaxSlotsMudanca || 10} vagas
-                    </li>
-                  </ul>
+                  {user.role === UserRole.SCHOOL ? (
+                    <p className="text-slate-600 font-medium leading-relaxed">
+                      O pedido de prova extra pode ter vagas liberadas com quantidades <strong>acima ou abaixo</strong> das vagas solicitadas, conforme a disponibilidade da banca.
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-slate-600 font-medium leading-relaxed">
+                        A autoescola está ciente de que serão oferecidas no máximo as seguintes quantidades de vagas por categoria:
+                      </p>
+                      <ul className="space-y-2">
+                        <li className="flex items-center gap-3 text-slate-700 font-bold">
+                          <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                          Categoria A: {systemSettings?.defaultMaxSlotsA || 10} vagas
+                        </li>
+                        <li className="flex items-center gap-3 text-slate-700 font-bold">
+                          <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                          Categoria B: {systemSettings?.defaultMaxSlotsB || 10} vagas
+                        </li>
+                        <li className="flex items-center gap-3 text-slate-700 font-bold">
+                          <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                          Categorias C, D e E (juntas): {systemSettings?.defaultMaxSlotsMudanca || 10} vagas
+                        </li>
+                      </ul>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -2347,167 +2353,96 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                   </select>
                 </div>
 
+                {/* Exame — acima de Categoria; select para escolas normais */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame <span className="text-red-500">*</span></label>
+                  {newRequest.schoolId === 'PCD' ? (
+                    <input type="text" value="PCD" readOnly className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none" />
+                  ) : newRequest.schoolId === 'CNH_BRASIL' ? (
+                    <input type="text" value="1º Habilitação" readOnly className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none" />
+                  ) : (
+                    <select
+                      className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                      value={newRequest.examType}
+                      onChange={e => setNewRequest({...newRequest, examType: e.target.value, categories: [], categoryQuantities: {}})}
+                    >
+                      <option value="">Selecione o tipo de exame</option>
+                      <option value="1HAB">1º Habilitação</option>
+                      <option value="MUD_CAT">Mudança Categoria</option>
+                      <option value="MISTO">Misto (1º Hab. e Mud. Cat.)</option>
+                    </select>
+                  )}
+                </div>
+
+                {/* Categoria — filtrada pelo tipo de exame selecionado */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Categoria <span className="text-red-500">*</span></label>
-                  <div className="flex items-center gap-4 pt-2">
+                  <div className="flex flex-wrap items-center gap-4 pt-2">
                     {newRequest.schoolId === 'PCD' ? (
                       <label className="flex items-center gap-2 cursor-pointer group">
-                        <input 
-                          type="checkbox" 
-                          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                          checked={true}
-                          readOnly
-                        />
-                        <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                          PCD
-                        </span>
+                        <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked={true} readOnly />
+                        <span className="text-sm font-bold text-slate-700">PCD</span>
                       </label>
                     ) : newRequest.schoolId === 'CNH_BRASIL' ? (
                       <>
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                            checked={true}
-                            readOnly
-                          />
-                          <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                            A
-                          </span>
+                          <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked={true} readOnly />
+                          <span className="text-sm font-bold text-slate-700">A</span>
                         </label>
                         <label className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                            checked={true}
-                            readOnly
-                          />
-                          <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">
-                            B
-                          </span>
+                          <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" checked={true} readOnly />
+                          <span className="text-sm font-bold text-slate-700">B</span>
                         </label>
                       </>
+                    ) : !newRequest.examType ? (
+                      <span className="text-xs text-slate-400 italic">Selecione o tipo de exame primeiro</span>
                     ) : (
-                      (newRequest.schoolId 
-                        ? schools.find(s => s.id === newRequest.schoolId)?.services || [] 
-                        : ['A', 'B', 'C', 'D', 'E', 'PCD']
-                      ).filter(cat => {
-                        if (newRequest.requestType === RequestType.FIXA || newRequest.requestType === RequestType.REPOSICAO) {
-                          return ['A', 'B'].includes(cat);
-                        }
-                        return true;
-                      }).map(cat => (
-                        <label key={cat} className="flex items-center gap-2 cursor-pointer group">
-                          <input 
-                            type="checkbox" 
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" 
-                            checked={newRequest.categories.includes(cat)}
-                            onChange={e => {
-                              let newCats = e.target.checked 
-                                ? [...newRequest.categories, cat]
-                                : newRequest.categories.filter(c => c !== cat);
-                              
-                              // Ordenar categorias: A, B, C, D, E, PCD
-                              const categoryOrder = ['A', 'B', 'C', 'D', 'E', 'PCD'];
-                              newCats.sort((a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b));
-
-                              // Regra: Não permitir A/B junto com C/D/E
-                              const hasAB = newCats.some(c => ['A', 'B'].includes(c));
-                              const hasCDE = newCats.some(c => ['C', 'D', 'E'].includes(c));
-                              if (hasAB && hasCDE) {
-                                alert('Não é permitido selecionar categorias A/B junto com C/D/E.');
-                                return;
-                              }
-
-                              // Atualiza quantidades ao marcar/desmarcar categoria
-                              const newQtys = { ...newRequest.categoryQuantities };
-                              if (!e.target.checked) delete newQtys[cat];
-
-                              // Redistribui automaticamente C/D/E para somar exatamente 10
-                              const newCdeCats = newCats.filter(c => ['C', 'D', 'E'].includes(c));
-                              if (newCdeCats.length > 0) {
-                                const base = Math.floor(10 / newCdeCats.length);
-                                const extra = 10 % newCdeCats.length;
-                                newCdeCats.forEach((c, i) => { newQtys[c] = base + (i < extra ? 1 : 0); });
-                              }
-                              
-                              setNewRequest({...newRequest, categories: newCats, categoryQuantities: newQtys});
-                            }}
-                          />
-                          <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{cat}</span>
-                          {newRequest.requestType === RequestType.EXTRA && newRequest.categories.includes(cat) && (
+                      (() => {
+                        const selectedSchool = newRequest.schoolId ? schools.find(s => s.id === newRequest.schoolId) : null;
+                        const schoolCde = (selectedSchool?.services || ['C', 'D', 'E']).filter((s: string) => ['C', 'D', 'E'].includes(s));
+                        let availableCats: string[] = [];
+                        if (newRequest.examType === '1HAB') availableCats = ['A', 'B'];
+                        else if (newRequest.examType === 'MUD_CAT') availableCats = schoolCde;
+                        else if (newRequest.examType === 'MISTO') availableCats = ['A', 'B', ...schoolCde];
+                        return availableCats.map(cat => (
+                          <label key={cat} className="flex items-center gap-2 cursor-pointer group">
                             <input
-                              type="number"
-                              min={1}
-                              max={(() => {
-                                if (!['C', 'D', 'E'].includes(cat)) return 10;
-                                const cdeCats = newRequest.categories.filter(c => ['C', 'D', 'E'].includes(c));
-                                if (cdeCats.length <= 1) return 10;
-                                const cdeOrder = (['C', 'D', 'E'] as string[]).filter(c => cdeCats.includes(c));
-                                const catIdx = cdeOrder.indexOf(cat);
-                                const preceding = cdeOrder.slice(0, catIdx);
-                                const following = cdeOrder.slice(catIdx + 1);
-                                const precedingSum = preceding.reduce((s, c) => s + (newRequest.categoryQuantities[c] || 0), 0);
-                                return Math.max(1, 10 - precedingSum - following.length);
-                              })()}
-                              value={newRequest.categoryQuantities[cat] ?? ''}
-                              onClick={e => e.preventDefault()}
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              checked={newRequest.categories.includes(cat)}
                               onChange={e => {
-                                const rawVal = parseInt(e.target.value) || 1;
-                                const cdeCats = newRequest.categories.filter(c => ['C', 'D', 'E'].includes(c));
-                                if (['C', 'D', 'E'].includes(cat) && cdeCats.length > 1) {
-                                  // Hierarquia C → D → E: ao ajustar X, apenas os "seguintes" redistribuem
-                                  const cdeOrder = (['C', 'D', 'E'] as string[]).filter(c => cdeCats.includes(c));
-                                  const catIdx = cdeOrder.indexOf(cat);
-                                  const preceding = cdeOrder.slice(0, catIdx);
-                                  const following = cdeOrder.slice(catIdx + 1);
-                                  const precedingSum = preceding.reduce((s, c) => s + (newRequest.categoryQuantities[c] || 0), 0);
-                                  const maxForThis = Math.max(1, 10 - precedingSum - following.length);
-                                  const clampedVal = Math.min(maxForThis, Math.max(1, rawVal));
-                                  const remaining = 10 - precedingSum - clampedVal;
-                                  const newQtys = { ...newRequest.categoryQuantities, [cat]: clampedVal };
-                                  if (following.length > 0) {
-                                    const base = Math.floor(remaining / following.length);
-                                    const extra = remaining % following.length;
-                                    following.forEach((c, i) => { newQtys[c] = base + (i < extra ? 1 : 0); });
-                                  }
-                                  setNewRequest({ ...newRequest, categoryQuantities: newQtys });
-                                } else {
+                                const categoryOrder = ['A', 'B', 'C', 'D', 'E'];
+                                let newCats = e.target.checked
+                                  ? [...newRequest.categories, cat]
+                                  : newRequest.categories.filter(c => c !== cat);
+                                newCats.sort((a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b));
+                                const newQtys = { ...newRequest.categoryQuantities };
+                                if (!e.target.checked) delete newQtys[cat];
+                                setNewRequest({...newRequest, categories: newCats, categoryQuantities: newQtys});
+                              }}
+                            />
+                            <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{cat}</span>
+                            {newRequest.requestType === RequestType.EXTRA && newRequest.categories.includes(cat) && (
+                              <input
+                                type="number"
+                                min={1}
+                                value={newRequest.categoryQuantities[cat] ?? ''}
+                                onChange={e => {
+                                  const val = parseInt(e.target.value);
                                   setNewRequest({
                                     ...newRequest,
-                                    categoryQuantities: { ...newRequest.categoryQuantities, [cat]: Math.min(10, Math.max(1, rawVal)) }
+                                    categoryQuantities: { ...newRequest.categoryQuantities, [cat]: isNaN(val) ? 0 : val }
                                   });
-                                }
-                              }}
-                              className="w-14 border border-orange-300 bg-orange-50 rounded p-1 text-sm text-center font-bold focus:ring-2 focus:ring-orange-400 outline-none"
-                              placeholder="Qtd"
-                              title={`Quantidade categoria ${cat} (máx. 10)`}
-                            />
-                          )}
-                        </label>
-                      ))
+                                }}
+                                className="w-14 border border-orange-300 bg-orange-50 rounded p-1 text-sm text-center font-bold focus:ring-2 focus:ring-orange-400 outline-none"
+                                placeholder="Qtd"
+                              />
+                            )}
+                          </label>
+                        ));
+                      })()
                     )}
                   </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Exame <span className="text-red-500">*</span></label>
-                  <input 
-                    type="text" 
-                    value={
-                      newRequest.schoolId === 'PCD'
-                        ? 'PCD'
-                        : newRequest.schoolId === 'CNH_BRASIL'
-                        ? '1º Habilitação'
-                        : newRequest.categories.some(c => ['A', 'B'].includes(c)) && !newRequest.categories.some(c => ['C', 'D', 'E'].includes(c))
-                        ? '1º Habilitação'
-                        : newRequest.categories.some(c => ['C', 'D', 'E'].includes(c))
-                        ? 'Mudança Categoria'
-                        : ''
-                    }
-                    readOnly
-                    className="w-full border border-slate-200 rounded-lg p-2.5 text-sm bg-slate-100 text-slate-500 outline-none"
-                  />
                 </div>
 
                 {newRequest.requestType === RequestType.FIXA && (
