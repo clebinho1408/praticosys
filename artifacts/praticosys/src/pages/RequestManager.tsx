@@ -36,6 +36,7 @@ import {
   ClipboardList,
   UserCheck,
   FileSearch,
+  Copy,
 } from "lucide-react";
 
 const validateCPF = (cpf: string) => {
@@ -161,6 +162,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const [copiedCpf, setCopiedCpf] = useState(false);
   const [isResultConfirmOpen, setIsResultConfirmOpen] = useState(false);
   const [isChangeResultModalOpen, setIsChangeResultModalOpen] = useState(false);
   const [changeResultData, setChangeResultData] = useState<{
@@ -3263,7 +3265,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             {editingRequest && (
               <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5">
                 <div className="text-sm font-bold text-gray-800 uppercase">{editingRequest.socialName || editingRequest.studentName}</div>
-                <div className="text-xs text-gray-500">CPF: {maskCpf(editingRequest.cpf)}</div>
+                <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                  CPF: {maskCpf(editingRequest.cpf)}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(editingRequest.cpf.replace(/\D/g, ''));
+                      setCopiedCpf(true);
+                      setTimeout(() => setCopiedCpf(false), 2000);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Copiar CPF completo"
+                  >
+                    {copiedCpf ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
               </div>
             )}
             <form onSubmit={handleResultSave} className="space-y-4">
