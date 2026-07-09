@@ -3262,26 +3262,49 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
             <h3 className="text-lg font-bold mb-3">Lançar Resultado</h3>
-            {editingRequest && (
-              <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5">
-                <div className="text-sm font-bold text-gray-800 uppercase">{editingRequest.socialName || editingRequest.studentName}</div>
-                <div className="text-xs text-gray-500 flex items-center gap-1.5">
-                  CPF: {maskCpf(editingRequest.cpf)}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(editingRequest.cpf.replace(/\D/g, ''));
-                      setCopiedCpf(true);
-                      setTimeout(() => setCopiedCpf(false), 2000);
-                    }}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                    title="Copiar CPF completo"
-                  >
-                    {copiedCpf ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-                  </button>
+            {editingRequest && (() => {
+              const resultSchedule = schedules.find((s) => s.id === editingRequest.scheduleId);
+              const resultExaminerNames = resultSchedule
+                ? resultSchedule.examinerIds
+                    .map((id: string) => examiners.find((e) => e.id === id)?.name)
+                    .filter(Boolean)
+                    .join(", ")
+                : "";
+              const resultDateRaw = resultSchedule?.date || editingRequest.scheduledDate;
+              const resultDate = resultDateRaw
+                ? new Date(resultDateRaw + "T12:00:00").toLocaleDateString("pt-BR")
+                : "";
+              const resultTime = resultSchedule?.time || editingRequest.scheduledTime;
+              return (
+                <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-0.5">
+                  <div className="text-sm font-bold text-gray-800 uppercase">{editingRequest.socialName || editingRequest.studentName}</div>
+                  <div className="text-xs text-gray-500 flex items-center gap-1.5">
+                    CPF: {maskCpf(editingRequest.cpf)}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(editingRequest.cpf.replace(/\D/g, ''));
+                        setCopiedCpf(true);
+                        setTimeout(() => setCopiedCpf(false), 2000);
+                      }}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Copiar CPF completo"
+                    >
+                      {copiedCpf ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-600 font-medium">
+                    Categoria: {editingRequest.scheduledCategory || editingRequest.intendedCategory || "-"}
+                  </div>
+                  <div className="text-xs text-gray-500 pt-1 mt-1 border-t border-gray-200 space-y-0.5">
+                    <div>Banca: {resultSchedule?.code || "-"}</div>
+                    <div>Data: {resultDate || "-"}</div>
+                    <div>Horário: {resultTime || "-"}</div>
+                    <div>Examinador: {resultExaminerNames || "-"}</div>
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             <form onSubmit={handleResultSave} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
