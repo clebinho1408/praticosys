@@ -3293,15 +3293,19 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                       {copiedCpf ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
                     </button>
                   </div>
-                  <div className="text-xs text-gray-600 font-medium">
-                    Categoria: {editingRequest.scheduledCategory || editingRequest.intendedCategory || "-"}
-                  </div>
-                  <div className="text-xs text-gray-500 pt-1 mt-1 border-t border-gray-200 space-y-0.5">
-                    <div>Banca: {resultSchedule?.code || "-"}</div>
-                    <div>Data: {resultDate || "-"}</div>
-                    <div>Horário: {resultTime || "-"}</div>
-                    <div>Examinador: {resultExaminerNames || "-"}</div>
-                  </div>
+                  {excludeRegularSchools && (
+                    <>
+                      <div className="text-xs text-gray-600 font-medium">
+                        Categoria: {editingRequest.scheduledCategory || editingRequest.intendedCategory || "-"}
+                      </div>
+                      <div className="text-xs text-gray-500 pt-1 mt-1 border-t border-gray-200 space-y-0.5">
+                        <div>Banca: {resultSchedule?.code || "-"}</div>
+                        <div>Data: {resultDate || "-"}</div>
+                        <div>Horário: {resultTime || "-"}</div>
+                        <div>Examinador: {resultExaminerNames || "-"}</div>
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })()}
