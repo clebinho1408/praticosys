@@ -484,8 +484,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
     });
   const waitingConfirmation = filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED && !r.attendanceConfirmed);
+
+  const isPastScheduledDateTime = (r: ExamRequest) => {
+    if (!r.scheduledDate) return false;
+    const time = r.scheduledTime || '00:00';
+    const dateTime = new Date(`${r.scheduledDate}T${time}:00`);
+    return dateTime.getTime() < Date.now();
+  };
+
   const confirmed = filteredRequests.filter(r => {
     if (r.status !== ExamStatus.SCHEDULED || !r.attendanceConfirmed) return false;
+    if (isPastScheduledDateTime(r)) return false;
     
     if (user.role === UserRole.EXAMINER) {
       const now = new Date();
@@ -524,7 +533,11 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
     return true;
   });
-  const done = filteredRequests.filter(r => r.status === ExamStatus.DONE);
+  const done = filteredRequests.filter(r => {
+    if (r.status === ExamStatus.DONE) return true;
+    if (r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed && isPastScheduledDateTime(r)) return true;
+    return false;
+  });
   const cancelled = filteredRequests.filter(r => r.status === ExamStatus.CANCELLED);
 
   useEffect(() => {
