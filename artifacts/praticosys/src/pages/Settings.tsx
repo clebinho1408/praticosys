@@ -12,8 +12,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const isConsultant = user?.role === UserRole.CONSULTANT;
   const [resetConfirmStep1, setResetConfirmStep1] = useState(false);
   const [resetConfirmStep2, setResetConfirmStep2] = useState(false);
-  const [cleanupResult, setCleanupResult] = useState<{ message: string; removed: number } | null>(null);
-  const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [newRestriction, setNewRestriction] = useState({ code: '', description: '' });
   const [editingRestriction, setEditingRestriction] = useState<{ code: string, description: string } | null>(null);
@@ -21,10 +19,10 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
-  const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'RULES' | 'BLOCKED_DATES'>('AGENCY_DATA');
+  const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'BLOCKED_DATES'>('AGENCY_DATA');
 
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
-  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'RESTRICTIONS'>('COMMUNICATION');
+  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION'>('COMMUNICATION');
   const [cities, setCities] = useState<City[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
@@ -382,7 +380,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                         <button type="button" onClick={() => setActiveSubTabGeneral('AGENCY_DATA')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'AGENCY_DATA' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>DADOS DA AGÊNCIA</button>
                         <button type="button" onClick={() => setActiveSubTabGeneral('CITIES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'CITIES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>CIDADES</button>
                         <button type="button" onClick={() => setActiveSubTabGeneral('RESTRICTIONS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'RESTRICTIONS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>RESTRIÇÕES</button>
-                        <button type="button" onClick={() => setActiveSubTabGeneral('RULES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'RULES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>REGRAS</button>
                         <button type="button" onClick={() => setActiveSubTabGeneral('BLOCKED_DATES')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabGeneral === 'BLOCKED_DATES' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>BLOQUEIO DE DATAS</button>
                     </div>
 
@@ -562,14 +559,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                         </div>
                     )}
 
-                    {activeSubTabGeneral === 'RULES' && (
-                        <div className="grid grid-cols-2 gap-6 text-gray-900">
-                            <div><label className="block text-sm font-medium">Vagas Moto Padrão (Cat. A)</label><input type="number" name="defaultMaxSlotsA" value={settings.defaultMaxSlotsA} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
-                            <div><label className="block text-sm font-medium">Vagas Carro Padrão (Cat. B)</label><input type="number" name="defaultMaxSlotsB" value={settings.defaultMaxSlotsB} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
-                            <div><label className="block text-sm font-medium">Vagas Mudança Categoria Padrão (Cat. C, D, e E)</label><input type="number" name="defaultMaxSlotsMudanca" value={settings.defaultMaxSlotsMudanca} onChange={handleChange} className="mt-1 block w-full border p-2 rounded bg-white" /></div>
-                        </div>
-                    )}
-
                     {activeSubTabGeneral === 'BLOCKED_DATES' && (
                         <div className="space-y-8 animate-fadeIn">
                             <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl space-y-4">
@@ -698,8 +687,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
             {activeTab === 'CNH_BRASIL' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
-                        <button type="button" onClick={() => setActiveSubTabCNH('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
-                        <button type="button" onClick={() => setActiveSubTabCNH('RESTRICTIONS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'RESTRICTIONS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>RESTRIÇÕES</button>
+                        <button type="button" onClick={() => setActiveSubTabCNH('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>GERAL</button>
                     </div>
                     
                     {activeSubTabCNH === 'COMMUNICATION' && (
@@ -737,49 +725,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                 </div>
                             </div>
 
-                            <div className="space-y-4 pt-4 border-t">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                        <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp
-                                    </h3>
-                                </div>
-                                <div>
-                                    <textarea 
-                                        name="whatsappMessageTemplate" 
-                                        rows={8} 
-                                        value={settings.whatsappMessageTemplate} 
-                                        onChange={handleChange} 
-                                        className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
-                                    />
-                                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            {[
-                                                { tag: '{CANDIDATO}', desc: 'Nome' },
-                                                { tag: '{CATEGORIA}', desc: 'Categoria' },
-                                                { tag: '{DATA}', desc: 'Data' },
-                                                { tag: '{HORA}', desc: 'Hora' },
-                                                { tag: '{AGENCIA}', desc: 'Agência' },
-                                                { tag: '{ENDERECO}', desc: 'Local' },
-                                                { tag: '{LOCALIZACAO}', desc: 'Link Maps' },
-                                                { tag: '{RESTRICOES}', desc: 'Restrições CNH' }
-                                            ].map(item => (
-                                                <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
-                                                    <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
-                                                    <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeSubTabCNH === 'RESTRICTIONS' && (
-                        <div className="space-y-8 animate-fadeIn">
-                            <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-                                Configurações de Restrições em desenvolvimento.
-                            </div>
                         </div>
                     )}
                 </div>
@@ -788,7 +733,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
             {activeTab === 'PROVA_PRATICA_CFC' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
-                        <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>COMUNICAÇÃO</button>
+                        <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>GERAL</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_PCD')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_PCD' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO PCD</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO CNH DO BRASIL</button>
                     </div>
@@ -813,39 +758,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                 </div>
                             </div>
 
-                            <div className="space-y-4 pt-4 border-t">
-                                <div className="flex justify-between items-center">
-                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                        <MessageSquare className="h-4 w-4 text-green-600" /> Modelo de Mensagem WhatsApp (CFC)
-                                    </h3>
-                                </div>
-                                <div>
-                                    <textarea 
-                                        name="cfcWhatsappMessageTemplate" 
-                                        rows={8} 
-                                        value={settings.cfcWhatsappMessageTemplate || ''} 
-                                        onChange={handleChange} 
-                                        className="w-full border p-3 rounded-lg bg-white text-gray-900 font-medium text-sm leading-relaxed" 
-                                    />
-                                    <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                            {[
-                                                { tag: '{AUTOESCOLA}', desc: 'Autoescola' },
-                                                { tag: '{DATA}', desc: 'Data' },
-                                                { tag: '{HORARIO}', desc: 'Horário' },
-                                                { tag: '{EXAMINADOR}', desc: 'Examinador' },
-                                                { tag: '{EXAME}', desc: 'Exame' },
-                                                { tag: '{TIPO}', desc: 'Tipo' }
-                                            ].map(item => (
-                                                <div key={item.tag} className="flex flex-col bg-white p-1.5 rounded border border-blue-100 cursor-pointer hover:bg-blue-50" onClick={() => navigator.clipboard.writeText(item.tag)}>
-                                                    <code className="text-[10px] font-black text-blue-600">{item.tag}</code>
-                                                    <span className="text-[9px] text-gray-500 uppercase">{item.desc}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     )}
 
@@ -1303,53 +1215,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                         </div>
                     </div>
 
-                    {/* Limpeza de candidatos fantasma */}
-                    <div className="bg-orange-50 border border-orange-200 p-6 rounded-xl space-y-4">
-                        <div className="flex items-start gap-4">
-                            <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center shrink-0">
-                                <ShieldAlert className="h-6 w-6 text-orange-600" />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-lg font-bold text-orange-800">Limpeza de Candidatos Fantasma</h3>
-                                <p className="text-sm text-orange-700 leading-relaxed">
-                                    Remove do banco de dados os registros de candidatos gerados automaticamente (sem nome real / CPF 000.000.000-00) que foram criados antes da correção do sistema.
-                                </p>
-                                <p className="text-sm text-orange-700">
-                                    <strong>Seguro de usar:</strong> apenas registros sem nome de candidato ou com CPF zerado são removidos. Candidatos reais não são afetados.
-                                </p>
-                            </div>
-                        </div>
-                        {cleanupResult && (
-                            <div className={`p-3 rounded-lg text-sm font-semibold ${cleanupResult.removed > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'}`}>
-                                {cleanupResult.message}
-                            </div>
-                        )}
-                        <div className="pt-2 flex justify-center">
-                            {!isConsultant && (
-                                <button
-                                    type="button"
-                                    disabled={isCleaningUp}
-                                    onClick={async () => {
-                                        if (!window.confirm('Confirma a limpeza de candidatos fantasma (sem nome / CPF zerado)?')) return;
-                                        setIsCleaningUp(true);
-                                        setCleanupResult(null);
-                                        try {
-                                            const res = await api.cleanupPhantomRequests();
-                                            setCleanupResult({ message: res.message, removed: res.removed });
-                                        } catch (e: any) {
-                                            setCleanupResult({ message: `Erro: ${e.message}`, removed: 0 });
-                                        } finally {
-                                            setIsCleaningUp(false);
-                                        }
-                                    }}
-                                    className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-md transition-all flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    <Trash2 className="h-5 w-5" />
-                                    {isCleaningUp ? 'Limpando...' : 'Limpar Candidatos Fantasma'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
                 </div>
             )}
         </div>

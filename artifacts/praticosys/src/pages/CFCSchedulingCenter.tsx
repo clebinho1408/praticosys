@@ -764,9 +764,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       byExaminer[exName].forEach(req => {
         const schoolName = getSchoolName(req.schoolId).toUpperCase();
         const time = req.scheduledTime || '08:00';
-        const isMudCat = req.examType !== 'MISTO' && getExamTypeLabel(req) === 'Mudança Categoria';
-        const isMisto = req.examType === 'MISTO';
-        text += `_*${schoolName} - ${time}${isMudCat ? ' (Mud. Cat.)' : ''}${isMisto ? ' (1º Hab. e Mud. Cat.)' : ''}*_\n`;
+        const cats = req.intendedCategory?.split(',') || [];
+        const hasAB = cats.some(c => ['A', 'B'].includes(c));
+        const hasCDE = cats.some(c => ['C', 'D', 'E'].includes(c));
+        const isMisto = hasAB && hasCDE;
+        const isMudCat = !isMisto && hasCDE;
+        text += `_*${schoolName} - ${time}${isMisto ? ' (1º Hab. e Mud. Cat.)' : isMudCat ? ' (Mud. Cat.)' : ''}*_\n`;
       });
       text += `\n`;
     });
