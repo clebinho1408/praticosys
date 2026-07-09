@@ -122,6 +122,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [allRequests, setAllRequests] = useState<ExamRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const isConsultant = user.role === UserRole.CONSULTANT;
+  // Admin e Supervisor podem agendar candidatos mesmo após o fechamento da banca (regra de 12h antes do horário)
+  const canBypassClosingRule = user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR;
   
   const [selectedSchedule, setSelectedSchedule] = useState<ExamSchedule | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -357,7 +359,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const handleWhatsApp = (req: ExamRequest) => {
     if (!selectedSchedule) return;
 
-    const safeSettings = settings || {
+    const safeSettings: Partial<SystemSettings> = settings || {
         whatsappMessageTemplate: '',
         agencyName: 'Detran',
         defaultExamAddress: '',
@@ -1050,7 +1052,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             <Printer className="h-4 w-4" /> Imprimir Lista
                         </button>
                     )}
-                    {selectedSchedule.status === 'OPEN' && !isConsultant && (
+                    {(selectedSchedule.status === 'OPEN' || (selectedSchedule.status === 'CLOSED' && canBypassClosingRule)) && !isConsultant && (
                         <button onClick={handleOpenAddStudent} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-md text-sm font-bold">
                             <Plus className="h-4 w-4" /> Agendar Candidato
                         </button>
@@ -1108,7 +1110,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 const instB = b.instructor || '';
                                 return instA.localeCompare(instB);
                             });
-                        if (students.length === 0 && selectedSchedule.status !== 'OPEN') return null;
+                        const canManageThisSchedule = selectedSchedule.status === 'OPEN' || (selectedSchedule.status === 'CLOSED' && canBypassClosingRule);
+                        if (students.length === 0 && !canManageThisSchedule) return null;
                         
                         return (
                             <div key={cat} className="break-inside-avoid print:mb-0 mb-4">
