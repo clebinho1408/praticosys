@@ -104,6 +104,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
   }, [user.id, user.role]);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCancelChoiceModalOpen, setIsCancelChoiceModalOpen] = useState(false);
   const [cancelRequest, setCancelRequest] = useState<ExamRequest | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [createReposition, setCreateReposition] = useState(false);
@@ -819,6 +820,43 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const handleCancelAction = (req: ExamRequest) => {
     setCancelRequest(req);
+    setCancelReason('');
+    setCreateReposition(false);
+    setCreateExtra(false);
+    setIsCancelModalOpen(true);
+  };
+
+  // Botão "Cancelar" do card Aguardando Confirmação: pergunta se é para
+  // cancelar só o pedido (volta pra fila, sem motivo) ou cancelar a prova de fato.
+  const handleCancelChoiceAction = (req: ExamRequest) => {
+    setCancelRequest(req);
+    setIsCancelChoiceModalOpen(true);
+  };
+
+  // "Cancelar o Pedido": volta para Pedidos Provas Extras, limpando examinador, data e horário.
+  const submitSoftCancelPedido = async () => {
+    if (!cancelRequest) return;
+    try {
+      await updateItem(cancelRequest, {
+        status: ExamStatus.WAITING_SCHEDULING,
+        examinerId: null,
+        scheduledDate: null,
+        scheduledTime: null,
+        attendanceConfirmed: false,
+      });
+      setIsCancelChoiceModalOpen(false);
+      setCancelRequest(null);
+      fetchData(true);
+    } catch (error) {
+      console.error('Error reverting request to queue:', error);
+      alert('Erro ao cancelar o pedido.');
+    }
+  };
+
+  // "Cancelar a Prova": segue o fluxo normal de cancelamento (com motivo), indo para Provas Canceladas.
+  const proceedToFullCancel = () => {
+    if (!cancelRequest) return;
+    setIsCancelChoiceModalOpen(false);
     setCancelReason('');
     setCreateReposition(false);
     setCreateExtra(false);
@@ -1794,7 +1832,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                     <CheckCircle className="h-4 w-4" /> Confirmar
                                   </button>
                                   <button 
-                                    onClick={() => handleCancelAction(req)}
+                                    onClick={() => handleCancelChoiceAction(req)}
                                     className="border border-red-200 text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5 transition-colors text-xs font-bold"
                                     title="Cancelar"
                                   >
@@ -3117,6 +3155,60 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 }`}
               >
                 <CheckCircle className="h-4 w-4" /> Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CANCEL CHOICE MODAL: Cancelar o Pedido (volta pra fila) vs Cancelar a Prova (vai pra Canceladas) */}
+      {isCancelChoiceModalOpen && cancelRequest && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b bg-red-50 border-red-100 text-red-700">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <XCircle className="h-5 w-5" />
+                Cancelar
+              </h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600">
+                O que você deseja fazer com o agendamento da autoescola <strong>{getSchoolName(cancelRequest.schoolId)}</strong> para o dia {formatDate(cancelRequest.scheduledDate)}?
+              </p>
+
+              <button
+                onClick={submitSoftCancelPedido}
+                className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors group"
+              >
+                <span className="block text-sm font-bold text-slate-700 group-hover:text-blue-700 transition-colors">
+                  Cancelar o Pedido
+                </span>
+                <span className="block text-xs text-slate-500 mt-0.5">
+                  Volta para "Pedidos Provas Extras". Examinador, data e horário são apagados automaticamente. Não precisa informar motivo.
+                </span>
+              </button>
+
+              <button
+                onClick={proceedToFullCancel}
+                className="w-full text-left p-4 border border-slate-200 rounded-lg hover:bg-red-50 transition-colors group"
+              >
+                <span className="block text-sm font-bold text-slate-700 group-hover:text-red-700 transition-colors">
+                  Cancelar a Prova
+                </span>
+                <span className="block text-xs text-slate-500 mt-0.5">
+                  Cancela definitivamente e move para "Provas Canceladas". Será pedido o motivo do cancelamento.
+                </span>
+              </button>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => {
+                  setIsCancelChoiceModalOpen(false);
+                  setCancelRequest(null);
+                }}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-200 rounded-lg font-medium transition-colors"
+              >
+                Voltar
               </button>
             </div>
           </div>
