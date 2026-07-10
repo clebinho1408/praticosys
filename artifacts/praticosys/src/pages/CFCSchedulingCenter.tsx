@@ -1119,8 +1119,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       return;
     }
 
-    // Para pedidos EXTRA: todas as categorias selecionadas devem ter Qtd preenchida
-    if (newRequest.requestType === RequestType.EXTRA && !isPcd) {
+    // Para pedidos EXTRA e REPOSIÇÃO: todas as categorias selecionadas devem ter Qtd preenchida
+    if ((newRequest.requestType === RequestType.EXTRA || newRequest.requestType === RequestType.REPOSICAO) && !isPcd) {
       const missingQty = newRequest.categories.filter(c => !newRequest.categoryQuantities[c] || newRequest.categoryQuantities[c] <= 0);
       if (missingQty.length > 0) {
         alert(`Informe a quantidade para as categorias: ${missingQty.join(', ')}`);
@@ -1190,7 +1190,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     }
 
     try {
-      const categoryQuantities = newRequest.requestType === RequestType.EXTRA
+      const categoryQuantities = (newRequest.requestType === RequestType.EXTRA || newRequest.requestType === RequestType.REPOSICAO)
         ? Object.fromEntries(
             newRequest.categories
               .filter(c => newRequest.categoryQuantities[c])
@@ -2500,7 +2500,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               }}
                             />
                             <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 transition-colors">{cat}</span>
-                            {newRequest.requestType === RequestType.EXTRA && newRequest.categories.includes(cat) && (
+                            {(newRequest.requestType === RequestType.EXTRA || newRequest.requestType === RequestType.REPOSICAO) && newRequest.categories.includes(cat) && (
                               <input
                                 type="number"
                                 min={1}
