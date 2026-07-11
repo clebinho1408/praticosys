@@ -44,25 +44,25 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
   const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const generalDateStart = useMemo(() => {
-      const date = new Date();
-      date.setMonth(date.getMonth() - 12);
-      return date.toISOString().split('T')[0];
-  }, []);
-
-  const generalDateEnd = useMemo(() => {
-      return new Date().toISOString().split('T')[0];
-  }, []);
-
   useEffect(() => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [reqs, results] = await Promise.all([
+            const [reqs, slots, results] = await Promise.all([
                 api.getRequests(),
+                api.getScheduleSlots().catch(() => [] as any[]),
                 api.getBancaResults()
             ]);
-            setRequests(reqs);
+            // Converte schedule-slots para o mesmo formato — igual ao CFCSchedulingCenter
+            const slotsAsRequests: any[] = (slots || []).map((s: any) => ({
+                ...s,
+                studentName: null,
+                cpf: null,
+                phone: null,
+                source: 'SCHOOL',
+                _isSlot: true,
+            }));
+            setRequests([...reqs, ...slotsAsRequests]);
             setBancaResults(results);
         } catch (e) {
             console.error(e);
@@ -76,12 +76,14 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
   const stats = useMemo(() => {
     // Filtro idêntico ao isCfcCandidate do CFCSchedulingCenter:
     // usa o campo modulo quando disponível (após backfill), fallback legado caso contrário
-    const isCfc = (r: ExamRequest) => {
+    const isCfc = (r: any) => {
         if (r.modulo) return r.modulo === 'CFC';
+        // Slots de escala PCD gerados pelo CFC → incluir
+        if (r._isSlot && r.schoolId === 'PCD') return true;
         // fallback legado para registros sem modulo
         if (r.examType === ExamType.PCD) return false;
         if (!r.schoolId) return false;
-        if (r.schoolId === 'CNH_BRASIL') return false;
+        if (r.schoolId === 'CNH_BRASIL') return !!r._isSlot;
         if (r.schoolId === 'PCD') return false;
         return r.examType === ExamType.COMMON;
     };
