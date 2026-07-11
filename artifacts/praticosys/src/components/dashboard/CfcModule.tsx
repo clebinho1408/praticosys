@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, CheckCircle2, XCircle, Clock, Car, Filter } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { api } from '../../services/api';
-import { ExamRequest, BancaResult, User } from '../../types';
+import { ExamRequest, ExamStatus, BancaResult, User } from '../../types';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B'];
 
@@ -44,15 +44,15 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
   const [bancaResults, setBancaResults] = useState<BancaResult[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [generalDateStart] = useState(() => {
+  const generalDateStart = useMemo(() => {
       const date = new Date();
       date.setMonth(date.getMonth() - 12);
       return date.toISOString().split('T')[0];
-  });
-  const [generalDateEnd] = useState(() => {
-      const date = new Date();
-      return date.toISOString().split('T')[0];
-  });
+  }, []);
+
+  const generalDateEnd = useMemo(() => {
+      return new Date().toISOString().split('T')[0];
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,73 +74,90 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
   }, []);
 
   const stats = useMemo(() => {
+    // Filtrar apenas pedidos CFC (com schoolId real, não CNH_BRASIL/PCD)
     let filteredRequests = requests.filter(r => {
         const isExplicitCnh = r.schoolId === 'CNH_BRASIL';
         const isExplicitPcd = r.schoolId === 'PCD' || r.examType === 'PCD';
         const isOrphan = !r.schoolId;
-
-        // Prova Prática CFC should only include regular school requests
-        if (isExplicitCnh || isExplicitPcd || isOrphan) {
-            return false;
-        }
+        if (isExplicitCnh || isExplicitPcd || isOrphan) return false;
         return true;
     });
-    
+
     if (user?.role === 'SCHOOL' && user.schoolId) {
         filteredRequests = filteredRequests.filter(r => r.schoolId === user.schoolId);
     }
 
-    if (generalDateStart) {
-        filteredRequests = filteredRequests.filter(r => r.scheduledDate && r.scheduledDate >= generalDateStart);
-    }
-    if (generalDateEnd) {
-        filteredRequests = filteredRequests.filter(r => r.scheduledDate && r.scheduledDate <= generalDateEnd);
-    }
-
-    const requestIds = filteredRequests.map(r => r.id);
-    const requestScheduleIds = filteredRequests.map(r => r.scheduleId).filter(Boolean) as string[];
-    const allValidIds = [...requestIds, ...requestScheduleIds];
-
-    const filteredResults = bancaResults.filter(br => allValidIds.includes(br.scheduleId));
-
-    let totalVagasDisponiveis = 0;
-    let totalVagasUtilizadas = 0;
-    let totalAprovados = 0;
-    let totalReprovados = 0;
-    let totalFaltas = 0;
-    let totalCancelados = 0;
-    let provasRealizadas = 0;
-    let provasCanceladas = 0;
-
-    filteredResults.forEach(br => {
-        totalVagasDisponiveis += br.totalSlots || 0;
-        totalVagasUtilizadas += br.usedSlots || 0;
-        totalAprovados += br.approved || 0;
-        totalReprovados += br.failed || 0;
-        totalFaltas += br.absent || 0;
-        totalCancelados += br.cancelled || 0;
-        provasRealizadas += (br.approved || 0) + (br.failed || 0) + (br.absent || 0);
-        provasCanceladas += br.cancelled || 0;
+    // Filtro de período — usa scheduledDate OU createdAt como fallback
+    filteredRequests = filteredRequests.filter(r => {
+        const date = r.scheduledDate || (r.createdAt ? r.createdAt.split('T')[0] : null);
+        if (!date) return true; // inclui se não há data
+        return date >= generalDateStart && date <= generalDateEnd;
     });
 
-    const agendamentosDoMes = totalVagasUtilizadas;
-    const agendamentosConfirmados = totalVagasUtilizadas - provasRealizadas - provasCanceladas;
+    // Cards principais calculados diretamente dos pedidos
+    const total = filteredRequests.length;
+    const agendados = filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED).length;
+    const provasRealizadas = filteredRequests.filter(r =>
+        r.status === ExamStatus.DONE ||
+        r.status === ExamStatus.WAITING_RESULT ||
+        r.status === ExamStatus.RETEST
+    ).length;
+    const provasCanceladas = filteredRequests.filter(r => r.status === ExamStatus.CANCELLED).length;
+    const aguardando = filteredRequests.filter(r => r.status === ExamStatus.WAITING_SCHEDULING).length;
 
-    const indiceVagasUtilizadas = totalVagasDisponiveis > 0 ? Math.round((totalVagasUtilizadas / totalVagasDisponiveis) * 100) : 0;
+    // Taxa de aprovação — a partir de examHistory + result dos pedidos
+    const allResults: string[] = [];
+    filteredRequests.forEach(req => {
+        if (req.examHistory && Array.isArray(req.examHistory)) {
+            req.examHistory.forEach((h: any) => { if (h.result) allResults.push(h.result); });
+        }
+        if (req.status === ExamStatus.DONE && req.result) {
+            allResults.push(req.result);
+        }
+    });
+    const totalAprovados = allResults.filter(r => r === 'APTO').length;
+    const totalReprovados = allResults.filter(r => r === 'INAPTO').length;
+    const totalFaltas = allResults.filter(r => r === 'FALTOU').length;
     const totalRealizadasParaAprovacao = totalAprovados + totalReprovados;
-    const indiceAprovacao = totalRealizadasParaAprovacao > 0 ? Math.round((totalAprovados / totalRealizadasParaAprovacao) * 100) : 0;
+    const indiceAprovacao = totalRealizadasParaAprovacao > 0
+        ? Math.round((totalAprovados / totalRealizadasParaAprovacao) * 100)
+        : 0;
+
+    // Índice de vagas — usa bancaResults se disponível, senão usa agendados/total
+    const requestIds = filteredRequests.map(r => r.id);
+    const requestScheduleIds = filteredRequests.map(r => r.scheduleId).filter(Boolean) as string[];
+    const allValidIds = new Set([...requestIds, ...requestScheduleIds]);
+    const filteredBancaResults = bancaResults.filter(br => allValidIds.has(br.scheduleId));
+
+    let indiceVagasUtilizadas = 0;
+    if (filteredBancaResults.length > 0) {
+        let totalVagasDisponiveis = 0;
+        let totalVagasUtilizadas = 0;
+        filteredBancaResults.forEach(br => {
+            totalVagasDisponiveis += br.totalSlots || 0;
+            totalVagasUtilizadas += br.usedSlots || 0;
+        });
+        indiceVagasUtilizadas = totalVagasDisponiveis > 0
+            ? Math.round((totalVagasUtilizadas / totalVagasDisponiveis) * 100)
+            : 0;
+    }
+
+    // Média de realizados por dia com prova
+    const scheduledDays = new Set(
+        filteredRequests.filter(r => r.scheduledDate).map(r => r.scheduledDate)
+    ).size;
+    const mediaPorDia = scheduledDays > 0 ? Math.round(provasRealizadas / scheduledDays) : 0;
 
     const resultDistribution = [
       { name: 'Aptos', value: totalAprovados },
       { name: 'Inaptos', value: totalReprovados },
       { name: 'Faltas', value: totalFaltas },
-      { name: 'Cancelados', value: totalCancelados }
+      { name: 'Cancelados', value: provasCanceladas }
     ];
 
     let provasFixas = 0;
     let provasExtras = 0;
     let provasReposicao = 0;
-
     filteredRequests.forEach(req => {
        if (req.requestType === 'FIXA') provasFixas++;
        else if (req.requestType === 'EXTRA') provasExtras++;
@@ -153,24 +170,19 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
       { name: 'Reposição', value: provasReposicao }
     ];
 
-    const uniqueDays = new Set(filteredResults.map(br => {
-        const req = filteredRequests.find(r => r.id === br.scheduleId || r.scheduleId === br.scheduleId);
-        return req?.scheduledDate;
-    }).filter(Boolean)).size;
-    const mediaPorDia = uniqueDays > 0 ? Math.round(provasRealizadas / uniqueDays) : 0;
-
     return {
-        agendamentosDoMes,
+        total,
+        agendados,
+        aguardando,
         provasRealizadas,
         provasCanceladas,
-        agendamentosConfirmados,
         indiceVagasUtilizadas,
         indiceAprovacao,
         resultDistribution,
         requestTypeDistribution,
         mediaPorDia
     };
-  }, [requests, bancaResults, generalDateStart, generalDateEnd]);
+  }, [requests, bancaResults, generalDateStart, generalDateEnd, user]);
 
   if (loading) {
       return <div className="p-10 text-center text-gray-500">Carregando estatísticas...</div>;
@@ -183,10 +195,10 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <SummaryCard title="Agendamentos do Período" value={stats.agendamentosDoMes} icon={Calendar} color="bg-blue-600" />
-          <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
+          <SummaryCard title="Total de Pedidos" value={stats.total} icon={Calendar} color="bg-blue-600" subtitle={`${stats.aguardando} aguardando agendamento`} />
+          <SummaryCard title="Agendados" value={stats.agendados} icon={Car} color="bg-indigo-600" />
+          <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" subtitle={`Média: ${stats.mediaPorDia}/dia`} />
           <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
-          <SummaryCard title="Média por dia" value={stats.mediaPorDia} icon={Clock} color="bg-orange-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -196,7 +208,11 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
                   <span className="text-4xl font-black text-blue-600 mb-2">{stats.indiceVagasUtilizadas}%</span>
-                  <span className="text-sm text-gray-500 mb-6">Das vagas disponíveis foram utilizadas</span>
+                  <span className="text-sm text-gray-500 mb-6">
+                      {stats.indiceVagasUtilizadas === 0
+                          ? 'Resultados de banca não registrados ainda'
+                          : 'Das vagas disponíveis foram utilizadas'}
+                  </span>
                   <div className="w-full bg-gray-200 rounded-full h-4">
                       <div className="bg-blue-600 h-4 rounded-full" style={{ width: `${Math.min(stats.indiceVagasUtilizadas, 100)}%` }}></div>
                   </div>
@@ -209,7 +225,11 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
               </h3>
               <div className="flex flex-col items-center justify-center flex-1">
                   <span className="text-4xl font-black text-green-600 mb-2">{stats.indiceAprovacao}%</span>
-                  <span className="text-sm text-gray-500 mb-6">Dos exames realizados foram aprovados</span>
+                  <span className="text-sm text-gray-500 mb-6">
+                      {stats.indiceAprovacao === 0 && stats.provasRealizadas === 0
+                          ? 'Nenhum resultado registrado ainda'
+                          : 'Dos exames realizados foram aprovados'}
+                  </span>
                   <div className="w-full bg-gray-200 rounded-full h-4">
                       <div className="bg-green-600 h-4 rounded-full" style={{ width: `${Math.min(stats.indiceAprovacao, 100)}%` }}></div>
                   </div>
@@ -223,31 +243,37 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
                   <Filter className="h-5 w-5 text-blue-600" /> Distribuição de Resultados
               </h3>
               <div className="flex-1 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ bottom: 0 }}>
-                          <Pie
-                              data={stats.resultDistribution}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={45}
-                              outerRadius={65}
-                              paddingAngle={8}
-                              dataKey="value"
-                          >
-                              {stats.resultDistribution.map((_, index) => (
-                                  <Cell 
-                                      key={`cell-${index}`} 
-                                      fill={COLORS[index % COLORS.length]} 
-                                      fillOpacity={0.8}
-                                      stroke={COLORS[index % COLORS.length]}
-                                      strokeWidth={1}
-                                  />
-                              ))}
-                          </Pie>
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                          <Legend content={<CustomLegend />} />
-                      </PieChart>
-                  </ResponsiveContainer>
+                  {stats.resultDistribution.every((d: any) => d.value === 0) ? (
+                      <div className="h-full flex items-center justify-center text-gray-400 italic text-sm">
+                          Nenhum resultado registrado ainda
+                      </div>
+                  ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                          <PieChart margin={{ bottom: 0 }}>
+                              <Pie
+                                  data={stats.resultDistribution}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={45}
+                                  outerRadius={65}
+                                  paddingAngle={8}
+                                  dataKey="value"
+                              >
+                                  {stats.resultDistribution.map((_: any, index: number) => (
+                                      <Cell
+                                          key={`cell-${index}`}
+                                          fill={COLORS[index % COLORS.length]}
+                                          fillOpacity={0.8}
+                                          stroke={COLORS[index % COLORS.length]}
+                                          strokeWidth={1}
+                                      />
+                                  ))}
+                              </Pie>
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                              <Legend content={<CustomLegend />} />
+                          </PieChart>
+                      </ResponsiveContainer>
+                  )}
               </div>
           </div>
 
@@ -256,31 +282,37 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
                   <Filter className="h-5 w-5 text-blue-600" /> Tipos de Prova
               </h3>
               <div className="flex-1 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                      <PieChart margin={{ bottom: 0 }}>
-                          <Pie
-                              data={stats.requestTypeDistribution}
-                              cx="50%"
-                              cy="50%"
-                              innerRadius={45}
-                              outerRadius={65}
-                              paddingAngle={8}
-                              dataKey="value"
-                          >
-                              {stats.requestTypeDistribution.map((_, index) => (
-                                  <Cell 
-                                      key={`cell-${index}`} 
-                                      fill={['#3B82F6', '#8B5CF6', '#14B8A6'][index]} 
-                                      fillOpacity={0.8}
-                                      stroke={['#3B82F6', '#8B5CF6', '#14B8A6'][index]}
-                                      strokeWidth={1}
-                                  />
-                              ))}
-                          </Pie>
-                          <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                          <Legend content={<CustomLegend />} />
-                      </PieChart>
-                  </ResponsiveContainer>
+                  {stats.requestTypeDistribution.every((d: any) => d.value === 0) ? (
+                      <div className="h-full flex items-center justify-center text-gray-400 italic text-sm">
+                          Nenhum pedido no período
+                      </div>
+                  ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                          <PieChart margin={{ bottom: 0 }}>
+                              <Pie
+                                  data={stats.requestTypeDistribution}
+                                  cx="50%"
+                                  cy="50%"
+                                  innerRadius={45}
+                                  outerRadius={65}
+                                  paddingAngle={8}
+                                  dataKey="value"
+                              >
+                                  {stats.requestTypeDistribution.map((_: any, index: number) => (
+                                      <Cell
+                                          key={`cell-${index}`}
+                                          fill={['#3B82F6', '#8B5CF6', '#14B8A6'][index]}
+                                          fillOpacity={0.8}
+                                          stroke={['#3B82F6', '#8B5CF6', '#14B8A6'][index]}
+                                          strokeWidth={1}
+                                      />
+                                  ))}
+                              </Pie>
+                              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                              <Legend content={<CustomLegend />} />
+                          </PieChart>
+                      </ResponsiveContainer>
+                  )}
               </div>
           </div>
       </div>
