@@ -202,7 +202,7 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <SummaryCard title="Total de Pedidos" value={stats.total} icon={Calendar} color="bg-blue-600" subtitle={`${stats.aguardando} aguardando agendamento`} />
           <SummaryCard title="Provas Confirmadas" value={stats.provasConfirmadas} icon={Car} color="bg-indigo-600" />
-          <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" subtitle={`Média: ${stats.mediaPorDia}/dia`} />
+          <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
           <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
       </div>
 
