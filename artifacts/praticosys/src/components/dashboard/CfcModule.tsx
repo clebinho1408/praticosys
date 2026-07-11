@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, CheckCircle2, XCircle, Clock, Car, Filter } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { api } from '../../services/api';
-import { ExamRequest, ExamStatus, BancaResult, User } from '../../types';
+import { ExamRequest, ExamStatus, ExamType, BancaResult, User } from '../../types';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B'];
 
@@ -74,29 +74,32 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
   }, []);
 
   const stats = useMemo(() => {
-    // Filtrar apenas pedidos CFC (com schoolId real, não CNH_BRASIL/PCD)
-    let filteredRequests = requests.filter(r => {
-        const isExplicitCnh = r.schoolId === 'CNH_BRASIL';
-        const isExplicitPcd = r.schoolId === 'PCD' || r.examType === 'PCD';
-        const isOrphan = !r.schoolId;
-        if (isExplicitCnh || isExplicitPcd || isOrphan) return false;
-        return true;
-    });
+    // Filtro idêntico ao isCfcCandidate do CFCSchedulingCenter:
+    // usa o campo modulo quando disponível (após backfill), fallback legado caso contrário
+    const isCfc = (r: ExamRequest) => {
+        if (r.modulo) return r.modulo === 'CFC';
+        // fallback legado para registros sem modulo
+        if (r.examType === ExamType.PCD) return false;
+        if (!r.schoolId) return false;
+        if (r.schoolId === 'CNH_BRASIL') return false;
+        if (r.schoolId === 'PCD') return false;
+        return r.examType === ExamType.COMMON;
+    };
+
+    let filteredRequests = requests.filter(isCfc);
 
     if (user?.role === 'SCHOOL' && user.schoolId) {
         filteredRequests = filteredRequests.filter(r => r.schoolId === user.schoolId);
     }
 
-    // Filtro de período — usa scheduledDate OU createdAt como fallback
-    filteredRequests = filteredRequests.filter(r => {
-        const date = r.scheduledDate || (r.createdAt ? r.createdAt.split('T')[0] : null);
-        if (!date) return true; // inclui se não há data
-        return date >= generalDateStart && date <= generalDateEnd;
-    });
+    // Sem filtro de data nos cards — mostra o mesmo conjunto que o menu Agendamentos
+    // (candidatos WAITING_SCHEDULING não têm scheduledDate e seriam excluídos injustamente)
 
     // Cards principais calculados diretamente dos pedidos
     const total = filteredRequests.length;
-    const agendados = filteredRequests.filter(r => r.status === ExamStatus.SCHEDULED).length;
+    const provasConfirmadas = filteredRequests.filter(r =>
+        r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed
+    ).length;
     const provasRealizadas = filteredRequests.filter(r =>
         r.status === ExamStatus.DONE ||
         r.status === ExamStatus.WAITING_RESULT ||
@@ -172,7 +175,7 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
 
     return {
         total,
-        agendados,
+        provasConfirmadas,
         aguardando,
         provasRealizadas,
         provasCanceladas,
@@ -182,7 +185,7 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
         requestTypeDistribution,
         mediaPorDia
     };
-  }, [requests, bancaResults, generalDateStart, generalDateEnd, user]);
+  }, [requests, bancaResults, user]);
 
   if (loading) {
       return <div className="p-10 text-center text-gray-500">Carregando estatísticas...</div>;
@@ -191,12 +194,12 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <h3 className="text-lg font-bold">Resumo Geral de Estatísticas (Últimos 12 meses)</h3>
+          <h3 className="text-lg font-bold">Resumo Geral de Estatísticas</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <SummaryCard title="Total de Pedidos" value={stats.total} icon={Calendar} color="bg-blue-600" subtitle={`${stats.aguardando} aguardando agendamento`} />
-          <SummaryCard title="Agendados" value={stats.agendados} icon={Car} color="bg-indigo-600" />
+          <SummaryCard title="Provas Confirmadas" value={stats.provasConfirmadas} icon={Car} color="bg-indigo-600" />
           <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" subtitle={`Média: ${stats.mediaPorDia}/dia`} />
           <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
       </div>
