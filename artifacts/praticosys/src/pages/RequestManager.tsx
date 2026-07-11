@@ -628,6 +628,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         }
         await api.updateRequest(editingRequest.id, updatedData);
       } else {
+        const derivedModulo =
+          typeFilter === ExamType.PCD
+            ? 'PCD'
+            : typeFilter === ExamType.COMMON
+            ? 'CNH_BRASIL'
+            : formData.examType === ExamType.PCD
+            ? 'PCD'
+            : formData.examType === ExamType.COMMON
+            ? 'CNH_BRASIL'
+            : undefined;
+
         if (formData.intendedCategory === "AB") {
           const instructorParts = (formData.instructor || "").split(" / ");
           const plateParts = (formData.vehiclePlate || "").split(" / ");
@@ -655,6 +666,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 ? RequestSource.SCHOOL
                 : RequestSource.STUDENT_DIRECT),
             status: checklistStatus,
+            modulo: derivedModulo,
           });
 
           // Create B
@@ -670,6 +682,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 ? RequestSource.SCHOOL
                 : RequestSource.STUDENT_DIRECT),
             status: checklistStatus,
+            modulo: derivedModulo,
           });
         } else {
           await api.createRequest({
@@ -681,6 +694,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 ? RequestSource.SCHOOL
                 : RequestSource.STUDENT_DIRECT),
             status: checklistStatus,
+            modulo: derivedModulo,
           });
         }
       }
