@@ -97,16 +97,25 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
     // Sem filtro de data nos cards — mostra o mesmo conjunto que o menu Agendamentos
     // (candidatos WAITING_SCHEDULING não têm scheduledDate e seriam excluídos injustamente)
 
-    // Cards principais calculados diretamente dos pedidos
+    // Idêntico ao isPastScheduledDateTime do CFCSchedulingCenter
+    const isPast = (r: any) => {
+        if (!r.scheduledDate) return false;
+        const time = r.scheduledTime || '00:00';
+        return new Date(`${r.scheduledDate}T${time}:00`).getTime() < Date.now();
+    };
+
+    // Cards principais — mesma lógica dos cards do CFCSchedulingCenter
     const total = filteredRequests.length;
+    // Confirmadas: SCHEDULED + confirmado + data ainda não passou
     const provasConfirmadas = filteredRequests.filter(r =>
-        r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed
+        r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed && !isPast(r)
     ).length;
-    const provasRealizadas = filteredRequests.filter(r =>
-        r.status === ExamStatus.DONE ||
-        r.status === ExamStatus.WAITING_RESULT ||
-        r.status === ExamStatus.RETEST
-    ).length;
+    // Realizadas: DONE  OU  confirmado + data já passou (mesmo critério do card "done" do Agendamentos)
+    const provasRealizadas = filteredRequests.filter(r => {
+        if (r.status === ExamStatus.DONE) return true;
+        if (r.status === ExamStatus.SCHEDULED && r.attendanceConfirmed && isPast(r)) return true;
+        return false;
+    }).length;
     const provasCanceladas = filteredRequests.filter(r => r.status === ExamStatus.CANCELLED).length;
     const aguardando = filteredRequests.filter(r => r.status === ExamStatus.WAITING_SCHEDULING).length;
 
