@@ -302,6 +302,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       const interval = setInterval(() => fetchRequests(true), 60000);
       return () => clearInterval(interval);
     }
+    return undefined;
   }, [user, typeFilter]);
 
   // Process Notification Queue
