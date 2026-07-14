@@ -3,9 +3,6 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "artifacts/praticosys/dist/public"
 
-[pages_build_config]
-build_command = "npm run cf-build"
-
 # Environment variables são configuradas no dashboard do Cloudflare Pages.
 # Nunca commite DATABASE_URL aqui — use "Settings > Environment variables" no painel.
 
