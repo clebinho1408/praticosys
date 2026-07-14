@@ -1,23 +1,32 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, CheckCircle2, XCircle, Clock, Car, Filter } from 'lucide-react';
+import { ClipboardList, CheckCircle2, XCircle, Car, Filter, BadgeCheck } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { api } from '../../services/api';
 import { ExamRequest, ExamStatus, ExamType, BancaResult, User } from '../../types';
 
 const COLORS = ['#10B981', '#EF4444', '#6B7280', '#F59E0B'];
 
-const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; color: string; subtitle?: string }> = ({ title, value, icon: Icon, color, subtitle }) => {
+const CARD_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  yellow: { bg: 'rgba(234,179,8,0.12)',  text: '#CA8A04', border: '#EAB308' },
+  green:  { bg: 'rgba(22,163,74,0.12)',  text: '#16A34A', border: '#16A34A' },
+  blue:   { bg: 'rgba(37,99,235,0.12)',  text: '#2563EB', border: '#2563EB' },
+  red:    { bg: 'rgba(220,38,38,0.12)',  text: '#DC2626', border: '#DC2626' },
+};
+
+const SummaryCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; colorKey: 'yellow' | 'green' | 'blue' | 'red'; subtitle?: string }> = ({ title, value, icon: Icon, colorKey, subtitle }) => {
+  const c = CARD_COLORS[colorKey];
   return (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden">
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 relative overflow-hidden"
+         style={{ borderLeft: `4px solid ${c.border}` }}>
       <div className="flex justify-between items-start relative z-10">
         <div>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{title}</p>
           <h3 className="text-2xl font-black text-gray-900">{value}</h3>
           {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
         </div>
-        <div className={`p-3 rounded-lg ${color} bg-opacity-10`}>
-          <Icon className={`h-6 w-6 ${color.replace('bg-', 'text-')}`} />
+        <div className="p-3 rounded-lg" style={{ backgroundColor: c.bg }}>
+          <Icon className="h-6 w-6" style={{ color: c.text }} />
         </div>
       </div>
     </div>
@@ -209,10 +218,10 @@ export const CfcModule: React.FC<{ stats?: any; title?: string; user?: User | nu
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <SummaryCard title="Total de Pedidos" value={stats.total} icon={Calendar} color="bg-blue-600" subtitle={`${stats.aguardando} aguardando agendamento`} />
-          <SummaryCard title="Provas Confirmadas" value={stats.provasConfirmadas} icon={Car} color="bg-indigo-600" />
-          <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={CheckCircle2} color="bg-green-600" />
-          <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} color="bg-red-600" />
+          <SummaryCard title="Total de Pedidos" value={stats.total} icon={ClipboardList} colorKey="yellow" subtitle={`${stats.aguardando} aguardando agendamento`} />
+          <SummaryCard title="Provas Confirmadas" value={stats.provasConfirmadas} icon={BadgeCheck} colorKey="green" />
+          <SummaryCard title="Provas Realizadas" value={stats.provasRealizadas} icon={Car} colorKey="blue" />
+          <SummaryCard title="Provas Canceladas" value={stats.provasCanceladas} icon={XCircle} colorKey="red" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
