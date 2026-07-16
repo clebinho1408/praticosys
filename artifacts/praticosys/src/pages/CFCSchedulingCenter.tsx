@@ -1706,7 +1706,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               <div className="flex flex-wrap gap-1">
                                 {Object.entries(qtys).map(([cat, qty]) => (
                                   <span key={cat} className="inline-flex items-center gap-1 bg-orange-100 text-orange-800 text-[11px] font-black px-2 py-0.5 rounded-full border border-orange-200">
-                                    {cat}: {qty}
+                                    {qty}{cat}
                                   </span>
                                 ))}
                               </div>
@@ -1810,7 +1810,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               <div className="flex flex-wrap gap-1">
                                 {Object.entries(req.categoryQuantities).map(([cat, qty]) => (
                                   <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
-                                    {cat}: {qty}
+                                    {qty}{cat}
                                   </span>
                                 ))}
                               </div>
