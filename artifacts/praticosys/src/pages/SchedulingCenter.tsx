@@ -296,8 +296,10 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
       ).length;
       const prev = prevStudentCounts.current[s.id];
       if (prev !== undefined && count < prev) {
-        // Vaga aberta — mostra modal
-        setVagaAbertaModal({ bancaCode: s.code || s.id, bancaId: s.id });
+        // Vaga aberta — mostra modal apenas fora do módulo CNH do Brasil
+        if (type !== ExamType.COMMON) {
+          setVagaAbertaModal({ bancaCode: s.code || s.id, bancaId: s.id });
+        }
       }
       prevStudentCounts.current[s.id] = count;
     });
