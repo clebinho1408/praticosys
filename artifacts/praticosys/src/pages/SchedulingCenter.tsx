@@ -1217,7 +1217,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         <span className="text-gray-300">|</span>
                                                         <span>Cidade: {req.city || '-'}</span>
                                                         <span className="text-gray-300">|</span>
-                                                        <span>Instrutor: {req.instructor || '-'}{req.vehiclePlate ? ` · ${req.vehiclePlate}` : ''}</span>
+                                                        <span>Instrutor: {req.instructor || '-'}{req.vehiclePlate ? ` · ${req.vehiclePlate}` : ''}{(req as any).semDuploComando ? ' · SDC' : ''}</span>
                                                         {selectedSchedule.status === 'CONCLUDED' && (
                                                             req.status === 'WAITING_RESULT' ? (
                                                                 <>
@@ -1493,7 +1493,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                         <div className="font-normal uppercase leading-tight text-gray-800 truncate" style={{fontSize:'6.5pt'}}>
                                                             {req.instructor && req.instructor}
                                                             {req.instructor && req.vehiclePlate && ' | '}
-                                                            {req.vehiclePlate && `Placa: ${req.vehiclePlate}`}
+                                                            {req.vehiclePlate && `Placa: ${req.vehiclePlate}`}{(req as any).semDuploComando ? ' · SDC' : ''}
                                                         </div>
                                                     )}
                                                 </td>
