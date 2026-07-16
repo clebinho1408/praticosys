@@ -162,6 +162,7 @@ export interface ExamRequest {
   cnhRestriction?: string; // New
   instructor?: string; // New: Mandatory
   vehiclePlate?: string; // New: Mandatory
+  semDuploComando?: boolean; // SDC — Sem Duplo Comando (Cat B)
   // Checklists de pré-agendamento (CNH do Brasil — Instrutor)
   checklistVehicle?: boolean;        // CHECKLIST VEÍCULO
   practicalCourseInserted?: boolean; // CURSO PRÁTICO INSERIDO
