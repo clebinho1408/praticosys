@@ -970,7 +970,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
       setSchoolsForAutoGenerate(normal);
       setSchoolsWith15Days(fifteenDays);
-      setSelectedSchoolsForAutoGenerate([...normal.map(s => s.id), ...fifteenDays.map(s => s.id)]);
+      // Escolas normais: pré-selecionadas automaticamente (toda semana).
+      // Escolas de 15 dias: sempre começam DESMARCADAS — o usuário marca manualmente
+      // a semana que deve gerar, evitando que uma desmarcação seja "esquecida" na semana seguinte.
+      setSelectedSchoolsForAutoGenerate(normal.map(s => s.id));
       // Pré-seleciona automaticamente se configurado para o dia; caso contrário deixa desmarcado mas visível
       setSelectedPcdForAutoGenerate(!!pcdMatchesDay);
       setSelectedCnhBrasilForAutoGenerate(!!cnhMatchesDay);
@@ -2233,7 +2236,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             />
                             <div className="flex flex-col">
                               <span className="text-sm font-bold text-slate-700">{school.name}</span>
-                              <span className="text-[10px] text-blue-600 font-bold uppercase">Escala Quinzenal (Desmarque para inverter)</span>
+                              <span className="text-[10px] text-blue-600 font-bold uppercase">Escala Quinzenal — marque para incluir nesta semana</span>
                             </div>
                           </label>
                         ))}
