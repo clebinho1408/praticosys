@@ -549,24 +549,24 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     // ── CNH do Brasil ────────────────────────────────────────────────────────
     if (type === ExamType.COMMON) {
       const bodyLines = [
-        `COMPROVANTE DE AGENDAMENTO DA CATEGORIA ${category}`,
+        `> *COMPROVANTE DE AGENDAMENTO DA CATEGORIA ${category}*`,
         ``,
-        `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para EXAME PRÁTICO:`,
+        `_Segue agendamento solicitado por_ _*${candidateName} (CPF: ${candidateCpf})*_ _para EXAME PRÁTICO:_`,
         ``,
-        `📅 Data: ${fullDate}`,
-        `⏰ Hora: ${examTime} (Chegar 20 min antes)`,
-        `📍 Local do Exame: Av. Santa Catarina, 701 - Estados, Balneário Camboriú - SC, (Escola Pública de Trânsito)`,
+        `> 📅 Data: *${fullDate}*`,
+        `> ⏰ Hora: *${examTime}* _(Chegar 20 min antes)_`,
+        `> 📍 Local do Exame: *Av. Santa Catarina, 701 - Estados, Balneário Camboriú - SC, (Escola Pública de Trânsito)*`,
         ``,
-        `♿ Restrição da CNH: ${restrictionText}`,
+        `> ♿ Restrição da CNH: *${restrictionText}*`,
         ``,
-        ...(req.instructor ? [`👨‍🏫 Instrutor: ${req.instructor}`] : []),
-        ...(req.vehiclePlate ? [`🚗 Placa: ${req.vehiclePlate}`] : []),
+        ...(req.instructor ? [`_*👨‍🏫 Instrutor: ${req.instructor}*_`] : []),
+        ...(req.vehiclePlate ? [`_*🚗 Placa: ${req.vehiclePlate}*_`] : []),
         ``,
-        `⚠️ ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV — Licença de Aprendizagem de Direção Veicular.`,
+        `_⚠️ ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV — Licença de Aprendizagem de Direção Veicular._`,
         ``,
-        `❌ No caso de reprovação: será necessário enviar nova mensagem via WhatsApp para 479227-4189 solicitando um novo agendamento.`,
+        `_❌ No caso de reprovação: será necessário enviar nova mensagem via WhatsApp para_ _*479227-4189*_ _solicitando um novo agendamento._`,
         ``,
-        `🚫 Em caso de ausência ou cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
+        `_🚫 Em caso de ausência ou cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento._`,
       ];
       return bodyLines.join('\n');
     }
