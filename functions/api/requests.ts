@@ -13,7 +13,7 @@ const ALLOWED_FIELDS = [
   'cancellationReason','observation','categoryQuantities','examHistory',
   'queueUpdatedAt',
   'checklistVehicle','practicalCourseInserted','taxaPaga',
-  'scheduledBy','modulo',
+  'scheduledBy','modulo','semDuploComando',
 ];
 
 function deriveModulo(data: any): string {
@@ -60,6 +60,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
           AND observation LIKE '[Qtd:%'
       `);
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS modulo text`);
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`);
       await db.execute(sql`
         UPDATE exam_requests
         SET modulo = CASE
