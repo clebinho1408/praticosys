@@ -770,42 +770,47 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const copyDayScheduleToWhatsApp = (dayName: string, dayRequests: ExamRequest[]) => {
     if (dayRequests.length === 0) return;
-    
+
     const firstReq = dayRequests[0];
     const date = new Date(firstReq.scheduledDate + 'T00:00:00');
     const dayOfMonth = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    
-    let text = `_*EXAMES PRÁTICOS PARA ${dayName.toUpperCase()} (${dayOfMonth}/${month})*_\n\n`;
-    
-    // Group by examiner
+
+    const lines: string[] = [];
+    lines.push(`> *EXAMES PRÁTICOS PARA ${dayName.toUpperCase()} (${dayOfMonth}/${month})*`);
+
+    // Agrupa por examinador
     const byExaminer: Record<string, ExamRequest[]> = {};
     dayRequests.forEach(req => {
-      const exName = getExaminerName(req.examinerId).toUpperCase();
+      const exName = getExaminerName(req.examinerId);
       if (!byExaminer[exName]) byExaminer[exName] = [];
       byExaminer[exName].push(req);
     });
-    
-    // Examiners are already sorted in the dayRequests array
+
     const sortedExaminerNames = Object.keys(byExaminer).sort();
-    
+
     sortedExaminerNames.forEach(exName => {
-      text += `_${exName}_\n`;
+      lines.push('');
+      lines.push(`_${exName}_`);
       byExaminer[exName].forEach(req => {
-        const schoolName = getSchoolName(req.schoolId).toUpperCase();
+        const schoolName = getSchoolName(req.schoolId);
         const time = req.scheduledTime || '08:00';
         const cats = req.intendedCategory?.split(',') || [];
         const hasAB = cats.some(c => ['A', 'B'].includes(c));
         const hasCDE = cats.some(c => ['C', 'D', 'E'].includes(c));
         const isMisto = hasAB && hasCDE;
         const isMudCat = !isMisto && hasCDE;
-        text += `_*${schoolName} - ${time}${isMisto ? ' (1º Hab. e Mud. Cat.)' : isMudCat ? ' (Mud. Cat.)' : ''}*_\n`;
+        const tipo = isMisto ? ` _(1º Hab. e Mud. Cat.)_` : isMudCat ? ` _(Mud. Cat.)_` : '';
+        lines.push(`> *${schoolName} - ${time}*${tipo}`);
       });
-      text += `\n`;
     });
-    
-    navigator.clipboard.writeText(text.trim());
-    alert('Escala copiada para o WhatsApp!');
+
+    const text = lines.join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      alert('Escala copiada para o WhatsApp!');
+    }).catch(() => {
+      alert('Não foi possível copiar. Verifique as permissões do navegador.');
+    });
   };
 
   // Helper: roteia update para a tabela correta (slot ou candidato real)
