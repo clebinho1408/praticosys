@@ -546,6 +546,32 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       }).join(', ');
     })();
 
+    // ── CNH do Brasil ────────────────────────────────────────────────────────
+    if (type === ExamType.COMMON) {
+      const bodyLines = [
+        `COMPROVANTE DE AGENDAMENTO DA CATEGORIA ${category}`,
+        ``,
+        `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para EXAME PRÁTICO:`,
+        ``,
+        `📅 Data: ${fullDate}`,
+        `⏰ Hora: ${examTime} (Chegar 20 min antes)`,
+        `📍 Local do Exame: Av. Santa Catarina, 701 - Estados, Balneário Camboriú - SC, (Escola Pública de Trânsito)`,
+        ``,
+        `♿ Restrição da CNH: ${restrictionText}`,
+        ``,
+        ...(req.instructor ? [`👨‍🏫 Instrutor: ${req.instructor}`] : []),
+        ...(req.vehiclePlate ? [`🚗 Placa: ${req.vehiclePlate}`] : []),
+        ``,
+        `⚠️ ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV — Licença de Aprendizagem de Direção Veicular.`,
+        ``,
+        `❌ No caso de reprovação: será necessário enviar nova mensagem via WhatsApp para 479227-4189 solicitando um novo agendamento.`,
+        ``,
+        `🚫 Em caso de ausência ou cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
+      ];
+      return bodyLines.join('\n');
+    }
+
+    // ── PCD / padrão ─────────────────────────────────────────────────────────
     const categoryEmoji = category === 'A' ? '🏍️' : category === 'B' ? '🚗' : '🏍️/🚗';
 
     const bodyLines = [
