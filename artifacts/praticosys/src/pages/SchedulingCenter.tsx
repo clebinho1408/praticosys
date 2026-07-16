@@ -685,34 +685,67 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       if (availB > 0) schedulesWithB.push({ date: dateFormatted, time, isToday, isTomorrow });
     }
 
-    const lines: string[] = [
-      'Datas e Horários disponíveis para o Exame Prático:',
-    ];
+    const lines: string[] = [];
 
-    if ((filter === 'A' || filter === 'AB') && schedulesWithA.length > 0) {
+    // Só aplica formatação WhatsApp no módulo CNH do Brasil
+    if (type === ExamType.COMMON) {
+      lines.push('> _*Atenção: Essa mensagem ainda não é a confirmação do seu agendamento.*_');
       lines.push('');
-      lines.push('🏍️ Categoria A:');
-      lines.push('');
-      for (const s of schedulesWithA) {
-        const aviso = s.isTomorrow ? ' (Confirmar hoje até às 17:30)' : '';
-        lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
+      lines.push('_Datas e Horários disponíveis para o Exame Prático:_');
+
+      if ((filter === 'A' || filter === 'AB') && schedulesWithA.length > 0) {
+        lines.push('');
+        lines.push('*🏍️ Categoria A:*');
+        lines.push('');
+        for (const s of schedulesWithA) {
+          const aviso = s.isTomorrow ? ` _(Confirmar hoje até às 17:30)_` : '';
+          lines.push(`> 📆 Data: *${s.date}* ⏰ Hora: *${s.time}*${aviso}`);
+        }
       }
-    }
 
-    if ((filter === 'B' || filter === 'AB') && schedulesWithB.length > 0) {
-      lines.push('');
-      lines.push('🚗 Categoria B:');
-      lines.push('');
-      for (const s of schedulesWithB) {
-        const aviso = s.isTomorrow ? ' (Confirmar hoje até às 17:30)' : '';
-        lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
+      if ((filter === 'B' || filter === 'AB') && schedulesWithB.length > 0) {
+        lines.push('');
+        lines.push('*🚗 Categoria B:*');
+        lines.push('');
+        for (const s of schedulesWithB) {
+          const aviso = s.isTomorrow ? ` _(Confirmar hoje até às 17:30)_` : '';
+          lines.push(`> 📆 Data: *${s.date}* ⏰ Hora: *${s.time}*${aviso}`);
+        }
       }
-    }
 
-    lines.push('');
-    lines.push('👉 Escolha uma data para sua categoria.');
-    lines.push('');
-    lines.push('⚠️ ATENÇÃO: É OBRIGATÓRIA a presença do instrutor no dia da prova.');
+      lines.push('');
+      lines.push('👉 _Escolha uma data para sua categoria._');
+      lines.push('');
+      lines.push('_*⚠️ ATENÇÃO: É OBRIGATÓRIA a presença do instrutor no dia da prova.*_');
+    } else {
+      // PCD / padrão — sem formatação WhatsApp
+      lines.push('Datas e Horários disponíveis para o Exame Prático:');
+
+      if ((filter === 'A' || filter === 'AB') && schedulesWithA.length > 0) {
+        lines.push('');
+        lines.push('🏍️ Categoria A:');
+        lines.push('');
+        for (const s of schedulesWithA) {
+          const aviso = s.isTomorrow ? ' (Confirmar hoje até às 17:30)' : '';
+          lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
+        }
+      }
+
+      if ((filter === 'B' || filter === 'AB') && schedulesWithB.length > 0) {
+        lines.push('');
+        lines.push('🚗 Categoria B:');
+        lines.push('');
+        for (const s of schedulesWithB) {
+          const aviso = s.isTomorrow ? ' (Confirmar hoje até às 17:30)' : '';
+          lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
+        }
+      }
+
+      lines.push('');
+      lines.push('👉 Escolha uma data para sua categoria.');
+      lines.push('');
+      lines.push('⚠️ ATENÇÃO: É OBRIGATÓRIA a presença do instrutor no dia da prova.');
+    }
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopiedDates(true);
