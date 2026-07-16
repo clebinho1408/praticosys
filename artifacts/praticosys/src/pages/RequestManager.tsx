@@ -1321,9 +1321,25 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Veículo/Placa <span className="text-red-500">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Veículo/Placa <span className="text-red-500">*</span>
+              </label>
+              {categoryCode === "B" && (
+                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 cursor-pointer accent-green-600"
+                    checked={!!(formData as any).semDuploComando}
+                    disabled={isViewOnly}
+                    onChange={(e) =>
+                      setFormData({ ...formData, semDuploComando: e.target.checked } as any)
+                    }
+                  />
+                  <span className="text-xs font-bold text-green-700">SDC</span>
+                </label>
+              )}
+            </div>
             {/* Quando "Inserir placa manualmente" marcado: campo de texto livre para placa */}
             {isDoCandidato ? (
               <input
