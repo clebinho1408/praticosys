@@ -739,10 +739,26 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     const exame = getExamTypeLabel(req);
     const examinerName = getExaminerName(req.examinerId);
     const vagas = req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0
-      ? Object.entries(req.categoryQuantities).map(([cat, qty]) => `${cat}: ${qty}`).join(', ')
+      ? Object.entries(req.categoryQuantities).map(([cat, qty]) => `${qty}${cat}`).join(', ')
       : '—';
 
-    const text = `👋😊 Olá, ${schoolName}!\n\n🏢 Aqui é do ${agencyName} – Setor de Exame Prático.\n\n📋 Estamos confirmando o agendamento da Prova Prática (Tipo: ${tipo}), marcada para:\n\n📅 ${data}\n🕒 ${horario}\n📝 Exame: ${exame}\n🧑‍🧒‍🧒 Vagas Liberadas: ${vagas}\n👨‍💼 Examinador: ${examinerName}\n\n✅ Por favor, posso confirmar?`;
+    const lines = [
+      `👋😊 Olá, *${schoolName}*!`,
+      ``,
+      `> 🏢 Aqui é do _*${agencyName} – Setor de Exame Prático*_.`,
+      ``,
+      `_📋 Estamos confirmando o agendamento da Prova Prática do Tipo: ${tipo}, marcada para:_`,
+      ``,
+      `> 📅 *${data}*`,
+      `> 🕒 *${horario}*`,
+      `> 📝 Exame: *${exame}*`,
+      `> 🧑‍🧒‍🧒 Vagas Liberadas: *${vagas}*`,
+      `> 👨‍💼 Examinador: *${examinerName}*`,
+      ``,
+      `_✅ Por favor, posso confirmar?_`,
+    ];
+
+    const text = lines.join('\n');
 
     navigator.clipboard.writeText(text).then(() => {
       setCopiedRequestId(req.id);
