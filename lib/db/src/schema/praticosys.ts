@@ -101,6 +101,7 @@ export const examRequests = pgTable('exam_requests', {
   cnhRestriction: text('cnh_restriction'),
   instructor: text('instructor'),
   vehiclePlate: text('vehicle_plate'),
+  semDuploComando: boolean('sem_duplo_comando').default(false),
   checklistVehicle: boolean('checklist_vehicle').default(false),
   practicalCourseInserted: boolean('practical_course_inserted').default(false),
   taxaPaga: boolean('taxa_paga').default(false),
