@@ -1860,8 +1860,6 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                             <div className="font-bold text-sm text-gray-800">{vehicle.brand} {vehicle.model}</div>
                                             <div className="flex items-center gap-2 text-xs text-gray-500">
                                                 <span className="font-mono">{vehicle.plate}</span>
-                                                <span className="w-1 h-1 bg-gray-300 rounded-full" />
-                                                <span>{vehicle.transmission === 'AUTOMATICA' ? 'Automática' : 'Manual'}</span>
                                                 {vehicle.type === 'CAR' && (
                                                     <>
                                                         <span className="w-1 h-1 bg-gray-300 rounded-full" />
