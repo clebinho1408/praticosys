@@ -1746,43 +1746,29 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Transmissão</label>
-                                        <select 
-                                            className="w-full border rounded p-2 text-sm bg-white"
-                                            value={newVehicle.transmission}
-                                            onChange={e => setNewVehicle({...newVehicle, transmission: e.target.value as any})}
-                                        >
-                                            <option value="MANUAL">Manual</option>
-                                            <option value="AUTOMATICA">Automática</option>
-                                        </select>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
+                                            {modalTab === 'CARS' ? 'Duplo Comando' : 'Transmissão'}
+                                        </label>
+                                        {modalTab === 'CARS' ? (
+                                            <select
+                                                className="w-full border rounded p-2 text-sm bg-white"
+                                                value={newVehicle.duploComando ? 'SIM' : 'NAO'}
+                                                onChange={e => setNewVehicle({...newVehicle, duploComando: e.target.value === 'SIM'})}
+                                            >
+                                                <option value="SIM">Sim</option>
+                                                <option value="NAO">Não</option>
+                                            </select>
+                                        ) : (
+                                            <select 
+                                                className="w-full border rounded p-2 text-sm bg-white"
+                                                value={newVehicle.transmission}
+                                                onChange={e => setNewVehicle({...newVehicle, transmission: e.target.value as any})}
+                                            >
+                                                <option value="MANUAL">Manual</option>
+                                                <option value="AUTOMATICA">Automática</option>
+                                            </select>
+                                        )}
                                     </div>
-                                    {modalTab === 'CARS' && (
-                                        <div className="col-span-2 flex items-center gap-3 bg-white border rounded-lg px-4 py-2.5">
-                                            <span className="text-sm font-medium text-gray-700 flex-1">Duplo Comando</span>
-                                            <div className="flex items-center gap-3">
-                                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name="duploComando"
-                                                        className="accent-green-600"
-                                                        checked={newVehicle.duploComando === true}
-                                                        onChange={() => setNewVehicle({...newVehicle, duploComando: true})}
-                                                    />
-                                                    <span className="text-sm font-semibold text-green-700">Sim</span>
-                                                </label>
-                                                <label className="flex items-center gap-1.5 cursor-pointer">
-                                                    <input
-                                                        type="radio"
-                                                        name="duploComando"
-                                                        className="accent-red-500"
-                                                        checked={newVehicle.duploComando === false}
-                                                        onChange={() => setNewVehicle({...newVehicle, duploComando: false})}
-                                                    />
-                                                    <span className="text-sm font-semibold text-red-600">Não</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    )}
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Acessórios</label>
                                         <div className="flex gap-1">
