@@ -1412,16 +1412,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             )}
           </div>
         </div>
-        {selectedVehicle && (
-          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-col gap-1">
-            <div className="text-xs text-gray-600">
-              <span className="font-bold">Transmissão:</span> {selectedVehicle.transmission === 'AUTOMATICA' ? 'Automática' : selectedVehicle.transmission === 'MANUAL' ? 'Manual' : '-'}
-            </div>
-            <div className="text-xs text-gray-600">
-              <span className="font-bold">Acessórios:</span> {selectedVehicle.accessories?.length ? selectedVehicle.accessories.join(', ') : 'Nenhum'}
-            </div>
-          </div>
-        )}
       </div>
     );
   };
@@ -1691,17 +1681,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           <div className="border-l-2 border-blue-200 pl-2">
             <div className="font-bold text-gray-800 text-[10px] uppercase">{req.instructor.split(" / ")[0]}</div>
             <div className="text-[9px] text-gray-500">
-              Transmissão: {moto?.transmission === 'AUTOMATICA' ? 'Automática' : moto?.transmission === 'MANUAL' ? 'Manual' : '-'}
-            </div>
-            <div className="text-[9px] text-gray-500">
               Modelo: {moto?.model || '-'} Placa: {motoPlate || '-'}
             </div>
           </div>
           <div className="border-l-2 border-green-200 pl-2">
             <div className="font-bold text-gray-800 text-[10px] uppercase">{req.instructor.split(" / ")[1]}</div>
-            <div className="text-[9px] text-gray-500">
-              Transmissão: {carro?.transmission === 'AUTOMATICA' ? 'Automática' : carro?.transmission === 'MANUAL' ? 'Manual' : '-'}
-            </div>
             <div className="text-[9px] text-gray-500">
               Modelo: {carro?.model || '-'} Placa: {carroPlate || '-'}
             </div>
@@ -1713,9 +1697,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       return (
         <div className="flex flex-col mt-1">
           <span className="font-bold text-gray-800 uppercase">{req.instructor}</span>
-          <span className="text-[10px] text-gray-500">
-            Transmissão: {vehicle?.transmission === 'AUTOMATICA' ? 'Automática' : vehicle?.transmission === 'MANUAL' ? 'Manual' : '-'}
-          </span>
           <span className="text-[10px] text-gray-500">
             Modelo: {vehicle?.model || '-'} Placa: {req.vehiclePlate}
           </span>
