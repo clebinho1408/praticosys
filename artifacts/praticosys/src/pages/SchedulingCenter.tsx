@@ -1124,7 +1124,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden print:shadow-none print:border-none print:bg-white print:block">
                 {/* Cabeçalho de Impressão e UI */}
                 <div className="p-6 bg-white border-b print:p-0 print:border-none">
-                    <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-2 mb-2" style={{paddingTop: '2mm'}}>
+                    <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-2 mb-2" style={{paddingTop: '4mm'}}>
                         {settings?.logoUrl ? (
                             <img src={settings.logoUrl} className="h-16 w-auto print:h-14 shrink-0" />
                         ) : (
