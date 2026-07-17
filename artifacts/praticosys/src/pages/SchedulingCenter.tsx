@@ -1126,9 +1126,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 <div className="p-6 bg-white border-b print:p-0 print:border-none">
                     <div className="hidden print:flex items-center gap-6 border-b-2 border-black pb-2 mb-2">
                         {settings?.logoUrl ? (
-                            <img src={settings.logoUrl} className="h-16 w-auto" />
+                            <img src={settings.logoUrl} className="h-16 w-auto print:h-14 shrink-0" />
                         ) : (
-                            <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-bold text-xs print:!text-black">DETRAN</div>
+                            <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-bold text-xs print:!text-black shrink-0">DETRAN</div>
                         )}
                         <div>
                             <h1 className="text-xl font-bold uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>

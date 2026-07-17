@@ -243,6 +243,12 @@
 
 }
 
+@media print {
+  @page {
+    margin: 12mm 10mm 10mm 10mm;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
