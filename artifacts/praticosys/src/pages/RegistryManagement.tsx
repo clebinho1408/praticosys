@@ -1606,6 +1606,14 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                <span key={v.id} className="inline-flex items-center gap-1">
                                    {v.type === 'CAR' ? <Car className="h-3 w-3 text-gray-400" /> : <Bike className="h-3 w-3 text-gray-400" />}
                                    <span className="font-mono">{v.plate}</span>
+                                   {v.type === 'CAR' && (
+                                       <span title={(v as any).duploComando ? 'Duplo Comando' : 'Sem Duplo Comando'}>
+                                           {(v as any).duploComando
+                                               ? <span className="text-green-500 font-bold text-[11px]">●</span>
+                                               : <span className="text-red-400 font-bold text-[11px]">●</span>
+                                           }
+                                       </span>
+                                   )}
                                </span>
                            ))}
                            {inst.vehicles.filter(v => v.active).length > 2 && <span className="text-gray-400 italic">+{inst.vehicles.filter(v => v.active).length - 2} mais...</span>}
