@@ -1355,7 +1355,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
                 value={currentPlate}
                 disabled={isViewOnly || !currentInstructorName}
-                onChange={(e) => updatePlate(e.target.value)}
+                onChange={(e) => {
+                  const newPlate = e.target.value;
+                  updatePlate(newPlate);
+                  if (categoryCode === "B") {
+                    const selectedV = availableVehicles.find(v => v.plate === newPlate);
+                    if (selectedV) {
+                      const semDC = !(selectedV as any).duploComando;
+                      setFormData(prev => ({ ...prev, semDuploComando: semDC } as any));
+                    }
+                  }
+                }}
               >
                 <option value="">Selecione...</option>
                 {availableVehicles.map((v) => (
