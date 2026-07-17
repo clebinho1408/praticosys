@@ -3,6 +3,10 @@
 @import "react-day-picker/dist/style.css";
 @plugin "@tailwindcss/typography";
 
+@page {
+  margin: 15mm 10mm 10mm 10mm;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -241,12 +245,6 @@
   --shadow-xl: 0px 20px 25px -5px rgba(0,0,0,0.4), 0px 8px 10px -1px rgba(0,0,0,0.3);
   --shadow-2xl: 0px 25px 50px -12px rgba(0,0,0,0.5);
 
-}
-
-@media print {
-  @page {
-    margin: 12mm 10mm 10mm 10mm;
-  }
 }
 
 @layer base {
