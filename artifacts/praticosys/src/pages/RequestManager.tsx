@@ -1276,6 +1276,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                       : "A DEFINIR";
                 }
 
+                // SDC automático: quando Cat B e o primeiro veículo não tem duplo comando
+                let autoSemDC = (formData as any).semDuploComando;
+                if (categoryCode === "B" && newName !== "A DEFINIR") {
+                  const newInstructor = instructors.find(i => i.name === newName);
+                  const firstCar = newInstructor?.vehicles?.find(v => v.type === "CAR" && v.active);
+                  if (firstCar) autoSemDC = !(firstCar as any).duploComando;
+                }
+
                 if (formData.intendedCategory === "AB") {
                   const otherPartInstr =
                     formData.instructor?.split(" / ")[
@@ -1300,13 +1308,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                     ...formData,
                     instructor: finalInstr,
                     vehiclePlate: finalPlate,
-                  });
+                    ...(categoryCode === "B" ? { semDuploComando: autoSemDC } : {}),
+                  } as any);
                 } else {
                   setFormData({
                     ...formData,
                     instructor: newName,
                     vehiclePlate: newPlate,
-                  });
+                    ...(categoryCode === "B" ? { semDuploComando: autoSemDC } : {}),
+                  } as any);
                 }
               }}
             >
@@ -1357,13 +1367,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 disabled={isViewOnly || !currentInstructorName}
                 onChange={(e) => {
                   const newPlate = e.target.value;
-                  updatePlate(newPlate);
+                  // Calcula o novo vehiclePlate (respeitando formato AB)
+                  let finalPlate = newPlate;
+                  if (formData.intendedCategory === "AB") {
+                    const otherPartPlate = formData.vehiclePlate?.split(" / ")[categoryCode === "A" ? 1 : 0] || "";
+                    finalPlate = categoryCode === "A"
+                      ? `Moto: ${newPlate} / ${otherPartPlate}`
+                      : `${otherPartPlate} / Carro: ${newPlate}`;
+                  }
+                  // SDC automático para Cat B: sem duplo comando → SDC = true
                   if (categoryCode === "B") {
                     const selectedV = availableVehicles.find(v => v.plate === newPlate);
-                    if (selectedV) {
-                      const semDC = !(selectedV as any).duploComando;
-                      setFormData(prev => ({ ...prev, semDuploComando: semDC } as any));
-                    }
+                    const semDC = selectedV ? !(selectedV as any).duploComando : (formData as any).semDuploComando;
+                    setFormData({ ...formData, vehiclePlate: finalPlate, semDuploComando: semDC } as any);
+                  } else {
+                    setFormData({ ...formData, vehiclePlate: finalPlate });
                   }
                 }}
               >
