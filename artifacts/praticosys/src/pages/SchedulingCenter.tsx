@@ -1205,8 +1205,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         {req.scheduledBy && (
                                                             <div className="absolute bottom-full left-0 mb-2 z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                                                                 <div className="bg-gray-800 text-white text-xs rounded-md px-2.5 py-1.5 whitespace-nowrap shadow-lg">
-                                                                    <span className="text-gray-400">Agendado por:</span>{' '}
-                                                                    <span className="font-semibold">{req.scheduledBy}</span>
+                                                                    <div><span className="text-gray-400">Agendado por:</span>{' '}<span className="font-semibold">{req.scheduledBy}</span></div>
+                                                                    {req.queueUpdatedAt && (
+                                                                        <div className="mt-0.5">
+                                                                            <span className="text-gray-400">Em:</span>{' '}
+                                                                            <span className="font-semibold">
+                                                                                {new Date(req.queueUpdatedAt).toLocaleString('pt-BR', {
+                                                                                    day: '2-digit', month: '2-digit', year: 'numeric',
+                                                                                    hour: '2-digit', minute: '2-digit'
+                                                                                })}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                                 <div className="w-2 h-2 bg-gray-800 rotate-45 ml-3 -mt-1"></div>
                                                             </div>
