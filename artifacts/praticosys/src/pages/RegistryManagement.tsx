@@ -1745,11 +1745,9 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">
-                                            {modalTab === 'CARS' ? 'Duplo Comando' : 'Transmissão'}
-                                        </label>
-                                        {modalTab === 'CARS' ? (
+                                    {modalTab === 'CARS' && (
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Duplo Comando</label>
                                             <select
                                                 className="w-full border rounded p-2 text-sm bg-white"
                                                 value={newVehicle.duploComando ? 'SIM' : 'NAO'}
@@ -1758,17 +1756,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                                 <option value="SIM">Sim</option>
                                                 <option value="NAO">Não</option>
                                             </select>
-                                        ) : (
-                                            <select 
-                                                className="w-full border rounded p-2 text-sm bg-white"
-                                                value={newVehicle.transmission}
-                                                onChange={e => setNewVehicle({...newVehicle, transmission: e.target.value as any})}
-                                            >
-                                                <option value="MANUAL">Manual</option>
-                                                <option value="AUTOMATICA">Automática</option>
-                                            </select>
-                                        )}
-                                    </div>
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Acessórios</label>
                                         <div className="flex gap-1">
