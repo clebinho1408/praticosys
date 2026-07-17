@@ -100,6 +100,7 @@ export interface Vehicle {
   active: boolean;
   transmission?: 'AUTOMATICA' | 'MANUAL';
   accessories?: string[];
+  duploComando?: boolean; // Somente para CAR
 }
 
 export interface Instructor {

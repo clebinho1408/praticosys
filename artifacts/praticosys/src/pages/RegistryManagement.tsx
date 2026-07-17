@@ -1366,7 +1366,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
     active: boolean;
     transmission: 'AUTOMATICA' | 'MANUAL';
     accessories: string[];
-  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
+    duploComando: boolean;
+  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false });
   
   const [accessoryInput, setAccessoryInput] = useState('');
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
@@ -1467,7 +1468,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                   plate: newVehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, ""),
                   active: newVehicle.active,
                   transmission: newVehicle.transmission,
-                  accessories: newVehicle.accessories
+                  accessories: newVehicle.accessories,
+                  duploComando: newVehicle.duploComando
               } : v)
           }));
           setEditingVehicleId(null);
@@ -1482,7 +1484,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
               plate: newVehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, ""),
               active: newVehicle.active,
               transmission: newVehicle.transmission,
-              accessories: newVehicle.accessories
+              accessories: newVehicle.accessories,
+              duploComando: newVehicle.duploComando
           };
 
           setFormData(prev => ({
@@ -1491,7 +1494,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           }));
       }
 
-      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
+      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false });
       setAccessoryInput('');
   };
 
@@ -1502,7 +1505,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           plate: vehicle.plate,
           active: vehicle.active,
           transmission: vehicle.transmission || 'MANUAL',
-          accessories: vehicle.accessories || []
+          accessories: vehicle.accessories || [],
+          duploComando: (vehicle as any).duploComando ?? false
       });
       setEditingVehicleId(vehicle.id);
       setAccessoryInput('');
@@ -1752,6 +1756,33 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                             <option value="AUTOMATICA">Automática</option>
                                         </select>
                                     </div>
+                                    {modalTab === 'CARS' && (
+                                        <div className="col-span-2 flex items-center gap-3 bg-white border rounded-lg px-4 py-2.5">
+                                            <span className="text-sm font-medium text-gray-700 flex-1">Duplo Comando</span>
+                                            <div className="flex items-center gap-3">
+                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="duploComando"
+                                                        className="accent-green-600"
+                                                        checked={newVehicle.duploComando === true}
+                                                        onChange={() => setNewVehicle({...newVehicle, duploComando: true})}
+                                                    />
+                                                    <span className="text-sm font-semibold text-green-700">Sim</span>
+                                                </label>
+                                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="duploComando"
+                                                        className="accent-red-500"
+                                                        checked={newVehicle.duploComando === false}
+                                                        onChange={() => setNewVehicle({...newVehicle, duploComando: false})}
+                                                    />
+                                                    <span className="text-sm font-semibold text-red-600">Não</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Acessórios</label>
                                         <div className="flex gap-1">
@@ -1830,7 +1861,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                             type="button" 
                                             onClick={() => {
                                                 setEditingVehicleId(null);
-                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
+                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false });
                                                 setAccessoryInput('');
                                             }}
                                             className="px-4 py-2 bg-gray-200 text-gray-600 text-xs font-bold rounded hover:bg-gray-300"
@@ -1856,6 +1887,14 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                                 <span className="font-mono">{vehicle.plate}</span>
                                                 <span className="w-1 h-1 bg-gray-300 rounded-full" />
                                                 <span>{vehicle.transmission === 'AUTOMATICA' ? 'Automática' : 'Manual'}</span>
+                                                {vehicle.type === 'CAR' && (
+                                                    <>
+                                                        <span className="w-1 h-1 bg-gray-300 rounded-full" />
+                                                        <span className={(vehicle as any).duploComando ? 'text-green-600 font-semibold' : 'text-gray-400'}>
+                                                            Duplo Comando: {(vehicle as any).duploComando ? 'Sim' : 'Não'}
+                                                        </span>
+                                                    </>
+                                                )}
                                             </div>
                                             {vehicle.accessories && vehicle.accessories.length > 0 && (
                                                 <div className="flex flex-wrap gap-1 mt-1">

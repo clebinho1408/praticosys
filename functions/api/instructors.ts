@@ -1,13 +1,17 @@
 // functions/api/instructors.ts  →  GET|POST|PUT|DELETE /api/instructors
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
 import { instructors, vehicles } from '../../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
     const query = getQuery(request.url);
+
+    try {
+      await db.execute(sql`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS duplo_comando boolean DEFAULT false`);
+    } catch {}
 
     if (method === 'GET') {
       const allInstructors = await db.select().from(instructors);
@@ -31,6 +35,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
             id: crypto.randomUUID(), instructorId: newId, type: v.type, brand: v.brand,
             model: v.model, plate: v.plate, active: v.active ?? true,
             transmission: v.transmission, accessories: v.accessories || [],
+            duploComando: v.duploComando ?? false,
           });
         }
       }
@@ -50,6 +55,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
             instructorId: id, type: v.type, brand: v.brand, model: v.model,
             plate: v.plate, active: v.active ?? true, transmission: v.transmission,
             accessories: v.accessories || [],
+            duploComando: v.duploComando ?? false,
           });
         }
       }
