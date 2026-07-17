@@ -1413,7 +1413,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
         });
     }
     setModalTab('DATA');
-    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] });
+    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false });
     setAccessoryInput('');
     setEditingVehicleId(null);
     setIsModalOpen(true);
@@ -1651,7 +1651,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'B' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] }); setAccessoryInput(''); }} 
+                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'CARS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Car className="h-4 w-4" /> Carros
@@ -1661,7 +1661,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'A' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [] }); setAccessoryInput(''); }} 
+                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'MOTOS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Bike className="h-4 w-4" /> Motos
