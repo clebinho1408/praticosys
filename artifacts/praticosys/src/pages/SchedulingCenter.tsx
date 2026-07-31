@@ -153,6 +153,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [copiedDates, setCopiedDates] = useState(false);
   const [copiedReqId, setCopiedReqId] = useState<string | null>(null);
   const [copyDatesMenuOpen, setCopyDatesMenuOpen] = useState(false);
+  const [copyDatesCategory, setCopyDatesCategory] = useState<'A' | 'B' | 'AB' | null>(null);
   // printedIds: persiste em localStorage por scheduleId para sobreviver a troca de usuário/cache
   const [printedIds, setPrintedIds] = useState<Set<string>>(() => {
     try { const raw = localStorage.getItem('praticosys_printed_comprovante'); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
@@ -346,7 +347,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   // Fecha o menu dropdown de copiar datas ao clicar fora
   useEffect(() => {
     if (!copyDatesMenuOpen) return;
-    const handler = () => setCopyDatesMenuOpen(false);
+    const handler = () => { setCopyDatesMenuOpen(false); setCopyDatesCategory(null); };
     document.addEventListener('click', handler);
     return () => document.removeEventListener('click', handler);
   }, [copyDatesMenuOpen]);
@@ -590,7 +591,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         `> 📅 Data: *${fullDate}*`,
         `> ⏰ Hora: *${examTime}* _(Chegar 20 min antes)_`,
         ...(examAddress ? [`> 📍 Local do Exame: *${examAddress}*`] : []),
-        ...(examMapsUrl ? [`> 🗺️ Localização: ${examMapsUrl}`] : []),
         ``,
         `> ♿ Restrição da CNH: *${restrictionText}*`,
         ``,
@@ -598,8 +598,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         ...(req.vehiclePlate ? [`_*🚗 Placa: ${req.vehiclePlate}*_`] : []),
         ``,
         `_⚠️ ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV — Licença de Aprendizagem de Direção Veicular._`,
-        ``,
-        `_❌ No caso de reprovação: será necessário enviar nova mensagem via WhatsApp para_ _*479227-4189*_ _solicitando um novo agendamento._`,
         ``,
         `_🚫 Em caso de ausência ou cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento._`,
       ];
@@ -617,7 +615,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       `📅 Data: ${fullDate}`,
       `⏰ Hora: ${examTime} (Chegar 20 min antes)`,
       ...(examAddress ? [`📍 Local do Exame: ${examAddress}`] : []),
-      ...(examMapsUrl ? [`🗺️ Localização: ${examMapsUrl}`] : []),
       ``,
       `${categoryEmoji} Categoria: ${category}`,
       `♿ Restrição da CNH: ${restrictionText}`,
@@ -626,8 +623,6 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       ...(req.vehiclePlate ? [`🚗 Placa: ${req.vehiclePlate}`] : []),
       ``,
       `⚠️ ATENÇÃO: É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV — Licença de Aprendizagem de Direção Veicular.`,
-      ``,
-      `❌ Em caso de ausência ou reprovação: será necessário enviar novo e-mail para provapraticabc@detran.sc.gov.br solicitando um novo agendamento.`,
       ``,
       `🚫 Em caso de cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
     ];
@@ -675,13 +670,15 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     setTimeout(() => setCopiedReqId(null), 2500);
   };
 
-  const handleCopyAvailableDates = (filter: 'A' | 'B' | 'AB') => {
+  const handleCopyAvailableDates = (filter: 'A' | 'B' | 'AB', locationId: string | null = null) => {
     setCopyDatesMenuOpen(false);
+    setCopyDatesCategory(null);
     // Pega apenas bancas ABERTAS do período filtrado, ordena por data crescente
     const openSchedules = schedules
       .filter(s => {
         if (s.status !== 'OPEN') return false;
         if (type && s.type !== type) return false;
+        if (locationId && s.locationId !== locationId) return false;
         if (startDate || endDate) {
           const schedTime = new Date(s.date).getTime();
           if (startDate && schedTime < new Date(startDate).getTime()) return false;
@@ -1038,17 +1035,41 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             {copiedDates ? <><Check className="h-4 w-4" /><span>Copiado!</span></> : <><Copy className="h-4 w-4" /><span>Copiar datas</span><ChevronDown className="h-3.5 w-3.5 ml-0.5" /></>}
                         </button>
                         {copyDatesMenuOpen && (
-                            <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[160px] py-1 text-sm">
-                                <button onClick={() => handleCopyAvailableDates('A')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
-                                    <span>🏍️</span><span>Categoria A</span>
-                                </button>
-                                <button onClick={() => handleCopyAvailableDates('B')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
-                                    <span>🚗</span><span>Categoria B</span>
-                                </button>
-                                <div className="border-t border-gray-100 my-1" />
-                                <button onClick={() => handleCopyAvailableDates('AB')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
-                                    <span>🏍️🚗</span><span>Categoria AB</span>
-                                </button>
+                            <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[200px] py-1 text-sm" onClick={e => e.stopPropagation()}>
+                                {!copyDatesCategory ? (
+                                    <>
+                                        <div className="px-4 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Selecionar Categoria</div>
+                                        <button onClick={() => setCopyDatesCategory('A')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                                            <span>🏍️</span><span>Categoria A</span>
+                                        </button>
+                                        <button onClick={() => setCopyDatesCategory('B')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                                            <span>🚗</span><span>Categoria B</span>
+                                        </button>
+                                        <div className="border-t border-gray-100 my-1" />
+                                        <button onClick={() => setCopyDatesCategory('AB')} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                                            <span>🏍️🚗</span><span>Categoria AB</span>
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="px-4 py-1.5 flex items-center gap-2">
+                                            <button onClick={() => setCopyDatesCategory(null)} className="text-gray-400 hover:text-gray-700">‹</button>
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Local Padrão</span>
+                                        </div>
+                                        <button onClick={() => handleCopyAvailableDates(copyDatesCategory, null)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-gray-600">
+                                            <span>📋</span><span>Todos os locais</span>
+                                        </button>
+                                        {examLocations.length > 0 && <div className="border-t border-gray-100 my-1" />}
+                                        {examLocations.map(loc => {
+                                            const locCity = cities.find(c => c.id === loc.cityId);
+                                            return (
+                                                <button key={loc.id} onClick={() => handleCopyAvailableDates(copyDatesCategory, loc.id)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2">
+                                                    <span>📍</span><span>{locCity?.name || loc.cityId}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
@@ -2161,11 +2182,6 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                   {examAddress && (
                     <div style={{margin:'0 0 14px'}}><strong>Local do Exame:</strong> {examAddress}</div>
                   )}
-                  {examMapsUrl && (
-                    <div style={{margin:'0 0 14px'}}><strong>Localização (Maps):</strong>{' '}
-                      <a href={examMapsUrl} target="_blank" rel="noopener noreferrer" style={{color:'#1a56db'}}>{examMapsUrl}</a>
-                    </div>
-                  )}
                   <div style={{margin:'0 0 14px'}}><strong>Categoria:</strong> {category}</div>
                   <div style={{margin:'0 0 14px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
                   {req.instructor && (
@@ -2180,9 +2196,6 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                     <strong>Atenção:</strong> <span style={{fontWeight:600}}>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV - Licença de Aprendizagem de Direção Veicular.</span>
                   </p>
                   <p style={{fontSize:'10pt', lineHeight:'1.7', color:'#222', marginTop:'28px', textAlign:'justify'}}>
-                    <strong>Em caso de ausência ou reprovação:</strong> será necessário enviar novo e-mail para <strong>provapraticabc@detran.sc.gov.br</strong> solicitando um novo agendamento.
-                  </p>
-                  <p style={{fontSize:'10pt', lineHeight:'1.7', color:'#222', marginTop:'12px', textAlign:'justify'}}>
                     <strong>Em caso de cancelamento por:</strong> incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar <strong>20 dias</strong> antes de solicitar novo agendamento.
                   </p>
 
