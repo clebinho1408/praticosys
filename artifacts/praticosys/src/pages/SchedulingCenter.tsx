@@ -945,17 +945,15 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   );
   
   // Logic for Available Students (Modal)
-  const availableRequests = allRequests
+  // Usa fullAvailableRequests como base (já aplica filtro de regiões do local padrão)
+  const availableRequests = fullAvailableRequests
     .filter(r => {
-        const matchesStatus = r.status === ExamStatus.WAITING_SCHEDULING;
-        const matchesType = r.examType === selectedSchedule?.type;
         const matchesSearch = (r.socialName || r.studentName || '').toLowerCase().includes(studentSearch.toLowerCase()) || (r.cpf || '').includes(studentSearch);
         const matchesSchool = user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId;
         const matchesSource = r.source === RequestSource.STUDENT_DIRECT;
-        
-        return matchesStatus && matchesType && matchesSearch && matchesSchool && matchesSource;
+        return matchesSearch && matchesSchool && matchesSource;
     })
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()); // Ordenação: Mais antigo primeiro
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Mais novo primeiro
 
   // Split into categories
   const candidatesA = availableRequests.filter(r => (r.intendedCategory === 'A' || r.intendedCategory === 'AB') && isValidForCategory(r, 'A'));
@@ -1090,6 +1088,16 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         {s.code && <span className="text-gray-500 mr-2 text-lg font-mono">#{s.code}</span>}
                         {formatDateDisplay(s.date)}
                     </h3>
+                    {(() => {
+                      if (!s.locationId) return null;
+                      const loc = examLocations.find(l => l.id === s.locationId);
+                      if (!loc) return null;
+                      const locCity = cities.find(c => c.id === loc.cityId);
+                      if (!locCity) return null;
+                      return (
+                        <div className="text-sm font-bold text-red-600 mb-1">{locCity.name}</div>
+                      );
+                    })()}
                     <div className="flex items-center gap-2 text-gray-500 text-sm mb-4">
                         <Clock className="h-4 w-4" /> {s.time}
                     </div>
@@ -1753,10 +1761,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                                               </div>
                                               <div className="flex-1">
-                                                  <div className="flex justify-between items-start">
-                                                      <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
-                                                      <div className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Pos: {getGlobalPosition(cand.id)}º</div>
-                                                  </div>
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
                                                   <div className="text-xs text-gray-600 font-medium mt-0.5">CPF: {maskCpf(cand.cpf)}</div>
                                                   <div className="text-xs text-gray-600 font-medium mt-0.5">Cidade: {cand.city || "-"}</div>
                                                   <div className="text-xs text-gray-400 mt-1">Instrutor: {cand.instructor || "-"}</div>
@@ -1807,10 +1812,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                   {isSelected ? <CheckSquare className="h-5 w-5" /> : <Square className="h-5 w-5" />}
                                               </div>
                                               <div className="flex-1">
-                                                  <div className="flex justify-between items-start">
-                                                      <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
-                                                      <div className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">Pos: {getGlobalPosition(cand.id)}º</div>
-                                                  </div>
+                                                  <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
                                                   <div className="text-xs text-gray-600 font-medium mt-0.5">CPF: {maskCpf(cand.cpf)}</div>
                                                   <div className="text-xs text-gray-600 font-medium mt-0.5">Cidade: {cand.city || "-"}</div>
                                                   <div className="text-xs text-gray-400 mt-1">Instrutor: {cand.instructor || "-"}</div>
