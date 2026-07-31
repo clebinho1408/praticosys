@@ -412,13 +412,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 [HOURGLASS] _*Confirmação até amanhã às 18:00*_`;
     }
     
+    // Resolve exam location: prefer banca's locationId, fall back to system defaults
+    const schedLoc = selectedSchedule.locationId ? examLocations.find(l => l.id === selectedSchedule.locationId) : null;
+    const effectiveAddress = schedLoc?.address || safeSettings.defaultExamAddress || '';
+    const effectiveMapsUrl = schedLoc?.mapsUrl || safeSettings.defaultExamAddressLink || '';
+
     const replacements: Record<string, string> = {
       '{CANDIDATO}': req.socialName || req.studentName || '',
       '{CATEGORIA}': req.scheduledCategory || req.intendedCategory || '-',
       '{DATA}': formatDateDisplay(selectedSchedule.date),
       '{HORA}': selectedSchedule.time,
-      '{ENDERECO}': safeSettings.defaultExamAddress || '',
-      '{LOCALIZACAO}': safeSettings.defaultExamAddressLink || '',
+      '{ENDERECO}': effectiveAddress,
+      '{LOCALIZACAO}': effectiveMapsUrl,
       '{AGENCIA}': safeSettings.agencyName || 'Detran',
       '{RESTRICOES}': (() => {
           if (!req.cnhRestriction) return '';
@@ -560,7 +565,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     })();
 
     const examTime = selectedSchedule.time || '-';
-    const examAddress = settings?.defaultExamAddress || '';
+    // Use location from the banca if available, otherwise fall back to system defaults
+    const schedLocation = selectedSchedule.locationId ? examLocations.find(l => l.id === selectedSchedule.locationId) : null;
+    const examAddress = schedLocation?.address || settings?.defaultExamAddress || '';
+    const examMapsUrl = schedLocation?.mapsUrl || settings?.defaultExamAddressLink || '';
 
     const restrictionText = (() => {
       if (!req.cnhRestriction) return 'Nenhuma';
@@ -581,7 +589,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         ``,
         `> 📅 Data: *${fullDate}*`,
         `> ⏰ Hora: *${examTime}* _(Chegar 20 min antes)_`,
-        `> 📍 Local do Exame: *Av. Santa Catarina, 701 - Estados, Balneário Camboriú - SC, (Escola Pública de Trânsito)*`,
+        ...(examAddress ? [`> 📍 Local do Exame: *${examAddress}*`] : []),
+        ...(examMapsUrl ? [`> 🗺️ Localização: ${examMapsUrl}`] : []),
         ``,
         `> ♿ Restrição da CNH: *${restrictionText}*`,
         ``,
@@ -608,6 +617,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       `📅 Data: ${fullDate}`,
       `⏰ Hora: ${examTime} (Chegar 20 min antes)`,
       ...(examAddress ? [`📍 Local do Exame: ${examAddress}`] : []),
+      ...(examMapsUrl ? [`🗺️ Localização: ${examMapsUrl}`] : []),
       ``,
       `${categoryEmoji} Categoria: ${category}`,
       `♿ Restrição da CNH: ${restrictionText}`,
@@ -2023,8 +2033,10 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
         // Fixed city for signature line
         const agencyCity = 'BALNEÁRIO CAMBORIÚ';
 
-        // Exam location from CNH Brasil > Comunicação > Endereço Completo
-        const examAddress = settings?.defaultExamAddress || '';
+        // Exam location: prefer banca's locationId, fall back to system defaults
+        const schedLocation = sched.locationId ? examLocations.find(l => l.id === sched.locationId) : null;
+        const examAddress = schedLocation?.address || settings?.defaultExamAddress || '';
+        const examMapsUrl = schedLocation?.mapsUrl || settings?.defaultExamAddressLink || '';
 
         // Candidate info
         const candidateName = (req.socialName || req.studentName || '').trim().toUpperCase();
@@ -2146,6 +2158,11 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                   <div style={{margin:'0 0 14px'}}><strong>Hora:</strong> {sched.time} <em style={{fontSize:'8.5pt', color:'#444'}}>(Chegar 20min antes)</em></div>
                   {examAddress && (
                     <div style={{margin:'0 0 14px'}}><strong>Local do Exame:</strong> {examAddress}</div>
+                  )}
+                  {examMapsUrl && (
+                    <div style={{margin:'0 0 14px'}}><strong>Localização (Maps):</strong>{' '}
+                      <a href={examMapsUrl} target="_blank" rel="noopener noreferrer" style={{color:'#1a56db'}}>{examMapsUrl}</a>
+                    </div>
                   )}
                   <div style={{margin:'0 0 14px'}}><strong>Categoria:</strong> {category}</div>
                   <div style={{margin:'0 0 14px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
