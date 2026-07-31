@@ -21,6 +21,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`CREATE TABLE IF NOT EXISTS blocked_dates (id text PRIMARY KEY, date text NOT NULL, description text, is_holiday boolean DEFAULT false, created_at timestamp DEFAULT now())`,
       sql`CREATE TABLE IF NOT EXISTS banca_results (id text PRIMARY KEY, schedule_id text, school_id text, category text, created_at timestamp DEFAULT now(), updated_at timestamp DEFAULT now())`,
       sql`CREATE TABLE IF NOT EXISTS exam_schedule_slots (id text PRIMARY KEY, school_id text NOT NULL, exam_type text NOT NULL, request_type text NOT NULL DEFAULT 'FIXA', intended_category text, scheduled_date text, scheduled_time text, examiner_id text, schedule_id text, scheduled_category text, status text NOT NULL DEFAULT 'SCHEDULED', attendance_confirmed boolean DEFAULT false, cancellation_reason text, observation text, created_at timestamp DEFAULT now(), updated_at timestamp DEFAULT now())`,
+      sql`CREATE TABLE IF NOT EXISTS exam_locations (id text PRIMARY KEY, city_id text NOT NULL, address text, maps_url text, regions_served jsonb DEFAULT '[]'::jsonb, created_at timestamp DEFAULT now())`,
     ];
 
     const columns = [
@@ -58,6 +59,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS taxa_paga boolean DEFAULT false`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS scheduled_by text`,
       sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS code text`,
+      sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS location_id text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS instructor_id text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`,

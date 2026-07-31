@@ -87,7 +87,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       }
 
       if (updates.date) updates.date = updates.date.split('T')[0];
-      const allowed = ['code','date','time','examinerIds','maxSlotsA','maxSlotsB','type','status','cancellationReason'];
+      const allowed = ['code','date','time','examinerIds','maxSlotsA','maxSlotsB','type','status','cancellationReason','locationId'];
       const filtered: any = {};
       for (const k of allowed) if (updates[k] !== undefined) filtered[k] = updates[k];
 
