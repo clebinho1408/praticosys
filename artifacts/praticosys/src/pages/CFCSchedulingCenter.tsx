@@ -2033,7 +2033,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                            <th className="px-4 py-3">Horário</th>
                            <th className="px-4 py-3">Examinador</th>
                            <th className="px-4 py-3">Exame</th>
-                           {user.role !== UserRole.SCHOOL && !isConsultant && <th className="px-4 py-3 text-right">Ações</th>}
                          </tr>
                        </thead>
                        <tbody className="divide-y divide-slate-50">
@@ -2045,41 +2044,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                              <td className="px-4 py-3 text-slate-600">{req.scheduledTime || '08:00'}</td>
                              <td className="px-4 py-3 text-slate-600 uppercase">{getExaminerName(req.examinerId)}</td>
                              <td className="px-4 py-3 text-slate-600">{getExamTypeLabel(req)}</td>
-                             {user.role !== UserRole.SCHOOL && (
-                               <td className="px-4 py-3 text-right">
-                                 {(() => {
-                                   const targetScheduleId = req.scheduleId || req.id;
-                                   const hasResult = allBancaResults.some(r => 
-                                     r.scheduleId === targetScheduleId && 
-                                     r.schoolId === req.schoolId && 
-                                     r.usedSlots > 0
-                                   );
-                                   
-                                   return (
-                                     <button
-                                       onClick={() => {
-                                         setSelectedRequest(req);
-                                         setIsFromDoneCard(true);
-                                         setIsEditModalOpen(true);
-                                         // Find first available category tab
-                                         const cats = req.intendedCategory?.split(',') || [];
-                                         if (cats.includes('A')) setActiveEditTab('catA');
-                                         else if (cats.includes('B')) setActiveEditTab('catB');
-                                         else if (cats.some(c => ['C', 'D', 'E'].includes(c))) setActiveEditTab('mudanca');
-                                         else setActiveEditTab('catA');
-                                       }}
-                                       className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all shadow-sm hover:shadow-md ${
-                                         hasResult 
-                                           ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
-                                           : 'bg-red-500 text-white hover:bg-red-600'
-                                       }`}
-                                     >
-                                       {hasResult ? 'Resultado Inserido' : 'Inserir Resultado'}
-                                     </button>
-                                   );
-                                 })()}
-                               </td>
-                             )}
                            </tr>
                          ))}
                        </tbody>

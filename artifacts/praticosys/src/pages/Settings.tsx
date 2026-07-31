@@ -22,7 +22,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'BLOCKED_DATES'>('AGENCY_DATA');
 
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
-  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS'>('COMMUNICATION');
+  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS'>('LOCAIS');
   const [cities, setCities] = useState<City[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
@@ -731,48 +731,9 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
             {activeTab === 'CNH_BRASIL' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
-                        <button type="button" onClick={() => setActiveSubTabCNH('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>GERAL</button>
                         <button type="button" onClick={() => setActiveSubTabCNH('LOCAIS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'LOCAIS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>LOCAIS</button>
                     </div>
                     
-                    {activeSubTabCNH === 'COMMUNICATION' && (
-                        <div className="space-y-8 animate-fadeIn">
-                            <div className="space-y-4">
-                                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                    <MapPin className="h-4 w-4 text-blue-600" /> Endereço Padrão do Exame
-                                </h3>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Endereço Completo</label>
-                                        <input 
-                                            type="text" 
-                                            name="defaultExamAddress" 
-                                            value={settings.defaultExamAddress || ''} 
-                                            onChange={handleChange} 
-                                            placeholder="Ex: Av. Principal, 123 - Centro"
-                                            className="w-full border p-2 rounded bg-white text-gray-900" 
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">Localização (Link Google Maps)</label>
-                                        <div className="relative">
-                                            <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                            <input 
-                                                type="text" 
-                                                name="defaultExamAddressLink" 
-                                                value={settings.defaultExamAddressLink || ''} 
-                                                onChange={handleChange} 
-                                                placeholder="Ex: https://maps.app.goo.gl/..."
-                                                className="w-full border p-2 pl-10 rounded bg-white text-gray-900" 
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        </div>
-                    )}
-
                     {activeSubTabCNH === 'LOCAIS' && (
                         <div className="space-y-6 animate-fadeIn">
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
