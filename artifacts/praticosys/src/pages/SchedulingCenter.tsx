@@ -584,7 +584,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     // ── CNH do Brasil ────────────────────────────────────────────────────────
     if (type === ExamType.COMMON) {
       const bodyLines = [
-        `> *COMPROVANTE DE AGENDAMENTO DA CATEGORIA ${category}*`,
+        `*COMPROVANTE DE AGENDAMENTO DA CATEGORIA ${category}*`,
         ``,
         `_Segue agendamento solicitado por_ _*${candidateName} (CPF: ${candidateCpf})*_ _para EXAME PRÁTICO:_`,
         ``,

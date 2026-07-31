@@ -779,7 +779,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
 
     const lines: string[] = [];
-    lines.push(`> *EXAMES PRÁTICOS PARA ${dayName.toUpperCase()} (${dayOfMonth}/${month})*`);
+    lines.push(`*EXAMES PRÁTICOS PARA ${dayName.toUpperCase()} (${dayOfMonth}/${month})*`);
 
     // Agrupa por examinador
     const byExaminer: Record<string, ExamRequest[]> = {};
