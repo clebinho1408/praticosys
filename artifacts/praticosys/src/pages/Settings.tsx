@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { api } from '../services/api';
-import { SystemSettings, City, Examiner, BlockedDate, UserRole, User } from '../types';
+import { SystemSettings, City, ExamLocation, Examiner, BlockedDate, UserRole, User } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert, Edit2 } from 'lucide-react';
 import { AlertModal, ConfirmModal } from '../components/CustomModals';
 import DatePicker from '../components/DatePicker';
@@ -22,7 +22,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'BLOCKED_DATES'>('AGENCY_DATA');
 
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
-  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION'>('COMMUNICATION');
+  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS'>('COMMUNICATION');
   const [cities, setCities] = useState<City[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
@@ -30,6 +30,11 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [newCityName, setNewCityName] = useState('');
   const [editingCity, setEditingCity] = useState<City | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Exam Locations state
+  const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
+  const [locationForm, setLocationForm] = useState({ cityId: '', address: '', mapsUrl: '', regionsServed: [] as string[] });
+  const [editingLocation, setEditingLocation] = useState<ExamLocation | null>(null);
 
   const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; title: string; message: string; type?: 'error' | 'success' | 'info' }>({
     isOpen: false,
@@ -42,7 +47,46 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
     loadCities();
     loadExaminers();
     loadBlockedDates();
+    loadExamLocations();
   }, []);
+
+  const loadExamLocations = async () => {
+    try {
+      const data = await api.getExamLocations();
+      setExamLocations(data);
+    } catch (err) {
+      console.error('Error loading exam locations:', err);
+    }
+  };
+
+  const handleSaveLocation = async () => {
+    const form = editingLocation
+      ? { cityId: editingLocation.cityId, address: editingLocation.address, mapsUrl: editingLocation.mapsUrl, regionsServed: editingLocation.regionsServed || [] }
+      : locationForm;
+    if (!form.cityId) return;
+    try {
+      if (editingLocation) {
+        await api.updateExamLocation(editingLocation.id, form);
+        setEditingLocation(null);
+      } else {
+        await api.createExamLocation(form);
+        setLocationForm({ cityId: '', address: '', mapsUrl: '', regionsServed: [] });
+      }
+      await loadExamLocations();
+      setSuccessMsg('Local salvo com sucesso!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleDeleteLocation = async (id: string) => {
+    if (!confirm('Deseja remover este local de prova?')) return;
+    try {
+      await api.deleteExamLocation(id);
+      await loadExamLocations();
+      setSuccessMsg('Local removido!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) { console.error(err); }
+  };
 
   const loadBlockedDates = async () => {
     try {
@@ -688,6 +732,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
                         <button type="button" onClick={() => setActiveSubTabCNH('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>GERAL</button>
+                        <button type="button" onClick={() => setActiveSubTabCNH('LOCAIS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'LOCAIS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>LOCAIS</button>
                     </div>
                     
                     {activeSubTabCNH === 'COMMUNICATION' && (
@@ -725,6 +770,123 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                 </div>
                             </div>
 
+                        </div>
+                    )}
+
+                    {activeSubTabCNH === 'LOCAIS' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
+                                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <MapPin className="h-4 w-4 text-blue-600" /> {editingLocation ? 'Editar Local de Prova' : 'Novo Local de Prova'}
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Local Padrão (Cidade) <span className="text-red-500">*</span></label>
+                                        <select
+                                            className="w-full border rounded-md p-2 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                            value={editingLocation ? (editingLocation.cityId || '') : locationForm.cityId}
+                                            onChange={e => editingLocation
+                                                ? setEditingLocation({ ...editingLocation, cityId: e.target.value })
+                                                : setLocationForm({ ...locationForm, cityId: e.target.value })}
+                                        >
+                                            <option value="">Selecione a cidade...</option>
+                                            {cities.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Endereço</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Ex: Av. Principal, 123 - Centro"
+                                            className="w-full border rounded-md p-2 bg-white text-gray-900"
+                                            value={editingLocation ? (editingLocation.address || '') : locationForm.address}
+                                            onChange={e => editingLocation
+                                                ? setEditingLocation({ ...editingLocation, address: e.target.value })
+                                                : setLocationForm({ ...locationForm, address: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Localização (Google Maps)</label>
+                                        <input
+                                            type="url"
+                                            placeholder="https://maps.app.goo.gl/..."
+                                            className="w-full border rounded-md p-2 bg-white text-gray-900"
+                                            value={editingLocation ? (editingLocation.mapsUrl || '') : locationForm.mapsUrl}
+                                            onChange={e => editingLocation
+                                                ? setEditingLocation({ ...editingLocation, mapsUrl: e.target.value })
+                                                : setLocationForm({ ...locationForm, mapsUrl: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Regiões Atendidas (Cidades)</label>
+                                        <div className="border rounded-md p-2 bg-white max-h-36 overflow-y-auto space-y-1">
+                                            {cities.map(c => {
+                                                const regions = editingLocation ? (editingLocation.regionsServed || []) : locationForm.regionsServed;
+                                                const checked = regions.includes(c.id);
+                                                return (
+                                                    <label key={c.id} className={`flex items-center gap-2 cursor-pointer p-1 rounded hover:bg-gray-50 text-sm ${checked ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checked}
+                                                            onChange={() => {
+                                                                const next = checked ? regions.filter((id: string) => id !== c.id) : [...regions, c.id];
+                                                                if (editingLocation) setEditingLocation({ ...editingLocation, regionsServed: next });
+                                                                else setLocationForm({ ...locationForm, regionsServed: next });
+                                                            }}
+                                                            className="accent-blue-600"
+                                                        />
+                                                        {c.name}
+                                                    </label>
+                                                );
+                                            })}
+                                            {cities.length === 0 && <p className="text-xs text-gray-400 italic p-1">Nenhuma cidade cadastrada.</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-3 justify-end">
+                                    {editingLocation && (
+                                        <button type="button" onClick={() => setEditingLocation(null)} className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 font-medium text-sm">Cancelar</button>
+                                    )}
+                                    <button type="button" onClick={handleSaveLocation} className="px-4 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 text-sm flex items-center gap-2">
+                                        <Plus className="h-4 w-4" />{editingLocation ? 'Atualizar' : 'Adicionar Local'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {examLocations.length === 0 && (
+                                    <div className="py-10 text-center text-gray-400 bg-gray-50 rounded-lg border border-dashed">
+                                        Nenhum local de prova cadastrado.
+                                    </div>
+                                )}
+                                {examLocations.map(loc => {
+                                    const city = cities.find(c => c.id === loc.cityId);
+                                    const regionNames = (loc.regionsServed || []).map((id: string) => cities.find(c => c.id === id)?.name).filter(Boolean).join(', ');
+                                    return (
+                                        <div key={loc.id} className="flex items-start justify-between p-4 bg-white border border-gray-200 rounded-lg shadow-sm group">
+                                            <div className="flex-1 space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <MapPin className="h-4 w-4 text-blue-600" />
+                                                    <span className="font-bold text-gray-800">{city?.name || loc.cityId}</span>
+                                                </div>
+                                                {loc.address && <p className="text-xs text-gray-500 ml-6">{loc.address}</p>}
+                                                {loc.mapsUrl && (
+                                                    <a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline ml-6 flex items-center gap-1">
+                                                        <LinkIcon className="h-3 w-3" /> Ver no mapa
+                                                    </a>
+                                                )}
+                                                {regionNames && (
+                                                    <p className="text-xs text-gray-500 ml-6"><span className="font-medium">Regiões:</span> {regionNames}</p>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity ml-4">
+                                                <button type="button" onClick={() => setEditingLocation(loc)} className="text-blue-600 hover:text-blue-800 p-1"><Edit2 className="h-4 w-4" /></button>
+                                                <button type="button" onClick={() => handleDeleteLocation(loc.id)} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="h-4 w-4" /></button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </div>

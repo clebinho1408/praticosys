@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import {
   users, drivingSchools, examiners, instructors, vehicles,
   examSchedules, examRequests, systemSettings, blockedDates,
-  cities, examScheduleSlots, bancaResults
+  cities, examScheduleSlots, bancaResults, examLocations
 } from "@workspace/db";
 import { eq, and, like, isNotNull, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
@@ -573,6 +573,54 @@ router.delete("/schedule-slots", async (req, res) => {
     if (!id) return res.status(400).json({ error: "ID required" });
     await db.delete(examScheduleSlots).where(eq(examScheduleSlots.id, id));
     return res.json({ success: true });
+  } catch (err: any) { return res.status(500).json({ error: err.message }); }
+});
+
+// ─── EXAM LOCATIONS ───────────────────────────────────────────────────────────
+router.get("/exam-locations", async (_req, res) => {
+  try {
+    // Ensure table and locationId column exist
+    try {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS exam_locations (
+          id text PRIMARY KEY,
+          city_id text NOT NULL,
+          address text,
+          maps_url text,
+          regions_served jsonb DEFAULT '[]',
+          created_at timestamp DEFAULT now()
+        )
+      `);
+      await db.execute(sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS location_id text`);
+    } catch {}
+    return res.json(await db.select().from(examLocations));
+  } catch (err: any) { return res.status(500).json({ error: err.message }); }
+});
+router.post("/exam-locations", async (req, res) => {
+  try {
+    const { cityId, address, mapsUrl, regionsServed } = req.body;
+    if (!cityId) return res.status(400).json({ error: "cityId é obrigatório" });
+    const item = await db.insert(examLocations).values({
+      id: crypto.randomUUID(), cityId, address: address || null,
+      mapsUrl: mapsUrl || null, regionsServed: regionsServed || [],
+    }).returning();
+    return res.status(201).json(item[0]);
+  } catch (err: any) { return res.status(500).json({ error: err.message }); }
+});
+router.put("/exam-locations", async (req, res) => {
+  try {
+    const { id, createdAt, ...updates } = req.body;
+    if (!id) return res.status(400).json({ error: "ID required" });
+    const item = await db.update(examLocations).set(updates).where(eq(examLocations.id, id)).returning();
+    return res.json(item[0]);
+  } catch (err: any) { return res.status(500).json({ error: err.message }); }
+});
+router.delete("/exam-locations", async (req, res) => {
+  try {
+    const { id } = req.query as any;
+    if (!id) return res.status(400).json({ error: "ID required" });
+    await db.delete(examLocations).where(eq(examLocations.id, id));
+    return res.status(204).end();
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 

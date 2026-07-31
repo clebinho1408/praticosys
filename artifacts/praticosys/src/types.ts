@@ -113,6 +113,15 @@ export interface Instructor {
   vehicles?: Vehicle[]; // New: List of vehicles
 }
 
+export interface ExamLocation {
+  id: string;
+  cityId: string;
+  address?: string;
+  mapsUrl?: string;
+  regionsServed: string[]; // Array of city IDs
+  createdAt?: string;
+}
+
 export interface ExamSchedule {
   id: string;
   code?: string; // New: Unique code (e.g., B6324)
@@ -124,6 +133,7 @@ export interface ExamSchedule {
   type: ExamType;
   status: 'OPEN' | 'CLOSED' | 'CONCLUDED' | 'CANCELLED';
   cancellationReason?: string; // New: Reason if cancelled
+  locationId?: string | null; // Local Padrão (exam location)
 }
 
 export interface ExamResultEntry {

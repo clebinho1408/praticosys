@@ -1,4 +1,4 @@
-import { ExamRequest, ExamSchedule, Examiner, Instructor, DrivingSchool, SystemSettings, User, City, BancaResult } from '../types';
+import { ExamRequest, ExamSchedule, ExamLocation, Examiner, Instructor, DrivingSchool, SystemSettings, User, City, BancaResult } from '../types';
 
 // With Cloudflare Pages Functions, the API runs on the same domain as the frontend.
 // All /api/* requests are handled by functions/api/* — no external backend needed.
@@ -130,6 +130,12 @@ export const api = {
       }) 
     }),
   
+  // --- EXAM LOCATIONS ---
+  getExamLocations: () => request<ExamLocation[]>('/exam-locations'),
+  createExamLocation: (data: Partial<ExamLocation>) => request<ExamLocation>('/exam-locations', { method: 'POST', body: JSON.stringify(data) }),
+  updateExamLocation: (id: string, data: Partial<ExamLocation>) => request<ExamLocation>('/exam-locations', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  deleteExamLocation: (id: string) => request<void>(`/exam-locations?id=${id}`, { method: 'DELETE' }),
+
   // --- RISK AREA ---
   resetData: () => request<void>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'RESET_DATA' }) }),
   cleanupPhantomRequests: () => request<{ success: boolean; message: string; removed: number }>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'CLEANUP_PHANTOM_REQUESTS' }) }),

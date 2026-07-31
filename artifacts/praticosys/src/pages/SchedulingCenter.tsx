@@ -2,7 +2,7 @@
 // Scheduling Center Page
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { ExamRequest, ExamSchedule, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate, RequestSource } from '../types';
+import { ExamRequest, ExamSchedule, ExamLocation, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate, RequestSource, City } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
 import { 
   Calendar, 
@@ -181,6 +181,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
       return d.toISOString().split('T')[0];
   });
 
+  const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
   const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
   const [scheduleForm, setScheduleForm] = useState({ 
     date: '', 
@@ -188,7 +190,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
     examinerIds: [] as string[], 
     maxSlotsA: 10, 
     maxSlotsB: 10,
-    type: type || ExamType.COMMON
+    type: type || ExamType.COMMON,
+    locationId: null as string | null,
   });
 
   const globalQueue = React.useMemo(() => {
@@ -234,7 +237,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   };
 
   const fullAvailableRequests = React.useMemo(() => {
-    return allRequests
+    let reqs = allRequests
      .filter(r => {
          if (r.status !== ExamStatus.WAITING_SCHEDULING) return false;
          
@@ -246,7 +249,22 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
          return false;
      })
      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }, [allRequests, selectedSchedule, type]);
+
+    // Filter by exam location's regionsServed if the banca has a locationId
+    if (selectedSchedule?.locationId) {
+      const location = examLocations.find(l => l.id === selectedSchedule.locationId);
+      if (location && location.regionsServed && location.regionsServed.length > 0) {
+        reqs = reqs.filter(r => {
+          if (!r.city) return false;
+          // Candidate city may be stored as city name; find matching city ID
+          const cityObj = cities.find(c => c.name === r.city || c.id === r.city);
+          return cityObj ? location.regionsServed.includes(cityObj.id) : false;
+        });
+      }
+    }
+
+    return reqs;
+  }, [allRequests, selectedSchedule, type, examLocations, cities]);
 
   const fullCandidatesA = fullAvailableRequests.filter(r => (r.intendedCategory === 'A' || r.intendedCategory === 'AB') && isValidForCategory(r, 'A'));
   const fullCandidatesB = fullAvailableRequests.filter(r => (r.intendedCategory === 'B' || r.intendedCategory === 'AB') && isValidForCategory(r, 'B'));
@@ -254,12 +272,14 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const refreshData = async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [scheds, exams, sysSettings, requests, blocked] = await Promise.all([
+      const [scheds, exams, sysSettings, requests, blocked, locs, cityList] = await Promise.all([
         api.getSchedules(), 
         api.getExaminersAsync(), 
         api.getSettings(), 
         api.getRequests(),
-        fetch('/api/blocked-dates').then(res => res.ok ? res.json() : [])
+        fetch('/api/blocked-dates').then(res => res.ok ? res.json() : []),
+        api.getExamLocations().catch(() => [] as ExamLocation[]),
+        api.getCities().catch(() => [] as City[]),
       ]);
       let filteredScheds = scheds;
       if (type) filteredScheds = filteredScheds.filter(s => s.type === type);
@@ -268,6 +288,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
       setSettings(sysSettings);
       setAllRequests(requests);
       setBlockedDates(blocked);
+      setExamLocations(locs);
+      setCities(cityList);
     } catch (e) {
       console.error(e);
     } finally {
@@ -458,7 +480,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         examinerIds: sched.examinerIds || [],
         maxSlotsA: sched.maxSlotsA,
         maxSlotsB: sched.maxSlotsB,
-        type: sched.type
+        type: sched.type,
+        locationId: sched.locationId ?? null,
       });
     } else {
       setEditingSchedule(null);
@@ -468,7 +491,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         examinerIds: [],
         maxSlotsA: settings?.defaultMaxSlotsA || 10,
         maxSlotsB: settings?.defaultMaxSlotsB || 10,
-        type: type || ExamType.COMMON
+        type: type || ExamType.COMMON,
+        locationId: null,
       });
     }
     setIsModalOpen(true);
@@ -1601,6 +1625,33 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                               ))}
                           </div>
                       </div>
+                      {/* Local Padrão — only shown for CNH do Brasil */}
+                      {(type === ExamType.COMMON || scheduleForm.type === ExamType.COMMON) && (
+                          <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Local Padrão</label>
+                              <select
+                                  className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                                  value={scheduleForm.locationId || ''}
+                                  onChange={e => setScheduleForm({...scheduleForm, locationId: e.target.value || null})}
+                              >
+                                  <option value="">Sem local definido (todos os candidatos)</option>
+                                  {examLocations.map(loc => {
+                                      const cityObj = cities.find(c => c.id === loc.cityId);
+                                      return (
+                                          <option key={loc.id} value={loc.id}>
+                                              {cityObj?.name || loc.cityId}{loc.address ? ` — ${loc.address}` : ''}
+                                          </option>
+                                      );
+                                  })}
+                              </select>
+                              {scheduleForm.locationId && (() => {
+                                  const loc = examLocations.find(l => l.id === scheduleForm.locationId);
+                                  if (!loc || !loc.regionsServed?.length) return null;
+                                  const regionNames = loc.regionsServed.map(id => cities.find(c => c.id === id)?.name).filter(Boolean).join(', ');
+                                  return regionNames ? <p className="text-xs text-blue-600 mt-1">Filtrará candidatos das cidades: {regionNames}</p> : null;
+                              })()}
+                          </div>
+                      )}
                       <div className="grid grid-cols-2 gap-4">
                           <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">Vagas Cat. A (Moto)</label>

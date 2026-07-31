@@ -67,6 +67,15 @@ export const vehicles = pgTable('vehicles', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
+export const examLocations = pgTable('exam_locations', {
+  id: text('id').primaryKey(),
+  cityId: text('city_id').notNull(),
+  address: text('address'),
+  mapsUrl: text('maps_url'),
+  regionsServed: jsonb('regions_served').$type<string[]>().default([]),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
 export const examSchedules = pgTable('exam_schedules', {
   id: text('id').primaryKey(),
   code: text('code').unique(),
@@ -78,6 +87,7 @@ export const examSchedules = pgTable('exam_schedules', {
   type: text('type').notNull(),
   status: text('status').notNull(),
   cancellationReason: text('cancellation_reason'),
+  locationId: text('location_id'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
