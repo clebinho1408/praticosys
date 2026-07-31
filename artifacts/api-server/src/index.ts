@@ -35,6 +35,18 @@ async function runMigrations() {
       WHERE category_quantities IS NULL
         AND observation LIKE '[Qtd:%'
     `);
+    // Exam locations table + locationId column on exam_schedules
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS exam_locations (
+        id text PRIMARY KEY,
+        city_id text NOT NULL,
+        address text,
+        maps_url text,
+        regions_served jsonb DEFAULT '[]',
+        created_at timestamp DEFAULT now()
+      )
+    `);
+    await db.execute(sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS location_id text`);
     logger.info("DB migrations complete");
   } catch (err) {
     logger.warn({ err }, "DB migration step skipped or failed");

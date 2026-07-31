@@ -579,20 +579,6 @@ router.delete("/schedule-slots", async (req, res) => {
 // ─── EXAM LOCATIONS ───────────────────────────────────────────────────────────
 router.get("/exam-locations", async (_req, res) => {
   try {
-    // Ensure table and locationId column exist
-    try {
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS exam_locations (
-          id text PRIMARY KEY,
-          city_id text NOT NULL,
-          address text,
-          maps_url text,
-          regions_served jsonb DEFAULT '[]',
-          created_at timestamp DEFAULT now()
-        )
-      `);
-      await db.execute(sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS location_id text`);
-    } catch {}
     return res.json(await db.select().from(examLocations));
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
