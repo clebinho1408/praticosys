@@ -891,6 +891,11 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     // Operators only see OPEN bancas
     if (user.role === UserRole.OPERATOR && s.status !== 'OPEN') return false;
 
+    // Location access restriction: if user has allowedLocationIds, only show bancas whose locationId is in the list
+    if (user.allowedLocationIds && user.allowedLocationIds.length > 0) {
+      if (!s.locationId || !user.allowedLocationIds.includes(s.locationId)) return false;
+    }
+
     const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
     const matchesSearch = s.date.includes(searchTerm) || 
                           s.examinerIds.some(id => getExaminerName(id).toLowerCase().includes(searchTerm.toLowerCase())) ||

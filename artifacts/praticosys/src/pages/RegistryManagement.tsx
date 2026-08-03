@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, OperatorModule, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule, City } from '../types';
+import { User, UserRole, OperatorModule, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
@@ -79,7 +79,9 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
   // Form State
-  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[] }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'] });
+  const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[] }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [] });
 
   // Confirmation Modal State
   const [confirmState, setConfirmState] = useState<{
@@ -97,9 +99,16 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   });
 
   const fetchData = async () => {
-    const [u, s] = await Promise.all([api.getUsers(), api.getSchoolsAsync()]);
+    const [u, s, locs, cityList] = await Promise.all([
+      api.getUsers(),
+      api.getSchoolsAsync(),
+      api.getExamLocations().catch(() => [] as ExamLocation[]),
+      api.getCities().catch(() => [] as City[]),
+    ]);
     setUsers(u);
     setSchools(s);
+    setExamLocations(locs);
+    setCities(cityList);
   };
 
   useEffect(() => { fetchData(); }, []);
@@ -107,10 +116,10 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const openModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'] });
+      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'], allowedLocationIds: user.allowedLocationIds || [] });
     } else {
       setEditingUser(null);
-      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'] });
+      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [] });
     }
     setIsModalOpen(true);
   };
@@ -123,8 +132,15 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
     }
     try {
       const payload: any = { ...formData };
-      // Only persist allowedModules for OPERATOR and SUPERVISOR roles
-      if (formData.role !== UserRole.OPERATOR && formData.role !== UserRole.SUPERVISOR) delete payload.allowedModules;
+      // Only persist allowedModules/allowedLocationIds for OPERATOR and SUPERVISOR roles
+      if (formData.role !== UserRole.OPERATOR && formData.role !== UserRole.SUPERVISOR) {
+        delete payload.allowedModules;
+        delete payload.allowedLocationIds;
+      }
+      // If CNH module is not selected, clear location restrictions
+      if (!payload.allowedModules?.includes('cnh')) {
+        payload.allowedLocationIds = [];
+      }
       if (editingUser) {
         await api.updateUser(editingUser.id, payload);
       } else {
@@ -348,6 +364,35 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                   {formData.allowedModules.length === 0 && (
                     <p className="text-xs text-red-500 mt-1">Selecione ao menos um módulo.</p>
                   )}
+                </div>
+              )}
+              {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && formData.allowedModules.includes('cnh') && examLocations.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Locais de Acesso — CNH do Brasil</label>
+                  <p className="text-xs text-gray-500 mb-2">Deixe em branco para liberar todos os locais.</p>
+                  <div className="space-y-2 border rounded p-3 bg-gray-50 max-h-40 overflow-y-auto">
+                    {examLocations.map(loc => {
+                      const locCity = cities.find(c => c.id === loc.cityId);
+                      const label = locCity?.name || loc.cityId;
+                      const isChecked = formData.allowedLocationIds.includes(loc.id);
+                      return (
+                        <label key={loc.id} className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              const next = e.target.checked
+                                ? [...formData.allowedLocationIds, loc.id]
+                                : formData.allowedLocationIds.filter(id => id !== loc.id);
+                              setFormData({ ...formData, allowedLocationIds: next });
+                            }}
+                            className="h-4 w-4 accent-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">{label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
               <div className="flex justify-end gap-3 mt-6">

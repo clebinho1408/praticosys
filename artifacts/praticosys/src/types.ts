@@ -50,6 +50,7 @@ export interface User {
   password?: string;
   forcePasswordChange?: boolean;
   allowedModules?: OperatorModule[]; // Only for OPERATOR role
+  allowedLocationIds?: string[]; // Restricts CNH do Brasil bancas visible to this user (empty = all)
 }
 
 export interface SchoolSchedule {

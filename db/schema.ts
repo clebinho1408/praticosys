@@ -11,6 +11,7 @@ export const users = pgTable('users', {
   instructorId: text('instructor_id'),
   forcePasswordChange: boolean('force_password_change').default(true),
   allowedModules: jsonb('allowed_modules').$type<string[]>().default([]),
+  allowedLocationIds: jsonb('allowed_location_ids').$type<string[]>().default([]),
   createdAt: timestamp('created_at').defaultNow(),
 });
 
