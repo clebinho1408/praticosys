@@ -64,6 +64,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS instructor_id text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_modules jsonb DEFAULT '[]'::jsonb`,
+      sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_location_ids jsonb DEFAULT '[]'::jsonb`,
       sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS category text`,
       sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS plate text`,
       sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS cpf text`,
