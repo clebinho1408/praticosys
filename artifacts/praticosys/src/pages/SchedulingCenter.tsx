@@ -2066,6 +2066,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
 
         // Exam location: prefer banca's locationId, fall back to system defaults
         const schedLocation = sched.locationId ? examLocations.find(l => l.id === sched.locationId) : null;
+        const schedLocationCity = schedLocation ? cities.find(c => c.id === schedLocation.cityId) : null;
         const examAddress = schedLocation?.address || settings?.defaultExamAddress || '';
         const examMapsUrl = schedLocation?.mapsUrl || settings?.defaultExamAddressLink || '';
 
@@ -2136,7 +2137,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                           .print-footer .footer-left { text-align: left; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                           .print-footer .footer-right { text-align: right; flex-shrink: 0; white-space: nowrap; }
                         </style>
-                        </head><body>${el.innerHTML}<div class="print-footer"><span class="footer-left">${(settings?.agencyAddress || '').toUpperCase()}</span><span class="footer-right">IMPRESSÃO: ${user.name} - ${new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span></div></body></html>
+                        </head><body>${el.innerHTML}<div class="print-footer"><span class="footer-left">SISTEMA DE GESTÃO DE EXAME PRÁTICO - PRÁTICOSYS</span><span class="footer-right">IMPRESSÃO: ${user.name} - ${new Date().toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span></div></body></html>
                       `);
                       pri.document.close();
                       pri.focus();
@@ -2169,7 +2170,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                       <p style={{fontSize:'10pt', fontWeight:'bold', textTransform:'uppercase', margin:'0 0 2px'}}>ESTADO DE SANTA CATARINA</p>
                       <p style={{fontSize:'10pt', fontWeight:'bold', textTransform:'uppercase', margin:'0 0 2px'}}>DEPARTAMENTO ESTADUAL DE TRÂNSITO</p>
                       <p style={{fontSize:'10pt', fontWeight:'bold', textTransform:'uppercase', margin:'0'}}>
-                        AGÊNCIA REGIONAL DE BALNEÁRIO CAMBORIÚ - SETOR CNH
+                        {schedLocationCity ? `AGÊNCIA REGIONAL DE ${schedLocationCity.name.toUpperCase()} - CNH` : 'AGÊNCIA REGIONAL - CNH'}
                       </p>
                     </div>
                   </div>
