@@ -1194,9 +1194,17 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                             <div className="h-16 w-16 bg-red-600 flex items-center justify-center text-white font-bold text-xs print:!text-black shrink-0">DETRAN</div>
                         )}
                         <div>
-                            <h1 className="text-xl font-bold uppercase tracking-tight print:!text-black">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                            <h1 className="text-xl font-bold uppercase tracking-tight print:!text-black">
+                                {(() => {
+                                  const loc = selectedSchedule.locationId ? examLocations.find(l => l.id === selectedSchedule.locationId) : null;
+                                  const locCity = loc ? cities.find(c => c.id === loc.cityId) : null;
+                                  return locCity
+                                    ? `AGÊNCIA REGIONAL DO DETRAN DE ${locCity.name.toUpperCase()} - CNH`
+                                    : (settings?.agencyName || 'AGÊNCIA REGIONAL DO DETRAN - CNH');
+                                })()}
+                            </h1>
                             <h2 className="text-2xl font-bold uppercase print:!text-black">
-                                LISTA DO EXAME PRÁTICO DA CNH DO BRASIL
+                                LISTA DE CANDIDATOS DO EXAME PRÁTICO
                             </h2>
                         </div>
                     </div>
@@ -1597,7 +1605,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                 
                 {/* Print Footer (Fixed at bottom) */}
                 <div className="hidden print:flex fixed bottom-0 left-0 w-full bg-white border-t-2 border-black pt-2 pb-2 px-8 justify-between items-center text-[10px] font-bold text-black">
-                    <div className="uppercase max-w-[70%] break-words text-left">{settings?.agencyAddress || 'ENDEREÇO DA AGÊNCIA'}</div>
+                    <div className="uppercase max-w-[70%] break-words text-left">SISTEMA DE GESTÃO DE EXAME PRÁTICO - PRÁTICOSYS</div>
                     <div className="whitespace-nowrap text-right">IMPRESSÃO: {new Date().toLocaleString()}</div>
                 </div>
             </div>
