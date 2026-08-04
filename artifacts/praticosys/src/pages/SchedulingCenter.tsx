@@ -722,9 +722,14 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
     // Só aplica formatação WhatsApp no módulo CNH do Brasil
     if (type === ExamType.COMMON) {
+      // Resolve city name from locationId if provided
+      const loc = locationId ? examLocations.find(l => l.id === locationId) : null;
+      const locCity = loc ? cities.find(c => c.id === loc.cityId) : null;
+      const cityLabel = locCity ? ` de ${locCity.name}` : '';
+
       lines.push('> _*Atenção: Essa mensagem ainda não é a confirmação do seu agendamento.*_');
       lines.push('');
-      lines.push('_Datas e Horários disponíveis para o Exame Prático:_');
+      lines.push(`_Datas e Horários disponíveis para o Exame Prático${cityLabel}:_`);
 
       if ((filter === 'A' || filter === 'AB') && schedulesWithA.length > 0) {
         lines.push('');
