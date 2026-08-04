@@ -693,62 +693,114 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       return;
     }
 
-    const todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD no fuso local
     const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrowStr = tomorrowDate.toLocaleDateString('sv-SE');
 
-    // Separa bancas com vagas A e bancas com vagas B
-    const schedulesWithA: { date: string; time: string; isToday: boolean; isTomorrow: boolean }[] = [];
-    const schedulesWithB: { date: string; time: string; isToday: boolean; isTomorrow: boolean }[] = [];
-
-    for (const s of openSchedules) {
-      const raw = (s.date || '').split('T')[0];
-      const [y, m, d] = raw.split('-');
-      const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
-      const time = s.time || '-';
-      const isToday = raw === todayStr;
-      const isTomorrow = raw === tomorrowStr;
-
-      const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A' && r.status === 'SCHEDULED').length;
-      const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B' && r.status === 'SCHEDULED').length;
-      const availA = Math.max(0, (s.maxSlotsA || 0) - occupiedA);
-      const availB = Math.max(0, (s.maxSlotsB || 0) - occupiedB);
-
-      if (availA > 0) schedulesWithA.push({ date: dateFormatted, time, isToday, isTomorrow });
-      if (availB > 0) schedulesWithB.push({ date: dateFormatted, time, isToday, isTomorrow });
-    }
-
     const lines: string[] = [];
 
-    // Só aplica formatação WhatsApp no módulo CNH do Brasil
-    if (type === ExamType.COMMON) {
-      // Resolve city name from locationId if provided
-      const loc = locationId ? examLocations.find(l => l.id === locationId) : null;
-      const locCity = loc ? cities.find(c => c.id === loc.cityId) : null;
-      const cityLabel = locCity ? ` de ${locCity.name}` : '';
+    // Helper: build one location block (without header "Atenção" and without footer)
+    const buildLocationBlock = (
+      schedList: typeof openSchedules,
+      cityName: string | null
+    ): string[] => {
+      const blockLines: string[] = [];
+      const cityLabel = cityName ? ` de ${cityName}` : '';
 
-      lines.push('> _*Atenção: Essa mensagem ainda não é a confirmação do seu agendamento.*_');
-      lines.push('');
-      lines.push(`_Datas e Horários disponíveis para o Exame Prático${cityLabel}:_`);
+      // Per-location A and B lists
+      const locA: { date: string; time: string; isTomorrow: boolean }[] = [];
+      const locB: { date: string; time: string; isTomorrow: boolean }[] = [];
 
-      if ((filter === 'A' || filter === 'AB') && schedulesWithA.length > 0) {
-        lines.push('');
-        lines.push('*🏍️ Categoria A:*');
-        lines.push('');
-        for (const s of schedulesWithA) {
+      for (const s of schedList) {
+        const raw = (s.date || '').split('T')[0];
+        const [y, m, d] = raw.split('-');
+        const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
+        const time = s.time || '-';
+        const isTomorrow = raw === tomorrowStr;
+
+        const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A' && r.status === 'SCHEDULED').length;
+        const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B' && r.status === 'SCHEDULED').length;
+        const availA = Math.max(0, (s.maxSlotsA || 0) - occupiedA);
+        const availB = Math.max(0, (s.maxSlotsB || 0) - occupiedB);
+
+        if (availA > 0) locA.push({ date: dateFormatted, time, isTomorrow });
+        if (availB > 0) locB.push({ date: dateFormatted, time, isTomorrow });
+      }
+
+      // Only include block if it has dates for the requested filter
+      const hasA = (filter === 'A' || filter === 'AB') && locA.length > 0;
+      const hasB = (filter === 'B' || filter === 'AB') && locB.length > 0;
+      if (!hasA && !hasB) return [];
+
+      blockLines.push(`_Datas e Horários disponíveis para o Exame Prático${cityLabel}:_`);
+
+      if (hasA) {
+        blockLines.push('');
+        blockLines.push('*🏍️ Categoria A:*');
+        blockLines.push('');
+        for (const s of locA) {
           const aviso = s.isTomorrow ? ` _(Confirmar hoje até às 17:30)_` : '';
-          lines.push(`> 📆 Data: *${s.date}* ⏰ Hora: *${s.time}*${aviso}`);
+          blockLines.push(`> 📆 Data: *${s.date}* ⏰ Hora: *${s.time}*${aviso}`);
         }
       }
 
-      if ((filter === 'B' || filter === 'AB') && schedulesWithB.length > 0) {
-        lines.push('');
-        lines.push('*🚗 Categoria B:*');
-        lines.push('');
-        for (const s of schedulesWithB) {
+      if (hasB) {
+        blockLines.push('');
+        blockLines.push('*🚗 Categoria B:*');
+        blockLines.push('');
+        for (const s of locB) {
           const aviso = s.isTomorrow ? ` _(Confirmar hoje até às 17:30)_` : '';
-          lines.push(`> 📆 Data: *${s.date}* ⏰ Hora: *${s.time}*${aviso}`);
+          blockLines.push(`> 📆 Data: *${s.date}* ⏰ Hora: *${s.time}*${aviso}`);
         }
+      }
+
+      return blockLines;
+    };
+
+    // Só aplica formatação WhatsApp no módulo CNH do Brasil
+    if (type === ExamType.COMMON) {
+      lines.push('> _*Atenção: Essa mensagem ainda não é a confirmação do seu agendamento.*_');
+      lines.push('');
+
+      if (!locationId) {
+        // Todos os locais: agrupa por locationId, ordena pela cidade
+        const locationGroups = new Map<string | null, typeof openSchedules>();
+        for (const s of openSchedules) {
+          const key = s.locationId ?? null;
+          if (!locationGroups.has(key)) locationGroups.set(key, []);
+          locationGroups.get(key)!.push(s);
+        }
+
+        const blocks: string[][] = [];
+        for (const [locId, schedList] of locationGroups) {
+          const loc = locId ? examLocations.find(l => l.id === locId) : null;
+          const cityObj = loc ? cities.find(c => c.id === loc.cityId) : null;
+          const block = buildLocationBlock(schedList, cityObj?.name ?? null);
+          if (block.length > 0) blocks.push(block);
+        }
+
+        if (blocks.length === 0) {
+          alert('Não há bancas abertas com vagas para a categoria selecionada.');
+          return;
+        }
+
+        for (let i = 0; i < blocks.length; i++) {
+          lines.push(...blocks[i]);
+          if (i < blocks.length - 1) {
+            lines.push('');
+            lines.push('---');
+            lines.push('');
+          }
+        }
+      } else {
+        // Local específico: comportamento original
+        const loc = examLocations.find(l => l.id === locationId);
+        const locCity = loc ? cities.find(c => c.id === loc.cityId) : null;
+        const block = buildLocationBlock(openSchedules, locCity?.name ?? null);
+        if (block.length === 0) {
+          alert('Não há bancas abertas com vagas para a categoria selecionada.');
+          return;
+        }
+        lines.push(...block);
       }
 
       lines.push('');
@@ -757,23 +809,37 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       lines.push('_*⚠️ ATENÇÃO: É OBRIGATÓRIA a presença do instrutor no dia da prova.*_');
     } else {
       // PCD / padrão — sem formatação WhatsApp
+      const pcdA: { date: string; time: string; isTomorrow: boolean }[] = [];
+      const pcdB: { date: string; time: string; isTomorrow: boolean }[] = [];
+      for (const s of openSchedules) {
+        const raw = (s.date || '').split('T')[0];
+        const [y, m, d] = raw.split('-');
+        const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
+        const time = s.time || '-';
+        const isTomorrow = raw === tomorrowStr;
+        const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A' && r.status === 'SCHEDULED').length;
+        const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B' && r.status === 'SCHEDULED').length;
+        if (Math.max(0, (s.maxSlotsA || 0) - occupiedA) > 0) pcdA.push({ date: dateFormatted, time, isTomorrow });
+        if (Math.max(0, (s.maxSlotsB || 0) - occupiedB) > 0) pcdB.push({ date: dateFormatted, time, isTomorrow });
+      }
+
       lines.push('Datas e Horários disponíveis para o Exame Prático:');
 
-      if ((filter === 'A' || filter === 'AB') && schedulesWithA.length > 0) {
+      if ((filter === 'A' || filter === 'AB') && pcdA.length > 0) {
         lines.push('');
         lines.push('🏍️ Categoria A:');
         lines.push('');
-        for (const s of schedulesWithA) {
+        for (const s of pcdA) {
           const aviso = s.isTomorrow ? ' (Confirmar hoje até às 17:30)' : '';
           lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
         }
       }
 
-      if ((filter === 'B' || filter === 'AB') && schedulesWithB.length > 0) {
+      if ((filter === 'B' || filter === 'AB') && pcdB.length > 0) {
         lines.push('');
         lines.push('🚗 Categoria B:');
         lines.push('');
-        for (const s of schedulesWithB) {
+        for (const s of pcdB) {
           const aviso = s.isTomorrow ? ' (Confirmar hoje até às 17:30)' : '';
           lines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
         }
