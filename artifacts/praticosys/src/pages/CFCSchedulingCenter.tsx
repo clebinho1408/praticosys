@@ -747,9 +747,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     const lines = [
       `👋😊 Olá, *${schoolName}*!`,
       ``,
-      `> 🏢 Aqui é do _*${agencyName} – Setor de Exame Prático*_.`,
-      ``,
-      `_📋 Estamos confirmando o agendamento da Prova Prática do Tipo: ${tipo}, marcada para:_`,
+      `📋 _Estamos confirmando o agendamento da sua *Prova Prática*, do tipo *${tipo}*, marcada para:_`,
       ``,
       `> 📅 *${data}*`,
       `> 🕒 *${horario}*`,
@@ -757,7 +755,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       `> 🧑‍🧒‍🧒 Vagas Liberadas: *${vagas}*`,
       `> 👨‍💼 Examinador: *${examinerName}*`,
       ``,
-      `_✅ Por favor, posso confirmar?_`,
+      `✅ _*POSSO CONFIRMAR?*_`,
     ];
 
     const text = lines.join('\n');
