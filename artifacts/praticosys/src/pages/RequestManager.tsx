@@ -1351,6 +1351,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               )}
             </div>
             {/* Quando "Inserir placa manualmente" marcado: campo de texto livre para placa */}
+            {!isDoCandidato && selectedVehicle?.procuracao && (
+              <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mb-1 flex items-center gap-1">
+                📄 Veículo autorizado por procuração
+              </p>
+            )}
             {isDoCandidato ? (
               <input
                 type="text"

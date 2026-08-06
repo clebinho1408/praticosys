@@ -102,6 +102,7 @@ export interface Vehicle {
   transmission?: 'AUTOMATICA' | 'MANUAL';
   accessories?: string[];
   duploComando?: boolean; // Somente para CAR
+  procuracao?: boolean; // Veículo autorizado por procuração
 }
 
 export interface Instructor {

@@ -1412,7 +1412,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
     transmission: 'AUTOMATICA' | 'MANUAL';
     accessories: string[];
     duploComando: boolean;
-  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false });
+    procuracao: boolean;
+  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false });
   
   const [accessoryInput, setAccessoryInput] = useState('');
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
@@ -1458,7 +1459,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
         });
     }
     setModalTab('DATA');
-    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false });
+    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false });
     setAccessoryInput('');
     setEditingVehicleId(null);
     setIsModalOpen(true);
@@ -1514,7 +1515,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                   active: newVehicle.active,
                   transmission: newVehicle.transmission,
                   accessories: newVehicle.accessories,
-                  duploComando: newVehicle.duploComando
+                  duploComando: newVehicle.duploComando,
+                  procuracao: newVehicle.procuracao
               } : v)
           }));
           setEditingVehicleId(null);
@@ -1530,7 +1532,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
               active: newVehicle.active,
               transmission: newVehicle.transmission,
               accessories: newVehicle.accessories,
-              duploComando: newVehicle.duploComando
+              duploComando: newVehicle.duploComando,
+              procuracao: newVehicle.procuracao
           };
 
           setFormData(prev => ({
@@ -1539,7 +1542,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           }));
       }
 
-      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false });
+      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false });
       setAccessoryInput('');
   };
 
@@ -1551,7 +1554,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           active: vehicle.active,
           transmission: vehicle.transmission || 'MANUAL',
           accessories: vehicle.accessories || [],
-          duploComando: (vehicle as any).duploComando ?? false
+          duploComando: vehicle.duploComando ?? false,
+          procuracao: vehicle.procuracao ?? false
       });
       setEditingVehicleId(vehicle.id);
       setAccessoryInput('');
@@ -1704,7 +1708,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'B' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false }); setAccessoryInput(''); }} 
+                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'CARS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Car className="h-4 w-4" /> Carros
@@ -1714,7 +1718,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'A' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false }); setAccessoryInput(''); }} 
+                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'MOTOS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Bike className="h-4 w-4" /> Motos
@@ -1873,10 +1877,16 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                 )}
 
                                 <div className="flex justify-between items-center mt-3">
-                                    <label className="flex items-center gap-2 text-sm cursor-pointer">
-                                        <input type="checkbox" checked={newVehicle.active} onChange={e => setNewVehicle({...newVehicle, active: e.target.checked})} />
-                                        Ativo
-                                    </label>
+                                    <div className="flex items-center gap-4">
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                            <input type="checkbox" checked={newVehicle.active} onChange={e => setNewVehicle({...newVehicle, active: e.target.checked})} />
+                                            Ativo
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                            <input type="checkbox" checked={newVehicle.procuracao} onChange={e => setNewVehicle({...newVehicle, procuracao: e.target.checked})} />
+                                            Possui Procuração
+                                        </label>
+                                    </div>
                                     <button 
                                         type="button" 
                                         onClick={() => handleAddVehicle(modalTab === 'CARS' ? 'CAR' : 'MOTO')}
@@ -1889,7 +1899,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                             type="button" 
                                             onClick={() => {
                                                 setEditingVehicleId(null);
-                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false });
+                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false });
                                                 setAccessoryInput('');
                                             }}
                                             className="px-4 py-2 bg-gray-200 text-gray-600 text-xs font-bold rounded hover:bg-gray-300"

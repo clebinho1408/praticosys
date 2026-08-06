@@ -95,6 +95,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`ALTER TABLE banca_results ADD COLUMN IF NOT EXISTS failed integer DEFAULT 0`,
       sql`ALTER TABLE banca_results ADD COLUMN IF NOT EXISTS absent integer DEFAULT 0`,
       sql`ALTER TABLE banca_results ADD COLUMN IF NOT EXISTS cancelled integer DEFAULT 0`,
+      sql`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`,
     ];
 
     for (const q of tables) { try { await db.execute(q); } catch {} }

@@ -36,6 +36,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
             model: v.model, plate: v.plate, active: v.active ?? true,
             transmission: v.transmission, accessories: v.accessories || [],
             duploComando: v.duploComando ?? false,
+            procuracao: v.procuracao ?? false,
           });
         }
       }
@@ -56,6 +57,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
             plate: v.plate, active: v.active ?? true, transmission: v.transmission,
             accessories: v.accessories || [],
             duploComando: v.duploComando ?? false,
+            procuracao: v.procuracao ?? false,
           });
         }
       }

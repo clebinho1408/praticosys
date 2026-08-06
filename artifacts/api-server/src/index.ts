@@ -48,6 +48,7 @@ async function runMigrations() {
     `);
     await db.execute(sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS location_id text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_location_ids jsonb DEFAULT '[]'`);
+    await db.execute(sql`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
     logger.info("DB migrations complete");
   } catch (err) {
     logger.warn({ err }, "DB migration step skipped or failed");
