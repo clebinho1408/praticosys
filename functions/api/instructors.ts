@@ -11,6 +11,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     try {
       await db.execute(sql`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS duplo_comando boolean DEFAULT false`);
+      await db.execute(sql`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
     } catch {}
 
     if (method === 'GET') {
