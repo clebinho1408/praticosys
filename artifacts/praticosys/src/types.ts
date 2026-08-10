@@ -245,6 +245,7 @@ export interface SystemSettings {
   // CNH Brasil Practical Exam Settings
   cnhBrasilMainSchedule?: SchoolSchedule;
   blockWeekends?: boolean;
+  riskAreaKey?: string;
 }
 
 export interface BlockedDate {

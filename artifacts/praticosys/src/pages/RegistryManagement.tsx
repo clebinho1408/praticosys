@@ -201,9 +201,10 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   }
 
   // Filter Logic
-  const filteredUsers = users.filter(u => 
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      u.login.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter(u =>
+      u.login !== 'admin' &&
+      (u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       u.login.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (

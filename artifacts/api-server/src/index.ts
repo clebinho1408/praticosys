@@ -49,6 +49,7 @@ async function runMigrations() {
     await db.execute(sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS location_id text`);
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_location_ids jsonb DEFAULT '[]'`);
     await db.execute(sql`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
+    await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS risk_area_key text`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id text PRIMARY KEY,

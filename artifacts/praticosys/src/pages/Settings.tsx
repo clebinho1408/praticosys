@@ -23,6 +23,9 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
 
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS'>('LOCAIS');
+  const [riskKeyInput, setRiskKeyInput] = useState('');
+  const [riskKeyVerified, setRiskKeyVerified] = useState(false);
+  const [newRiskKey, setNewRiskKey] = useState('');
   const [cities, setCities] = useState<City[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
@@ -364,7 +367,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
       const response = await fetch('/api/risk-area', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'RESET_DATA' })
+        body: JSON.stringify({ action: 'RESET_DATA', securityKey: riskKeyInput })
       });
       if (!response.ok) {
         const err = await response.json();
@@ -1301,7 +1304,59 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
             )}
 
             {activeTab === 'RISK_AREA' && (
-                <div className="space-y-8 animate-fadeIn">
+                <div className="space-y-6 animate-fadeIn">
+
+                    {/* Chave de segurança */}
+                    <div className="bg-gray-50 border border-gray-200 p-6 rounded-xl space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
+                                <ShieldAlert className="h-5 w-5 text-gray-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-800">Chave de Segurança</h3>
+                                <p className="text-xs text-gray-500">Proteja as operações desta área com uma chave secreta conhecida apenas pelo administrador</p>
+                            </div>
+                        </div>
+                        {settings.riskAreaKey && (
+                            <p className="text-xs text-green-700 flex items-center gap-1.5 font-semibold">
+                                <CheckCircle className="h-3.5 w-3.5" /> Chave de segurança configurada
+                            </p>
+                        )}
+                        {!isConsultant && (
+                            <div className="flex gap-2">
+                                <input
+                                    type="password"
+                                    placeholder={settings.riskAreaKey ? 'Nova chave (deixe vazio para manter)' : 'Definir chave secreta...'}
+                                    className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white"
+                                    value={newRiskKey}
+                                    onChange={e => setNewRiskKey(e.target.value)}
+                                />
+                                <button
+                                    type="button"
+                                    disabled={!newRiskKey.trim() || saving}
+                                    onClick={async () => {
+                                        if (!newRiskKey.trim()) return;
+                                        setSaving(true);
+                                        try {
+                                            await api.updateSettings({ ...settings, riskAreaKey: newRiskKey.trim() } as any);
+                                            setSettings({ ...settings, riskAreaKey: newRiskKey.trim() });
+                                            setNewRiskKey('');
+                                            setRiskKeyVerified(false);
+                                            setRiskKeyInput('');
+                                            setAlertConfig({ isOpen: true, title: 'Chave salva', message: 'Chave de segurança atualizada com sucesso.', type: 'success' });
+                                        } catch {
+                                            setAlertConfig({ isOpen: true, title: 'Erro', message: 'Não foi possível salvar a chave.', type: 'error' });
+                                        } finally { setSaving(false); }
+                                    }}
+                                    className="px-4 py-2 bg-gray-800 text-white text-sm font-bold rounded-lg hover:bg-gray-700 disabled:opacity-40 whitespace-nowrap"
+                                >
+                                    Salvar Chave
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Zona de perigo */}
                     <div className="bg-red-50 border border-red-200 p-6 rounded-xl space-y-4">
                         <div className="flex items-start gap-4">
                             <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
@@ -1322,10 +1377,50 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                 </p>
                             </div>
                         </div>
-                        
-                        <div className="pt-4 flex justify-center">
-                            {!isConsultant && (
-                                <button 
+
+                        {/* Gate de verificação da chave */}
+                        {settings.riskAreaKey && !riskKeyVerified && (
+                            <div className="border-t border-red-200 pt-4 space-y-2">
+                                <p className="text-sm font-semibold text-red-800 flex items-center gap-2">
+                                    <ShieldAlert className="h-4 w-4" /> Digite a chave de segurança para liberar:
+                                </p>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="password"
+                                        placeholder="Chave secreta"
+                                        className="flex-1 border border-red-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 bg-white"
+                                        value={riskKeyInput}
+                                        onChange={e => setRiskKeyInput(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                if (riskKeyInput === settings.riskAreaKey) setRiskKeyVerified(true);
+                                                else setAlertConfig({ isOpen: true, title: 'Chave inválida', message: 'A chave de segurança digitada está incorreta.', type: 'error' });
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (riskKeyInput === settings.riskAreaKey) setRiskKeyVerified(true);
+                                            else setAlertConfig({ isOpen: true, title: 'Chave inválida', message: 'A chave de segurança digitada está incorreta.', type: 'error' });
+                                        }}
+                                        className="px-4 py-2 bg-red-700 text-white text-sm font-bold rounded-lg hover:bg-red-800 whitespace-nowrap"
+                                    >
+                                        Verificar
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {riskKeyVerified && (
+                            <p className="text-xs text-green-700 font-semibold flex items-center gap-1.5 border-t border-red-200 pt-3">
+                                <CheckCircle className="h-3.5 w-3.5" /> Chave verificada — operações liberadas
+                            </p>
+                        )}
+
+                        {(!settings.riskAreaKey || riskKeyVerified) && !isConsultant && (
+                            <div className="pt-2 flex justify-center">
+                                <button
                                     type="button"
                                     onClick={handleResetData}
                                     disabled={saving}
@@ -1334,8 +1429,8 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                     <Trash2 className="h-6 w-6" />
                                     ZERAR E RESETAR SISTEMA
                                 </button>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
 
                 </div>

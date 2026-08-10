@@ -161,6 +161,19 @@ export const systemSettings = pgTable('system_settings', {
   pcdMainSchedule: jsonb('pcd_main_schedule'),
   cnhBrasilMainSchedule: jsonb('cnh_brasil_main_schedule'),
   blockWeekends: boolean('block_weekends').default(false),
+  riskAreaKey: text('risk_area_key'),
+});
+
+export const auditLogs = pgTable('audit_logs', {
+  id: text('id').primaryKey(),
+  userId: text('user_id'),
+  userName: text('user_name'),
+  userRole: text('user_role'),
+  action: text('action').notNull(),
+  entity: text('entity').notNull(),
+  entityId: text('entity_id'),
+  details: jsonb('details').$type<any>(),
+  createdAt: timestamp('created_at').defaultNow(),
 });
 
 export const blockedDates = pgTable('blocked_dates', {
