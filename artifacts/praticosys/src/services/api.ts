@@ -5,12 +5,32 @@ import { ExamRequest, ExamSchedule, ExamLocation, Examiner, Instructor, DrivingS
 // In development, the Vite proxy forwards /api/* to localhost:3000.
 const API_BASE = '/api';
 
+function getActorHeaders(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem('praticosys_auth');
+    if (!raw) return {};
+    const auth = JSON.parse(raw);
+    const user = auth?.user;
+    if (!user) return {};
+    return {
+      'X-User-Id':   String(user.id   ?? ''),
+      'X-User-Name': String(user.name ?? ''),
+      'X-User-Role': String(user.role ?? ''),
+    };
+  } catch {
+    return {};
+  }
+}
+
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const isWrite = !!(options?.method && options.method !== 'GET');
   const response = await fetch(`${API_BASE}${endpoint}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...(isWrite ? getActorHeaders() : {}),
+      ...(options?.headers as Record<string, string> | undefined ?? {}),
     },
-    ...options,
   });
 
   if (!response.ok) {

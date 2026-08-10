@@ -22,6 +22,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`CREATE TABLE IF NOT EXISTS banca_results (id text PRIMARY KEY, schedule_id text, school_id text, category text, created_at timestamp DEFAULT now(), updated_at timestamp DEFAULT now())`,
       sql`CREATE TABLE IF NOT EXISTS exam_schedule_slots (id text PRIMARY KEY, school_id text NOT NULL, exam_type text NOT NULL, request_type text NOT NULL DEFAULT 'FIXA', intended_category text, scheduled_date text, scheduled_time text, examiner_id text, schedule_id text, scheduled_category text, status text NOT NULL DEFAULT 'SCHEDULED', attendance_confirmed boolean DEFAULT false, cancellation_reason text, observation text, created_at timestamp DEFAULT now(), updated_at timestamp DEFAULT now())`,
       sql`CREATE TABLE IF NOT EXISTS exam_locations (id text PRIMARY KEY, city_id text NOT NULL, address text, maps_url text, regions_served jsonb DEFAULT '[]'::jsonb, created_at timestamp DEFAULT now())`,
+      sql`CREATE TABLE IF NOT EXISTS audit_logs (id text PRIMARY KEY, user_id text, user_name text, user_role text, action text NOT NULL, entity text NOT NULL, entity_id text, details jsonb, created_at timestamp DEFAULT now())`,
     ];
 
     const columns = [
