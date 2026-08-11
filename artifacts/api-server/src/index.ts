@@ -50,6 +50,22 @@ async function runMigrations() {
     await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_location_ids jsonb DEFAULT '[]'`);
     await db.execute(sql`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
     await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS risk_area_key text`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email text`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false`);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        id text PRIMARY KEY,
+        user_id text NOT NULL,
+        code text NOT NULL,
+        expires_at timestamp NOT NULL,
+        used boolean DEFAULT false,
+        failed_attempts integer DEFAULT 0,
+        created_at timestamp DEFAULT now()
+      )
+    `);
+    await db.execute(sql`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS failed_attempts integer DEFAULT 0`);
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id text PRIMARY KEY,

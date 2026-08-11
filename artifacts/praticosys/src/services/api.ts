@@ -5,51 +5,50 @@ import { ExamRequest, ExamSchedule, ExamLocation, Examiner, Instructor, DrivingS
 // In development, the Vite proxy forwards /api/* to localhost:3000.
 const API_BASE = '/api';
 
-function getActorHeaders(): Record<string, string> {
+/** Lê o Bearer token da sessão armazenado no localStorage */
+function getAuthHeaders(): Record<string, string> {
   try {
     const raw = localStorage.getItem('praticosys_auth');
     if (!raw) return {};
     const auth = JSON.parse(raw);
-    const user = auth?.user;
-    if (!user) return {};
-    return {
-      'X-User-Id':   String(user.id   ?? ''),
-      'X-User-Name': String(user.name ?? ''),
-      'X-User-Role': String(user.role ?? ''),
-    };
-  } catch {
-    return {};
-  }
+    if (auth?.token) return { 'Authorization': `Bearer ${auth.token}` };
+  } catch {}
+  return {};
 }
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const isWrite = !!(options?.method && options.method !== 'GET');
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...(isWrite ? getActorHeaders() : {}),
+      ...getAuthHeaders(),           // Bearer token em todas as requisições
       ...(options?.headers as Record<string, string> | undefined ?? {}),
     },
   });
 
   if (!response.ok) {
+    // Sessão expirada — limpa estado e redireciona para login
+    if (response.status === 401) {
+      localStorage.removeItem('praticosys_auth');
+      window.location.href = '/#/login';
+      throw new Error('Sessão expirada. Redirecionando para login...');
+    }
     const errorText = await response.text();
-    throw new Error(errorText || `API Error: ${response.statusText}`);
+    let msg = errorText;
+    try { msg = JSON.parse(errorText)?.error ?? errorText; } catch {}
+    throw new Error(msg || `Erro ${response.status}: ${response.statusText}`);
   }
 
-  // Handle empty responses (e.g. DELETE)
-  if (response.status === 204) {
-    return {} as T;
-  }
-
+  if (response.status === 204) return {} as T;
   return response.json();
 }
 
 export const api = {
   // --- AUTH ---
-  login: (login: string, password?: string) => request<User>('/auth', { method: 'POST', body: JSON.stringify({ login, password }) }),
-  
+  login: (login: string, password?: string) => request<any>('/auth', { method: 'POST', body: JSON.stringify({ login, password }) }),
+  verifyOtp: (userId: string, code: string) => request<any>('/verify-otp', { method: 'POST', body: JSON.stringify({ userId, code }) }),
+  logout: () => request<void>('/session', { method: 'DELETE' }).catch(() => {}),
+
   // --- USERS ---
   getUsers: () => request<User[]>('/users'),
   createUser: (data: any) => request<User>('/users', { method: 'POST', body: JSON.stringify(data) }),
@@ -75,81 +74,70 @@ export const api = {
   deleteInstructor: (id: string) => request<void>(`/instructors?id=${id}`, { method: 'DELETE' }),
 
   // --- VEHICLE LOOKUP (SINESP) ---
-  lookupVehicleByPlate: (plate: string) => request<{ plate: string; brand: string; model: string; color: string; year: string; state: string; city: string }>(`/vehicle-lookup?plate=${encodeURIComponent(plate)}`),
+  lookupVehicle: (plate: string) => request<any>(`/vehicle-lookup?plate=${encodeURIComponent(plate)}`),
 
-  // --- SCHOOLS ---
+  // --- DRIVING SCHOOLS ---
   getSchools: () => request<DrivingSchool[]>('/schools'),
-  getSchoolsAsync: () => request<DrivingSchool[]>('/schools'),
   createSchool: (data: Partial<DrivingSchool>) => request<DrivingSchool>('/schools', { method: 'POST', body: JSON.stringify(data) }),
   updateSchool: (id: string, data: Partial<DrivingSchool>) => request<DrivingSchool>('/schools', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteSchool: (id: string) => request<void>(`/schools?id=${id}`, { method: 'DELETE' }),
 
-  // --- SCHEDULES ---
+  // --- DRIVING SCHOOLS (aliases) ---
+  getSchoolsAsync: () => request<DrivingSchool[]>('/schools'),
+
+  // --- EXAM SCHEDULES ---
   getSchedules: () => request<ExamSchedule[]>('/schedules'),
   createSchedule: (data: Partial<ExamSchedule>) => request<ExamSchedule>('/schedules', { method: 'POST', body: JSON.stringify(data) }),
-  updateSchedule: (id: string, updates: Partial<ExamSchedule>) => request<ExamSchedule>('/schedules', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }),
-  cancelSchedule: (id: string, reason: string) => request<ExamSchedule>('/schedules', { method: 'PUT', body: JSON.stringify({ id, action: 'CANCEL', reason }) }),
+  updateSchedule: (id: string, data: Partial<ExamSchedule>) => request<ExamSchedule>('/schedules', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteSchedule: (id: string) => request<void>(`/schedules?id=${id}`, { method: 'DELETE' }),
+  cancelSchedule: (scheduleOrId: ExamSchedule | string, reason: string) => {
+    const id = typeof scheduleOrId === 'string' ? scheduleOrId : scheduleOrId.id;
+    return request<ExamSchedule>('/schedules', { method: 'PUT', body: JSON.stringify({ id, status: 'CANCELLED', cancellationReason: reason }) });
+  },
 
-  // --- REQUESTS ---
-  getRequests: () => request<ExamRequest[]>('/requests'),
-  getRequestByCpf: (cpf: string) => request<ExamRequest[]>(`/requests?cpf=${cpf}`),
-  createRequest: (data: any) => request<ExamRequest>('/requests', { method: 'POST', body: JSON.stringify(data) }),
-  updateRequest: (id: string, updates: Partial<ExamRequest>) => request<ExamRequest>('/requests', { method: 'PUT', body: JSON.stringify({ id, ...updates }) }),
+  // --- EXAM REQUESTS ---
+  getRequests: (params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request<ExamRequest[]>(`/requests${qs}`);
+  },
+  createRequest: (data: Partial<ExamRequest>) => request<ExamRequest>('/requests', { method: 'POST', body: JSON.stringify(data) }),
+  updateRequest: (id: string, data: Partial<ExamRequest>) => request<ExamRequest>('/requests', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteRequest: (id: string) => request<void>(`/requests?id=${id}`, { method: 'DELETE' }),
+
+  // --- BANCA RESULTS ---
+  getBancaResults: (scheduleId?: string, schoolId?: string) => {
+    const qs = scheduleId || schoolId ? '?' + new URLSearchParams({ ...(scheduleId ? { scheduleId } : {}), ...(schoolId ? { schoolId } : {}) }).toString() : '';
+    return request<BancaResult[]>(`/banca-results${qs}`);
+  },
+  upsertBancaResult: (data: any) => request<BancaResult>('/banca-results', { method: 'POST', body: JSON.stringify(data) }),
+  saveBancaResult: (data: any) => request<BancaResult>('/banca-results', { method: 'POST', body: JSON.stringify(data) }),
 
   // --- CITIES ---
   getCities: () => request<City[]>('/cities'),
   createCity: (data: Partial<City>) => request<City>('/cities', { method: 'POST', body: JSON.stringify(data) }),
   updateCity: (id: string, data: Partial<City>) => request<City>('/cities', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteCity: (id: string) => request<void>(`/cities?id=${id}`, { method: 'DELETE' }),
-  
-  // --- BANCA RESULTS ---
-  getBancaResults: (scheduleId?: string, schoolId?: string) => {
-    let url = '/banca-results';
-    const params = new URLSearchParams();
-    if (scheduleId) params.append('scheduleId', scheduleId);
-    if (schoolId) params.append('schoolId', schoolId);
-    if (params.toString()) url += `?${params.toString()}`;
-    return request<BancaResult[]>(url);
+
+  // --- BLOCKED DATES ---
+  getBlockedDates: () => request<any[]>('/blocked-dates'),
+  createBlockedDate: (data: any) => request<any>('/blocked-dates', { method: 'POST', body: JSON.stringify(data) }),
+  deleteBlockedDate: (id: string) => request<void>(`/blocked-dates?id=${id}`, { method: 'DELETE' }),
+
+  // --- EVENTS ---
+  getEvents: (params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request<any>(`/events${qs}`);
   },
-  saveBancaResult: (data: Partial<BancaResult>) => request<BancaResult>('/banca-results', { method: 'POST', body: JSON.stringify(data) }),
 
-  // --- ACTIONS ---
-  // currentUpdatedAt: valor atual de updatedAt do candidato antes de entrar na banca.
-  // Será salvo em queueUpdatedAt para restauração ao cancelar a banca.
-  // scheduledBy: nome do usuário do sistema que colocou o candidato na banca.
-  assignStudentToSchedule: (requestId: string, scheduleId: string, category: string, currentUpdatedAt?: string, scheduledBy?: string) => 
-    request<void>('/requests', { 
-      method: 'PUT', 
-      body: JSON.stringify({ 
-        id: requestId, 
-        scheduleId, 
-        scheduledCategory: category,
-        status: 'SCHEDULED', // ExamStatus.SCHEDULED
-        // Salva o updatedAt atual (posição na fila) para restauração ao cancelar banca
-        queueUpdatedAt: currentUpdatedAt || new Date().toISOString(),
-        // Registra quem colocou o candidato na banca
-        scheduledBy: scheduledBy || null,
-      }) 
-    }),
+  // --- SCHEDULE SLOTS (vagas de escala CFC/PCD) ---
+  getScheduleSlots: (params?: { schoolId?: string; scheduledDate?: string }) => {
+    const qs = params ? '?' + new URLSearchParams(params as any).toString() : '';
+    return request<any[]>(`/schedule-slots${qs}`);
+  },
+  createScheduleSlot: (data: any) => request<any>('/schedule-slots', { method: 'POST', body: JSON.stringify(data) }),
+  updateScheduleSlot: (id: string, data: any) => request<any>('/schedule-slots', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  deleteScheduleSlot: (id: string) => request<void>(`/schedule-slots?id=${id}`, { method: 'DELETE' }),
 
-  removeStudentFromSchedule: (requestId: string) => 
-    request<void>('/requests', { 
-      method: 'PUT', 
-      body: JSON.stringify({ 
-        id: requestId, 
-        scheduleId: null, 
-        scheduledCategory: null, 
-        status: 'WAITING_SCHEDULING', // ExamStatus.WAITING_SCHEDULING
-        attendanceConfirmed: false,
-        // Limpar queueUpdatedAt ao remover manualmente da banca
-        queueUpdatedAt: null,
-        // NOTE: Do NOT send createdAt here — it must preserve the original registration date
-        updatedAt: new Date().toISOString()
-      }) 
-    }),
-  
   // --- EXAM LOCATIONS ---
   getExamLocations: () => request<ExamLocation[]>('/exam-locations'),
   createExamLocation: (data: Partial<ExamLocation>) => request<ExamLocation>('/exam-locations', { method: 'POST', body: JSON.stringify(data) }),
@@ -160,16 +148,43 @@ export const api = {
   resetData: () => request<void>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'RESET_DATA' }) }),
   cleanupPhantomRequests: () => request<{ success: boolean; message: string; removed: number }>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'CLEANUP_PHANTOM_REQUESTS' }) }),
 
-  // --- SCHEDULE SLOTS (vagas de escala CFC/PCD — SEM candidato real) ---
-  // Tabela totalmente separada de exam_requests para nunca misturar agenda com candidatos.
-  getScheduleSlots: (params?: { schoolId?: string; scheduledDate?: string }) => {
-    const qs = params ? '?' + new URLSearchParams(params as any).toString() : '';
-    return request<any[]>(`/schedule-slots${qs}`);
-  },
-  createScheduleSlot: (data: any) =>
-    request<any>('/schedule-slots', { method: 'POST', body: JSON.stringify(data) }),
-  updateScheduleSlot: (id: string, data: any) =>
-    request<any>('/schedule-slots', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
-  deleteScheduleSlot: (id: string) =>
-    request<void>(`/schedule-slots?id=${id}`, { method: 'DELETE' }),
+  // --- SCHEDULING HELPERS (convenience wrappers) ---
+  assignStudentToSchedule: (requestId: string, scheduleId: string, category: string, currentUpdatedAt?: string, scheduledBy?: string | null) =>
+    request<ExamRequest>('/requests', {
+      method: 'PUT',
+      body: JSON.stringify({
+        id: requestId,
+        scheduleId,
+        scheduledCategory: category,
+        status: 'SCHEDULED',
+        queueUpdatedAt: currentUpdatedAt || new Date().toISOString(),
+        scheduledBy: scheduledBy || null,
+      }),
+    }),
+  addStudentToSchedule: (requestId: string, scheduleId: string, category: string, currentUpdatedAt?: string, scheduledBy?: string | null) =>
+    request<ExamRequest>('/requests', {
+      method: 'PUT',
+      body: JSON.stringify({
+        id: requestId,
+        scheduleId,
+        scheduledCategory: category,
+        status: 'SCHEDULED',
+        queueUpdatedAt: currentUpdatedAt || new Date().toISOString(),
+        scheduledBy: scheduledBy || null,
+      }),
+    }),
+
+  removeStudentFromSchedule: (requestId: string) =>
+    request<void>('/requests', {
+      method: 'PUT',
+      body: JSON.stringify({
+        id: requestId,
+        scheduleId: null,
+        scheduledCategory: null,
+        status: 'WAITING_SCHEDULING',
+        attendanceConfirmed: false,
+        queueUpdatedAt: null,
+        updatedAt: new Date().toISOString(),
+      }),
+    }),
 };

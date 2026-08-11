@@ -1292,7 +1292,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
       await api.createRequest({
         schoolId: newRequest.schoolId,
-        source: 'SCHOOL',
+        source: 'SCHOOL' as any,
         examType: isPcd ? ExamType.PCD : ExamType.COMMON,
         modulo: isPcd ? 'PCD' : 'CFC',
         requestType: newRequest.requestType,

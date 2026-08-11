@@ -3,6 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { sessionAuth } from "./middleware/session";
 
 const app: Express = express();
 
@@ -29,6 +30,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Validação de sessão em todas as rotas (exceto as públicas)
+app.use("/api", sessionAuth);
 app.use("/api", router);
 
 export default app;

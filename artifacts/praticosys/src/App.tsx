@@ -34,14 +34,26 @@ const App: React.FC = () => {
     };
   });
 
-  const handleLogin = (user: User) => {
-    const newAuth = { user, isAuthenticated: true };
+  const handleLogin = (userWithToken: any) => {
+    const { sessionToken, ...userData } = userWithToken;
+    const newAuth: AuthState = { user: userData as User, token: sessionToken ?? null, isAuthenticated: true };
     setAuth(newAuth);
     localStorage.setItem('praticosys_auth', JSON.stringify(newAuth));
   };
 
-  const handleLogout = () => {
-    setAuth({ user: null, isAuthenticated: false });
+  const handleLogout = async () => {
+    // Invalida sessão no servidor (best-effort)
+    try {
+      const raw = localStorage.getItem('praticosys_auth');
+      const saved = raw ? JSON.parse(raw) : null;
+      if (saved?.token) {
+        await fetch('/api/session', {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${saved.token}` },
+        });
+      }
+    } catch {}
+    setAuth({ user: null, token: null, isAuthenticated: false });
     localStorage.removeItem('praticosys_auth');
   };
 

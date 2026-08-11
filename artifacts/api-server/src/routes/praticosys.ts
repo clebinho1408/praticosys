@@ -3,11 +3,29 @@ import { db } from "@workspace/db";
 import {
   users, drivingSchools, examiners, instructors, vehicles,
   examSchedules, examRequests, systemSettings, blockedDates,
-  cities, examScheduleSlots, bancaResults, examLocations
+  cities, examScheduleSlots, bancaResults, examLocations, otpCodes
 } from "@workspace/db";
 import { eq, and, like, isNotNull, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
+import { createHash } from "crypto";
 import type { Response } from "express";
+import { ReplitConnectors } from "@replit/connectors-sdk";
+
+function hashCode(code: string): string {
+  return createHash('sha256').update(code).digest('hex');
+}
+
+const OTP_MAX_ATTEMPTS = 5;
+
+async function createSession(userId: string): Promise<string> {
+  const sessionId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8h
+  await db.execute(sql`
+    INSERT INTO sessions (id, user_id, expires_at, created_at)
+    VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
+  `);
+  return sessionId;
+}
 
 const router = Router();
 
@@ -41,42 +59,169 @@ router.post("/auth", async (req, res) => {
       return res.status(401).json({ error: "Usuário não encontrado" });
     }
     const user = result[0] as any;
+
+    // Helper local para gerar e enviar OTP (reutilizado no bootstrap e login normal)
+    const do2FA = async (u: any) => {
+      const rawCode = String(crypto.randomInt(100000, 1000000));
+      const hashedCode = hashCode(rawCode);
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      await db.execute(sql`UPDATE otp_codes SET used = true WHERE user_id = ${u.id} AND used = false`);
+      let emailSent = false;
+      let devCode: string | undefined;
+      try {
+        const connectors = new ReplitConnectors();
+        const resp = await connectors.proxy("resend", "/emails", {
+          method: "POST",
+          body: JSON.stringify({
+            from: "PráticoSys <onboarding@resend.dev>",
+            to: [u.email],
+            subject: `[PráticoSys] Código de verificação: ${rawCode}`,
+            html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;"><h2 style="color:#1e40af">Verificação em 2 etapas</h2><p>Seu código:</p><div style="font-size:2.5rem;font-weight:900;letter-spacing:0.35em;text-align:center;padding:20px;background:#eff6ff;border-radius:12px;color:#1e40af;border:2px solid #bfdbfe;">${rawCode}</div><p style="color:#6b7280;font-size:0.875rem;">⏱️ Expira em <strong>10 minutos</strong>. 🔒 Não compartilhe.</p></div>`,
+          }),
+          headers: { "Content-Type": "application/json" },
+        });
+        emailSent = resp.ok;
+      } catch {}
+      if (!emailSent) {
+        if (process.env.NODE_ENV === "development") devCode = rawCode;
+        else throw new Error("SEND_FAILED");
+      }
+      await db.insert(otpCodes).values({ id: crypto.randomUUID(), userId: u.id, code: hashedCode, expiresAt, used: false, failedAttempts: 0 });
+      const maskEmail = (e: string) => { const [l, d] = e.split("@"); return `${l.slice(0, 2)}***@${d}`; };
+      return { requiresOtp: true, userId: u.id, sentTo: maskEmail(u.email), ...(devCode ? { devCode } : {}) };
+    };
+
+    // Bootstrap admin sem senha — define senha inicial
     if (login === "admin" && !user.password) {
       const updated = await db.update(users)
         .set({ password, forcePasswordChange: false })
         .where(eq(users.id, user.id))
         .returning();
-      const { password: _p, ...safe } = (updated[0] || user) as any;
-      return res.status(200).json(safe);
+      const u = (updated[0] || user) as any;
+
+      // Mesmo no bootstrap, 2FA deve ser honrado se configurado
+      if (u.twoFactorEnabled && !u.email) {
+        return res.status(403).json({ error: "2FA ativo sem e-mail cadastrado. Contate o administrador." });
+      }
+      if (u.twoFactorEnabled && u.email) {
+        try { return res.json(await do2FA(u)); }
+        catch { return res.status(502).json({ error: "Falha ao enviar código de verificação." }); }
+      }
+
+      const sessionToken = await createSession(u.id);
+      const { password: _p, ...safe } = u;
+      return res.status(200).json({ ...safe, sessionToken });
     }
+
     if (user.password && user.password !== password) {
       return res.status(401).json({ error: "Senha incorreta" });
     }
-    const { password: _p, ...safe } = user;
-    return res.status(200).json(safe);
+
+    // 2FA ativo mas sem e-mail — bloqueia para evitar bypass silencioso
+    if (user.twoFactorEnabled && !user.email) {
+      return res.status(403).json({ error: "2FA ativo sem e-mail cadastrado. Contate o administrador." });
+    }
+
+    // Verificação em 2 etapas
+    if (user.twoFactorEnabled && user.email) {
+      try { return res.json(await do2FA(user)); }
+      catch { return res.status(502).json({ error: "Falha ao enviar código de verificação. Tente novamente." }); }
+    }
+
+    // Login direto (sem 2FA)
+    const sessionToken = await createSession(user.id);
+    const { password: _p, ...safe } = user as any;
+    return res.status(200).json({ ...safe, sessionToken });
+  } catch (err: any) {
+    return res.status(500).json({ error: "Erro interno", details: err.message });
+  }
+});
+
+// Logout — invalida sessão no servidor
+router.delete("/session", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, "").trim();
+    if (token) {
+      await db.execute(sql`DELETE FROM sessions WHERE id = ${token}`);
+    }
+    return res.json({ success: true });
+  } catch { return res.json({ success: true }); }
+});
+
+// Validação do código OTP (consumo atômico + rate limiting)
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { userId, code } = req.body ?? {};
+    if (!userId || !code) return res.status(400).json({ error: "userId e code são obrigatórios" });
+
+    const inputHash = hashCode(code.trim());
+
+    const consumed = await db.execute(sql`
+      UPDATE otp_codes
+      SET used = true
+      WHERE user_id = ${userId}
+        AND code = ${inputHash}
+        AND used = false
+        AND expires_at > NOW()
+        AND failed_attempts < ${OTP_MAX_ATTEMPTS}
+      RETURNING id
+    `);
+
+    const rows = (consumed as any).rows ?? consumed;
+    if (!rows || rows.length === 0) {
+      await db.execute(sql`
+        UPDATE otp_codes
+        SET
+          failed_attempts = COALESCE(failed_attempts, 0) + 1,
+          used = CASE
+            WHEN COALESCE(failed_attempts, 0) + 1 >= ${OTP_MAX_ATTEMPTS} THEN true
+            ELSE used
+          END
+        WHERE user_id = ${userId} AND used = false AND expires_at > NOW()
+      `);
+      return res.status(401).json({ error: "Código inválido, expirado ou tentativas esgotadas. Faça login novamente." });
+    }
+
+    const result = await db.select().from(users).where(eq(users.id, userId));
+    if (result.length === 0) return res.status(404).json({ error: "Usuário não encontrado" });
+
+    const sessionToken = await createSession(userId);
+    const { password: _p, ...safe } = result[0] as any;
+    return res.json({ ...safe, sessionToken });
   } catch (err: any) {
     return res.status(500).json({ error: "Erro interno", details: err.message });
   }
 });
 
 // ─── USERS ────────────────────────────────────────────────────────────────────
-router.get("/users", async (_req, res) => {
+router.get("/users", async (req, res) => {
+  const role = (req as any).sessionUser?.role;
+  if (!["ADMIN", "SUPERVISOR"].includes(role)) return res.status(403).json({ error: "Acesso negado" });
   try {
     const data = await db.select().from(users);
     return res.json(data.map(({ password: _p, ...rest }: any) => rest));
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/users", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const body = req.body;
+    if (body.twoFactorEnabled && !body.email) return res.status(400).json({ error: "Verificação em 2 etapas requer e-mail cadastrado." });
     const item = await db.insert(users).values({ id: crypto.randomUUID(), password: "123456", ...body }).returning();
     const { password: _p, ...safe } = item[0] as any;
     return res.json(safe);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/users", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const { id, createdAt, ...updates } = req.body;
+    if (!id) return res.status(400).json({ error: "ID obrigatório" });
+    // 2FA exige e-mail
+    if (updates.twoFactorEnabled && !updates.email) {
+      const existing = await db.select().from(users).where(eq(users.id, id));
+      if (!((existing[0] as any)?.email)) return res.status(400).json({ error: "Verificação em 2 etapas requer e-mail cadastrado." });
+    }
     const item = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     const { password: _p, ...safe } = item[0] as any;
     return res.json(safe);

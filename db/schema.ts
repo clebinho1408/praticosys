@@ -12,6 +12,19 @@ export const users = pgTable('users', {
   forcePasswordChange: boolean('force_password_change').default(true),
   allowedModules: jsonb('allowed_modules').$type<string[]>().default([]),
   allowedLocationIds: jsonb('allowed_location_ids').$type<string[]>().default([]),
+  email: text('email'),
+  phone: text('phone'),
+  twoFactorEnabled: boolean('two_factor_enabled').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+export const otpCodes = pgTable('otp_codes', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull(),
+  code: text('code').notNull(),        // SHA-256 hash do código real
+  expiresAt: timestamp('expires_at').notNull(),
+  used: boolean('used').default(false),
+  failedAttempts: integer('failed_attempts').default(0),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

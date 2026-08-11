@@ -81,7 +81,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   // Form State
   const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[] }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [] });
+  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[]; email: string; phone: string; twoFactorEnabled: boolean }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
 
   // Confirmation Modal State
   const [confirmState, setConfirmState] = useState<{
@@ -116,10 +116,10 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const openModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'], allowedLocationIds: user.allowedLocationIds || [] });
+      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'], allowedLocationIds: user.allowedLocationIds || [], email: (user as any).email || '', phone: (user as any).phone || '', twoFactorEnabled: (user as any).twoFactorEnabled || false });
     } else {
       setEditingUser(null);
-      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [] });
+      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
     }
     setIsModalOpen(true);
   };
@@ -396,6 +396,48 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                   </div>
                 </div>
               )}
+              {/* Contato e segurança */}
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contato & Segurança</p>
+                <div>
+                  <label className="block text-sm font-medium">E-mail</label>
+                  <input
+                    type="email"
+                    className="w-full border rounded p-2 bg-white text-gray-900 text-sm"
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    placeholder="exemplo@email.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium">Telefone / WhatsApp</label>
+                  <input
+                    type="tel"
+                    className="w-full border rounded p-2 bg-white text-gray-900 text-sm"
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                    placeholder="(xx) 9xxxx-xxxx"
+                  />
+                </div>
+                <label className="flex items-start gap-3 cursor-pointer select-none p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-blue-600 mt-0.5"
+                    checked={formData.twoFactorEnabled}
+                    onChange={e => setFormData({...formData, twoFactorEnabled: e.target.checked})}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-800">Ativar verificação em 2 etapas</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Ao fazer login, um código será enviado para o e-mail cadastrado acima.
+                      {!formData.email && formData.twoFactorEnabled && (
+                        <span className="text-red-600 block mt-1">⚠️ Cadastre um e-mail para ativar este recurso.</span>
+                      )}
+                    </p>
+                  </div>
+                </label>
+              </div>
+
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"><Save className="h-4 w-4" /> Salvar</button>

@@ -51,6 +51,9 @@ export interface User {
   forcePasswordChange?: boolean;
   allowedModules?: OperatorModule[]; // Only for OPERATOR role
   allowedLocationIds?: string[]; // Restricts CNH do Brasil bancas visible to this user (empty = all)
+  email?: string;
+  phone?: string;
+  twoFactorEnabled?: boolean;
 }
 
 export interface SchoolSchedule {
@@ -279,5 +282,6 @@ export interface BancaResult {
 
 export interface AuthState {
   user: User | null;
+  token?: string | null;
   isAuthenticated: boolean;
 }

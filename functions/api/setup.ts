@@ -23,6 +23,9 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`CREATE TABLE IF NOT EXISTS exam_schedule_slots (id text PRIMARY KEY, school_id text NOT NULL, exam_type text NOT NULL, request_type text NOT NULL DEFAULT 'FIXA', intended_category text, scheduled_date text, scheduled_time text, examiner_id text, schedule_id text, scheduled_category text, status text NOT NULL DEFAULT 'SCHEDULED', attendance_confirmed boolean DEFAULT false, cancellation_reason text, observation text, created_at timestamp DEFAULT now(), updated_at timestamp DEFAULT now())`,
       sql`CREATE TABLE IF NOT EXISTS exam_locations (id text PRIMARY KEY, city_id text NOT NULL, address text, maps_url text, regions_served jsonb DEFAULT '[]'::jsonb, created_at timestamp DEFAULT now())`,
       sql`CREATE TABLE IF NOT EXISTS audit_logs (id text PRIMARY KEY, user_id text, user_name text, user_role text, action text NOT NULL, entity text NOT NULL, entity_id text, details jsonb, created_at timestamp DEFAULT now())`,
+      sql`CREATE TABLE IF NOT EXISTS otp_codes (id text PRIMARY KEY, user_id text NOT NULL, code text NOT NULL, expires_at timestamp NOT NULL, used boolean DEFAULT false, failed_attempts integer DEFAULT 0, created_at timestamp DEFAULT now())`,
+      sql`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS failed_attempts integer DEFAULT 0`,
+      sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`,
     ];
 
     const columns = [
@@ -98,6 +101,9 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`ALTER TABLE banca_results ADD COLUMN IF NOT EXISTS cancelled integer DEFAULT 0`,
       sql`ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`,
       sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS risk_area_key text`,
+      sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email text`,
+      sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`,
+      sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false`,
     ];
 
     for (const q of tables) { try { await db.execute(q); } catch {} }
