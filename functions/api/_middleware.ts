@@ -29,6 +29,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
 
   try {
     const db = getDb(env as any);
+    // Garante que sessions existe antes de consultar (idempotente)
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`).catch(() => {});
     const rows = await db.execute(sql`
       SELECT u.id, u.role
       FROM sessions s

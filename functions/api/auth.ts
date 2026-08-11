@@ -63,10 +63,24 @@ async function handle2FA(
   return { requiresOtp: true, userId: user.id, sentTo: maskEmail(user.email) };
 }
 
+async function ensureSchema(db: any) {
+  // Garante que todas as colunas necessárias existam (idempotente)
+  const stmts = [
+    sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`,
+    sql`CREATE TABLE IF NOT EXISTS otp_codes (id text PRIMARY KEY, user_id text NOT NULL, code text NOT NULL, expires_at timestamp NOT NULL, used boolean DEFAULT false, failed_attempts integer DEFAULT 0, created_at timestamp DEFAULT now())`,
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email text`,
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`,
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false`,
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`,
+    sql`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS failed_attempts integer DEFAULT 0`,
+  ];
+  for (const s of stmts) { try { await db.execute(s); } catch {} }
+}
+
 export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY?: string }> = async ({ request, env }) => {
   try {
     const db = getDb(env as any);
-    await db.execute(sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`).catch(() => {});
+    await ensureSchema(db);
 
     const body = await parseBody<{ login: string; password: string }>(request);
     const { login, password } = body;

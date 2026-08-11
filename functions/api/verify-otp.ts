@@ -20,9 +20,20 @@ async function createSession(db: any, userId: string): Promise<string> {
   return sessionId;
 }
 
+async function ensureSchema(db: any) {
+  const stmts = [
+    sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`,
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email text`,
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`,
+    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false`,
+  ];
+  for (const s of stmts) { try { await db.execute(s); } catch {} }
+}
+
 export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
   try {
     const db = getDb(env as any);
+    await ensureSchema(db);
     const body = await parseBody<{ userId: string; code: string }>(request);
     const { userId, code } = body;
     if (!userId || !code) return error('userId e code são obrigatórios', 400);
