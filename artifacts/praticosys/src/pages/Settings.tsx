@@ -25,7 +25,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS'>('LOCAIS');
   const [riskKeyInput, setRiskKeyInput] = useState('');
   const [riskKeyVerified, setRiskKeyVerified] = useState(false);
-  const [newRiskKey, setNewRiskKey] = useState('');
   const [cities, setCities] = useState<City[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
@@ -1305,56 +1304,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
 
             {activeTab === 'RISK_AREA' && (
                 <div className="space-y-6 animate-fadeIn">
-
-                    {/* Chave de segurança */}
-                    <div className="bg-gray-50 border border-gray-200 p-6 rounded-xl space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                                <ShieldAlert className="h-5 w-5 text-gray-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-bold text-gray-800">Chave de Segurança</h3>
-                                <p className="text-xs text-gray-500">Proteja as operações desta área com uma chave secreta conhecida apenas pelo administrador</p>
-                            </div>
-                        </div>
-                        {settings.riskAreaKey && (
-                            <p className="text-xs text-green-700 flex items-center gap-1.5 font-semibold">
-                                <CheckCircle className="h-3.5 w-3.5" /> Chave de segurança configurada
-                            </p>
-                        )}
-                        {!isConsultant && (
-                            <div className="flex gap-2">
-                                <input
-                                    type="password"
-                                    placeholder={settings.riskAreaKey ? 'Nova chave (deixe vazio para manter)' : 'Definir chave secreta...'}
-                                    className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400 bg-white"
-                                    value={newRiskKey}
-                                    onChange={e => setNewRiskKey(e.target.value)}
-                                />
-                                <button
-                                    type="button"
-                                    disabled={!newRiskKey.trim() || saving}
-                                    onClick={async () => {
-                                        if (!newRiskKey.trim()) return;
-                                        setSaving(true);
-                                        try {
-                                            await api.updateSettings({ ...settings, riskAreaKey: newRiskKey.trim() } as any);
-                                            setSettings({ ...settings, riskAreaKey: newRiskKey.trim() });
-                                            setNewRiskKey('');
-                                            setRiskKeyVerified(false);
-                                            setRiskKeyInput('');
-                                            setAlertConfig({ isOpen: true, title: 'Chave salva', message: 'Chave de segurança atualizada com sucesso.', type: 'success' });
-                                        } catch {
-                                            setAlertConfig({ isOpen: true, title: 'Erro', message: 'Não foi possível salvar a chave.', type: 'error' });
-                                        } finally { setSaving(false); }
-                                    }}
-                                    className="px-4 py-2 bg-gray-800 text-white text-sm font-bold rounded-lg hover:bg-gray-700 disabled:opacity-40 whitespace-nowrap"
-                                >
-                                    Salvar Chave
-                                </button>
-                            </div>
-                        )}
-                    </div>
 
                     {/* Zona de perigo */}
                     <div className="bg-red-50 border border-red-200 p-6 rounded-xl space-y-4">
