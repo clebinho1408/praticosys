@@ -409,16 +409,6 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                     placeholder="exemplo@email.com"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium">Telefone / WhatsApp</label>
-                  <input
-                    type="tel"
-                    className="w-full border rounded p-2 bg-white text-gray-900 text-sm"
-                    value={formData.phone}
-                    onChange={e => setFormData({...formData, phone: e.target.value})}
-                    placeholder="(xx) 9xxxx-xxxx"
-                  />
-                </div>
                 <label className="flex items-start gap-3 cursor-pointer select-none p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
                   <input
                     type="checkbox"
