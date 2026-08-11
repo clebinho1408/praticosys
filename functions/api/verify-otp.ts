@@ -2,6 +2,7 @@
 import { getDb, json, error, parseBody } from '../_db.js';
 import { users } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
+import { createBackup } from '../_backup.js';
 
 const MAX_ATTEMPTS = 5;
 
@@ -30,7 +31,8 @@ async function ensureSchema(db: any) {
   for (const s of stmts) { try { await db.execute(s); } catch {} }
 }
 
-export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (context) => {
+  const { request, env } = context;
   try {
     const db = getDb(env as any);
     await ensureSchema(db);
@@ -72,6 +74,10 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ r
     if (result.length === 0) return error('Usuário não encontrado', 404);
 
     const sessionToken = await createSession(db, userId);
+    if ((result[0] as any).role === 'ADMIN') {
+      // Backup automático em segundo plano no acesso do admin
+      context.waitUntil(createBackup(db, 'auto').catch(() => {}));
+    }
     const { password: _p, ...safe } = result[0] as any;
     return json({ ...safe, sessionToken });
   } catch (e: any) {

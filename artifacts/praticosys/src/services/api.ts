@@ -144,6 +144,11 @@ export const api = {
   updateExamLocation: (id: string, data: Partial<ExamLocation>) => request<ExamLocation>('/exam-locations', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteExamLocation: (id: string) => request<void>(`/exam-locations?id=${id}`, { method: 'DELETE' }),
 
+  // --- BACKUPS (somente admin) ---
+  getBackups: () => request<any[]>('/backups'),
+  getBackupPayload: (id: string) => request<any>(`/backups?id=${id}`),
+  createBackup: () => request<any>('/backups', { method: 'POST' }),
+
   // --- RISK AREA ---
   resetData: () => request<void>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'RESET_DATA' }) }),
   cleanupPhantomRequests: () => request<{ success: boolean; message: string; removed: number }>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'CLEANUP_PHANTOM_REQUESTS' }) }),

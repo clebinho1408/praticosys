@@ -6,7 +6,13 @@ import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2,
 import { AlertModal, ConfirmModal } from '../components/CustomModals';
 import DatePicker from '../components/DatePicker';
 
-type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'RISK_AREA';
+type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'BACKUPS' | 'RISK_AREA';
+
+const formatBytes = (bytes: number): string => {
+  if (!bytes) return '0 KB';
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
 
 const Settings: React.FC<{ user: User }> = ({ user }) => {
   const isConsultant = user?.role === UserRole.CONSULTANT;
@@ -37,6 +43,64 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
   const [locationForm, setLocationForm] = useState({ cityId: '', address: '', mapsUrl: '', regionsServed: [] as string[] });
   const [editingLocation, setEditingLocation] = useState<ExamLocation | null>(null);
+
+  // Backups state
+  const isAdmin = user?.role === UserRole.ADMIN;
+  const [backups, setBackups] = useState<any[]>([]);
+  const [backupsLoading, setBackupsLoading] = useState(false);
+  const [creatingBackup, setCreatingBackup] = useState(false);
+  const [downloadingBackupId, setDownloadingBackupId] = useState<string | null>(null);
+
+  const loadBackups = async () => {
+    setBackupsLoading(true);
+    try {
+      const data = await api.getBackups();
+      setBackups(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error loading backups:', err);
+    } finally {
+      setBackupsLoading(false);
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    setCreatingBackup(true);
+    try {
+      await api.createBackup();
+      await loadBackups();
+      setAlertConfig({ isOpen: true, title: 'Backup criado', message: 'O backup foi criado com sucesso.', type: 'success' });
+    } catch (err: any) {
+      setAlertConfig({ isOpen: true, title: 'Erro', message: 'Não foi possível criar o backup. Tente novamente.', type: 'error' });
+    } finally {
+      setCreatingBackup(false);
+    }
+  };
+
+  const handleDownloadBackup = async (backup: any) => {
+    setDownloadingBackupId(backup.id);
+    try {
+      const full = await api.getBackupPayload(backup.id);
+      const payload = full?.payload ?? full;
+      const dateStr = new Date(backup.created_at || backup.createdAt || Date.now()).toISOString().slice(0, 10);
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup-praticosys-${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setAlertConfig({ isOpen: true, title: 'Erro', message: 'Não foi possível baixar o backup.', type: 'error' });
+    } finally {
+      setDownloadingBackupId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'BACKUPS' && isAdmin) loadBackups();
+  }, [activeTab]);
 
   const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; title: string; message: string; type?: 'error' | 'success' | 'info' }>({
     isOpen: false,
@@ -416,6 +480,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
            <button type="button" onClick={() => setActiveTab('GENERAL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'GENERAL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> GERAL</button>
            <button type="button" onClick={() => setActiveTab('CNH_BRASIL')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'CNH_BRASIL' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> CNH DO BRASIL</button>
            <button type="button" onClick={() => setActiveTab('PROVA_PRATICA_CFC')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'PROVA_PRATICA_CFC' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Layout className="h-4 w-4" /> PROVA PRÁTICA CFC</button>
+           {isAdmin && <button type="button" onClick={() => setActiveTab('BACKUPS')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'BACKUPS' ? 'bg-white border-t-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><Save className="h-4 w-4" /> BACKUPS</button>}
            <button type="button" onClick={() => setActiveTab('RISK_AREA')} className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-colors ${activeTab === 'RISK_AREA' ? 'bg-white border-t-2 border-red-600 text-red-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}><AlertOctagon className="h-4 w-4" /> ÁREA DE RISCO</button>
         </div>
 
@@ -1299,6 +1364,74 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                             </div>
                         </div>
                     )}
+                </div>
+            )}
+
+            {activeTab === 'BACKUPS' && isAdmin && (
+                <div className="space-y-6 animate-fadeIn">
+                    <div className="bg-white border border-gray-200 p-6 rounded-xl space-y-4">
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-800">Backups do Sistema</h3>
+                                <p className="text-sm text-gray-500">
+                                    Um backup é feito automaticamente uma vez por dia quando um administrador entra no sistema.
+                                    Os 15 backups mais recentes são mantidos. Senhas e registros de auditoria não são incluídos.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleCreateBackup}
+                                disabled={creatingBackup}
+                                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                            >
+                                <Plus className="h-4 w-4" /> {creatingBackup ? 'Criando...' : 'Criar backup agora'}
+                            </button>
+                        </div>
+
+                        {backupsLoading ? (
+                            <p className="text-sm text-gray-500 italic">Carregando backups...</p>
+                        ) : backups.length === 0 ? (
+                            <p className="text-sm text-gray-500 italic">Nenhum backup ainda. Um backup será criado automaticamente no próximo acesso do administrador, ou clique em "Criar backup agora".</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-gray-500 border-b">
+                                            <th className="py-2 pr-4 font-semibold">Data e hora</th>
+                                            <th className="py-2 pr-4 font-semibold">Tipo</th>
+                                            <th className="py-2 pr-4 font-semibold">Tamanho</th>
+                                            <th className="py-2 font-semibold text-right">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {backups.map((b) => (
+                                            <tr key={b.id} className="border-b last:border-b-0 hover:bg-gray-50">
+                                                <td className="py-2 pr-4 text-gray-800">
+                                                    {new Date(b.created_at || b.createdAt).toLocaleString('pt-BR')}
+                                                </td>
+                                                <td className="py-2 pr-4">
+                                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${(b.trigger_type || b.triggerType) === 'auto' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                        {(b.trigger_type || b.triggerType) === 'auto' ? 'Automático' : 'Manual'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-2 pr-4 text-gray-600">{formatBytes(b.size_bytes ?? b.sizeBytes ?? 0)}</td>
+                                                <td className="py-2 text-right">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDownloadBackup(b)}
+                                                        disabled={downloadingBackupId === b.id}
+                                                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 disabled:opacity-50 font-semibold"
+                                                    >
+                                                        <Upload className="h-4 w-4 rotate-180" /> {downloadingBackupId === b.id ? 'Baixando...' : 'Baixar'}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 

@@ -17,6 +17,66 @@ function hashCode(code: string): string {
 
 const OTP_MAX_ATTEMPTS = 5;
 
+// ─── BACKUP ───────────────────────────────────────────────────────────────────
+const BACKUP_TABLES = [
+  "driving_schools", "examiners", "instructors", "vehicles", "cities",
+  "exam_requests", "exam_schedules", "exam_schedule_slots", "banca_results",
+  "exam_locations", "blocked_dates", "system_settings",
+];
+const MAX_BACKUPS = 15;
+
+async function createBackupSnapshot(trigger: "auto" | "manual"): Promise<{ skipped?: boolean; id?: string }> {
+  if (trigger === "auto") {
+    const existing = await db.execute(sql`
+      SELECT id FROM backups WHERE trigger_type = 'auto' AND created_at::date = CURRENT_DATE LIMIT 1
+    `);
+    const rows = (existing as any).rows ?? existing;
+    if (rows && rows.length > 0) return { skipped: true };
+  }
+
+  const payload: Record<string, unknown[]> = {};
+  for (const t of BACKUP_TABLES) {
+    try {
+      const res = await db.execute(sql.raw(`SELECT * FROM ${t}`));
+      payload[t] = (res as any).rows ?? res;
+    } catch { payload[t] = []; }
+  }
+  // Usuários sem senhas
+  try {
+    const res = await db.execute(sql`
+      SELECT id, name, login, role, school_id, examiner_id, instructor_id,
+             email, phone, two_factor_enabled, force_password_change,
+             allowed_modules, allowed_location_ids, created_at
+      FROM users
+    `);
+    payload["users"] = (res as any).rows ?? res;
+  } catch { payload["users"] = []; }
+
+  const id = crypto.randomUUID();
+  const jsonStr = JSON.stringify(payload);
+  const size = Buffer.byteLength(jsonStr, "utf8");
+  // ON CONFLICT DO NOTHING + índice único parcial garantem no máx. 1 backup 'auto' por dia,
+  // mesmo com logins de admin concorrentes.
+  const inserted = await db.execute(sql`
+    INSERT INTO backups (id, trigger_type, payload, size_bytes)
+    VALUES (${id}, ${trigger}, ${jsonStr}::jsonb, ${size})
+    ON CONFLICT DO NOTHING
+    RETURNING id
+  `);
+  const insertedRows = (inserted as any).rows ?? inserted;
+  if (!insertedRows || insertedRows.length === 0) return { skipped: true };
+  await db.execute(sql`
+    DELETE FROM backups
+    WHERE id NOT IN (SELECT id FROM backups ORDER BY created_at DESC LIMIT ${MAX_BACKUPS})
+  `);
+  return { id };
+}
+
+/** Dispara backup automático em segundo plano (não bloqueia o login) */
+function triggerAutoBackup() {
+  void createBackupSnapshot("auto").catch(() => {});
+}
+
 async function createSession(userId: string): Promise<string> {
   const sessionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8h
@@ -109,6 +169,7 @@ router.post("/auth", async (req, res) => {
       }
 
       const sessionToken = await createSession(u.id);
+      triggerAutoBackup(); // backup automático no acesso do admin
       const { password: _p, ...safe } = u;
       return res.status(200).json({ ...safe, sessionToken });
     }
@@ -130,6 +191,7 @@ router.post("/auth", async (req, res) => {
 
     // Login direto (sem 2FA)
     const sessionToken = await createSession(user.id);
+    if (user.role === "ADMIN") triggerAutoBackup();
     const { password: _p, ...safe } = user as any;
     return res.status(200).json({ ...safe, sessionToken });
   } catch (err: any) {
@@ -186,11 +248,37 @@ router.post("/verify-otp", async (req, res) => {
     if (result.length === 0) return res.status(404).json({ error: "Usuário não encontrado" });
 
     const sessionToken = await createSession(userId);
+    if ((result[0] as any).role === "ADMIN") triggerAutoBackup();
     const { password: _p, ...safe } = result[0] as any;
     return res.json({ ...safe, sessionToken });
   } catch (err: any) {
     return res.status(500).json({ error: "Erro interno", details: err.message });
   }
+});
+
+// ─── BACKUPS (somente ADMIN) ─────────────────────────────────────────────────
+router.get("/backups", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
+  try {
+    const { id } = req.query as any;
+    if (id) {
+      const result = await db.execute(sql`SELECT id, payload, created_at FROM backups WHERE id = ${id} LIMIT 1`);
+      const rows = (result as any).rows ?? result;
+      if (!rows || rows.length === 0) return res.status(404).json({ error: "Backup não encontrado" });
+      return res.json(rows[0]);
+    }
+    const result = await db.execute(sql`
+      SELECT id, trigger_type, size_bytes, created_at FROM backups ORDER BY created_at DESC
+    `);
+    return res.json((result as any).rows ?? result);
+  } catch (err: any) { return res.status(500).json({ error: err.message }); }
+});
+router.post("/backups", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
+  try {
+    const result = await createBackupSnapshot("manual");
+    return res.json({ success: true, ...result });
+  } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 
 // ─── USERS ────────────────────────────────────────────────────────────────────

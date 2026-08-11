@@ -66,6 +66,8 @@ async function runMigrations() {
     `);
     await db.execute(sql`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS failed_attempts integer DEFAULT 0`);
     await db.execute(sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`);
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS backups (id text PRIMARY KEY, trigger_type text NOT NULL DEFAULT 'manual', payload jsonb NOT NULL, size_bytes integer DEFAULT 0, created_at timestamp DEFAULT now())`);
+    await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS backups_auto_daily ON backups ((created_at::date)) WHERE trigger_type = 'auto'`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id text PRIMARY KEY,

@@ -3,6 +3,7 @@ import { getDb, json, error, parseBody } from '../_db.js';
 import { users, otpCodes } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { sendOtpEmail } from '../_resend.js';
+import { createBackup } from '../_backup.js';
 
 function generateCode(): string {
   const arr = new Uint32Array(1);
@@ -77,7 +78,8 @@ async function ensureSchema(db: any) {
   for (const s of stmts) { try { await db.execute(s); } catch {} }
 }
 
-export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY?: string }> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY?: string }> = async (context) => {
+  const { request, env } = context;
   try {
     const db = getDb(env as any);
     await ensureSchema(db);
@@ -110,6 +112,8 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
       }
 
       const sessionToken = await createSession(db, u.id);
+      // Backup automático em segundo plano no acesso do admin
+      context.waitUntil(createBackup(db, 'auto').catch(() => {}));
       const { password: _p, ...safe } = u;
       return json({ ...safe, sessionToken });
     }
@@ -129,6 +133,10 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
     }
 
     const sessionToken = await createSession(db, user.id);
+    if (user.role === 'ADMIN') {
+      // Backup automático em segundo plano no acesso do admin
+      context.waitUntil(createBackup(db, 'auto').catch(() => {}));
+    }
     const { password: _p, ...safe } = user as any;
     return json({ ...safe, sessionToken });
   } catch (e: any) {

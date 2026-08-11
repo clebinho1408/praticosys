@@ -26,6 +26,8 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`CREATE TABLE IF NOT EXISTS otp_codes (id text PRIMARY KEY, user_id text NOT NULL, code text NOT NULL, expires_at timestamp NOT NULL, used boolean DEFAULT false, failed_attempts integer DEFAULT 0, created_at timestamp DEFAULT now())`,
       sql`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS failed_attempts integer DEFAULT 0`,
       sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`,
+      sql`CREATE TABLE IF NOT EXISTS backups (id text PRIMARY KEY, trigger_type text NOT NULL DEFAULT 'manual', payload jsonb NOT NULL, size_bytes integer DEFAULT 0, created_at timestamp DEFAULT now())`,
+      sql`CREATE UNIQUE INDEX IF NOT EXISTS backups_auto_daily ON backups ((created_at::date)) WHERE trigger_type = 'auto'`,
     ];
 
     const columns = [
