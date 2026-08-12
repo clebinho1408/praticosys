@@ -945,8 +945,15 @@ router.delete("/exam-locations", async (req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 
-// ─── SETUP (diagnostics) ──────────────────────────────────────────────────────
-router.all("/setup", async (_req, res) => {
+// ─── SETUP (protegido por SESSION_SECRET) ─────────────────────────────────────
+// Requer header Authorization: Bearer <SESSION_SECRET>.
+// Cria usuário admin apenas se não existir — não define senha (definida no primeiro login).
+router.all("/setup", async (req, res) => {
+  const sessionSecret = process.env.SESSION_SECRET;
+  const authHeader = req.headers["authorization"] ?? "";
+  if (!sessionSecret || authHeader !== `Bearer ${sessionSecret}`) {
+    return res.status(401).json({ error: "Acesso não autorizado. Forneça o header Authorization: Bearer <SESSION_SECRET>." });
+  }
   try {
     const existing = await db.select().from(users).where(eq(users.login, "admin"));
     if (existing.length === 0) {

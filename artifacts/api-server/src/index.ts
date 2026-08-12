@@ -120,7 +120,7 @@ async function runMigrations() {
       const userRows: any[] = await db.execute(sql`
         SELECT u.id, u.login, i.cpf AS instructor_cpf
         FROM users u
-        JOIN instructors i ON i.id = u.instructor_id
+        LEFT JOIN instructors i ON i.id = u.instructor_id
         WHERE u.role = 'INSTRUCTOR' AND u.login ~ '^[0-9]{10,11}$'
       `).then((r: any) => r.rows ?? r);
       for (const u of userRows) {
@@ -128,13 +128,27 @@ async function runMigrations() {
           const rawCpf = isCpfEncrypted(u.instructor_cpf)
             ? await decryptCpf(u.instructor_cpf, encKey)
             : u.instructor_cpf;
-          const digits = rawCpf?.replace(/\D/g, '');
+          // Fallback: se o instrutor não tem CPF gravado, o login em si são os dígitos
+          const digits = rawCpf?.replace(/\D/g, '') || u.login;
           if (!digits) continue;
           const hmac = await cpfSearchHash(digits, encKey);
           await db.execute(sql`UPDATE users SET login = ${hmac} WHERE id = ${u.id}`);
           total++;
         } catch {}
       }
+      // 3. Invalidar backups com CPFs em texto puro no payload (não re-criptografar JSON histórico)
+      await db.execute(sql`
+        DELETE FROM backups
+        WHERE
+          EXISTS (
+            SELECT 1 FROM jsonb_array_elements(COALESCE(payload->'instructors', '[]'::jsonb)) AS e
+            WHERE e->>'cpf' IS NOT NULL AND e->>'cpf' != '' AND e->>'cpf' NOT LIKE 'enc:%'
+          )
+          OR EXISTS (
+            SELECT 1 FROM jsonb_array_elements(COALESCE(payload->'exam_requests', '[]'::jsonb)) AS e
+            WHERE e->>'cpf' IS NOT NULL AND e->>'cpf' != '' AND e->>'cpf' NOT LIKE 'enc:%'
+          )
+      `);
       logger.info({ total }, 'CPF backfill + instructor login migration complete');
     } catch (err) { logger.warn({ err }, 'CPF backfill skipped'); }
   }

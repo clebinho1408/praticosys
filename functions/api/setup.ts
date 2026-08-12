@@ -1,5 +1,6 @@
 // functions/api/setup.ts  →  POST /api/setup
 // Cria o usuário admin e garante existência de todas as tabelas via migrations inline.
+// PROTEGIDO: requer header Authorization: Bearer <SESSION_SECRET>.
 import { getDb, json, error } from '../_db.js';
 import { users } from '../../db/schema.js';
 import { sql } from 'drizzle-orm';
@@ -45,7 +46,7 @@ async function backfillCpfEncryption(
   const userRows: any[] = await db.execute(sql`
     SELECT u.id, u.login, i.cpf AS instructor_cpf
     FROM users u
-    JOIN instructors i ON i.id = u.instructor_id
+    LEFT JOIN instructors i ON i.id = u.instructor_id
     WHERE u.role = 'INSTRUCTOR' AND u.login ~ '^[0-9]{10,11}$'
   `).then((r: any) => (r as any).rows ?? r);
 
@@ -54,7 +55,8 @@ async function backfillCpfEncryption(
       const rawCpf = isCpfEncrypted(u.instructor_cpf)
         ? await decryptCpf(u.instructor_cpf, encKey)
         : u.instructor_cpf;
-      const digits = rawCpf?.replace(/\D/g, '');
+      // Fallback: se o instrutor não tem CPF gravado, o login em si são os dígitos
+      const digits = rawCpf?.replace(/\D/g, '') || u.login;
       if (!digits) continue;
       const hmac = await cpfSearchHash(digits, encKey);
       await db.execute(sql`UPDATE users SET login = ${hmac} WHERE id = ${u.id}`);
@@ -64,10 +66,33 @@ async function backfillCpfEncryption(
     }
   }
 
+  // 3. Invalidar backups com CPFs em texto puro no payload
+  const deleted: any = await db.execute(sql`
+    DELETE FROM backups
+    WHERE
+      EXISTS (
+        SELECT 1 FROM jsonb_array_elements(COALESCE(payload->'instructors', '[]'::jsonb)) AS e
+        WHERE e->>'cpf' IS NOT NULL AND e->>'cpf' != '' AND e->>'cpf' NOT LIKE 'enc:%'
+      )
+      OR EXISTS (
+        SELECT 1 FROM jsonb_array_elements(COALESCE(payload->'exam_requests', '[]'::jsonb)) AS e
+        WHERE e->>'cpf' IS NOT NULL AND e->>'cpf' != '' AND e->>'cpf' NOT LIKE 'enc:%'
+      )
+  `);
+  counts.cpfRows += deleted?.rowCount ?? 0;
+
   return counts;
 }
 
-export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ env }) => {
+export const onRequestPost: PagesFunction<{ DATABASE_URL: string; SESSION_SECRET?: string; DATA_ENCRYPTION_KEY?: string }> = async ({ env, request }) => {
+  // Proteção: requer o SESSION_SECRET no header de autorização.
+  // Isso impede que qualquer pessoa na internet dispare DDL ou reset de admin.
+  const sessionSecret = (env as any).SESSION_SECRET as string | undefined;
+  const authHeader = request.headers.get('Authorization') ?? '';
+  if (!sessionSecret || authHeader !== `Bearer ${sessionSecret}`) {
+    return error('Acesso não autorizado. Forneça o header Authorization: Bearer <SESSION_SECRET>.', 401);
+  }
+
   try {
     const db = getDb(env as any);
 
