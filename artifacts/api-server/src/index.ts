@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { encryptCpf, decryptCpf, cpfSearchHash, validateCpfKey, isCpfEncrypted } from "./cpf.js";
 
 const rawPort = process.env["PORT"];
 
@@ -68,6 +69,9 @@ async function runMigrations() {
     await db.execute(sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`);
     await db.execute(sql`CREATE TABLE IF NOT EXISTS backups (id text PRIMARY KEY, trigger_type text NOT NULL DEFAULT 'manual', payload jsonb NOT NULL, size_bytes integer DEFAULT 0, created_at timestamp DEFAULT now())`);
     await db.execute(sql`CREATE UNIQUE INDEX IF NOT EXISTS backups_auto_daily ON backups ((created_at::date)) WHERE trigger_type = 'auto'`);
+    // Colunas para criptografia de CPF
+    await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS cpf_hash text`);
+    await db.execute(sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS cpf_hash text`);
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id text PRIMARY KEY,
@@ -84,6 +88,55 @@ async function runMigrations() {
     logger.info("DB migrations complete");
   } catch (err) {
     logger.warn({ err }, "DB migration step skipped or failed");
+  }
+
+  // Backfill: criptografa CPFs em texto puro e migra logins de instrutores para HMAC.
+  // Processa em lotes; mantém set de IDs com falha para garantir progresso.
+  const encKey = process.env.DATA_ENCRYPTION_KEY ?? '';
+  if (!validateCpfKey(encKey)) {
+    try {
+      let total = 0;
+      // 1. Criptografar CPFs em texto puro nas tabelas de dados
+      for (const table of ['exam_requests', 'instructors'] as const) {
+        const skipped = new Set<string>();
+        let keepGoing = true;
+        while (keepGoing) {
+          const batch: any[] = await db.execute(
+            sql.raw(`SELECT id, cpf FROM ${table} WHERE cpf IS NOT NULL AND cpf != '' AND cpf NOT LIKE 'enc:%' LIMIT 100`)
+          ).then((r: any) => r.rows ?? r);
+          const processable = batch.filter((r: any) => !skipped.has(r.id));
+          if (!processable.length) { keepGoing = false; break; }
+          for (const row of processable) {
+            try {
+              const result = await encryptCpf(row.cpf, encKey);
+              if (!result) { skipped.add(row.id); continue; }
+              await db.execute(sql`UPDATE ${sql.raw(table)} SET cpf = ${result.enc}, cpf_hash = ${result.hash} WHERE id = ${row.id}`);
+              total++;
+            } catch { skipped.add(row.id); }
+          }
+        }
+      }
+      // 2. Migrar logins de instrutores de CPF em texto puro → HMAC do CPF
+      const userRows: any[] = await db.execute(sql`
+        SELECT u.id, u.login, i.cpf AS instructor_cpf
+        FROM users u
+        JOIN instructors i ON i.id = u.instructor_id
+        WHERE u.role = 'INSTRUCTOR' AND u.login ~ '^[0-9]{10,11}$'
+      `).then((r: any) => r.rows ?? r);
+      for (const u of userRows) {
+        try {
+          const rawCpf = isCpfEncrypted(u.instructor_cpf)
+            ? await decryptCpf(u.instructor_cpf, encKey)
+            : u.instructor_cpf;
+          const digits = rawCpf?.replace(/\D/g, '');
+          if (!digits) continue;
+          const hmac = await cpfSearchHash(digits, encKey);
+          await db.execute(sql`UPDATE users SET login = ${hmac} WHERE id = ${u.id}`);
+          total++;
+        } catch {}
+      }
+      logger.info({ total }, 'CPF backfill + instructor login migration complete');
+    } catch (err) { logger.warn({ err }, 'CPF backfill skipped'); }
   }
 }
 

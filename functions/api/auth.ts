@@ -5,6 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 import { sendOtpEmail } from '../_resend.js';
 import { createBackup } from '../_backup.js';
 import { hashPassword, verifyPassword } from '../_password.js';
+import { cpfSearchHash, validateCpfKey } from '../_cpf.js';
 
 function generateCode(): string {
   const arr = new Uint32Array(1);
@@ -89,7 +90,16 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
     const { login, password } = body;
     if (!login || !password) return error('Login e senha são obrigatórios', 400);
 
-    const result = await db.select().from(users).where(eq(users.login, login));
+    let result = await db.select().from(users).where(eq(users.login, login));
+    // Suporte a login por CPF: se não encontrado e o input parecer dígitos de CPF,
+    // tenta lookup pelo HMAC (logins migrados para proteger o CPF).
+    if (!result.length && /^\d{10,11}$/.test(login)) {
+      const encKey = (env as any).DATA_ENCRYPTION_KEY ?? '';
+      if (!validateCpfKey(encKey)) {
+        const hash = await cpfSearchHash(login, encKey);
+        result = await db.select().from(users).where(eq(users.login, hash));
+      }
+    }
     if (result.length === 0) return error('Usuário não encontrado', 401);
 
     const user = result[0] as any;
