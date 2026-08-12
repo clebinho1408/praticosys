@@ -16,9 +16,6 @@ function hashCode(code: string): string {
 }
 
 import { hashPassword, verifyPassword } from '../password.js';
-import { encryptCpf, decryptCpf, decryptCpfInRows, cpfSearchHash, validateCpfKey, isCpfEncrypted } from '../cpf.js';
-
-const ENC_KEY = () => process.env.DATA_ENCRYPTION_KEY ?? '';
 
 const OTP_MAX_ATTEMPTS = 5;
 
@@ -119,16 +116,7 @@ router.post("/auth", async (req, res) => {
     if (!login || !password) {
       return res.status(400).json({ error: "Login e senha são obrigatórios" });
     }
-    let result = await db.select().from(users).where(eq(users.login, login));
-    // Suporte a login por CPF: se não encontrado e o input parecer dígitos de CPF,
-    // tenta lookup pelo HMAC (logins migrados para proteger o CPF).
-    if (result.length === 0 && /^\d{10,11}$/.test(login)) {
-      const encKey = ENC_KEY();
-      if (!validateCpfKey(encKey)) {
-        const hash = await cpfSearchHash(login, encKey);
-        result = await db.select().from(users).where(eq(users.login, hash));
-      }
-    }
+    const result = await db.select().from(users).where(eq(users.login, login));
     if (result.length === 0) {
       return res.status(401).json({ error: "Usuário não encontrado" });
     }
@@ -407,8 +395,7 @@ router.delete("/examiners", async (req, res) => {
 // ─── INSTRUCTORS ──────────────────────────────────────────────────────────────
 router.get("/instructors", async (_req, res) => {
   try {
-    const raw = await db.select().from(instructors);
-    const allInstructors = await decryptCpfInRows(raw, ENC_KEY());
+    const allInstructors = await db.select().from(instructors);
     const allVehicles = await db.select().from(vehicles);
     const data = allInstructors.map((inst: any) => ({
       ...inst,
@@ -421,24 +408,13 @@ router.post("/instructors", async (req, res) => {
   try {
     const { vehicles: vList, ...instructorData } = req.body;
     const newId = crypto.randomUUID();
-    const encKey = ENC_KEY();
-    const cpfPlain = instructorData.cpf ?? null;
-    if (instructorData.cpf) {
-      const keyErr = validateCpfKey(encKey);
-      if (keyErr) return res.status(503).json({ error: `Proteção de dados indisponível: ${keyErr}` });
-      const r = await encryptCpf(instructorData.cpf, encKey);
-      instructorData.cpf = r?.enc ?? null;
-      (instructorData as any).cpfHash = r?.hash ?? null;
-    }
     const item = await db.insert(instructors).values({ id: newId, ...instructorData }).returning();
-    if (cpfPlain) {
-      const cpfNum = cpfPlain.replace(/\D/g, "");
+    if (instructorData.cpf) {
+      const cpfNum = instructorData.cpf.replace(/\D/g, "");
       if (cpfNum) {
-        // Login é o HMAC do CPF (chave já validada acima), não o CPF em texto puro
-        const userLogin = await cpfSearchHash(cpfNum, encKey);
         await db.insert(users).values({
           id: crypto.randomUUID(), name: instructorData.name,
-          login: userLogin, password: await hashPassword("123456"), role: "INSTRUCTOR", instructorId: newId
+          login: cpfNum, password: await hashPassword("123456"), role: "INSTRUCTOR", instructorId: newId
         }).onConflictDoNothing();
       }
     }
@@ -448,38 +424,23 @@ router.post("/instructors", async (req, res) => {
       }
     }
     const allVehicles = await db.select().from(vehicles).where(eq(vehicles.instructorId, newId));
-    const decrypted = (await decryptCpfInRows([item[0] as any], ENC_KEY()))[0];
-    return res.json({ ...decrypted, vehicles: allVehicles });
+    return res.json({ ...item[0], vehicles: allVehicles });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/instructors", async (req, res) => {
   try {
     const { id, createdAt, vehicles: vList, ...updates } = req.body;
-    const encKey = ENC_KEY();
-    let newCpfHmac: string | null | undefined; // rastreamos se o CPF mudou para atualizar o login
-    if (updates.cpf !== undefined) {
-      if (updates.cpf) {
-        const keyErr = validateCpfKey(encKey);
-        if (keyErr) return res.status(503).json({ error: `Proteção de dados indisponível: ${keyErr}` });
-        const r = await encryptCpf(updates.cpf, encKey);
-        updates.cpf = r?.enc ?? null;
-        updates.cpfHash = r?.hash ?? null;
-        // Novo HMAC para atualizar o login do usuário instrutor vinculado
-        newCpfHmac = r?.hash ?? null;
-      } else {
-        updates.cpf = null;
-        updates.cpfHash = null;
-        newCpfHmac = null;
-      }
-    }
     const item = await db.update(instructors).set(updates).where(eq(instructors.id, id)).returning();
     // Sincronizar login do usuário instrutor vinculado quando o CPF muda
-    if (newCpfHmac !== undefined) {
+    if (updates.cpf !== undefined) {
       try {
-        await db.execute(sql`
-          UPDATE users SET login = ${newCpfHmac}
-          WHERE instructor_id = ${id} AND role = 'INSTRUCTOR'
-        `);
+        const cpfNum = (updates.cpf ?? '').replace(/\D/g, '');
+        if (cpfNum) {
+          await db.execute(sql`
+            UPDATE users SET login = ${cpfNum}
+            WHERE instructor_id = ${id} AND role = 'INSTRUCTOR'
+          `);
+        }
       } catch {}
     }
     if (vList && Array.isArray(vList)) {
@@ -493,8 +454,7 @@ router.put("/instructors", async (req, res) => {
       }
     }
     const allVehicles = await db.select().from(vehicles).where(eq(vehicles.instructorId, id));
-    const decryptedInst = (await decryptCpfInRows([item[0] as any], ENC_KEY()))[0];
-    return res.json({ ...decryptedInst, vehicles: allVehicles });
+    return res.json({ ...item[0], vehicles: allVehicles });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/instructors", async (req, res) => {
@@ -616,23 +576,13 @@ router.get("/requests", async (req, res) => {
       `);
     } catch {}
     const { cpf } = req.query as any;
-    const encKey = ENC_KEY();
     if (cpf) {
       const clean = cpf.replace(/\D/g, "");
-      const keyErr = validateCpfKey(encKey);
-      if (!keyErr) {
-        // Busca por hash HMAC — não requer descriptografar todas as linhas
-        const hash = await cpfSearchHash(clean, encKey);
-        const rows = await db.select().from(examRequests).where(eq(examRequests.cpfHash, hash));
-        return res.json(await decryptCpfInRows(rows as any[], encKey));
-      }
-      // Chave não configurada: busca em texto puro (modo de transição)
-      const { like: likeOp } = await import("drizzle-orm");
-      const rows = await db.select().from(examRequests).where(likeOp(examRequests.cpf, `%${clean}%`));
+      const rows = await db.select().from(examRequests).where(like(examRequests.cpf, `%${clean}%`));
       return res.json(rows);
     }
     const rows = await db.select().from(examRequests);
-    return res.json(await decryptCpfInRows(rows as any[], encKey));
+    return res.json(rows);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/requests", async (req, res) => {
@@ -641,22 +591,12 @@ router.post("/requests", async (req, res) => {
     const filtered: any = {};
     for (const k of ALLOWED_REQ_FIELDS) { if (body[k] !== undefined) filtered[k] = body[k]; }
     if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
-    const encKey = ENC_KEY();
-    const cpfPlain = filtered.cpf ?? null;
-    if (filtered.cpf) {
-      const keyErr = validateCpfKey(encKey);
-      if (keyErr) return res.status(503).json({ error: `Proteção de dados indisponível: ${keyErr}` });
-      const r = await encryptCpf(filtered.cpf, encKey);
-      filtered.cpf = r?.enc ?? null;
-      filtered.cpfHash = r?.hash ?? null;
-    }
     const item = await db.insert(examRequests).values({
       id: filtered.id || crypto.randomUUID(), ...filtered,
       createdAt: new Date(), updatedAt: new Date()
     }).returning();
-    const result = { ...(item[0] as any), cpf: cpfPlain, cpfHash: undefined };
-    broadcast("requests_updated", result);
-    return res.json(result);
+    broadcast("requests_updated", item[0]);
+    return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/requests", async (req, res) => {
@@ -667,23 +607,9 @@ router.put("/requests", async (req, res) => {
     const updates: any = {};
     for (const k of ALLOWED_REQ_FIELDS) { if (rawUpdates[k] !== undefined) updates[k] = rawUpdates[k]; }
     updates.updatedAt = new Date();
-    const encKey = ENC_KEY();
-    if (updates.cpf !== undefined) {
-      if (updates.cpf) {
-        const keyErr = validateCpfKey(encKey);
-        if (keyErr) return res.status(503).json({ error: `Proteção de dados indisponível: ${keyErr}` });
-        const r = await encryptCpf(updates.cpf, encKey);
-        updates.cpf = r?.enc ?? null;
-        updates.cpfHash = r?.hash ?? null;
-      } else {
-        updates.cpf = null;
-        updates.cpfHash = null;
-      }
-    }
     const item = await db.update(examRequests).set(updates).where(eq(examRequests.id, id)).returning();
-    const decryptedRow = (await decryptCpfInRows([item[0] as any], encKey))[0];
-    broadcast("requests_updated", decryptedRow);
-    return res.json(decryptedRow);
+    broadcast("requests_updated", item[0]);
+    return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/requests", async (req, res) => {

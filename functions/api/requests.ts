@@ -2,7 +2,6 @@
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
 import { examRequests } from '../../db/schema.js';
 import { eq, like, sql } from 'drizzle-orm';
-import { encryptCpf, decryptCpfInRows, cpfSearchHash, validateCpfKey } from '../_cpf.js';
 
 const ALLOWED_FIELDS = [
   'id','studentName','socialName','cpf','phone','email','address','city',
@@ -30,8 +29,7 @@ function filterFields(obj: any, extra: string[] = []) {
   return out;
 }
 
-export const onRequest: PagesFunction<{ DATABASE_URL: string; DATA_ENCRYPTION_KEY?: string }> = async ({ request, env }) => {
-  const encKey = (env as any).DATA_ENCRYPTION_KEY ?? '';
+export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
@@ -78,32 +76,15 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string; DATA_ENCRYPTION_KE
     if (method === 'GET') {
       if (query.cpf) {
         const clean = query.cpf.replace(/\D/g, '');
-        const keyErr = validateCpfKey(encKey);
-        if (!keyErr) {
-          // Busca por hash HMAC — não descriptografa todas as linhas
-          const hash = await cpfSearchHash(clean, encKey);
-          const rows = await db.select().from(examRequests).where(eq(examRequests.cpfHash, hash));
-          return json(await decryptCpfInRows(rows, encKey));
-        }
-        // Chave não configurada: busca em texto puro (modo de transição)
         return json(await db.select().from(examRequests).where(like(examRequests.cpf, `%${clean}%`)));
       }
-      const rows = await db.select().from(examRequests);
-      return json(await decryptCpfInRows(rows, encKey));
+      return json(await db.select().from(examRequests));
     }
 
     if (method === 'POST') {
       const body = await parseBody<any>(request);
       const filtered = filterFields(body);
       if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
-      const cpfPlain = filtered.cpf ?? null;
-      if (filtered.cpf) {
-        const keyErr = validateCpfKey(encKey);
-        if (keyErr) return error(`Proteção de dados indisponível: ${keyErr}`, 503);
-        const r = await encryptCpf(filtered.cpf, encKey);
-        filtered.cpf = r?.enc ?? null;
-        filtered.cpfHash = r?.hash ?? null;
-      }
       const newItem = await db.insert(examRequests).values({
         id: filtered.id || crypto.randomUUID(),
         ...filtered,
@@ -112,8 +93,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string; DATA_ENCRYPTION_KE
         createdAt: filtered.createdAt ? new Date(filtered.createdAt) : new Date(),
         updatedAt: new Date(),
       }).returning();
-      const inserted = { ...(newItem[0] ?? { id: body.id, ...body }), cpf: cpfPlain, cpfHash: undefined };
-      return json(inserted);
+      return json(newItem[0] ?? { id: body.id, ...body });
     }
 
     if (method === 'PUT') {
@@ -121,28 +101,14 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string; DATA_ENCRYPTION_KE
       if (!body?.id) return error('ID obrigatório', 400);
       const { id, updatedAt, createdAt, ...updates } = body;
       const filtered = filterFields(updates);
-      // Converte campos timestamp de string para Date (drizzle neon-http requer Date)
       if (filtered.queueUpdatedAt && typeof filtered.queueUpdatedAt === 'string') {
         filtered.queueUpdatedAt = new Date(filtered.queueUpdatedAt);
-      }
-      if (filtered.cpf !== undefined) {
-        if (filtered.cpf) {
-          const keyErr = validateCpfKey(encKey);
-          if (keyErr) return error(`Proteção de dados indisponível: ${keyErr}`, 503);
-          const r = await encryptCpf(filtered.cpf, encKey);
-          filtered.cpf = r?.enc ?? null;
-          filtered.cpfHash = r?.hash ?? null;
-        } else {
-          filtered.cpf = null;
-          filtered.cpfHash = null;
-        }
       }
       const updated = await db.update(examRequests)
         .set({ ...filtered, updatedAt: new Date() })
         .where(eq(examRequests.id, id))
         .returning();
-      const row = updated[0] ?? { id, ...updates };
-      return json((await decryptCpfInRows([row], encKey))[0]);
+      return json(updated[0] ?? { id, ...updates });
     }
 
     if (method === 'DELETE') {

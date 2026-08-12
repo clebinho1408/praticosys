@@ -1,98 +1,10 @@
 // functions/api/setup.ts  →  POST /api/setup
 // Cria o usuário admin e garante existência de todas as tabelas via migrations inline.
-// PROTEGIDO: requer header Authorization: Bearer <SESSION_SECRET>.
 import { getDb, json, error } from '../_db.js';
 import { users } from '../../db/schema.js';
 import { sql } from 'drizzle-orm';
-import { encryptCpf, decryptCpf, cpfSearchHash, validateCpfKey, isCpfEncrypted } from '../_cpf.js';
 
-/**
- * Criptografa todos os CPFs em texto puro e migra logins de instrutores para HMAC.
- * Idempotente. Mantém set de IDs com falha para garantir progresso (sem loop infinito).
- */
-async function backfillCpfEncryption(
-  db: ReturnType<typeof getDb>,
-  encKey: string,
-): Promise<{ cpfRows: number; loginRows: number; errors: string[] }> {
-  const counts = { cpfRows: 0, loginRows: 0, errors: [] as string[] };
-
-  // 1. Criptografar CPFs em texto puro
-  for (const table of ['exam_requests', 'instructors'] as const) {
-    const skipped = new Set<string>();
-    let keepGoing = true;
-    while (keepGoing) {
-      const batch: any[] = await db.execute(
-        sql.raw(`SELECT id, cpf FROM ${table} WHERE cpf IS NOT NULL AND cpf != '' AND cpf NOT LIKE 'enc:%' LIMIT 100`)
-      ).then((r: any) => (r as any).rows ?? r);
-      const processable = batch.filter((r: any) => !skipped.has(r.id));
-      if (!processable.length) { keepGoing = false; break; }
-      for (const row of processable) {
-        try {
-          const result = await encryptCpf(row.cpf, encKey);
-          if (!result) { skipped.add(row.id); counts.errors.push(`${table}:${row.id}:null`); continue; }
-          await db.execute(
-            sql`UPDATE ${sql.raw(table)} SET cpf = ${result.enc}, cpf_hash = ${result.hash} WHERE id = ${row.id}`
-          );
-          counts.cpfRows++;
-        } catch (e: any) {
-          skipped.add(row.id);
-          counts.errors.push(`${table}:${row.id}:${e?.message ?? 'err'}`);
-        }
-      }
-    }
-  }
-
-  // 2. Migrar logins de instrutores de CPF em texto puro → HMAC
-  const userRows: any[] = await db.execute(sql`
-    SELECT u.id, u.login, i.cpf AS instructor_cpf
-    FROM users u
-    LEFT JOIN instructors i ON i.id = u.instructor_id
-    WHERE u.role = 'INSTRUCTOR' AND u.login ~ '^[0-9]{10,11}$'
-  `).then((r: any) => (r as any).rows ?? r);
-
-  for (const u of userRows) {
-    try {
-      const rawCpf = isCpfEncrypted(u.instructor_cpf)
-        ? await decryptCpf(u.instructor_cpf, encKey)
-        : u.instructor_cpf;
-      // Fallback: se o instrutor não tem CPF gravado, o login em si são os dígitos
-      const digits = rawCpf?.replace(/\D/g, '') || u.login;
-      if (!digits) continue;
-      const hmac = await cpfSearchHash(digits, encKey);
-      await db.execute(sql`UPDATE users SET login = ${hmac} WHERE id = ${u.id}`);
-      counts.loginRows++;
-    } catch (e: any) {
-      counts.errors.push(`user:${u.id}:${e?.message ?? 'err'}`);
-    }
-  }
-
-  // 3. Invalidar backups com CPFs em texto puro no payload
-  const deleted: any = await db.execute(sql`
-    DELETE FROM backups
-    WHERE
-      EXISTS (
-        SELECT 1 FROM jsonb_array_elements(COALESCE(payload->'instructors', '[]'::jsonb)) AS e
-        WHERE e->>'cpf' IS NOT NULL AND e->>'cpf' != '' AND e->>'cpf' NOT LIKE 'enc:%'
-      )
-      OR EXISTS (
-        SELECT 1 FROM jsonb_array_elements(COALESCE(payload->'exam_requests', '[]'::jsonb)) AS e
-        WHERE e->>'cpf' IS NOT NULL AND e->>'cpf' != '' AND e->>'cpf' NOT LIKE 'enc:%'
-      )
-  `);
-  counts.cpfRows += deleted?.rowCount ?? 0;
-
-  return counts;
-}
-
-export const onRequestPost: PagesFunction<{ DATABASE_URL: string; SESSION_SECRET?: string; DATA_ENCRYPTION_KEY?: string }> = async ({ env, request }) => {
-  // Proteção: requer o SESSION_SECRET no header de autorização.
-  // Isso impede que qualquer pessoa na internet dispare DDL ou reset de admin.
-  const sessionSecret = (env as any).SESSION_SECRET as string | undefined;
-  const authHeader = request.headers.get('Authorization') ?? '';
-  if (!sessionSecret || authHeader !== `Bearer ${sessionSecret}`) {
-    return error('Acesso não autorizado. Forneça o header Authorization: Bearer <SESSION_SECRET>.', 401);
-  }
-
+export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ env }) => {
   try {
     const db = getDb(env as any);
 
@@ -116,8 +28,6 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; SESSION_SECRET
       sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`,
       sql`CREATE TABLE IF NOT EXISTS backups (id text PRIMARY KEY, trigger_type text NOT NULL DEFAULT 'manual', payload jsonb NOT NULL, size_bytes integer DEFAULT 0, created_at timestamp DEFAULT now())`,
       sql`CREATE UNIQUE INDEX IF NOT EXISTS backups_auto_daily ON backups ((created_at::date)) WHERE trigger_type = 'auto'`,
-      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS cpf_hash text`,
-      sql`ALTER TABLE instructors ADD COLUMN IF NOT EXISTS cpf_hash text`,
     ];
 
     const columns = [
@@ -212,20 +122,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; SESSION_SECRET
       }).onConflictDoNothing();
     } catch {}
 
-    // Backfill: criptografa CPFs em texto puro se a chave estiver configurada
-    const encKey = (env as any).DATA_ENCRYPTION_KEY ?? '';
-    let migrationInfo: Record<string, any> = {};
-    if (!validateCpfKey(encKey)) {
-      try {
-        migrationInfo = await backfillCpfEncryption(db, encKey);
-      } catch (backfillErr: any) {
-        migrationInfo = { error: backfillErr?.message ?? 'backfill failed' };
-      }
-    } else {
-      migrationInfo = { skipped: 'DATA_ENCRYPTION_KEY não configurada — CPFs não criptografados em texto puro permanecem até que a chave seja configurada e /api/setup seja chamado novamente' };
-    }
-
-    return json({ success: true, message: 'Tabelas criadas e sincronizadas com sucesso!', cpfMigration: migrationInfo });
+    return json({ success: true, message: 'Tabelas criadas e sincronizadas com sucesso!' });
   } catch (e: any) {
     return error(e.message ?? 'Erro interno', 500);
   }

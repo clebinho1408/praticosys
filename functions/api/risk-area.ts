@@ -2,9 +2,8 @@
 import { getDb, json, error, parseBody } from '../_db.js';
 import { systemSettings } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
-import { cpfSearchHash, validateCpfKey } from '../_cpf.js';
 
-export const onRequestPost: PagesFunction<{ DATABASE_URL: string; DATA_ENCRYPTION_KEY?: string }> = async ({ request, env }) => {
+export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
   try {
     const db = getDb(env as any);
     const body = await parseBody<{ action: string; securityKey?: string }>(request);
@@ -26,25 +25,12 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; DATA_ENCRYPTIO
     }
 
     if (body.action === 'CLEANUP_PHANTOM_REQUESTS') {
-      // CPFs sentinela '00000000000': quando criptografia está ativa, comparar pelo cpf_hash.
-      const encKey = (env as any).DATA_ENCRYPTION_KEY ?? '';
-      let deleteResult: any;
-      if (!validateCpfKey(encKey)) {
-        const sentinelHash = await cpfSearchHash('00000000000', encKey);
-        deleteResult = await db.execute(sql`
-          DELETE FROM exam_requests
-          WHERE (student_name IS NULL OR student_name = '' OR student_name = 'Vaga Disponível')
-            AND (cpf IS NULL OR cpf = '' OR cpf_hash = ${sentinelHash})
-        `);
-      } else {
-        // Chave não configurada: comparação em texto puro (modo degradado)
-        deleteResult = await db.execute(sql`
-          DELETE FROM exam_requests
-          WHERE (student_name IS NULL OR student_name = '' OR student_name = 'Vaga Disponível')
-            AND (cpf IS NULL OR cpf = '' OR cpf = '00000000000')
-        `);
-      }
-      const count = (deleteResult as any).rowCount ?? 0;
+      const result = await db.execute(sql`
+        DELETE FROM exam_requests
+        WHERE (student_name IS NULL OR student_name = '' OR student_name = 'Vaga Disponível')
+          AND (cpf IS NULL OR cpf = '' OR cpf = '00000000000')
+      `);
+      const count = (result as any).rowCount ?? 0;
       return json({ success: true, message: `${count} candidatos fantasma removidos do banco de dados.`, removed: count });
     }
 
