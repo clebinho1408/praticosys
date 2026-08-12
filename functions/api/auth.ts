@@ -4,6 +4,7 @@ import { users, otpCodes } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { sendOtpEmail } from '../_resend.js';
 import { createBackup } from '../_backup.js';
+import { hashPassword, verifyPassword } from '../_password.js';
 
 function generateCode(): string {
   const arr = new Uint32Array(1);
@@ -93,10 +94,11 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
 
     const user = result[0] as any;
 
-    // Bootstrap admin sem senha — define senha inicial
+    // Bootstrap admin sem senha — define senha inicial (já armazena hash)
     if (login === 'admin' && !user.password) {
+      const hashed = await hashPassword(password);
       const updated = await db.update(users)
-        .set({ password, forcePasswordChange: false })
+        .set({ password: hashed, forcePasswordChange: false })
         .where(eq(users.id, user.id))
         .returning();
       const u = (updated[0] ?? user) as any;
@@ -118,7 +120,15 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
       return json({ ...safe, sessionToken });
     }
 
-    if (user.password && user.password !== password) return error('Senha incorreta', 401);
+    // Verifica senha (suporta migração transparente de texto puro → bcrypt)
+    if (user.password) {
+      const check = await verifyPassword(password, user.password);
+      if (!check.ok) return error('Senha incorreta', 401);
+      if (check.needsRehash && check.hash) {
+        // Re-criptografa silenciosamente (migração de senha legada)
+        await db.update(users).set({ password: check.hash }).where(eq(users.login, login));
+      }
+    }
 
     // 2FA ativo mas sem e-mail — bloqueia para evitar bypass silencioso
     if (user.twoFactorEnabled && !user.email) {

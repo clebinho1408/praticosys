@@ -2,6 +2,7 @@
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
 import { users } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
+import { hashPassword } from '../_password.js';
 
 const ADMIN_ONLY_FIELDS = ['password', 'twoFactorEnabled', 'two_factor_enabled', 'role'];
 
@@ -46,7 +47,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
       if (body.twoFactorEnabled && !body.email) {
         return error('Verificação em 2 etapas requer e-mail cadastrado.', 400);
       }
-      const newItem = await db.insert(users).values({ id: crypto.randomUUID(), password: '123456', ...body }).returning();
+      const hashedDefault = await hashPassword('123456');
+      const newItem = await db.insert(users).values({ id: crypto.randomUUID(), password: hashedDefault, ...body }).returning();
       const { password, ...safe } = newItem[0] as any;
       return json(safe);
     }
@@ -66,6 +68,10 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
         }
       }
 
+      // Se a atualização inclui senha em texto puro, criptografar antes de salvar
+      if (updates.password && !updates.password.startsWith('$2b$') && !updates.password.startsWith('$2a$')) {
+        updates.password = await hashPassword(updates.password);
+      }
       const updated = await db.update(users).set(updates).where(eq(users.id, id)).returning();
       if (!updated.length) return error('Usuário não encontrado', 404);
       const { password, ...safe } = updated[0] as any;

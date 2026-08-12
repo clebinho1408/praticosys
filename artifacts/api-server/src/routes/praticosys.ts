@@ -15,6 +15,8 @@ function hashCode(code: string): string {
   return createHash('sha256').update(code).digest('hex');
 }
 
+import { hashPassword, verifyPassword } from '../password.js';
+
 const OTP_MAX_ATTEMPTS = 5;
 
 // ─── BACKUP ───────────────────────────────────────────────────────────────────
@@ -151,10 +153,11 @@ router.post("/auth", async (req, res) => {
       return { requiresOtp: true, userId: u.id, sentTo: maskEmail(u.email), ...(devCode ? { devCode } : {}) };
     };
 
-    // Bootstrap admin sem senha — define senha inicial
+    // Bootstrap admin sem senha — define senha inicial (já armazena hash)
     if (login === "admin" && !user.password) {
+      const hashed = await hashPassword(password);
       const updated = await db.update(users)
-        .set({ password, forcePasswordChange: false })
+        .set({ password: hashed, forcePasswordChange: false })
         .where(eq(users.id, user.id))
         .returning();
       const u = (updated[0] || user) as any;
@@ -174,8 +177,14 @@ router.post("/auth", async (req, res) => {
       return res.status(200).json({ ...safe, sessionToken });
     }
 
-    if (user.password && user.password !== password) {
-      return res.status(401).json({ error: "Senha incorreta" });
+    // Verifica senha (suporta migração transparente de texto puro → bcrypt)
+    if (user.password) {
+      const check = await verifyPassword(password, user.password);
+      if (!check.ok) return res.status(401).json({ error: "Senha incorreta" });
+      if (check.needsRehash && check.hash) {
+        // Re-criptografa silenciosamente (migração de senha legada)
+        await db.update(users).set({ password: check.hash }).where(eq(users.login, login));
+      }
     }
 
     // 2FA ativo mas sem e-mail — bloqueia para evitar bypass silencioso
@@ -295,7 +304,8 @@ router.post("/users", async (req, res) => {
   try {
     const body = req.body;
     if (body.twoFactorEnabled && !body.email) return res.status(400).json({ error: "Verificação em 2 etapas requer e-mail cadastrado." });
-    const item = await db.insert(users).values({ id: crypto.randomUUID(), password: "123456", ...body }).returning();
+    const hashedDefault = await hashPassword("123456");
+    const item = await db.insert(users).values({ id: crypto.randomUUID(), password: hashedDefault, ...body }).returning();
     const { password: _p, ...safe } = item[0] as any;
     return res.json(safe);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
@@ -309,6 +319,10 @@ router.put("/users", async (req, res) => {
     if (updates.twoFactorEnabled && !updates.email) {
       const existing = await db.select().from(users).where(eq(users.id, id));
       if (!((existing[0] as any)?.email)) return res.status(400).json({ error: "Verificação em 2 etapas requer e-mail cadastrado." });
+    }
+    // Se a atualização inclui senha em texto puro, criptografar antes de salvar
+    if (updates.password && !updates.password.startsWith("$2b$") && !updates.password.startsWith("$2a$")) {
+      updates.password = await hashPassword(updates.password);
     }
     const item = await db.update(users).set(updates).where(eq(users.id, id)).returning();
     const { password: _p, ...safe } = item[0] as any;
@@ -400,7 +414,7 @@ router.post("/instructors", async (req, res) => {
       if (cpfNum) {
         await db.insert(users).values({
           id: crypto.randomUUID(), name: instructorData.name,
-          login: cpfNum, password: "123456", role: "INSTRUCTOR", instructorId: newId
+          login: cpfNum, password: await hashPassword("123456"), role: "INSTRUCTOR", instructorId: newId
         }).onConflictDoNothing();
       }
     }
