@@ -106,6 +106,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false`,
+      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS row_color text`,
     ];
 
     for (const q of tables) { try { await db.execute(q); } catch {} }

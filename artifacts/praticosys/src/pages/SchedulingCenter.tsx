@@ -162,6 +162,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [fichaIds, setFichaIds] = useState<Set<string>>(() => {
     try { const raw = localStorage.getItem('praticosys_printed_ficha'); return raw ? new Set(JSON.parse(raw)) : new Set(); } catch { return new Set(); }
   });
+  // rowColors: mapa local para atualização otimista (salvo no BD via rowColor)
+  const [rowColors, setRowColors] = useState<Record<string, string>>({});
 
   // Modal: vaga aberta na banca (candidato saiu)
   const [vagaAbertaModal, setVagaAbertaModal] = useState<{ bancaCode: string; bancaId: string } | null>(null);
@@ -1314,9 +1316,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         const students = scheduledStudents
                             .filter(s => s.scheduledCategory === cat)
                             .sort((a, b) => {
-                                const instA = a.instructor || '';
-                                const instB = b.instructor || '';
-                                return instA.localeCompare(instB);
+                                const nameA = (a.socialName || a.studentName || '').toUpperCase();
+                                const nameB = (b.socialName || b.studentName || '').toUpperCase();
+                                return nameA.localeCompare(nameB, 'pt-BR');
                             });
                         const canManageThisSchedule = selectedSchedule.status === 'OPEN' || (selectedSchedule.status === 'CLOSED' && canBypassClosingRule);
                         if (students.length === 0 && !canManageThisSchedule) return null;
@@ -1336,7 +1338,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                 {/* LISTA CLEAN (Apenas Web - SEM as colunas de marcação) */}
                                 <div className="space-y-2 print:hidden">
                                     {students.map((req, idx) => (
-                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-3 rounded-md border transition-all hover:border-blue-200 ${fichaIds.has(req.id) ? 'bg-green-50 border-green-200' : printedIds.has(req.id) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}>
+                                        <div key={req.id} className={`flex flex-col sm:flex-row items-center gap-4 p-3 rounded-md border transition-all hover:border-blue-200 ${(() => { const c = rowColors[req.id] ?? (req as any).rowColor; return c === 'green' ? 'bg-green-50 border-green-200' : c === 'blue' ? 'bg-blue-50 border-blue-200' : c === 'orange' ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'; })()}`}>
                                             <div className="flex items-center gap-4 flex-1 w-full">
                                                 <div className="h-8 w-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 text-sm shrink-0">
                                                     {idx + 1}
@@ -1400,8 +1402,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     {/* Botão Comprovante */}
                                                     <button
-                                                        onClick={() => { setComprovanteReq(req); setPrintedIds(prev => { const next = new Set(prev).add(req.id); try { localStorage.setItem('praticosys_printed_comprovante', JSON.stringify([...next])); } catch {} return next; }); }}
-                                                        className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all ${printedIds.has(req.id) ? 'text-blue-700 bg-blue-100 hover:bg-blue-200' : 'text-blue-600 hover:bg-blue-50'}`}
+                                                        onClick={() => {
+                                                            setComprovanteReq(req);
+                                                            setPrintedIds(prev => { const next = new Set(prev).add(req.id); try { localStorage.setItem('praticosys_printed_comprovante', JSON.stringify([...next])); } catch {} return next; });
+                                                            setRowColors(prev => ({ ...prev, [req.id]: 'blue' }));
+                                                            api.updateRequest(req.id, { rowColor: 'blue' } as any).catch(() => {});
+                                                        }}
+                                                        className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all ${(rowColors[req.id] ?? (req as any).rowColor) === 'blue' || printedIds.has(req.id) ? 'text-blue-700 bg-blue-100 hover:bg-blue-200' : 'text-blue-600 hover:bg-blue-50'}`}
                                                         title="Imprimir Comprovante de Agendamento"
                                                     >
                                                         <FileText className="h-4 w-4 shrink-0" />
@@ -1582,8 +1589,10 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                             pri.focus();
                                                             setTimeout(() => { pri.print(); pri.close(); }, 400);
                                                             setFichaIds(prev => { const next = new Set(prev).add(req.id); try { localStorage.setItem('praticosys_printed_ficha', JSON.stringify([...next])); } catch {} return next; });
+                                                            setRowColors(prev => ({ ...prev, [req.id]: 'green' }));
+                                                            api.updateRequest(req.id, { rowColor: 'green' } as any).catch(() => {});
                                                         }}
-                                                        className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all ${fichaIds.has(req.id) ? 'text-green-700 bg-green-100 hover:bg-green-200' : 'text-green-700 hover:bg-green-50'}`}
+                                                        className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-all ${(rowColors[req.id] ?? (req as any).rowColor) === 'green' || fichaIds.has(req.id) ? 'text-green-700 bg-green-100 hover:bg-green-200' : 'text-green-700 hover:bg-green-50'}`}
                                                         title="Imprimir Ficha Manual"
                                                     >
                                                         <ClipboardList className="h-4 w-4 shrink-0" />
@@ -1592,7 +1601,11 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
 
                                                     {/* Botão Copiar Comprovante */}
                                                     <button
-                                                        onClick={() => handleCopyComprovante(req)}
+                                                        onClick={() => {
+                                                            handleCopyComprovante(req);
+                                                            setRowColors(prev => ({ ...prev, [req.id]: 'orange' }));
+                                                            api.updateRequest(req.id, { rowColor: 'orange' } as any).catch(() => {});
+                                                        }}
                                                         className={`p-1.5 rounded-md transition-all ${copiedReqId === req.id ? 'text-green-600 bg-green-50' : 'text-blue-600 hover:bg-blue-50'}`}
                                                         title="Copiar comprovante para área de transferência"
                                                     >

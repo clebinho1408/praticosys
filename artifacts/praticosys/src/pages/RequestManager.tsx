@@ -138,6 +138,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [allGlobalRequests, setAllGlobalRequests] = useState<ExamRequest[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [instructorSearchA, setInstructorSearchA] = useState('');
+  const [instructorSearchB, setInstructorSearchB] = useState('');
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -1106,7 +1108,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     categoryCode: "A" | "B",
     colorClass: string,
   ) => {
-    const availableInstructors = getInstructorsByCategory(categoryCode);
+    const rawAvailableInstructors = getInstructorsByCategory(categoryCode);
+    const instructorSearch = categoryCode === 'A' ? instructorSearchA : instructorSearchB;
+    const setInstructorSearch = categoryCode === 'A' ? setInstructorSearchA : setInstructorSearchB;
+    const availableInstructors = rawAvailableInstructors
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
+      .filter(i => !instructorSearch || i.name.toLowerCase().includes(instructorSearch.toLowerCase()));
 
     // Extrair o ID do instrutor e a placa atual do formData
     // O formato no formData para AB é "Moto: Nome / Carro: Nome" e "Moto: Placa / Carro: Placa"
@@ -1217,6 +1224,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               Instrutor {categoryCode === "A" ? "Moto" : "Carro"}{" "}
               <span className="text-red-500">*</span>
             </label>
+            {!isViewOnly && user.role !== UserRole.INSTRUCTOR && (
+              <input
+                type="text"
+                placeholder="Filtrar instrutor..."
+                className="w-full border rounded-md p-1.5 mb-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                value={instructorSearch}
+                onChange={e => setInstructorSearch(e.target.value)}
+              />
+            )}
             <select
               id={`instructor_${categoryCode}`}
               className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
@@ -1887,7 +1903,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               placeholder="Buscar por nome ou CPF..."
               className="w-full pl-10 pr-4 py-3 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                let val = e.target.value;
+                // Normaliza CPF colado com pontos/traços → apenas dígitos
+                if (/^[\d.\-/]+$/.test(val) && val.replace(/\D/g, '').length >= 11) val = val.replace(/\D/g, '');
+                setSearchTerm(val);
+              }}
             />
           </div>
 
@@ -1924,7 +1945,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 placeholder="Buscar por nome ou CPF..."
                 className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  let val = e.target.value;
+                  // Normaliza CPF colado com pontos/traços → apenas dígitos
+                  if (/^[\d.\-/]+$/.test(val) && val.replace(/\D/g, '').length >= 11) val = val.replace(/\D/g, '');
+                  setSearchTerm(val);
+                }}
               />
             </div>
 

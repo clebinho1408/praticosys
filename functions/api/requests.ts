@@ -13,7 +13,7 @@ const ALLOWED_FIELDS = [
   'cancellationReason','observation','categoryQuantities','examHistory',
   'queueUpdatedAt',
   'checklistVehicle','practicalCourseInserted','taxaPaga',
-  'scheduledBy','modulo','semDuploComando',
+  'scheduledBy','modulo','semDuploComando','rowColor',
 ];
 
 function deriveModulo(data: any): string {

@@ -148,6 +148,7 @@ export const examRequests = pgTable('exam_requests', {
   categoryQuantities: jsonb('category_quantities').$type<Record<string, number>>(),
   examHistory: jsonb('exam_history').default([]),
   modulo: text('modulo'),
+  rowColor: text('row_color'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   queueUpdatedAt: timestamp('queue_updated_at'),

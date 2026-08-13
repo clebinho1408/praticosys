@@ -550,7 +550,7 @@ const ALLOWED_REQ_FIELDS = [
   "status", "result", "scheduleId", "scheduledDate", "scheduledTime",
   "scheduledCategory", "examinerId", "attendanceConfirmed", "cancellationReason",
   "observation", "categoryQuantities", "examHistory", "scheduledBy", "queueUpdatedAt",
-  "modulo"
+  "modulo", "rowColor"
 ];
 
 function deriveModulo(data: any): string {

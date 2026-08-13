@@ -1626,10 +1626,12 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   }, [availableData, newVehicle.brand]);
 
   // Filter Logic
-  const filteredInstructors = instructors.filter(i => 
-      i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredInstructors = instructors
+    .filter(i =>
+      i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       i.cpf.includes(searchTerm)
-  );
+    )
+    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
   return (
     <div>
@@ -1695,6 +1697,9 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                                : <span className="text-red-400 font-bold text-[11px]">●</span>
                                            }
                                        </span>
+                                   )}
+                                   {(v as any).procuracao && (
+                                       <span className="text-blue-500 font-bold text-[11px]" title="Possui Procuração">●</span>
                                    )}
                                </span>
                            ))}
