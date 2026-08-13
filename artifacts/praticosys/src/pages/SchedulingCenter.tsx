@@ -31,6 +31,7 @@ import {
   Bike,
   Car,
   AlertOctagon,
+  AlertTriangle,
   FileText,
   ClipboardList,
   UserCheck,
@@ -138,6 +139,11 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [expandedCategories, setExpandedCategories] = useState<{A: boolean, B: boolean}>({ A: false, B: false });
   // Confirmation modal for scheduling a single candidate
   const [scheduleConfirmCandidate, setScheduleConfirmCandidate] = useState<{ id: string; category: 'A' | 'B'; name: string; cpf: string } | null>(null);
+  // Modal de aviso quando a cidade do candidato diverge da cidade da banca
+  const [cityMismatchConfirm, setCityMismatchConfirm] = useState<{
+    candidateId: string; category: 'A' | 'B'; name: string; cpf: string;
+    candidateCity: string; bancaCity: string;
+  } | null>(null);
 
   // Schedule Cancel Modal State
   const [isCancelScheduleOpen, setIsCancelScheduleOpen] = useState(false);
@@ -253,18 +259,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
      })
      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
-    // Filter by exam location's regionsServed if the banca has a locationId
-    if (selectedSchedule?.locationId) {
-      const location = examLocations.find(l => l.id === selectedSchedule.locationId);
-      if (location && location.regionsServed && location.regionsServed.length > 0) {
-        reqs = reqs.filter(r => {
-          if (!r.city) return false;
-          // Candidate city may be stored as city name; find matching city ID
-          const cityObj = cities.find(c => c.name === r.city || c.id === r.city);
-          return cityObj ? location.regionsServed.includes(cityObj.id) : false;
-        });
-      }
-    }
+    // Sem filtro por regionsServed: todos os candidatos aparecem no modal independente da região.
+    // O aviso de cidade divergente é exibido no momento do agendamento (modal de confirmação).
 
     return reqs;
   }, [allRequests, selectedSchedule, type, examLocations, cities]);
@@ -1953,17 +1949,75 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                             if (entries.length === 0) return;
                             const [id, category] = entries[0];
                             const req = allRequests.find(r => r.id === id);
-                            setScheduleConfirmCandidate({
-                                id,
-                                category,
-                                name: req?.socialName || req?.studentName || '',
-                                cpf: req?.cpf || '',
-                            });
+                            const name = req?.socialName || req?.studentName || '';
+                            const cpf = req?.cpf || '';
+
+                            // Verificar se a cidade do candidato diverge da cidade/regiões da banca
+                            if (selectedSchedule?.locationId) {
+                              const location = examLocations.find(l => l.id === selectedSchedule.locationId);
+                              if (location) {
+                                const bancaCityObj = cities.find(c => c.id === location.cityId);
+                                const candidateCityObj = cities.find(c => c.name === req?.city || c.id === req?.city);
+                                const inRegion = location.regionsServed && location.regionsServed.length > 0
+                                  ? (candidateCityObj ? location.regionsServed.includes(candidateCityObj.id) : false)
+                                  : (candidateCityObj?.id === location.cityId);
+                                if (!inRegion) {
+                                  setCityMismatchConfirm({
+                                    candidateId: id, category, name, cpf,
+                                    candidateCity: req?.city || '(não informada)',
+                                    bancaCity: bancaCityObj?.name || location.cityId,
+                                  });
+                                  return;
+                                }
+                              }
+                            }
+
+                            setScheduleConfirmCandidate({ id, category, name, cpf });
                         }}
                         disabled={Object.keys(selectedCandidates).length === 0}
                         className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-all"
                       >
                           Agendar Candidato
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+      {/* MODAL: AVISO DE CIDADE DIVERGENTE */}
+      {cityMismatchConfirm && (
+          <div className="fixed inset-0 bg-black/60 z-[65] flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                  <div className="flex flex-col items-center text-center gap-3">
+                      <div className="bg-amber-100 p-3 rounded-full">
+                          <AlertTriangle className="h-7 w-7 text-amber-600" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-800">Atenção — Candidato de Outra Cidade</h3>
+                      <div className="w-full bg-amber-50 border border-amber-200 rounded-lg p-4 text-left text-sm text-amber-900 leading-relaxed">
+                          <p>
+                              Candidato <strong className="uppercase">{cityMismatchConfirm.name}</strong>,
+                              CPF <strong>{maskCpf(cityMismatchConfirm.cpf)}</strong>,
+                              reside na cidade <strong>{cityMismatchConfirm.candidateCity}</strong>.
+                              Caso o candidato seja confirmado nesta banca, ele fará a prova na
+                              cidade <strong>{cityMismatchConfirm.bancaCity}</strong> desta banca.
+                          </p>
+                      </div>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                      <button
+                          onClick={() => setCityMismatchConfirm(null)}
+                          className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100 font-medium text-sm"
+                      >
+                          Cancelar
+                      </button>
+                      <button
+                          onClick={() => {
+                              const { candidateId, category, name, cpf } = cityMismatchConfirm;
+                              setCityMismatchConfirm(null);
+                              setScheduleConfirmCandidate({ id: candidateId, category, name, cpf });
+                          }}
+                          className="px-6 py-2 bg-amber-600 text-white rounded-md font-bold hover:bg-amber-700 shadow-sm text-sm"
+                      >
+                          Confirmar mesmo assim
                       </button>
                   </div>
               </div>
