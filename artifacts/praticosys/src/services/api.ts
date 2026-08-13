@@ -13,9 +13,11 @@ function getAuthHeaders(): Record<string, string> {
     const auth = JSON.parse(raw);
     const headers: Record<string, string> = {};
     if (auth?.token) headers['Authorization'] = `Bearer ${auth.token}`;
-    if (auth?.id) headers['X-User-Id'] = auth.id;
-    if (auth?.name) headers['X-User-Name'] = auth.name;
-    if (auth?.role) headers['X-User-Role'] = auth.role;
+    // auth.user contém os dados do usuário; auth.id/name/role são atalhos legados ausentes
+    const u = auth?.user ?? auth;
+    if (u?.id) headers['X-User-Id'] = u.id;
+    if (u?.name) headers['X-User-Name'] = u.name;
+    if (u?.role) headers['X-User-Role'] = u.role;
     return headers;
   } catch {}
   return {};

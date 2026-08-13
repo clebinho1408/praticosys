@@ -612,6 +612,17 @@ router.post("/requests", async (req, res) => {
     return res.json(record);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
+// Campos que representam edição real do cadastro do candidato
+// (excluem campos de banca, cores, presença e estado interno)
+const AUDIT_TRACKED_FIELDS = [
+  'studentName','socialName','cpf','phone','email','address','city',
+  'requestType','examType','intendedCategory','source',
+  'paidFee','completedPracticalCourse','practicalHours','hasVehicle',
+  'cnhRestriction','instructor','vehiclePlate','checklistVehicle',
+  'practicalCourseInserted','taxaPaga','disabilityType','specialNeeds',
+  'observation','cancellationReason',
+];
+
 router.put("/requests", async (req, res) => {
   try {
     const body = req.body;
@@ -620,21 +631,40 @@ router.put("/requests", async (req, res) => {
     const updates: any = {};
     for (const k of ALLOWED_REQ_FIELDS) { if (rawUpdates[k] !== undefined) updates[k] = rawUpdates[k]; }
     updates.updatedAt = new Date();
+
+    // Busca registro anterior para detectar mudanças reais (auditoria)
+    const oldRows = await db.select().from(examRequests).where(eq(examRequests.id, id));
+    const oldRecord = oldRows[0] as any;
+
     const item = await db.update(examRequests).set(updates).where(eq(examRequests.id, id)).returning();
     const record = item[0] as any;
     if (record?.modulo === 'CNH_BRASIL') {
       try {
-        let action = 'Foi modificado';
-        if (body.scheduleId && body.status === 'SCHEDULED') action = 'Foi adicionado na Banca';
-        else if (body.scheduleId === null && body.status === 'WAITING_SCHEDULING') action = 'Foi excluído da Banca';
-        await db.insert(auditLogs).values({
-          id: crypto.randomUUID(),
-          userId: req.headers['x-user-id'] as string || null,
-          userName: req.headers['x-user-name'] as string || null,
-          userRole: req.headers['x-user-role'] as string || null,
-          action, entity: 'CNH_BRASIL_CANDIDATO', entityId: record.id,
-          details: { cpf: record.cpf ?? null, name: record.studentName ?? null },
-        });
+        let action: string | null = null;
+        if (body.scheduleId && body.status === 'SCHEDULED') {
+          action = 'Foi adicionado na Banca';
+        } else if (body.scheduleId === null && body.status === 'WAITING_SCHEDULING') {
+          action = 'Foi excluído da Banca';
+        } else {
+          // Só loga "Foi modificado" se algum campo rastreado realmente mudou
+          const changed = AUDIT_TRACKED_FIELDS.some(f => {
+            const oldVal = oldRecord?.[f];
+            const newVal = rawUpdates[f];
+            if (newVal === undefined) return false; // campo não enviado → não muda
+            return String(oldVal ?? '') !== String(newVal ?? '');
+          });
+          if (changed) action = 'Foi modificado';
+        }
+        if (action) {
+          await db.insert(auditLogs).values({
+            id: crypto.randomUUID(),
+            userId: req.headers['x-user-id'] as string || null,
+            userName: req.headers['x-user-name'] as string || null,
+            userRole: req.headers['x-user-role'] as string || null,
+            action, entity: 'CNH_BRASIL_CANDIDATO', entityId: record.id,
+            details: { cpf: record.cpf ?? null, name: record.studentName ?? null },
+          });
+        }
       } catch {}
     }
     broadcast("requests_updated", record);
