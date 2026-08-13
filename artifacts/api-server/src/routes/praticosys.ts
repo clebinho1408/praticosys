@@ -310,6 +310,25 @@ router.post("/users", async (req, res) => {
     return res.json(safe);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
+// Qualquer usuário autenticado pode alterar APENAS a própria senha
+// (usado no primeiro acesso e após reset pelo admin)
+router.post("/users/change-own-password", async (req, res) => {
+  try {
+    const sessionUser = (req as any).sessionUser;
+    if (!sessionUser?.id) return res.status(401).json({ error: "Não autenticado." });
+    const { password } = req.body as { password?: string };
+    if (!password || password.length < 6) return res.status(400).json({ error: "A senha deve ter no mínimo 6 caracteres." });
+    const hashed = await hashPassword(password);
+    const item = await db.update(users)
+      .set({ password: hashed, forcePasswordChange: false })
+      .where(eq(users.id, sessionUser.id))
+      .returning();
+    if (!item.length) return res.status(404).json({ error: "Usuário não encontrado." });
+    const { password: _p, ...safe } = item[0] as any;
+    return res.json(safe);
+  } catch (err: any) { return res.status(500).json({ error: err.message }); }
+});
+
 router.put("/users", async (req, res) => {
   if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {

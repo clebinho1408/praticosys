@@ -38,16 +38,13 @@ export const ForcePasswordChangeModal: React.FC<Props> = ({ user, onSuccess }) =
     setError('');
 
     try {
-      await api.updateUser(user.id, { 
-        password, 
-        forcePasswordChange: false 
-      } as any);
-      
-      // Update local storage auth so it won't prompt again
+      await api.changeOwnPassword(password);
+
+      // Atualiza o localStorage para não exibir o modal novamente
       const savedAuth = localStorage.getItem('praticosys_auth');
       if (savedAuth) {
         const authCtx = JSON.parse(savedAuth);
-        authCtx.user.forcePasswordChange = false;
+        if (authCtx.user) authCtx.user.forcePasswordChange = false;
         localStorage.setItem('praticosys_auth', JSON.stringify(authCtx));
       }
       onSuccess();
