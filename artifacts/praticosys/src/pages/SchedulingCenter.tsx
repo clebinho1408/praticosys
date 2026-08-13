@@ -719,8 +719,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         const time = s.time || '-';
         const isTomorrow = raw === tomorrowStr;
 
-        const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A' && r.status === 'SCHEDULED').length;
-        const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B' && r.status === 'SCHEDULED').length;
+        const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A').length;
+        const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length;
         const availA = Math.max(0, (s.maxSlotsA || 0) - occupiedA);
         const availB = Math.max(0, (s.maxSlotsB || 0) - occupiedB);
 
@@ -819,8 +819,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
         const time = s.time || '-';
         const isTomorrow = raw === tomorrowStr;
-        const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A' && r.status === 'SCHEDULED').length;
-        const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B' && r.status === 'SCHEDULED').length;
+        const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A').length;
+        const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length;
         if (Math.max(0, (s.maxSlotsA || 0) - occupiedA) > 0) pcdA.push({ date: dateFormatted, time, isTomorrow });
         if (Math.max(0, (s.maxSlotsB || 0) - occupiedB) > 0) pcdB.push({ date: dateFormatted, time, isTomorrow });
       }
