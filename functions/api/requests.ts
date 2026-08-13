@@ -1,5 +1,5 @@
 // functions/api/requests.ts  →  GET|POST|PUT|DELETE /api/requests
-import { getDb, json, error, parseBody, getQuery } from '../_db.js';
+import { getDb, json, error, parseBody, getQuery, writeAuditLog, extractActor } from '../_db.js';
 import { examRequests } from '../../db/schema.js';
 import { eq, like, sql } from 'drizzle-orm';
 
@@ -29,7 +29,7 @@ function filterFields(obj: any, extra: string[] = []) {
   return out;
 }
 
-export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
+export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
@@ -93,7 +93,14 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         createdAt: filtered.createdAt ? new Date(filtered.createdAt) : new Date(),
         updatedAt: new Date(),
       }).returning();
-      return json(newItem[0] ?? { id: body.id, ...body });
+      const record = newItem[0] as any;
+      if (record?.modulo === 'CNH_BRASIL') {
+        await writeAuditLog(db, extractActor(request), 'Foi cadastrado', 'CNH_BRASIL_CANDIDATO', record.id, {
+          cpf: record.cpf ?? null,
+          name: record.studentName ?? null,
+        });
+      }
+      return json(record ?? { id: body.id, ...body });
     }
 
     if (method === 'PUT') {
@@ -108,13 +115,32 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         .set({ ...filtered, updatedAt: new Date() })
         .where(eq(examRequests.id, id))
         .returning();
-      return json(updated[0] ?? { id, ...updates });
+      const record = updated[0] as any;
+      if (record?.modulo === 'CNH_BRASIL') {
+        let action = 'Foi modificado';
+        if (body.scheduleId && body.status === 'SCHEDULED') action = 'Foi adicionado na Banca';
+        else if (body.scheduleId === null && body.status === 'WAITING_SCHEDULING') action = 'Foi excluído da Banca';
+        await writeAuditLog(db, extractActor(request), action, 'CNH_BRASIL_CANDIDATO', record.id, {
+          cpf: record.cpf ?? null,
+          name: record.studentName ?? null,
+        });
+      }
+      return json(record ?? { id, ...updates });
     }
 
     if (method === 'DELETE') {
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
+      // Busca o registro antes de excluir para poder registrar no log
+      const toDelete = await db.select().from(examRequests).where(eq(examRequests.id, id));
       await db.delete(examRequests).where(eq(examRequests.id, id));
+      const deletedRecord = toDelete[0] as any;
+      if (deletedRecord?.modulo === 'CNH_BRASIL') {
+        await writeAuditLog(db, extractActor(request), 'Foi excluído', 'CNH_BRASIL_CANDIDATO', id, {
+          cpf: deletedRecord.cpf ?? null,
+          name: deletedRecord.studentName ?? null,
+        });
+      }
       return json({ success: true });
     }
 

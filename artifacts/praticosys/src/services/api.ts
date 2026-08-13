@@ -5,13 +5,18 @@ import { ExamRequest, ExamSchedule, ExamLocation, Examiner, Instructor, DrivingS
 // In development, the Vite proxy forwards /api/* to localhost:3000.
 const API_BASE = '/api';
 
-/** Lê o Bearer token da sessão armazenado no localStorage */
+/** Lê o Bearer token e dados do usuário armazenados no localStorage */
 function getAuthHeaders(): Record<string, string> {
   try {
     const raw = localStorage.getItem('praticosys_auth');
     if (!raw) return {};
     const auth = JSON.parse(raw);
-    if (auth?.token) return { 'Authorization': `Bearer ${auth.token}` };
+    const headers: Record<string, string> = {};
+    if (auth?.token) headers['Authorization'] = `Bearer ${auth.token}`;
+    if (auth?.id) headers['X-User-Id'] = auth.id;
+    if (auth?.name) headers['X-User-Name'] = auth.name;
+    if (auth?.role) headers['X-User-Role'] = auth.role;
+    return headers;
   } catch {}
   return {};
 }
@@ -148,6 +153,9 @@ export const api = {
   getBackups: () => request<any[]>('/backups'),
   getBackupPayload: (id: string) => request<any>(`/backups?id=${id}`),
   createBackup: () => request<any>('/backups', { method: 'POST' }),
+
+  // --- CNH BRASIL LOGS ---
+  getCnhLogs: (limit = 300) => request<any[]>(`/cnh-logs?limit=${limit}`),
 
   // --- RISK AREA ---
   resetData: () => request<void>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'RESET_DATA' }) }),

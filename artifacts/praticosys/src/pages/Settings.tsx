@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { api } from '../services/api';
 import { SystemSettings, City, ExamLocation, Examiner, BlockedDate, UserRole, User } from '../types';
-import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert, Edit2 } from 'lucide-react';
+import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert, Edit2, ScrollText, RefreshCw } from 'lucide-react';
 import { AlertModal, ConfirmModal } from '../components/CustomModals';
 import DatePicker from '../components/DatePicker';
 
@@ -28,7 +28,9 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'BLOCKED_DATES'>('AGENCY_DATA');
 
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
-  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS'>('LOCAIS');
+  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS' | 'LOGS'>('LOCAIS');
+  const [cnhLogs, setCnhLogs] = useState<any[]>([]);
+  const [cnhLogsLoading, setCnhLogsLoading] = useState(false);
   const [riskKeyInput, setRiskKeyInput] = useState('');
   const [riskKeyVerified, setRiskKeyVerified] = useState(false);
   const [cities, setCities] = useState<City[]>([]);
@@ -101,6 +103,22 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   useEffect(() => {
     if (activeTab === 'BACKUPS' && isAdmin) loadBackups();
   }, [activeTab]);
+
+  const loadCnhLogs = async () => {
+    setCnhLogsLoading(true);
+    try {
+      const data = await api.getCnhLogs();
+      setCnhLogs(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error loading CNH logs:', err);
+    } finally {
+      setCnhLogsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'CNH_BRASIL' && activeSubTabCNH === 'LOGS') loadCnhLogs();
+  }, [activeTab, activeSubTabCNH]);
 
   const [alertConfig, setAlertConfig] = useState<{ isOpen: boolean; title: string; message: string; type?: 'error' | 'success' | 'info' }>({
     isOpen: false,
@@ -799,6 +817,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
                         <button type="button" onClick={() => setActiveSubTabCNH('LOCAIS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'LOCAIS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>LOCAIS</button>
+                        <button type="button" onClick={() => setActiveSubTabCNH('LOGS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'LOGS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>LOGS DE REGISTRO</button>
                     </div>
                     
                     {activeSubTabCNH === 'LOCAIS' && (
@@ -915,6 +934,83 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                     );
                                 })}
                             </div>
+                        </div>
+                    )}
+
+                    {activeSubTabCNH === 'LOGS' && (
+                        <div className="space-y-4 animate-fadeIn">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <ScrollText className="h-5 w-5 text-blue-600" />
+                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Logs de Registro — CNH do Brasil</h3>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={loadCnhLogs}
+                                    disabled={cnhLogsLoading}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+                                >
+                                    <RefreshCw className={`h-3.5 w-3.5 ${cnhLogsLoading ? 'animate-spin' : ''}`} />
+                                    Atualizar
+                                </button>
+                            </div>
+
+                            {cnhLogsLoading ? (
+                                <div className="py-16 text-center text-gray-400">
+                                    <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-400" />
+                                    <p className="text-sm">Carregando registros...</p>
+                                </div>
+                            ) : cnhLogs.length === 0 ? (
+                                <div className="py-16 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                    <ScrollText className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                    <p className="text-sm text-gray-400">Nenhum registro encontrado.</p>
+                                    <p className="text-xs text-gray-400 mt-1">As ações em Candidatos e Bancas do CNH do Brasil aparecerão aqui.</p>
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm">
+                                    <table className="min-w-full text-sm">
+                                        <thead>
+                                            <tr className="bg-gray-50 border-b border-gray-200">
+                                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Data / Hora</th>
+                                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Usuário</th>
+                                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">CPF</th>
+                                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nome do Candidato</th>
+                                                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Ação</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 bg-white">
+                                            {cnhLogs.map((log: any) => {
+                                                const details = typeof log.details === 'string' ? JSON.parse(log.details || '{}') : (log.details ?? {});
+                                                const dt = log.created_at || log.createdAt;
+                                                const formatted = dt ? new Date(dt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+                                                const actionColors: Record<string, string> = {
+                                                    'Foi cadastrado': 'bg-green-100 text-green-700',
+                                                    'Foi excluído': 'bg-red-100 text-red-700',
+                                                    'Foi adicionado na Banca': 'bg-blue-100 text-blue-700',
+                                                    'Foi excluído da Banca': 'bg-orange-100 text-orange-700',
+                                                    'Foi modificado': 'bg-gray-100 text-gray-700',
+                                                };
+                                                const color = actionColors[log.action] ?? 'bg-gray-100 text-gray-600';
+                                                const cpf = details.cpf ? details.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '—';
+                                                return (
+                                                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-4 py-3 text-gray-600 whitespace-nowrap font-mono text-xs">{formatted}</td>
+                                                        <td className="px-4 py-3 text-gray-800 whitespace-nowrap">{log.user_name || log.userName || '—'}</td>
+                                                        <td className="px-4 py-3 text-gray-700 whitespace-nowrap font-mono text-xs">{cpf}</td>
+                                                        <td className="px-4 py-3 text-gray-800 max-w-xs truncate">{details.name || '—'}</td>
+                                                        <td className="px-4 py-3 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${color}`}>
+                                                                {log.action}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                            <p className="text-xs text-gray-400 text-right">Mostrando até 300 registros mais recentes</p>
                         </div>
                     )}
                 </div>

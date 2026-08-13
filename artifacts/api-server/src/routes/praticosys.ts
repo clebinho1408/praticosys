@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import {
   users, drivingSchools, examiners, instructors, vehicles,
   examSchedules, examRequests, systemSettings, blockedDates,
-  cities, examScheduleSlots, bancaResults, examLocations, otpCodes
+  cities, examScheduleSlots, bancaResults, examLocations, otpCodes, auditLogs
 } from "@workspace/db";
 import { eq, and, like, isNotNull, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
@@ -595,8 +595,21 @@ router.post("/requests", async (req, res) => {
       id: filtered.id || crypto.randomUUID(), ...filtered,
       createdAt: new Date(), updatedAt: new Date()
     }).returning();
-    broadcast("requests_updated", item[0]);
-    return res.json(item[0]);
+    const record = item[0] as any;
+    if (record?.modulo === 'CNH_BRASIL') {
+      try {
+        await db.insert(auditLogs).values({
+          id: crypto.randomUUID(),
+          userId: req.headers['x-user-id'] as string || null,
+          userName: req.headers['x-user-name'] as string || null,
+          userRole: req.headers['x-user-role'] as string || null,
+          action: 'Foi cadastrado', entity: 'CNH_BRASIL_CANDIDATO', entityId: record.id,
+          details: { cpf: record.cpf ?? null, name: record.studentName ?? null },
+        });
+      } catch {}
+    }
+    broadcast("requests_updated", record);
+    return res.json(record);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/requests", async (req, res) => {
@@ -608,14 +621,44 @@ router.put("/requests", async (req, res) => {
     for (const k of ALLOWED_REQ_FIELDS) { if (rawUpdates[k] !== undefined) updates[k] = rawUpdates[k]; }
     updates.updatedAt = new Date();
     const item = await db.update(examRequests).set(updates).where(eq(examRequests.id, id)).returning();
-    broadcast("requests_updated", item[0]);
-    return res.json(item[0]);
+    const record = item[0] as any;
+    if (record?.modulo === 'CNH_BRASIL') {
+      try {
+        let action = 'Foi modificado';
+        if (body.scheduleId && body.status === 'SCHEDULED') action = 'Foi adicionado na Banca';
+        else if (body.scheduleId === null && body.status === 'WAITING_SCHEDULING') action = 'Foi excluído da Banca';
+        await db.insert(auditLogs).values({
+          id: crypto.randomUUID(),
+          userId: req.headers['x-user-id'] as string || null,
+          userName: req.headers['x-user-name'] as string || null,
+          userRole: req.headers['x-user-role'] as string || null,
+          action, entity: 'CNH_BRASIL_CANDIDATO', entityId: record.id,
+          details: { cpf: record.cpf ?? null, name: record.studentName ?? null },
+        });
+      } catch {}
+    }
+    broadcast("requests_updated", record);
+    return res.json(record);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/requests", async (req, res) => {
   try {
     const { id } = req.query as any;
+    const toDelete = await db.select().from(examRequests).where(eq(examRequests.id, id));
     await db.delete(examRequests).where(eq(examRequests.id, id));
+    const deletedRecord = toDelete[0] as any;
+    if (deletedRecord?.modulo === 'CNH_BRASIL') {
+      try {
+        await db.insert(auditLogs).values({
+          id: crypto.randomUUID(),
+          userId: req.headers['x-user-id'] as string || null,
+          userName: req.headers['x-user-name'] as string || null,
+          userRole: req.headers['x-user-role'] as string || null,
+          action: 'Foi excluído', entity: 'CNH_BRASIL_CANDIDATO', entityId: id,
+          details: { cpf: deletedRecord.cpf ?? null, name: deletedRecord.studentName ?? null },
+        });
+      } catch {}
+    }
     return res.json({ success: true });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
@@ -868,6 +911,22 @@ router.delete("/exam-locations", async (req, res) => {
     if (!id) return res.status(400).json({ error: "ID required" });
     await db.delete(examLocations).where(eq(examLocations.id, id));
     return res.status(204).end();
+  } catch (err: any) { return res.status(500).json({ error: err.message }); }
+});
+
+// ─── CNH BRASIL LOGS ──────────────────────────────────────────────────────────
+router.get("/cnh-logs", async (req, res) => {
+  try {
+    const limit = parseInt((req.query.limit as string) || "300");
+    const offset = parseInt((req.query.offset as string) || "0");
+    const rows = await db.execute(sql`
+      SELECT id, user_id, user_name, user_role, action, entity, entity_id, details, created_at
+      FROM audit_logs
+      WHERE entity LIKE 'CNH_BRASIL%'
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `);
+    return res.json((rows as any).rows ?? rows);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 
