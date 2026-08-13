@@ -138,8 +138,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [allGlobalRequests, setAllGlobalRequests] = useState<ExamRequest[]>([]);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
-  const [instructorSearchA, setInstructorSearchA] = useState('');
-  const [instructorSearchB, setInstructorSearchB] = useState('');
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [schedules, setSchedules] = useState<ExamSchedule[]>([]);
   const [cities, setCities] = useState<City[]>([]);
@@ -441,17 +439,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     return () => clearInterval(intervalId);
   }, [requests, schedules, isAdminOpSup]);
-
-  // Sincroniza campos de busca de instrutor quando formData.instructor muda
-  useEffect(() => {
-    if (formData.intendedCategory === 'AB') {
-      setInstructorSearchA(formData.instructor?.split(' / ')[0]?.replace(/^Moto:\s*/, '') || '');
-      setInstructorSearchB(formData.instructor?.split(' / ')[1]?.replace(/^Carro:\s*/, '') || '');
-    } else {
-      setInstructorSearchA(formData.instructor || '');
-      setInstructorSearchB(formData.instructor || '');
-    }
-  }, [formData.instructor, formData.intendedCategory]);
 
   // Handle Filter Change logic (Auto open accordion if specific status selected)
   const handleStatusFilterChange = (status: string) => {
@@ -1119,12 +1106,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     categoryCode: "A" | "B",
     colorClass: string,
   ) => {
-    const rawAvailableInstructors = getInstructorsByCategory(categoryCode);
-    const instructorSearch = categoryCode === 'A' ? instructorSearchA : instructorSearchB;
-    const setInstructorSearch = categoryCode === 'A' ? setInstructorSearchA : setInstructorSearchB;
-    const availableInstructors = rawAvailableInstructors
-      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }))
-      .filter(i => !instructorSearch || i.name.toLowerCase().includes(instructorSearch.toLowerCase()));
+    const availableInstructors = getInstructorsByCategory(categoryCode)
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' }));
 
     // Extrair o ID do instrutor e a placa atual do formData
     // O formato no formData para AB é "Moto: Nome / Carro: Nome" e "Moto: Placa / Carro: Placa"
@@ -1235,21 +1218,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               Instrutor {categoryCode === "A" ? "Moto" : "Carro"}{" "}
               <span className="text-red-500">*</span>
             </label>
-            <input
+            <select
               id={`instructor_${categoryCode}`}
-              type="text"
-              list={`instructor_datalist_${categoryCode}`}
-              className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50 disabled:text-gray-500"
-              value={instructorSearch}
+              className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
+              value={currentInstructorName}
               disabled={user.role === UserRole.INSTRUCTOR || isViewOnly}
-              placeholder={user.role === UserRole.INSTRUCTOR || isViewOnly ? '' : 'Digite para filtrar...'}
               onChange={(e) => {
                 const newName = e.target.value;
-                setInstructorSearch(newName);
-
-                // Só aciona a seleção quando bate exatamente com uma opção válida
-                const isExact = newName === '' || newName === 'A DEFINIR' || rawAvailableInstructors.some(i => i.name === newName);
-                if (!isExact) return;
 
                 // Quando "Inserir placa manualmente" está marcado
                 if (isDoCandidato) {
@@ -1271,8 +1246,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
                 // Comportamento padrão
                 let newPlate = "";
-                if (newName === '' || newName === 'A DEFINIR') {
-                  newPlate = newName === 'A DEFINIR' ? 'A DEFINIR' : '';
+                if (newName === "A DEFINIR") {
+                  newPlate = "A DEFINIR";
                 } else {
                   const newInstructor = instructors.find(i => i.name === newName);
                   const firstVehicle = newInstructor?.vehicles?.find(v => v.type === (categoryCode === "A" ? "MOTO" : "CAR") && v.active);
@@ -1280,7 +1255,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 }
 
                 let autoSemDC = (formData as any).semDuploComando;
-                if (categoryCode === "B" && newName !== "A DEFINIR" && newName !== '') {
+                if (categoryCode === "B" && newName !== "A DEFINIR") {
                   const newInstructor = instructors.find(i => i.name === newName);
                   const firstCar = newInstructor?.vehicles?.find(v => v.type === "CAR" && v.active);
                   if (firstCar) autoSemDC = !(firstCar as any).duploComando;
@@ -1299,13 +1274,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   setFormData({ ...formData, instructor: newName, vehiclePlate: newPlate, ...(categoryCode === "B" ? { semDuploComando: autoSemDC } : {}) } as any);
                 }
               }}
-            />
-            <datalist id={`instructor_datalist_${categoryCode}`}>
-              {user.role !== UserRole.INSTRUCTOR && <option value="A DEFINIR" />}
-              {availableInstructors.map(inst => (
-                <option key={inst.id} value={inst.name} />
+            >
+              {user.role !== UserRole.INSTRUCTOR && (
+                <option value="">Selecione...</option>
+              )}
+              {availableInstructors.map((inst) => (
+                <option key={inst.id} value={inst.name}>
+                  {inst.name}
+                </option>
               ))}
-            </datalist>
+            </select>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
