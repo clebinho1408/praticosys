@@ -61,6 +61,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       `);
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS modulo text`);
       await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`);
+      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS row_color text`);
       await db.execute(sql`
         UPDATE exam_requests
         SET modulo = CASE

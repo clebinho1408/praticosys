@@ -442,6 +442,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     return () => clearInterval(intervalId);
   }, [requests, schedules, isAdminOpSup]);
 
+  // Sincroniza campos de busca de instrutor quando formData.instructor muda
+  useEffect(() => {
+    if (formData.intendedCategory === 'AB') {
+      setInstructorSearchA(formData.instructor?.split(' / ')[0]?.replace(/^Moto:\s*/, '') || '');
+      setInstructorSearchB(formData.instructor?.split(' / ')[1]?.replace(/^Carro:\s*/, '') || '');
+    } else {
+      setInstructorSearchA(formData.instructor || '');
+      setInstructorSearchB(formData.instructor || '');
+    }
+  }, [formData.instructor, formData.intendedCategory]);
+
   // Handle Filter Change logic (Auto open accordion if specific status selected)
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);
@@ -1224,47 +1235,33 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               Instrutor {categoryCode === "A" ? "Moto" : "Carro"}{" "}
               <span className="text-red-500">*</span>
             </label>
-            {!isViewOnly && user.role !== UserRole.INSTRUCTOR && (
-              <input
-                type="text"
-                placeholder="Filtrar instrutor..."
-                className="w-full border rounded-md p-1.5 mb-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
-                value={instructorSearch}
-                onChange={e => setInstructorSearch(e.target.value)}
-              />
-            )}
-            <select
+            <input
               id={`instructor_${categoryCode}`}
-              className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50"
-              value={currentInstructorName}
+              type="text"
+              list={`instructor_datalist_${categoryCode}`}
+              className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 disabled:bg-gray-50 disabled:text-gray-500"
+              value={instructorSearch}
               disabled={user.role === UserRole.INSTRUCTOR || isViewOnly}
+              placeholder={user.role === UserRole.INSTRUCTOR || isViewOnly ? '' : 'Digite para filtrar...'}
               onChange={(e) => {
                 const newName = e.target.value;
+                setInstructorSearch(newName);
 
-                // Quando "Inserir placa manualmente" está marcado: só atualiza o instrutor,
-                // a placa permanece livre para digitação manual.
+                // Só aciona a seleção quando bate exatamente com uma opção válida
+                const isExact = newName === '' || newName === 'A DEFINIR' || rawAvailableInstructors.some(i => i.name === newName);
+                if (!isExact) return;
+
+                // Quando "Inserir placa manualmente" está marcado
                 if (isDoCandidato) {
                   if (formData.intendedCategory === "AB") {
                     if (categoryCode === "A") {
-                      const otherPartInstr =
-                        formData.instructor?.split(" / ")[1] || "";
-                      const otherPartPlate =
-                        formData.vehiclePlate?.split(" / ")[1] || "";
-                      setFormData({
-                        ...formData,
-                        instructor: `Moto: ${newName} / ${otherPartInstr}`,
-                        vehiclePlate: `Moto: ${currentPlate} / ${otherPartPlate}`,
-                      } as any);
+                      const otherPartInstr = formData.instructor?.split(" / ")[1] || "";
+                      const otherPartPlate = formData.vehiclePlate?.split(" / ")[1] || "";
+                      setFormData({ ...formData, instructor: `Moto: ${newName} / ${otherPartInstr}`, vehiclePlate: `Moto: ${currentPlate} / ${otherPartPlate}` } as any);
                     } else {
-                      const otherPartInstr =
-                        formData.instructor?.split(" / ")[0] || "";
-                      const otherPartPlate =
-                        formData.vehiclePlate?.split(" / ")[0] || "";
-                      setFormData({
-                        ...formData,
-                        instructor: `${otherPartInstr} / Carro: ${newName}`,
-                        vehiclePlate: `${otherPartPlate} / Carro: ${currentPlate}`,
-                      } as any);
+                      const otherPartInstr = formData.instructor?.split(" / ")[0] || "";
+                      const otherPartPlate = formData.vehiclePlate?.split(" / ")[0] || "";
+                      setFormData({ ...formData, instructor: `${otherPartInstr} / Carro: ${newName}`, vehiclePlate: `${otherPartPlate} / Carro: ${currentPlate}` } as any);
                     }
                   } else {
                     setFormData({ ...formData, instructor: newName } as any);
@@ -1272,79 +1269,43 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   return;
                 }
 
-                // Comportamento padrão (DO CANDIDATO não marcado)
+                // Comportamento padrão
                 let newPlate = "";
-                if (newName === "A DEFINIR") {
-                  newPlate = "A DEFINIR";
+                if (newName === '' || newName === 'A DEFINIR') {
+                  newPlate = newName === 'A DEFINIR' ? 'A DEFINIR' : '';
                 } else {
-                  const newInstructor = instructors.find(
-                    (i) => i.name === newName,
-                  );
-                  const firstVehicle = newInstructor?.vehicles?.find(
-                    (v) =>
-                      v.type === (categoryCode === "A" ? "MOTO" : "CAR") &&
-                      v.active,
-                  );
-                  newPlate = firstVehicle
-                    ? firstVehicle.plate
-                    : newInstructor?.category?.includes(categoryCode)
-                      ? newInstructor?.plate || ""
-                      : "A DEFINIR";
+                  const newInstructor = instructors.find(i => i.name === newName);
+                  const firstVehicle = newInstructor?.vehicles?.find(v => v.type === (categoryCode === "A" ? "MOTO" : "CAR") && v.active);
+                  newPlate = firstVehicle ? firstVehicle.plate : newInstructor?.category?.includes(categoryCode) ? newInstructor?.plate || "" : "A DEFINIR";
                 }
 
-                // SDC automático: quando Cat B e o primeiro veículo não tem duplo comando
                 let autoSemDC = (formData as any).semDuploComando;
-                if (categoryCode === "B" && newName !== "A DEFINIR") {
+                if (categoryCode === "B" && newName !== "A DEFINIR" && newName !== '') {
                   const newInstructor = instructors.find(i => i.name === newName);
                   const firstCar = newInstructor?.vehicles?.find(v => v.type === "CAR" && v.active);
                   if (firstCar) autoSemDC = !(firstCar as any).duploComando;
                 }
 
                 if (formData.intendedCategory === "AB") {
-                  const otherPartInstr =
-                    formData.instructor?.split(" / ")[
-                      categoryCode === "A" ? 1 : 0
-                    ] || "";
-                  const otherPartPlate =
-                    formData.vehiclePlate?.split(" / ")[
-                      categoryCode === "A" ? 1 : 0
-                    ] || "";
-
-                  const finalInstr =
-                    categoryCode === "A"
-                      ? `Moto: ${newName} / ${otherPartInstr}`
-                      : `${otherPartInstr} / Carro: ${newName}`;
-
-                  const finalPlate =
-                    categoryCode === "A"
-                      ? `Moto: ${newPlate} / ${otherPartPlate}`
-                      : `${otherPartPlate} / Carro: ${newPlate}`;
-
+                  const otherPartInstr = formData.instructor?.split(" / ")[categoryCode === "A" ? 1 : 0] || "";
+                  const otherPartPlate = formData.vehiclePlate?.split(" / ")[categoryCode === "A" ? 1 : 0] || "";
                   setFormData({
                     ...formData,
-                    instructor: finalInstr,
-                    vehiclePlate: finalPlate,
+                    instructor: categoryCode === "A" ? `Moto: ${newName} / ${otherPartInstr}` : `${otherPartInstr} / Carro: ${newName}`,
+                    vehiclePlate: categoryCode === "A" ? `Moto: ${newPlate} / ${otherPartPlate}` : `${otherPartPlate} / Carro: ${newPlate}`,
                     ...(categoryCode === "B" ? { semDuploComando: autoSemDC } : {}),
                   } as any);
                 } else {
-                  setFormData({
-                    ...formData,
-                    instructor: newName,
-                    vehiclePlate: newPlate,
-                    ...(categoryCode === "B" ? { semDuploComando: autoSemDC } : {}),
-                  } as any);
+                  setFormData({ ...formData, instructor: newName, vehiclePlate: newPlate, ...(categoryCode === "B" ? { semDuploComando: autoSemDC } : {}) } as any);
                 }
               }}
-            >
-              {user.role !== UserRole.INSTRUCTOR && (
-                <option value="">Selecione...</option>
-              )}
-              {availableInstructors.map((inst) => (
-                <option key={inst.id} value={inst.name}>
-                  {inst.name}
-                </option>
+            />
+            <datalist id={`instructor_datalist_${categoryCode}`}>
+              {user.role !== UserRole.INSTRUCTOR && <option value="A DEFINIR" />}
+              {availableInstructors.map(inst => (
+                <option key={inst.id} value={inst.name} />
               ))}
-            </select>
+            </datalist>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
