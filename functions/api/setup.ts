@@ -107,10 +107,49 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`,
       sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false`,
       sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS row_color text`,
+      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`,
+      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS modulo text`,
+      sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS category_quantities jsonb DEFAULT '{}'::jsonb`,
     ];
 
     for (const q of tables) { try { await db.execute(q); } catch {} }
     for (const q of columns) { try { await db.execute(q); } catch {} }
+
+    // ─── Tabelas por módulo: criação estrutural (sempre idempotente) ──────────
+    const structuralMigrations = [
+      sql`CREATE TABLE IF NOT EXISTS schema_migrations (version text PRIMARY KEY, applied_at timestamp DEFAULT now())`,
+      sql`UPDATE exam_requests SET modulo = CASE
+            WHEN exam_type = 'PCD' THEN 'PCD'
+            WHEN school_id IS NULL OR school_id = '' OR school_id = 'CNH_BRASIL' THEN 'CNH_BRASIL'
+            WHEN school_id = 'PCD' THEN 'PCD'
+            ELSE 'CFC'
+          END WHERE modulo IS NULL OR modulo = ''`,
+      sql`ALTER TABLE banca_results ADD COLUMN IF NOT EXISTS modulo text`,
+      sql`CREATE TABLE IF NOT EXISTS cnhbrasil_requests (LIKE exam_requests INCLUDING ALL)`,
+      sql`CREATE TABLE IF NOT EXISTS cfc_requests (LIKE exam_requests INCLUDING ALL)`,
+      sql`CREATE TABLE IF NOT EXISTS pcd_requests (LIKE exam_requests INCLUDING ALL)`,
+      sql`CREATE TABLE IF NOT EXISTS cfc_schedule_slots (LIKE exam_schedule_slots INCLUDING ALL)`,
+      sql`CREATE TABLE IF NOT EXISTS pcd_schedule_slots (LIKE exam_schedule_slots INCLUDING ALL)`,
+    ];
+    for (const q of structuralMigrations) { try { await db.execute(q); } catch {} }
+
+    // ─── Backfill legado: roda UMA ÚNICA VEZ via marcador transacional ───────
+    // Verifica se migração já rodou antes de abrir a transação
+    try {
+      const check = await db.execute(sql`SELECT 1 FROM schema_migrations WHERE version = 'module_tables_v1'`);
+      const already = ((check as any).rows ?? check);
+      if (!already || already.length === 0) {
+        // Marcador e backfill em uma única transação: falha → rollback → retry na próxima inicialização
+        await db.transaction(async (tx: any) => {
+          await tx.execute(sql`INSERT INTO schema_migrations (version) VALUES ('module_tables_v1')`);
+          await tx.execute(sql`INSERT INTO cnhbrasil_requests SELECT * FROM exam_requests WHERE modulo = 'CNH_BRASIL' ON CONFLICT (id) DO NOTHING`);
+          await tx.execute(sql`INSERT INTO cfc_requests SELECT * FROM exam_requests WHERE modulo = 'CFC' ON CONFLICT (id) DO NOTHING`);
+          await tx.execute(sql`INSERT INTO pcd_requests SELECT * FROM exam_requests WHERE modulo = 'PCD' ON CONFLICT (id) DO NOTHING`);
+          await tx.execute(sql`INSERT INTO cfc_schedule_slots SELECT * FROM exam_schedule_slots WHERE exam_type != 'PCD' ON CONFLICT (id) DO NOTHING`);
+          await tx.execute(sql`INSERT INTO pcd_schedule_slots SELECT * FROM exam_schedule_slots WHERE exam_type = 'PCD' ON CONFLICT (id) DO NOTHING`);
+        });
+      }
+    } catch {}
 
     // Criar usuário admin se não existir
     try {

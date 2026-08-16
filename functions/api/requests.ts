@@ -1,7 +1,7 @@
 // functions/api/requests.ts  →  GET|POST|PUT|DELETE /api/requests
 import { getDb, json, error, parseBody, getQuery, writeAuditLog, extractActor } from '../_db.js';
-import { examRequests } from '../../db/schema.js';
-import { eq, like, sql } from 'drizzle-orm';
+import { cnhbrasilRequests, cfcRequests, pcdRequests } from '../../db/schema.js';
+import { eq, like } from 'drizzle-orm';
 
 const ALLOWED_FIELDS = [
   'id','studentName','socialName','cpf','phone','email','address','city',
@@ -11,8 +11,7 @@ const ALLOWED_FIELDS = [
   'specialNeeds','status','result','scheduleId','scheduledDate',
   'scheduledTime','scheduledCategory','examinerId','attendanceConfirmed',
   'cancellationReason','observation','categoryQuantities','examHistory',
-  'queueUpdatedAt',
-  'checklistVehicle','practicalCourseInserted','taxaPaga',
+  'queueUpdatedAt','checklistVehicle','practicalCourseInserted','taxaPaga',
   'scheduledBy','modulo','semDuploComando','rowColor',
 ];
 
@@ -22,71 +21,62 @@ function deriveModulo(data: any): string {
   return 'CFC';
 }
 
-function filterFields(obj: any, extra: string[] = []) {
-  const fields = [...ALLOWED_FIELDS, ...extra];
+function filterFields(obj: any) {
   const out: any = {};
-  for (const k of fields) if (obj[k] !== undefined) out[k] = obj[k];
+  for (const k of ALLOWED_FIELDS) if (obj[k] !== undefined) out[k] = obj[k];
   return out;
 }
 
-export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
+function getRequestTable(modulo: string) {
+  if (modulo === 'PCD') return pcdRequests;
+  if (modulo === 'CFC') return cfcRequests;
+  return cnhbrasilRequests;
+}
+
+/** Encontra um request pelo ID em qualquer das 3 tabelas — retorna camelCase via ORM */
+async function findRequestById(db: any, id: string): Promise<{ row: any; modulo: string } | null> {
+  const [cnhRows, cfcRows, pcdRows] = await Promise.all([
+    db.select().from(cnhbrasilRequests).where(eq(cnhbrasilRequests.id, id)).limit(1),
+    db.select().from(cfcRequests).where(eq(cfcRequests.id, id)).limit(1),
+    db.select().from(pcdRequests).where(eq(pcdRequests.id, id)).limit(1),
+  ]);
+  if (cnhRows.length > 0) return { row: cnhRows[0], modulo: 'CNH_BRASIL' };
+  if (cfcRows.length > 0) return { row: cfcRows[0], modulo: 'CFC' };
+  if (pcdRows.length > 0) return { row: pcdRows[0], modulo: 'PCD' };
+  return null;
+}
+
+export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
     const query = getQuery(request.url);
 
-    try {
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS city text`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS request_type text DEFAULT 'EXTRA'`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS queue_updated_at timestamptz`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS checklist_vehicle boolean DEFAULT false`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS practical_course_inserted boolean DEFAULT false`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS taxa_paga boolean DEFAULT false`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS scheduled_by text`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS category_quantities jsonb`);
-      await db.execute(sql`
-        UPDATE exam_requests
-        SET
-          category_quantities = (
-            SELECT COALESCE(jsonb_object_agg(m[1], (m[2])::int), '{}'::jsonb)
-            FROM regexp_matches(
-              substring(observation from '^\\[Qtd:([A-Z0-9=,]+)\\]'),
-              '([A-Z]+)=([0-9]+)',
-              'g'
-            ) AS m
-          ),
-          observation = regexp_replace(observation, '^\\[Qtd:[A-Z0-9=,]+\\] *', '')
-        WHERE category_quantities IS NULL
-          AND observation LIKE '[Qtd:%'
-      `);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS modulo text`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`);
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS row_color text`);
-      await db.execute(sql`
-        UPDATE exam_requests
-        SET modulo = CASE
-          WHEN exam_type = 'PCD' THEN 'PCD'
-          WHEN school_id IS NULL OR school_id = '' OR school_id = 'CNH_BRASIL' THEN 'CNH_BRASIL'
-          WHEN school_id = 'PCD' THEN 'PCD'
-          ELSE 'CFC'
-        END
-        WHERE modulo IS NULL OR modulo = ''
-      `);
-    } catch {}
-
     if (method === 'GET') {
       if (query.cpf) {
         const clean = query.cpf.replace(/\D/g, '');
-        return json(await db.select().from(examRequests).where(like(examRequests.cpf, `%${clean}%`)));
+        const pattern = `%${clean}%`;
+        const [cnhRows, cfcRows, pcdRows] = await Promise.all([
+          db.select().from(cnhbrasilRequests).where(like(cnhbrasilRequests.cpf, pattern)),
+          db.select().from(cfcRequests).where(like(cfcRequests.cpf, pattern)),
+          db.select().from(pcdRequests).where(like(pcdRequests.cpf, pattern)),
+        ]);
+        return json([...cnhRows, ...cfcRows, ...pcdRows]);
       }
-      return json(await db.select().from(examRequests));
+      const [cnhRows, cfcRows, pcdRows] = await Promise.all([
+        db.select().from(cnhbrasilRequests),
+        db.select().from(cfcRequests),
+        db.select().from(pcdRequests),
+      ]);
+      return json([...cnhRows, ...cfcRows, ...pcdRows]);
     }
 
     if (method === 'POST') {
       const body = await parseBody<any>(request);
       const filtered = filterFields(body);
       if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
-      const newItem = await db.insert(examRequests).values({
+      const table = getRequestTable(filtered.modulo);
+      const newItem = await db.insert(table).values({
         id: filtered.id || crypto.randomUUID(),
         ...filtered,
         studentName: filtered.studentName || null,
@@ -107,39 +97,66 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     if (method === 'PUT') {
       const body = await parseBody<any>(request);
       if (!body?.id) return error('ID obrigatório', 400);
-      const { id, updatedAt, createdAt, ...updates } = body;
-      const filtered = filterFields(updates);
+      const { id, updatedAt, createdAt, ...rawUpdates } = body;
+      const filtered = filterFields(rawUpdates);
       if (filtered.queueUpdatedAt && typeof filtered.queueUpdatedAt === 'string') {
         filtered.queueUpdatedAt = new Date(filtered.queueUpdatedAt);
       }
-      const updated = await db.update(examRequests)
-        .set({ ...filtered, updatedAt: new Date() })
-        .where(eq(examRequests.id, id))
-        .returning();
-      const record = updated[0] as any;
-      if (record?.modulo === 'CNH_BRASIL') {
+
+      // Encontra registro atual (camelCase via ORM)
+      const found = await findRequestById(db, id);
+      const oldModulo = found?.modulo ?? deriveModulo(rawUpdates);
+      // Deriva módulo destino a partir dos dados mesclados (old + incoming)
+      // para capturar mudanças em examType/schoolId mesmo sem campo modulo explícito
+      const mergedExamType = rawUpdates.examType ?? found?.row?.examType;
+      const mergedSchoolId = rawUpdates.schoolId ?? found?.row?.schoolId;
+      const newModulo = filtered.modulo || deriveModulo({ examType: mergedExamType, schoolId: mergedSchoolId });
+      const oldTable = getRequestTable(oldModulo);
+      const newTable = getRequestTable(newModulo);
+
+      let record: any;
+      if (oldModulo !== newModulo) {
+        // Módulo mudou: mover linha atomicamente para a tabela destino
+        // Merge camelCase (ORM) + incoming updates + modulo correto
+        const merged = { ...found?.row, ...filtered, modulo: newModulo, updatedAt: new Date() };
+        await db.transaction(async (tx: any) => {
+          await tx.insert(newTable).values(merged).onConflictDoNothing();
+          await tx.delete(oldTable).where(eq(oldTable.id, id));
+        });
+        record = merged;
+      } else {
+        const updated = await db.update(oldTable)
+          .set({ ...filtered, updatedAt: new Date() })
+          .where(eq(oldTable.id, id))
+          .returning();
+        record = updated[0];
+      }
+
+      if ((record?.modulo ?? newModulo) === 'CNH_BRASIL') {
         let action = 'Foi modificado';
         if (body.scheduleId && body.status === 'SCHEDULED') action = 'Foi adicionado na Banca';
         else if (body.scheduleId === null && body.status === 'WAITING_SCHEDULING') action = 'Foi excluído da Banca';
-        await writeAuditLog(db, extractActor(request), action, 'CNH_BRASIL_CANDIDATO', record.id, {
-          cpf: record.cpf ?? null,
-          name: record.studentName ?? null,
+        await writeAuditLog(db, extractActor(request), action, 'CNH_BRASIL_CANDIDATO', id, {
+          cpf: (record ?? found?.row)?.cpf ?? null,
+          name: (record ?? found?.row)?.studentName ?? null,
         });
       }
-      return json(record ?? { id, ...updates });
+      return json(record ?? { id, ...rawUpdates });
     }
 
     if (method === 'DELETE') {
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
-      // Busca o registro antes de excluir para poder registrar no log
-      const toDelete = await db.select().from(examRequests).where(eq(examRequests.id, id));
-      await db.delete(examRequests).where(eq(examRequests.id, id));
-      const deletedRecord = toDelete[0] as any;
-      if (deletedRecord?.modulo === 'CNH_BRASIL') {
+      // Busca antes de excluir para poder registrar no log
+      const found = await findRequestById(db, id);
+      // Apaga das 3 tabelas (apenas uma terá o registro)
+      await db.delete(cnhbrasilRequests).where(eq(cnhbrasilRequests.id, id));
+      await db.delete(cfcRequests).where(eq(cfcRequests.id, id));
+      await db.delete(pcdRequests).where(eq(pcdRequests.id, id));
+      if (found?.modulo === 'CNH_BRASIL') {
         await writeAuditLog(db, extractActor(request), 'Foi excluído', 'CNH_BRASIL_CANDIDATO', id, {
-          cpf: deletedRecord.cpf ?? null,
-          name: deletedRecord.studentName ?? null,
+          cpf: found.row?.cpf ?? null,
+          name: found.row?.studentName ?? null,
         });
       }
       return json({ success: true });

@@ -1,6 +1,6 @@
 // functions/api/schedules.ts  →  GET|POST|PUT|DELETE /api/schedules
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
-import { examSchedules, examRequests } from '../../db/schema.js';
+import { examSchedules, cnhbrasilRequests, cfcRequests, pcdRequests } from '../../db/schema.js';
 import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
 
 const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string) => {
@@ -13,6 +13,17 @@ const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string
   if (now > new Date(examDate.getTime() - 12 * msPerHr)) return 'CLOSED';
   return 'OPEN';
 };
+
+/** Atualiza um campo de data/horário em todas as tabelas de módulo */
+async function updateAllModuleTables(
+  db: any,
+  updates: Record<string, any>,
+  whereScheduleId: string
+) {
+  for (const t of [cnhbrasilRequests, cfcRequests, pcdRequests] as any[]) {
+    await db.update(t).set(updates).where(eq(t.scheduleId, whereScheduleId));
+  }
+}
 
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
   try {
@@ -27,9 +38,12 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         const calc = calculateStatus(s.date, s.time, s.status);
         if (calc !== s.status) {
           if (calc === 'CONCLUDED' && s.status !== 'CONCLUDED') {
-            await db.update(examRequests)
-              .set({ status: 'WAITING_RESULT', updatedAt: new Date() })
-              .where(and(eq(examRequests.scheduleId, s.id), eq(examRequests.status, 'SCHEDULED')));
+            // Atualiza nas 3 tabelas de módulo
+            for (const t of [cnhbrasilRequests, cfcRequests, pcdRequests] as any[]) {
+              await db.update(t)
+                .set({ status: 'WAITING_RESULT', updatedAt: new Date() })
+                .where(and(eq(t.scheduleId, s.id), eq(t.status, 'SCHEDULED')));
+            }
           }
           updates.push(db.update(examSchedules).set({ status: calc }).where(eq(examSchedules.id, s.id)));
           s.status = calc;
@@ -66,8 +80,23 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
           .set({ status: 'CANCELLED', cancellationReason: reason })
           .where(eq(examSchedules.id, id)).returning();
 
-        try { await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS queue_updated_at timestamptz`); } catch {}
-
+        // Devolve candidatos para a fila nas 3 tabelas de módulo
+        const resetFields = {
+          status: 'WAITING_SCHEDULING',
+          scheduleId: null,
+          scheduledDate: null,
+          scheduledTime: null,
+          scheduledCategory: null,
+          examinerId: null,
+          attendanceConfirmed: false,
+          queueUpdatedAt: null,
+          updatedAt: new Date(),
+        };
+        await updateAllModuleTables(db, resetFields, id);
+        // Legada por segurança
+        try {
+          await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS queue_updated_at timestamptz`);
+        } catch {}
         await db.execute(sql`
           UPDATE exam_requests
           SET
@@ -98,9 +127,12 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         await db.update(examSchedules).set({ status: newStatus }).where(eq(examSchedules.id, id));
         (current as any).status = newStatus;
       }
+      // Propaga data/hora atualizada para candidatos nas 3 tabelas de módulo
       if (updates.date || updates.time) {
-        await db.update(examRequests).set({ scheduledDate: updates.date, scheduledTime: updates.time })
-          .where(eq(examRequests.scheduleId, id));
+        const dateTimeUpdate: any = {};
+        if (updates.date) dateTimeUpdate.scheduledDate = updates.date;
+        if (updates.time) dateTimeUpdate.scheduledTime = updates.time;
+        await updateAllModuleTables(db, dateTimeUpdate, id);
       }
       return json(current);
     }

@@ -4,8 +4,12 @@ import { sql } from 'drizzle-orm';
 // Tabelas de dados incluídas no backup (sessões, OTPs e logs de auditoria ficam fora)
 const BACKUP_TABLES = [
   'driving_schools', 'examiners', 'instructors', 'vehicles', 'cities',
-  'exam_requests', 'exam_schedules', 'exam_schedule_slots', 'banca_results',
-  'exam_locations', 'blocked_dates', 'system_settings',
+  // Tabelas separadas por módulo (novas)
+  'cnhbrasil_requests', 'cfc_requests', 'pcd_requests',
+  'cfc_schedule_slots', 'pcd_schedule_slots',
+  'banca_results', 'exam_locations', 'blocked_dates', 'system_settings',
+  // Tabelas legadas mantidas para segurança/rollback
+  'exam_requests', 'exam_schedules', 'exam_schedule_slots',
 ];
 
 const MAX_BACKUPS = 15;

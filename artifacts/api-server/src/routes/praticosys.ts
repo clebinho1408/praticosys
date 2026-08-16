@@ -3,7 +3,9 @@ import { db } from "@workspace/db";
 import {
   users, drivingSchools, examiners, instructors, vehicles,
   examSchedules, examRequests, systemSettings, blockedDates,
-  cities, examScheduleSlots, bancaResults, examLocations, otpCodes, auditLogs
+  cities, examScheduleSlots, bancaResults, examLocations, otpCodes, auditLogs,
+  cnhbrasilRequests, cfcRequests, pcdRequests,
+  cfcScheduleSlots, pcdScheduleSlots,
 } from "@workspace/db";
 import { eq, and, like, isNotNull, desc, sql } from "drizzle-orm";
 import crypto from "crypto";
@@ -22,8 +24,12 @@ const OTP_MAX_ATTEMPTS = 5;
 // ─── BACKUP ───────────────────────────────────────────────────────────────────
 const BACKUP_TABLES = [
   "driving_schools", "examiners", "instructors", "vehicles", "cities",
-  "exam_requests", "exam_schedules", "exam_schedule_slots", "banca_results",
-  "exam_locations", "blocked_dates", "system_settings",
+  // Tabelas separadas por módulo (novas)
+  "cnhbrasil_requests", "cfc_requests", "pcd_requests",
+  "cfc_schedule_slots", "pcd_schedule_slots",
+  "banca_results", "exam_locations", "blocked_dates", "system_settings",
+  // Tabelas legadas mantidas para segurança/rollback
+  "exam_requests", "exam_schedules", "exam_schedule_slots",
 ];
 const MAX_BACKUPS = 15;
 
@@ -504,9 +510,12 @@ router.get("/schedules", async (_req, res) => {
       const calc = calcStatus(s.date, s.time, s.status);
       if (calc !== s.status) {
         if (calc === "CONCLUDED" && s.status !== "CONCLUDED") {
-          await db.update(examRequests)
-            .set({ status: "WAITING_RESULT", updatedAt: new Date() })
-            .where(and(eq(examRequests.scheduleId, s.id), eq(examRequests.status, "SCHEDULED")));
+          // Atualiza status nas 3 tabelas de módulo (e na legada por segurança)
+          for (const t of [cnhbrasilRequests, cfcRequests, pcdRequests, examRequests] as any[]) {
+            await db.update(t)
+              .set({ status: "WAITING_RESULT", updatedAt: new Date() })
+              .where(and(eq(t.scheduleId, s.id), eq(t.status, "SCHEDULED")));
+          }
         }
         await db.update(examSchedules).set({ status: calc }).where(eq(examSchedules.id, s.id));
         s.status = calc;
@@ -578,30 +587,61 @@ function deriveModulo(data: any): string {
   return 'CFC';
 }
 
+/** Retorna a tabela Drizzle correta conforme o módulo */
+function getRequestTable(modulo: string) {
+  if (modulo === 'PCD') return pcdRequests;
+  if (modulo === 'CFC') return cfcRequests;
+  return cnhbrasilRequests;
+}
+
+/** Retorna a tabela de slots correta conforme o examType */
+function getSlotTable(examType: string) {
+  return examType === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
+}
+
+/** Encontra um request pelo ID em qualquer das 3 tabelas de módulo (retorna camelCase via ORM) */
+async function findRequestById(id: string): Promise<{ row: any; modulo: string } | null> {
+  const [cnhRows, cfcRows, pcdRows] = await Promise.all([
+    db.select().from(cnhbrasilRequests).where(eq(cnhbrasilRequests.id, id)).limit(1),
+    db.select().from(cfcRequests).where(eq(cfcRequests.id, id)).limit(1),
+    db.select().from(pcdRequests).where(eq(pcdRequests.id, id)).limit(1),
+  ]);
+  if (cnhRows.length > 0) return { row: cnhRows[0], modulo: 'CNH_BRASIL' };
+  if (cfcRows.length > 0) return { row: cfcRows[0], modulo: 'CFC' };
+  if (pcdRows.length > 0) return { row: pcdRows[0], modulo: 'PCD' };
+  return null;
+}
+
+/** Encontra um slot pelo ID em qualquer das 2 tabelas de slots (retorna camelCase via ORM) */
+async function findSlotById(id: string): Promise<{ row: any; module: 'CFC' | 'PCD' } | null> {
+  const [cfcRows, pcdRows] = await Promise.all([
+    db.select().from(cfcScheduleSlots).where(eq(cfcScheduleSlots.id, id)).limit(1),
+    db.select().from(pcdScheduleSlots).where(eq(pcdScheduleSlots.id, id)).limit(1),
+  ]);
+  if (cfcRows.length > 0) return { row: cfcRows[0], module: 'CFC' };
+  if (pcdRows.length > 0) return { row: pcdRows[0], module: 'PCD' };
+  return null;
+}
+
 router.get("/requests", async (req, res) => {
   try {
-    // Migration: add modulo column and backfill existing records
-    try {
-      await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS modulo text`);
-      await db.execute(sql`
-        UPDATE exam_requests
-        SET modulo = CASE
-          WHEN exam_type = 'PCD' THEN 'PCD'
-          WHEN school_id IS NULL OR school_id = '' OR school_id = 'CNH_BRASIL' THEN 'CNH_BRASIL'
-          WHEN school_id = 'PCD' THEN 'PCD'
-          ELSE 'CFC'
-        END
-        WHERE modulo IS NULL OR modulo = ''
-      `);
-    } catch {}
     const { cpf } = req.query as any;
     if (cpf) {
       const clean = cpf.replace(/\D/g, "");
-      const rows = await db.select().from(examRequests).where(like(examRequests.cpf, `%${clean}%`));
-      return res.json(rows);
+      const pattern = `%${clean}%`;
+      const [cnhRows, cfcRows, pcdRows] = await Promise.all([
+        db.select().from(cnhbrasilRequests).where(like(cnhbrasilRequests.cpf, pattern)),
+        db.select().from(cfcRequests).where(like(cfcRequests.cpf, pattern)),
+        db.select().from(pcdRequests).where(like(pcdRequests.cpf, pattern)),
+      ]);
+      return res.json([...cnhRows, ...cfcRows, ...pcdRows]);
     }
-    const rows = await db.select().from(examRequests);
-    return res.json(rows);
+    const [cnhRows, cfcRows, pcdRows] = await Promise.all([
+      db.select().from(cnhbrasilRequests),
+      db.select().from(cfcRequests),
+      db.select().from(pcdRequests),
+    ]);
+    return res.json([...cnhRows, ...cfcRows, ...pcdRows]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/requests", async (req, res) => {
@@ -610,7 +650,8 @@ router.post("/requests", async (req, res) => {
     const filtered: any = {};
     for (const k of ALLOWED_REQ_FIELDS) { if (body[k] !== undefined) filtered[k] = body[k]; }
     if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
-    const item = await db.insert(examRequests).values({
+    const table = getRequestTable(filtered.modulo);
+    const item = await db.insert(table).values({
       id: filtered.id || crypto.randomUUID(), ...filtered,
       createdAt: new Date(), updatedAt: new Date()
     }).returning();
@@ -651,12 +692,31 @@ router.put("/requests", async (req, res) => {
     for (const k of ALLOWED_REQ_FIELDS) { if (rawUpdates[k] !== undefined) updates[k] = rawUpdates[k]; }
     updates.updatedAt = new Date();
 
-    // Busca registro anterior para detectar mudanças reais (auditoria)
-    const oldRows = await db.select().from(examRequests).where(eq(examRequests.id, id));
-    const oldRecord = oldRows[0] as any;
+    // Busca registro para saber qual tabela atualizar e para auditoria
+    const found = await findRequestById(id);
+    const oldModulo = found?.modulo ?? deriveModulo(rawUpdates);
+    // Deriva módulo destino a partir dos dados mesclados (old + incoming)
+    // para capturar mudanças em examType/schoolId sem campo modulo explícito
+    const mergedExamType = rawUpdates.examType ?? found?.row?.examType;
+    const mergedSchoolId = rawUpdates.schoolId ?? found?.row?.schoolId;
+    const newModulo = updates.modulo || deriveModulo({ examType: mergedExamType, schoolId: mergedSchoolId });
+    const oldTable = getRequestTable(oldModulo);
+    const newTable = getRequestTable(newModulo);
 
-    const item = await db.update(examRequests).set(updates).where(eq(examRequests.id, id)).returning();
-    const record = item[0] as any;
+    let record: any;
+    if (oldModulo !== newModulo) {
+      // Módulo mudou: mover linha atomicamente para a tabela destino
+      // Merge do registro antigo (camelCase do ORM) com as atualizações
+      const merged = { ...found?.row, ...updates, modulo: newModulo, updatedAt: new Date() };
+      await db.transaction(async (tx) => {
+        await (tx.insert(newTable) as any).values(merged).onConflictDoNothing();
+        await tx.delete(oldTable).where(eq(oldTable.id, id));
+      });
+      record = merged;
+    } else {
+      const item = await db.update(oldTable).set(updates).where(eq(oldTable.id, id)).returning();
+      record = item[0];
+    }
     if (record?.modulo === 'CNH_BRASIL') {
       try {
         let action: string | null = null;
@@ -665,11 +725,10 @@ router.put("/requests", async (req, res) => {
         } else if (body.scheduleId === null && body.status === 'WAITING_SCHEDULING') {
           action = 'Foi excluído da Banca';
         } else {
-          // Só loga "Foi modificado" se algum campo rastreado realmente mudou
           const changed = AUDIT_TRACKED_FIELDS.some(f => {
-            const oldVal = oldRecord?.[f];
+            const oldVal = (found?.row as any)?.[f];
             const newVal = rawUpdates[f];
-            if (newVal === undefined) return false; // campo não enviado → não muda
+            if (newVal === undefined) return false;
             return String(oldVal ?? '') !== String(newVal ?? '');
           });
           if (changed) action = 'Foi modificado';
@@ -693,10 +752,12 @@ router.put("/requests", async (req, res) => {
 router.delete("/requests", async (req, res) => {
   try {
     const { id } = req.query as any;
-    const toDelete = await db.select().from(examRequests).where(eq(examRequests.id, id));
-    await db.delete(examRequests).where(eq(examRequests.id, id));
-    const deletedRecord = toDelete[0] as any;
-    if (deletedRecord?.modulo === 'CNH_BRASIL') {
+    const found = await findRequestById(id);
+    // Apaga da tabela correta (e das outras como segurança)
+    await db.delete(cnhbrasilRequests).where(eq(cnhbrasilRequests.id, id));
+    await db.delete(cfcRequests).where(eq(cfcRequests.id, id));
+    await db.delete(pcdRequests).where(eq(pcdRequests.id, id));
+    if (found?.modulo === 'CNH_BRASIL') {
       try {
         await db.insert(auditLogs).values({
           id: crypto.randomUUID(),
@@ -704,7 +765,7 @@ router.delete("/requests", async (req, res) => {
           userName: req.headers['x-user-name'] as string || null,
           userRole: req.headers['x-user-role'] as string || null,
           action: 'Foi excluído', entity: 'CNH_BRASIL_CANDIDATO', entityId: id,
-          details: { cpf: deletedRecord.cpf ?? null, name: deletedRecord.studentName ?? null },
+          details: { cpf: found.row?.cpf ?? null, name: found.row?.studentName ?? null },
         });
       } catch {}
     }
@@ -883,16 +944,26 @@ router.get("/vehicle-lookup", async (req, res) => {
 router.get("/schedule-slots", async (req, res) => {
   try {
     const { schoolId, scheduledDate } = req.query as any;
-    let q = db.select().from(examScheduleSlots) as any;
-    if (schoolId) q = q.where(eq(examScheduleSlots.schoolId, schoolId));
-    if (scheduledDate) q = q.where(eq(examScheduleSlots.scheduledDate, scheduledDate));
-    return res.json(await q);
+    // UNION das tabelas CFC e PCD via ORM (CNH Brasil não usa slots)
+    let cfcQ = db.select().from(cfcScheduleSlots) as any;
+    let pcdQ = db.select().from(pcdScheduleSlots) as any;
+    if (schoolId) {
+      cfcQ = cfcQ.where(eq(cfcScheduleSlots.schoolId, schoolId));
+      pcdQ = pcdQ.where(eq(pcdScheduleSlots.schoolId, schoolId));
+    }
+    if (scheduledDate) {
+      cfcQ = cfcQ.where(eq(cfcScheduleSlots.scheduledDate, scheduledDate));
+      pcdQ = pcdQ.where(eq(pcdScheduleSlots.scheduledDate, scheduledDate));
+    }
+    const [cfcRows, pcdRows] = await Promise.all([cfcQ, pcdQ]);
+    return res.json([...(cfcRows as any[]), ...(pcdRows as any[])]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/schedule-slots", async (req, res) => {
   try {
     const body = req.body;
-    const item = await db.insert(examScheduleSlots).values({
+    const table = getSlotTable(body.examType || '');
+    const item = await db.insert(table).values({
       id: body.id || crypto.randomUUID(),
       schoolId: body.schoolId, examType: body.examType,
       requestType: body.requestType || "FIXA", intendedCategory: body.intendedCategory,
@@ -915,16 +986,38 @@ router.put("/schedule-slots", async (req, res) => {
       "attendanceConfirmed","cancellationReason","observation"];
     const filtered: any = {};
     for (const k of allowed) { if (updates[k] !== undefined) filtered[k] = updates[k]; }
-    const item = await db.update(examScheduleSlots).set({ ...filtered, updatedAt: new Date() })
-      .where(eq(examScheduleSlots.id, id)).returning();
-    return res.json(item[0]);
+    // Descobre em qual tabela está o slot e atualiza (ORM devolve camelCase)
+    const foundSlot = await findSlotById(id);
+    const oldSlotModule = foundSlot?.module;
+    const newExamType = filtered.examType ?? foundSlot?.row?.examType ?? '';
+    const newSlotModule: 'CFC' | 'PCD' = newExamType === 'PCD' ? 'PCD' : 'CFC';
+    const oldSlotTable = oldSlotModule === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
+    const newSlotTable = newSlotModule === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
+
+    let slotResult: any;
+    if (oldSlotModule && oldSlotModule !== newSlotModule) {
+      // examType mudou de categoria: mover slot atomicamente para a tabela correta
+      const merged = { ...foundSlot!.row, ...filtered, updatedAt: new Date() };
+      await db.transaction(async (tx) => {
+        await (tx.insert(newSlotTable) as any).values(merged).onConflictDoNothing();
+        await tx.delete(oldSlotTable).where(eq(oldSlotTable.id, id));
+      });
+      slotResult = merged;
+    } else {
+      const item = await db.update(oldSlotTable).set({ ...filtered, updatedAt: new Date() })
+        .where(eq(oldSlotTable.id, id)).returning();
+      slotResult = item[0] ?? { id, ...updates };
+    }
+    return res.json(slotResult);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/schedule-slots", async (req, res) => {
   try {
     const { id } = req.query as any;
     if (!id) return res.status(400).json({ error: "ID required" });
-    await db.delete(examScheduleSlots).where(eq(examScheduleSlots.id, id));
+    // Apaga das 2 tabelas — apenas uma terá o registro
+    await db.delete(cfcScheduleSlots).where(eq(cfcScheduleSlots.id, id));
+    await db.delete(pcdScheduleSlots).where(eq(pcdScheduleSlots.id, id));
     return res.json({ success: true });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });

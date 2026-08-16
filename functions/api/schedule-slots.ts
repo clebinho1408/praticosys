@@ -1,7 +1,22 @@
 // functions/api/schedule-slots.ts  →  GET|POST|PUT|DELETE /api/schedule-slots
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
-import { examScheduleSlots } from '../../db/schema.js';
-import { eq, sql } from 'drizzle-orm';
+import { cfcScheduleSlots, pcdScheduleSlots } from '../../db/schema.js';
+import { eq } from 'drizzle-orm';
+
+function getSlotTable(examType: string) {
+  return examType === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
+}
+
+/** Encontra um slot pelo ID — retorna camelCase via ORM */
+async function findSlotById(db: any, id: string): Promise<{ row: any; module: 'CFC' | 'PCD' } | null> {
+  const [cfcRows, pcdRows] = await Promise.all([
+    db.select().from(cfcScheduleSlots).where(eq(cfcScheduleSlots.id, id)).limit(1),
+    db.select().from(pcdScheduleSlots).where(eq(pcdScheduleSlots.id, id)).limit(1),
+  ]);
+  if (cfcRows.length > 0) return { row: cfcRows[0], module: 'CFC' };
+  if (pcdRows.length > 0) return { row: pcdRows[0], module: 'PCD' };
+  return null;
+}
 
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
   try {
@@ -9,40 +24,26 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     const method = request.method;
     const query = getQuery(request.url);
 
-    try {
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS exam_schedule_slots (
-          id text PRIMARY KEY,
-          school_id text NOT NULL,
-          exam_type text NOT NULL,
-          request_type text NOT NULL DEFAULT 'FIXA',
-          intended_category text,
-          scheduled_date text,
-          scheduled_time text,
-          examiner_id text,
-          schedule_id text,
-          scheduled_category text,
-          status text NOT NULL DEFAULT 'SCHEDULED',
-          attendance_confirmed boolean DEFAULT false,
-          cancellation_reason text,
-          observation text,
-          created_at timestamp DEFAULT now(),
-          updated_at timestamp DEFAULT now()
-        )
-      `);
-      await db.execute(sql`ALTER TABLE exam_schedule_slots ADD COLUMN IF NOT EXISTS attendance_confirmed boolean DEFAULT false`);
-    } catch {}
-
     if (method === 'GET') {
-      let q = db.select().from(examScheduleSlots) as any;
-      if (query.schoolId) q = q.where(eq(examScheduleSlots.schoolId, query.schoolId));
-      if (query.scheduledDate) q = q.where(eq(examScheduleSlots.scheduledDate, query.scheduledDate));
-      return json(await q);
+      // Busca nas tabelas CFC e PCD via ORM (retorna camelCase) — CNH Brasil não usa slots
+      let cfcQ = db.select().from(cfcScheduleSlots) as any;
+      let pcdQ = db.select().from(pcdScheduleSlots) as any;
+      if (query.schoolId) {
+        cfcQ = cfcQ.where(eq(cfcScheduleSlots.schoolId, query.schoolId));
+        pcdQ = pcdQ.where(eq(pcdScheduleSlots.schoolId, query.schoolId));
+      }
+      if (query.scheduledDate) {
+        cfcQ = cfcQ.where(eq(cfcScheduleSlots.scheduledDate, query.scheduledDate));
+        pcdQ = pcdQ.where(eq(pcdScheduleSlots.scheduledDate, query.scheduledDate));
+      }
+      const [cfcRows, pcdRows] = await Promise.all([cfcQ, pcdQ]);
+      return json([...(cfcRows as any[]), ...(pcdRows as any[])]);
     }
 
     if (method === 'POST') {
       const body = await parseBody<any>(request);
-      const newItem = await db.insert(examScheduleSlots).values({
+      const table = getSlotTable(body.examType || '');
+      const newItem = await db.insert(table).values({
         id: body.id || crypto.randomUUID(),
         schoolId: body.schoolId,
         examType: body.examType,
@@ -72,17 +73,41 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         'status','attendanceConfirmed','cancellationReason','observation'];
       const filtered: any = {};
       for (const k of allowed) if (updates[k] !== undefined) filtered[k] = updates[k];
-      const updated = await db.update(examScheduleSlots)
-        .set({ ...filtered, updatedAt: new Date() })
-        .where(eq(examScheduleSlots.id, id))
-        .returning();
-      return json(updated[0] ?? { id, ...updates });
+
+      // Encontra o slot atual (camelCase via ORM)
+      const found = await findSlotById(db, id);
+      const oldModule = found?.module;
+      const newExamType = filtered.examType ?? found?.row?.examType ?? '';
+      const newModule: 'CFC' | 'PCD' = newExamType === 'PCD' ? 'PCD' : 'CFC';
+      const oldTable = oldModule === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
+      const newTable = newModule === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
+
+      let result: any;
+      if (oldModule && oldModule !== newModule) {
+        // examType mudou de categoria: mover slot atomicamente para a tabela correta
+        // Merge camelCase (ORM) + incoming updates
+        const merged = { ...found!.row, ...filtered, updatedAt: new Date() };
+        await db.transaction(async (tx: any) => {
+          await tx.insert(newTable).values(merged).onConflictDoNothing();
+          await tx.delete(oldTable).where(eq(oldTable.id, id));
+        });
+        result = merged;
+      } else {
+        const updated = await db.update(oldTable)
+          .set({ ...filtered, updatedAt: new Date() })
+          .where(eq(oldTable.id, id))
+          .returning();
+        result = updated[0] ?? { id, ...updates };
+      }
+      return json(result);
     }
 
     if (method === 'DELETE') {
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
-      await db.delete(examScheduleSlots).where(eq(examScheduleSlots.id, id));
+      // Apaga das 2 tabelas (apenas uma terá o registro)
+      await db.delete(cfcScheduleSlots).where(eq(cfcScheduleSlots.id, id));
+      await db.delete(pcdScheduleSlots).where(eq(pcdScheduleSlots.id, id));
       return json({ success: true });
     }
 
