@@ -11,24 +11,26 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     // Garante tabela (idempotente)
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS audit_logs (
+      CREATE TABLE IF NOT EXISTS logs_auditoria (
         id text PRIMARY KEY,
-        user_id text,
-        user_name text,
-        user_role text,
-        action text NOT NULL,
-        entity text NOT NULL,
-        entity_id text,
-        details jsonb,
-        created_at timestamp DEFAULT now()
+        usuario_id text,
+        nome_usuario text,
+        perfil_usuario text,
+        acao text NOT NULL,
+        entidade text NOT NULL,
+        entidade_id text,
+        detalhes jsonb,
+        criado_em timestamp DEFAULT now()
       )
     `).catch(() => {});
 
     const rows = await db.execute(sql`
-      SELECT id, user_id, user_name, user_role, action, entity, entity_id, details, created_at
-      FROM audit_logs
-      WHERE entity LIKE 'CNH_BRASIL%'
-      ORDER BY created_at DESC
+      SELECT id, usuario_id AS user_id, nome_usuario AS user_name, perfil_usuario AS user_role,
+             acao AS action, entidade AS entity, entidade_id AS entity_id,
+             detalhes AS details, criado_em AS created_at
+      FROM logs_auditoria
+      WHERE entidade LIKE 'CNH_BRASIL%'
+      ORDER BY criado_em DESC
       LIMIT ${parseInt(limit)}
       OFFSET ${parseInt(offset)}
     `);

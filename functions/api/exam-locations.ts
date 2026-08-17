@@ -6,16 +6,16 @@ import { eq, sql } from 'drizzle-orm';
 async function ensureTable(db: any) {
   try {
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS exam_locations (
+      CREATE TABLE IF NOT EXISTS locais_exame (
         id text PRIMARY KEY,
-        city_id text NOT NULL,
-        address text,
-        maps_url text,
-        regions_served jsonb DEFAULT '[]'::jsonb,
-        created_at timestamp DEFAULT now()
+        cidade_id text NOT NULL,
+        endereco text,
+        url_maps text,
+        regioes_atendidas jsonb DEFAULT '[]'::jsonb,
+        criado_em timestamp DEFAULT now()
       )
     `);
-    await db.execute(sql`ALTER TABLE exam_schedules ADD COLUMN IF NOT EXISTS location_id text`);
+    await db.execute(sql`ALTER TABLE bancas ADD COLUMN IF NOT EXISTS local_id text`);
   } catch {}
 }
 

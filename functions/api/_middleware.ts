@@ -30,12 +30,12 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
   try {
     const db = getDb(env as any);
     // Garante que sessions existe antes de consultar (idempotente)
-    await db.execute(sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`).catch(() => {});
+    await db.execute(sql`CREATE TABLE IF NOT EXISTS sessoes (id text PRIMARY KEY, usuario_id text NOT NULL, expira_em timestamp NOT NULL, criado_em timestamp DEFAULT now())`).catch(() => {});
     const rows = await db.execute(sql`
-      SELECT u.id, u.role
-      FROM sessions s
-      JOIN users u ON u.id = s.user_id
-      WHERE s.id = ${token} AND s.expires_at > NOW()
+      SELECT u.id, u.perfil AS role
+      FROM sessoes s
+      JOIN usuarios u ON u.id = s.usuario_id
+      WHERE s.id = ${token} AND s.expira_em > NOW()
       LIMIT 1
     `);
     const rowData = (rows as any).rows ?? rows;

@@ -7,7 +7,7 @@ export const onRequestDelete: PagesFunction<{ DATABASE_URL: string }> = async ({
     const db = getDb(env as any);
     const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '').trim();
     if (token) {
-      await db.execute(sql`DELETE FROM sessions WHERE id = ${token}`);
+      await db.execute(sql`DELETE FROM sessoes WHERE id = ${token}`);
     }
     return json({ success: true });
   } catch {

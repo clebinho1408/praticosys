@@ -61,16 +61,16 @@ export async function writeAuditLog(
   try {
     if (!_auditTableReady) {
       await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS audit_logs (
+        CREATE TABLE IF NOT EXISTS logs_auditoria (
           id text PRIMARY KEY,
-          user_id text,
-          user_name text,
-          user_role text,
-          action text NOT NULL,
-          entity text NOT NULL,
-          entity_id text,
-          details jsonb,
-          created_at timestamp DEFAULT now()
+          usuario_id text,
+          nome_usuario text,
+          perfil_usuario text,
+          acao text NOT NULL,
+          entidade text NOT NULL,
+          entidade_id text,
+          detalhes jsonb,
+          criado_em timestamp DEFAULT now()
         )
       `);
       _auditTableReady = true;
@@ -78,7 +78,7 @@ export async function writeAuditLog(
     const id = crypto.randomUUID();
     const det = details ? JSON.stringify(details) : null;
     await db.execute(sql`
-      INSERT INTO audit_logs (id, user_id, user_name, user_role, action, entity, entity_id, details, created_at)
+      INSERT INTO logs_auditoria (id, usuario_id, nome_usuario, perfil_usuario, acao, entidade, entidade_id, detalhes, criado_em)
       VALUES (
         ${id},
         ${actor.userId},

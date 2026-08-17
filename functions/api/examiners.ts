@@ -5,10 +5,10 @@ import { eq, sql } from 'drizzle-orm';
 
 async function ensureSchema(db: any) {
   try {
-    await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS categories jsonb DEFAULT '[]'::jsonb`);
-    await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_a integer`);
-    await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_b integer`);
-    await db.execute(sql`ALTER TABLE public.examiners ADD COLUMN IF NOT EXISTS default_max_slots_mudanca integer`);
+    await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS categorias jsonb DEFAULT '[]'::jsonb`);
+    await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS max_vagas_a_padrao integer`);
+    await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS max_vagas_b_padrao integer`);
+    await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS max_vagas_mudanca_padrao integer`);
   } catch {}
 }
 

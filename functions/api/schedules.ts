@@ -95,21 +95,21 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         await updateAllModuleTables(db, resetFields, id);
         // Legada por segurança
         try {
-          await db.execute(sql`ALTER TABLE exam_requests ADD COLUMN IF NOT EXISTS queue_updated_at timestamptz`);
+          await db.execute(sql`ALTER TABLE solicitacoes ADD COLUMN IF NOT EXISTS fila_atualizado_em timestamptz`);
         } catch {}
         await db.execute(sql`
-          UPDATE exam_requests
+          UPDATE solicitacoes
           SET
             status              = 'WAITING_SCHEDULING',
-            schedule_id         = NULL,
-            scheduled_date      = NULL,
-            scheduled_time      = NULL,
-            scheduled_category  = NULL,
-            examiner_id         = NULL,
-            attendance_confirmed = FALSE,
-            updated_at = COALESCE(queue_updated_at, updated_at),
-            queue_updated_at    = NULL
-          WHERE schedule_id = ${id}
+            banca_id            = NULL,
+            data_agendada       = NULL,
+            hora_agendada       = NULL,
+            categoria_agendada  = NULL,
+            examinador_id       = NULL,
+            presenca_confirmada = FALSE,
+            atualizado_em = COALESCE(fila_atualizado_em, atualizado_em),
+            fila_atualizado_em  = NULL
+          WHERE banca_id = ${id}
         `);
 
         return json(updated[0] ?? { id, status: 'CANCELLED' });

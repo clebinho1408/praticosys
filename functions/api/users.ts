@@ -8,12 +8,12 @@ const ADMIN_ONLY_FIELDS = ['password', 'twoFactorEnabled', 'two_factor_enabled',
 
 async function ensureSchema(db: any) {
   try {
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS password text`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS school_id text`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS examiner_id text`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS instructor_id text`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS allowed_modules jsonb DEFAULT '[]'::jsonb`);
+    await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS senha text`);
+    await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS autoescola_id text`);
+    await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS examinador_id text`);
+    await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS instrutor_id text`);
+    await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS forcar_troca_senha boolean DEFAULT true`);
+    await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS modulos_permitidos jsonb DEFAULT '[]'::jsonb`);
   } catch {}
 }
 

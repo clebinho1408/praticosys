@@ -18,14 +18,14 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
     if (method === 'GET') {
       if (query.id) {
         // Download: retorna o payload completo do backup
-        const res = await db.execute(sql`SELECT id, payload, created_at FROM backups WHERE id = ${query.id} LIMIT 1`);
+        const res = await db.execute(sql`SELECT id, dados AS payload, criado_em AS created_at FROM backups WHERE id = ${query.id} LIMIT 1`);
         const rows = (res as any).rows ?? res;
         if (!rows || rows.length === 0) return error('Backup não encontrado', 404);
         return json(rows[0]);
       }
       // Lista (sem payload)
       const res = await db.execute(sql`
-        SELECT id, trigger_type, size_bytes, created_at FROM backups ORDER BY created_at DESC
+        SELECT id, tipo_gatilho AS trigger_type, tamanho_bytes AS size_bytes, criado_em AS created_at FROM backups ORDER BY criado_em DESC
       `);
       return json((res as any).rows ?? res);
     }

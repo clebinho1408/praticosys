@@ -19,10 +19,10 @@ export async function sessionAuth(req: Request, res: Response, next: NextFunctio
 
   try {
     const rows = await db.execute(sql`
-      SELECT u.id, u.role
-      FROM sessions s
-      JOIN users u ON u.id = s.user_id
-      WHERE s.id = ${token} AND s.expires_at > NOW()
+      SELECT u.id, u.perfil AS role
+      FROM sessoes s
+      JOIN usuarios u ON u.id = s.usuario_id
+      WHERE s.id = ${token} AND s.expira_em > NOW()
       LIMIT 1
     `);
     const data = (rows as any).rows ?? rows;

@@ -5,14 +5,14 @@ import { eq, sql } from 'drizzle-orm';
 
 async function ensureSchema(db: any) {
   try {
-    await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS email text`);
-    await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS city text`);
-    await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS services jsonb DEFAULT '[]'::jsonb`);
-    await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS moto_yard_address text`);
-    await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS car_yard_address text`);
-    await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS category_change_yard_address text`);
-    await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS main_schedule jsonb`);
-    await db.execute(sql`ALTER TABLE driving_schools ADD COLUMN IF NOT EXISTS provisional_schedule jsonb`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS email text`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS cidade text`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS servicos jsonb DEFAULT '[]'::jsonb`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS endereco_patio_moto text`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS endereco_patio_carro text`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS endereco_patio_mudanca text`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS banca_principal jsonb`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS banca_provisoria jsonb`);
   } catch {}
 }
 

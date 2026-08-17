@@ -15,7 +15,7 @@ async function createSession(db: any, userId: string): Promise<string> {
   const sessionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
   await db.execute(sql`
-    INSERT INTO sessions (id, user_id, expires_at, created_at)
+    INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
     VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
   `);
   return sessionId;
@@ -23,10 +23,10 @@ async function createSession(db: any, userId: string): Promise<string> {
 
 async function ensureSchema(db: any) {
   const stmts = [
-    sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`,
-    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email text`,
-    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`,
-    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false`,
+    sql`CREATE TABLE IF NOT EXISTS sessoes (id text PRIMARY KEY, usuario_id text NOT NULL, expira_em timestamp NOT NULL, criado_em timestamp DEFAULT now())`,
+    sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email text`,
+    sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone text`,
+    sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS dois_fatores_ativo boolean DEFAULT false`,
   ];
   for (const s of stmts) { try { await db.execute(s); } catch {} }
 }
@@ -44,13 +44,13 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
 
     // Consumo atômico: UPDATE...WHERE...RETURNING (previne replay concorrente)
     const consumed = await db.execute(sql`
-      UPDATE otp_codes
-      SET used = true
-      WHERE user_id = ${userId}
-        AND code = ${inputHash}
-        AND used = false
-        AND expires_at > NOW()
-        AND failed_attempts < ${MAX_ATTEMPTS}
+      UPDATE codigos_otp
+      SET usado = true
+      WHERE usuario_id = ${userId}
+        AND codigo = ${inputHash}
+        AND usado = false
+        AND expira_em > NOW()
+        AND tentativas_falhas < ${MAX_ATTEMPTS}
       RETURNING id
     `);
 
@@ -58,14 +58,14 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
     if (!rows || rows.length === 0) {
       // Incrementa tentativas e invalida ao atingir limite
       await db.execute(sql`
-        UPDATE otp_codes
+        UPDATE codigos_otp
         SET
-          failed_attempts = COALESCE(failed_attempts, 0) + 1,
-          used = CASE
-            WHEN COALESCE(failed_attempts, 0) + 1 >= ${MAX_ATTEMPTS} THEN true
-            ELSE used
+          tentativas_falhas = COALESCE(tentativas_falhas, 0) + 1,
+          usado = CASE
+            WHEN COALESCE(tentativas_falhas, 0) + 1 >= ${MAX_ATTEMPTS} THEN true
+            ELSE usado
           END
-        WHERE user_id = ${userId} AND used = false AND expires_at > NOW()
+        WHERE usuario_id = ${userId} AND usado = false AND expira_em > NOW()
       `);
       return error('Código inválido, expirado ou tentativas esgotadas. Faça login novamente.', 401);
     }

@@ -17,33 +17,29 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ r
     }
 
     if (body.action === 'RESET_DATA') {
-      await db.execute(sql`DELETE FROM banca_results`);
-      // Novas tabelas por módulo
-      await db.execute(sql`DELETE FROM cnhbrasil_requests`);
-      await db.execute(sql`DELETE FROM cfc_requests`);
-      await db.execute(sql`DELETE FROM pcd_requests`);
+      await db.execute(sql`DELETE FROM resultados_banca`);
+      // Tabelas por módulo
+      await db.execute(sql`DELETE FROM solicitacoes_cnhbrasil`);
+      await db.execute(sql`DELETE FROM solicitacoes_cfc`);
+      await db.execute(sql`DELETE FROM solicitacoes_pcd`);
       // Slots de banca por módulo
-      try { await db.execute(sql`DELETE FROM cfc_schedule_slots`); } catch {}
-      try { await db.execute(sql`DELETE FROM pcd_schedule_slots`); } catch {}
-      await db.execute(sql`DELETE FROM exam_schedules`);
+      try { await db.execute(sql`DELETE FROM vagas_cfc`); } catch {}
+      try { await db.execute(sql`DELETE FROM vagas_pcd`); } catch {}
+      await db.execute(sql`DELETE FROM bancas`);
       // Tabelas legadas (por segurança)
-      try { await db.execute(sql`DELETE FROM exam_requests`); } catch {}
-      try { await db.execute(sql`DELETE FROM exam_schedule_slots`); } catch {}
+      try { await db.execute(sql`DELETE FROM solicitacoes`); } catch {}
+      try { await db.execute(sql`DELETE FROM vagas_banca`); } catch {}
       return json({ success: true, message: 'Todos os agendamentos, escalas e resultados foram zerados com sucesso.' });
     }
 
     if (body.action === 'CLEANUP_PHANTOM_REQUESTS') {
-      const phantomCondition = sql`
-        (student_name IS NULL OR student_name = '' OR student_name = 'Vaga Disponível')
-        AND (cpf IS NULL OR cpf = '' OR cpf = '00000000000')
-      `;
       // Limpa nas 3 tabelas de módulo e na legada
       let totalCount = 0;
-      for (const tableName of ['cnhbrasil_requests', 'cfc_requests', 'pcd_requests', 'exam_requests']) {
+      for (const tableName of ['solicitacoes_cnhbrasil', 'solicitacoes_cfc', 'solicitacoes_pcd', 'solicitacoes']) {
         try {
           const result = await db.execute(sql.raw(`
             DELETE FROM ${tableName}
-            WHERE (student_name IS NULL OR student_name = '' OR student_name = 'Vaga Disponível')
+            WHERE (nome_candidato IS NULL OR nome_candidato = '' OR nome_candidato = 'Vaga Disponível')
               AND (cpf IS NULL OR cpf = '' OR cpf = '00000000000')
           `));
           totalCount += (result as any).rowCount ?? 0;

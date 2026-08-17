@@ -21,7 +21,7 @@ async function createSession(db: any, userId: string): Promise<string> {
   const sessionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
   await db.execute(sql`
-    INSERT INTO sessions (id, user_id, expires_at, created_at)
+    INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
     VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
   `);
   return sessionId;
@@ -46,7 +46,7 @@ async function handle2FA(
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
   // Invalida OTPs pendentes anteriores
-  await db.execute(sql`UPDATE otp_codes SET used = true WHERE user_id = ${user.id} AND used = false`);
+  await db.execute(sql`UPDATE codigos_otp SET usado = true WHERE usuario_id = ${user.id} AND usado = false`);
 
   const emailSent = await sendOtpEmail(resendApiKey, user.email, rawCode, 'PráticoSys');
   if (!emailSent) {
@@ -68,13 +68,13 @@ async function handle2FA(
 async function ensureSchema(db: any) {
   // Garante que todas as colunas necessárias existam (idempotente)
   const stmts = [
-    sql`CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY, user_id text NOT NULL, expires_at timestamp NOT NULL, created_at timestamp DEFAULT now())`,
-    sql`CREATE TABLE IF NOT EXISTS otp_codes (id text PRIMARY KEY, user_id text NOT NULL, code text NOT NULL, expires_at timestamp NOT NULL, used boolean DEFAULT false, failed_attempts integer DEFAULT 0, created_at timestamp DEFAULT now())`,
-    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email text`,
-    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text`,
-    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled boolean DEFAULT false`,
-    sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS force_password_change boolean DEFAULT true`,
-    sql`ALTER TABLE otp_codes ADD COLUMN IF NOT EXISTS failed_attempts integer DEFAULT 0`,
+    sql`CREATE TABLE IF NOT EXISTS sessoes (id text PRIMARY KEY, usuario_id text NOT NULL, expira_em timestamp NOT NULL, criado_em timestamp DEFAULT now())`,
+    sql`CREATE TABLE IF NOT EXISTS codigos_otp (id text PRIMARY KEY, usuario_id text NOT NULL, codigo text NOT NULL, expira_em timestamp NOT NULL, usado boolean DEFAULT false, tentativas_falhas integer DEFAULT 0, criado_em timestamp DEFAULT now())`,
+    sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email text`,
+    sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone text`,
+    sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS dois_fatores_ativo boolean DEFAULT false`,
+    sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS forcar_troca_senha boolean DEFAULT true`,
+    sql`ALTER TABLE codigos_otp ADD COLUMN IF NOT EXISTS tentativas_falhas integer DEFAULT 0`,
   ];
   for (const s of stmts) { try { await db.execute(s); } catch {} }
 }
