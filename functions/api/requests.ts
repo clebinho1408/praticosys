@@ -15,6 +15,22 @@ const ALLOWED_FIELDS = [
   'scheduledBy','modulo','semDuploComando','rowColor',
 ];
 
+/** Campos removidos de cada tabela de módulo — não podem ser gravados nelas */
+const MODULE_DROPPED_FIELDS: Record<string, string[]> = {
+  CNH_BRASIL: ['disabilityType', 'specialNeeds', 'semDuploComando', 'categoryQuantities'],
+  CFC:        ['disabilityType', 'specialNeeds'],
+  PCD:        ['semDuploComando', 'categoryQuantities'],
+};
+
+/** Remove campos que não existem mais na tabela do módulo alvo */
+function stripDroppedFields(obj: any, modulo: string): any {
+  const dropped = MODULE_DROPPED_FIELDS[modulo] ?? [];
+  if (dropped.length === 0) return obj;
+  const out = { ...obj };
+  for (const f of dropped) delete out[f];
+  return out;
+}
+
 function deriveModulo(data: any): string {
   if (data.examType === 'PCD' || data.schoolId === 'PCD') return 'PCD';
   if (!data.schoolId || data.schoolId === '' || data.schoolId === 'CNH_BRASIL') return 'CNH_BRASIL';
@@ -75,10 +91,11 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const body = await parseBody<any>(request);
       const filtered = filterFields(body);
       if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
-      const table = getRequestTable(filtered.modulo);
+      const safeFiltered = stripDroppedFields(filtered, filtered.modulo);
+      const table = getRequestTable(safeFiltered.modulo);
       const newItem = await db.insert(table).values({
-        id: filtered.id || crypto.randomUUID(),
-        ...filtered,
+        id: safeFiltered.id || crypto.randomUUID(),
+        ...safeFiltered,
         studentName: filtered.studentName || null,
         phone: filtered.phone || null,
         createdAt: filtered.createdAt ? new Date(filtered.createdAt) : new Date(),
@@ -118,15 +135,19 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       if (oldModulo !== newModulo) {
         // Módulo mudou: mover linha atomicamente para a tabela destino
         // Merge camelCase (ORM) + incoming updates + modulo correto
-        const merged = { ...found?.row, ...filtered, modulo: newModulo, updatedAt: new Date() };
+        const merged = stripDroppedFields(
+          { ...found?.row, ...filtered, modulo: newModulo, updatedAt: new Date() },
+          newModulo
+        );
         await db.transaction(async (tx: any) => {
           await tx.insert(newTable).values(merged).onConflictDoNothing();
           await tx.delete(oldTable).where(eq(oldTable.id, id));
         });
         record = merged;
       } else {
+        const safeFiltered = stripDroppedFields({ ...filtered, updatedAt: new Date() }, newModulo);
         const updated = await db.update(oldTable)
-          .set({ ...filtered, updatedAt: new Date() })
+          .set(safeFiltered)
           .where(eq(oldTable.id, id))
           .returning();
         record = updated[0];

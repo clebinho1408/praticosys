@@ -113,6 +113,7 @@ async function runMigrations() {
     await db.execute(sql`ALTER TABLE banca_results ADD COLUMN IF NOT EXISTS modulo text`);
 
     // Backfill: roda UMA ÚNICA VEZ via marcador transacional
+    // DEVE rodar ANTES dos DROP COLUMN para que o SELECT * ainda funcione
     // Verifica primeiro (sem abrir tx) se já foi aplicado
     const migCheck = await db.execute(sql`SELECT 1 FROM schema_migrations WHERE version = 'module_tables_v1'`);
     const migDone = ((migCheck as any).rows ?? migCheck);
@@ -129,6 +130,20 @@ async function runMigrations() {
       });
       logger.info("Module tables backfill complete.");
     }
+
+    // ─── Remover colunas desnecessárias por módulo (idempotente) ──────────────
+    // Executado DEPOIS do backfill para não quebrar o SELECT * na migração inicial.
+    // cnhbrasil_requests: sem PCD (disability_type, special_needs), sem CFC-veículo (sem_duplo_comando), sem alocação CFC (category_quantities)
+    await db.execute(sql`ALTER TABLE cnhbrasil_requests DROP COLUMN IF EXISTS disability_type`);
+    await db.execute(sql`ALTER TABLE cnhbrasil_requests DROP COLUMN IF EXISTS special_needs`);
+    await db.execute(sql`ALTER TABLE cnhbrasil_requests DROP COLUMN IF EXISTS sem_duplo_comando`);
+    await db.execute(sql`ALTER TABLE cnhbrasil_requests DROP COLUMN IF EXISTS category_quantities`);
+    // cfc_requests: sem PCD (disability_type, special_needs)
+    await db.execute(sql`ALTER TABLE cfc_requests DROP COLUMN IF EXISTS disability_type`);
+    await db.execute(sql`ALTER TABLE cfc_requests DROP COLUMN IF EXISTS special_needs`);
+    // pcd_requests: sem CFC-veículo (sem_duplo_comando), sem alocação CFC (category_quantities)
+    await db.execute(sql`ALTER TABLE pcd_requests DROP COLUMN IF EXISTS sem_duplo_comando`);
+    await db.execute(sql`ALTER TABLE pcd_requests DROP COLUMN IF EXISTS category_quantities`);
 
     logger.info("DB migrations complete");
   } catch (err) {

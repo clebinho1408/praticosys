@@ -573,13 +573,29 @@ const ALLOWED_REQ_FIELDS = [
   "id", "studentName", "socialName", "cpf", "phone", "email", "address", "city",
   "requestType", "examType", "intendedCategory", "source", "schoolId",
   "paidFee", "completedPracticalCourse", "practicalHours", "hasVehicle",
-  "cnhRestriction", "instructor", "vehiclePlate", "checklistVehicle",
+  "cnhRestriction", "instructor", "vehiclePlate", "semDuploComando", "checklistVehicle",
   "practicalCourseInserted", "taxaPaga", "disabilityType", "specialNeeds",
   "status", "result", "scheduleId", "scheduledDate", "scheduledTime",
   "scheduledCategory", "examinerId", "attendanceConfirmed", "cancellationReason",
   "observation", "categoryQuantities", "examHistory", "scheduledBy", "queueUpdatedAt",
   "modulo", "rowColor"
 ];
+
+/** Campos removidos de cada tabela de módulo — não podem ser gravados nelas */
+const MODULE_DROPPED_FIELDS: Record<string, string[]> = {
+  CNH_BRASIL: ['disabilityType', 'specialNeeds', 'semDuploComando', 'categoryQuantities'],
+  CFC:        ['disabilityType', 'specialNeeds'],
+  PCD:        ['semDuploComando', 'categoryQuantities'],
+};
+
+/** Remove campos que não existem mais na tabela do módulo alvo */
+function stripDroppedFields(obj: any, modulo: string): any {
+  const dropped = MODULE_DROPPED_FIELDS[modulo] ?? [];
+  if (dropped.length === 0) return obj;
+  const out = { ...obj };
+  for (const f of dropped) delete out[f];
+  return out;
+}
 
 function deriveModulo(data: any): string {
   if (data.examType === 'PCD' || data.schoolId === 'PCD') return 'PCD';
@@ -650,9 +666,10 @@ router.post("/requests", async (req, res) => {
     const filtered: any = {};
     for (const k of ALLOWED_REQ_FIELDS) { if (body[k] !== undefined) filtered[k] = body[k]; }
     if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
-    const table = getRequestTable(filtered.modulo);
+    const safeFiltered = stripDroppedFields(filtered, filtered.modulo);
+    const table = getRequestTable(safeFiltered.modulo);
     const item = await db.insert(table).values({
-      id: filtered.id || crypto.randomUUID(), ...filtered,
+      id: safeFiltered.id || crypto.randomUUID(), ...safeFiltered,
       createdAt: new Date(), updatedAt: new Date()
     }).returning();
     const record = item[0] as any;
@@ -707,14 +724,18 @@ router.put("/requests", async (req, res) => {
     if (oldModulo !== newModulo) {
       // Módulo mudou: mover linha atomicamente para a tabela destino
       // Merge do registro antigo (camelCase do ORM) com as atualizações
-      const merged = { ...found?.row, ...updates, modulo: newModulo, updatedAt: new Date() };
+      const merged = stripDroppedFields(
+        { ...found?.row, ...updates, modulo: newModulo, updatedAt: new Date() },
+        newModulo
+      );
       await db.transaction(async (tx) => {
         await (tx.insert(newTable) as any).values(merged).onConflictDoNothing();
         await tx.delete(oldTable).where(eq(oldTable.id, id));
       });
       record = merged;
     } else {
-      const item = await db.update(oldTable).set(updates).where(eq(oldTable.id, id)).returning();
+      const safeUpdates = stripDroppedFields(updates, newModulo);
+      const item = await db.update(oldTable).set(safeUpdates).where(eq(oldTable.id, id)).returning();
       record = item[0];
     }
     if (record?.modulo === 'CNH_BRASIL') {

@@ -134,6 +134,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
     for (const q of structuralMigrations) { try { await db.execute(q); } catch {} }
 
     // ─── Backfill legado: roda UMA ÚNICA VEZ via marcador transacional ───────
+    // DEVE rodar ANTES dos DROP COLUMN para que o SELECT * ainda funcione.
     // Verifica se migração já rodou antes de abrir a transação
     try {
       const check = await db.execute(sql`SELECT 1 FROM schema_migrations WHERE version = 'module_tables_v1'`);
@@ -150,6 +151,20 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
         });
       }
     } catch {}
+
+    // ─── Remover colunas desnecessárias por módulo (idempotente) ─────────────
+    // Executado DEPOIS do backfill para não quebrar o SELECT * na migração inicial.
+    const dropColumns = [
+      sql`ALTER TABLE cnhbrasil_requests DROP COLUMN IF EXISTS disability_type`,
+      sql`ALTER TABLE cnhbrasil_requests DROP COLUMN IF EXISTS special_needs`,
+      sql`ALTER TABLE cnhbrasil_requests DROP COLUMN IF EXISTS sem_duplo_comando`,
+      sql`ALTER TABLE cnhbrasil_requests DROP COLUMN IF EXISTS category_quantities`,
+      sql`ALTER TABLE cfc_requests DROP COLUMN IF EXISTS disability_type`,
+      sql`ALTER TABLE cfc_requests DROP COLUMN IF EXISTS special_needs`,
+      sql`ALTER TABLE pcd_requests DROP COLUMN IF EXISTS sem_duplo_comando`,
+      sql`ALTER TABLE pcd_requests DROP COLUMN IF EXISTS category_quantities`,
+    ];
+    for (const q of dropColumns) { try { await db.execute(q); } catch {} }
 
     // Criar usuário admin se não existir
     try {
