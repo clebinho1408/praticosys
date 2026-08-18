@@ -1,5 +1,5 @@
 // functions/api/auth.ts  →  POST /api/auth
-import { getDb, json, error, parseBody } from '../_db.js';
+import { getDb, json, error, parseBody, ensurePortugueseSchema } from '../_db.js';
 import { users, otpCodes } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { sendOtpEmail } from '../_resend.js';
@@ -83,6 +83,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
   const { request, env } = context;
   try {
     const db = getDb(env as any);
+    await ensurePortugueseSchema(db);
     await ensureSchema(db);
 
     const body = await parseBody<{ login: string; password: string }>(request);

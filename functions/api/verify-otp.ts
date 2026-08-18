@@ -1,5 +1,5 @@
 // functions/api/verify-otp.ts  →  POST /api/verify-otp
-import { getDb, json, error, parseBody } from '../_db.js';
+import { getDb, json, error, parseBody, ensurePortugueseSchema } from '../_db.js';
 import { users } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { createBackup } from '../_backup.js';
@@ -35,6 +35,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
   const { request, env } = context;
   try {
     const db = getDb(env as any);
+    await ensurePortugueseSchema(db);
     await ensureSchema(db);
     const body = await parseBody<{ userId: string; code: string }>(request);
     const { userId, code } = body;
