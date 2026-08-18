@@ -178,6 +178,7 @@ const colRenames = [
   col('configuracoes', 'default_max_slots_b', 'max_vagas_b_padrao'),
   col('configuracoes', 'default_max_slots_mudanca', 'max_vagas_mudanca_padrao'),
   col('configuracoes', 'whatsapp_message_template', 'template_whatsapp'),
+  col('configuracoes', 'whatsapp_template', 'template_whatsapp'), // variante antiga encontrada em produção
   col('configuracoes', 'cfc_whatsapp_template', 'template_whatsapp_cfc'),
   col('configuracoes', 'default_exam_address', 'endereco_exame_padrao'),
   col('configuracoes', 'default_exam_address_link', 'link_exame_padrao'),
