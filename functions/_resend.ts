@@ -50,8 +50,19 @@ export async function sendOtpEmail(
     if (resp.status === 400 || resp.status === 422) {
       return { ok: false, status: resp.status, message: 'O endereço de e-mail ou o remetente configurado não foi aceito. Confirme o e-mail cadastrado e a configuração do domínio de envio.' };
     }
-    if (resp.status === 401 || resp.status === 403) {
-      return { ok: false, status: resp.status, message: 'O serviço de e-mail não está autorizado. Contate o administrador do sistema.' };
+    if (resp.status === 401) {
+      return {
+        ok: false,
+        status: resp.status,
+        message: 'A chave do Resend configurada no Cloudflare Pages foi recusada. Atualize RESEND_API_KEY no ambiente Production e faça um novo deploy.',
+      };
+    }
+    if (resp.status === 403) {
+      return {
+        ok: false,
+        status: resp.status,
+        message: 'O Resend recusou o remetente ou a permissão de envio. Configure RESEND_FROM_EMAIL com um endereço de domínio verificado no Resend e confirme que a chave possui permissão de envio.',
+      };
     }
     return { ok: false, status: resp.status, message: 'O serviço de e-mail não pôde enviar o código agora. Tente novamente em alguns minutos.' };
   } catch (cause) {
