@@ -35,14 +35,20 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     // Sessão expirada — limpa estado e redireciona para login
-    if (response.status === 401) {
+    if (response.status === 401 && endpoint !== '/auth' && endpoint !== '/verify-otp') {
       localStorage.removeItem('praticosys_auth');
       window.location.href = '/#/login';
       throw new Error('Sessão expirada. Redirecionando para login...');
     }
     const errorText = await response.text();
+    const isJson = response.headers.get('content-type')?.includes('application/json');
     let msg = errorText;
-    try { msg = JSON.parse(errorText)?.error ?? errorText; } catch {}
+    if (isJson) {
+      try { msg = JSON.parse(errorText)?.error ?? errorText; } catch {}
+    } else if (response.status >= 500) {
+      // Não expõe páginas HTML de proxy/CDN ao usuário.
+      msg = 'O servidor está temporariamente indisponível. Aguarde alguns instantes e tente novamente.';
+    }
     throw new Error(msg || `Erro ${response.status}: ${response.statusText}`);
   }
 

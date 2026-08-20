@@ -1,21 +1,30 @@
 // functions/_resend.ts — envia e-mail via Resend API (HTTP direto, sem SDK)
 // Requer variável de ambiente RESEND_API_KEY no Cloudflare Pages.
 
+export type OtpEmailDelivery =
+  | { ok: true }
+  | { ok: false; message: string; status?: number };
+
 export async function sendOtpEmail(
   apiKey: string,
   to: string,
   code: string,
-  agencyName: string = 'PráticoSys'
-): Promise<boolean> {
+  agencyName: string = 'PráticoSys',
+  fromEmail: string = 'onboarding@resend.dev',
+): Promise<OtpEmailDelivery> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000);
+
   try {
     const resp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${agencyName} <onboarding@resend.dev>`,
+        from: `${agencyName} <${fromEmail}>`,
         to: [to],
         subject: `[${agencyName}] Código de verificação: ${code}`,
         html: `
@@ -31,8 +40,33 @@ export async function sendOtpEmail(
         `,
       }),
     });
-    return resp.ok;
-  } catch {
-    return false;
+    if (resp.ok) return { ok: true };
+
+    // Não registra destinatário, código, chave, nem o corpo retornado pelo provedor.
+    console.error('[2fa] Resend recusou o envio do OTP', { status: resp.status });
+    if (resp.status === 429) {
+      return { ok: false, status: resp.status, message: 'O serviço de e-mail recebeu muitas solicitações. Aguarde um minuto e tente novamente.' };
+    }
+    if (resp.status === 400 || resp.status === 422) {
+      return { ok: false, status: resp.status, message: 'O endereço de e-mail ou o remetente configurado não foi aceito. Confirme o e-mail cadastrado e a configuração do domínio de envio.' };
+    }
+    if (resp.status === 401 || resp.status === 403) {
+      return { ok: false, status: resp.status, message: 'O serviço de e-mail não está autorizado. Contate o administrador do sistema.' };
+    }
+    return { ok: false, status: resp.status, message: 'O serviço de e-mail não pôde enviar o código agora. Tente novamente em alguns minutos.' };
+  } catch (cause) {
+    const timedOut = controller.signal.aborted;
+    console.error('[2fa] Falha ao chamar o Resend', {
+      reason: timedOut ? 'timeout' : 'network_error',
+      error: cause instanceof Error ? cause.name : 'unknown',
+    });
+    return {
+      ok: false,
+      message: timedOut
+        ? 'O serviço de e-mail demorou demais para responder. Tente novamente em alguns minutos.'
+        : 'Não foi possível conectar ao serviço de e-mail. Tente novamente em alguns minutos.',
+    };
+  } finally {
+    clearTimeout(timeout);
   }
 }

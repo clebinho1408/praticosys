@@ -37,6 +37,7 @@ async function handle2FA(
   db: any,
   user: any,
   resendApiKey: string | undefined,
+  resendFromEmail: string | undefined,
 ): Promise<{ requiresOtp: true; userId: string; sentTo: string } | Response> {
   if (!resendApiKey) {
     return error('Autenticação em 2 etapas requer RESEND_API_KEY. Contate o administrador.', 503);
@@ -48,9 +49,10 @@ async function handle2FA(
   // Invalida OTPs pendentes anteriores
   await db.execute(sql`UPDATE codigos_otp SET usado = true WHERE usuario_id = ${user.id} AND usado = false`);
 
-  const emailSent = await sendOtpEmail(resendApiKey, user.email, rawCode, 'PráticoSys');
-  if (!emailSent) {
-    return error('Falha ao enviar o código de verificação por e-mail. Tente novamente.', 502);
+  const delivery = await sendOtpEmail(resendApiKey, user.email, rawCode, 'PráticoSys', resendFromEmail);
+  if (delivery.ok === false) {
+    // 424 evita que a CDN troque o JSON por uma página HTML genérica de 502.
+    return error(delivery.message, 424);
   }
 
   await db.insert(otpCodes).values({
@@ -79,7 +81,7 @@ async function ensureSchema(db: any) {
   for (const s of stmts) { try { await db.execute(s); } catch {} }
 }
 
-export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY?: string }> = async (context) => {
+export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY?: string; RESEND_FROM_EMAIL?: string }> = async (context) => {
   const { request, env } = context;
   try {
     const db = getDb(env as any);
@@ -106,7 +108,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
 
       // Mesmo no bootstrap, 2FA deve ser honrado se configurado
       if (u.twoFactorEnabled && u.email) {
-        const result2fa = await handle2FA(db, u, env.RESEND_API_KEY);
+        const result2fa = await handle2FA(db, u, env.RESEND_API_KEY, env.RESEND_FROM_EMAIL);
         if (result2fa instanceof Response) return result2fa;
         return json(result2fa);
       }
@@ -138,7 +140,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
 
     // Verificação em 2 etapas
     if (user.twoFactorEnabled && user.email) {
-      const result2fa = await handle2FA(db, user, env.RESEND_API_KEY);
+      const result2fa = await handle2FA(db, user, env.RESEND_API_KEY, env.RESEND_FROM_EMAIL);
       if (result2fa instanceof Response) return result2fa;
       return json(result2fa);
     }
