@@ -2730,7 +2730,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                   rel="noreferrer"
                   className="font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
                 >
-                  aulapraticasc.icecards.com.br
+                  https://aulapraticasc.icecards.com.br/AgendamentoWeb/Account/Login
                 </a>{' '}
                 e verificar a(s) placa(s) do(s) veículo(s) no DetranNet.
               </p>
