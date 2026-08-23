@@ -2725,7 +2725,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               <p>
                 Antes de realizar o agendamento, é obrigatório consultar o CPF do candidato no site{' '}
                 <a
-                  href="https://aulapraticasc.icecards.com.br/"
+                  href="https://aulapraticasc.icecards.com.br/AgendamentoWeb/Account/Login"
                   target="_blank"
                   rel="noreferrer"
                   className="font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
