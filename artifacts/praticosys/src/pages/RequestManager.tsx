@@ -161,6 +161,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCnhSchedulingWarningOpen, setIsCnhSchedulingWarningOpen] = useState(false);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [copiedCpf, setCopiedCpf] = useState(false);
   const [isResultConfirmOpen, setIsResultConfirmOpen] = useState(false);
@@ -1416,6 +1417,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     setIsModalOpen(true);
   };
 
+  const handleNewCandidate = () => {
+    const isCnhBrasil = typeFilter === ExamType.COMMON && excludeRegularSchools;
+    if (isCnhBrasil) {
+      setIsCnhSchedulingWarningOpen(true);
+      return;
+    }
+    openCreateModal();
+  };
+
   const openResultModal = (req: ExamRequest) => {
     setEditingRequest(req);
     setResultData({ result: "APTO", observation: "" });
@@ -1826,7 +1836,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           <div className="w-full flex justify-center">
             {!isConsultant && (
               <button
-                onClick={() => openCreateModal()}
+                onClick={handleNewCandidate}
                 className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 flex items-center gap-2 font-bold shadow-sm transition-colors w-full justify-center"
               >
                 <Plus className="h-5 w-5" /> Novo Candidato
@@ -1929,7 +1939,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           <div className="w-full md:w-auto flex justify-end">
             {!isConsultant && (
               <button
-                onClick={() => openCreateModal()}
+                onClick={handleNewCandidate}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 font-medium shadow-sm transition-colors"
               >
                 <Plus className="h-4 w-4" /> Novo Candidato
@@ -2682,6 +2692,94 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 className="py-2.5 px-8 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-bold transition-colors"
               >
                 Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CNH Brasil scheduling checklist */}
+      {isCnhSchedulingWarningOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="cnh-scheduling-warning-title"
+        >
+          <div className="w-full max-w-2xl overflow-hidden rounded-xl bg-white shadow-2xl">
+            <div className="flex items-start gap-3 border-b border-amber-200 bg-amber-50 p-5">
+              <div className="rounded-full bg-amber-100 p-2 text-amber-700">
+                <AlertTriangle className="h-6 w-6" aria-hidden="true" />
+              </div>
+              <div>
+                <h3 id="cnh-scheduling-warning-title" className="text-lg font-bold text-amber-950">
+                  Atenção antes do agendamento
+                </h3>
+                <p className="mt-1 text-sm text-amber-900">
+                  Confira todas as informações abaixo antes de cadastrar o candidato.
+                </p>
+              </div>
+            </div>
+
+            <div className="max-h-[65vh] space-y-5 overflow-y-auto p-5 text-sm leading-6 text-gray-700">
+              <p>
+                Antes de realizar o agendamento, é obrigatório consultar o CPF do candidato no site{' '}
+                <a
+                  href="https://aulapraticasc.icecards.com.br/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
+                >
+                  aulapraticasc.icecards.com.br
+                </a>{' '}
+                e verificar a(s) placa(s) do(s) veículo(s) no DetranNet.
+              </p>
+
+              <div>
+                <p className="mb-2 font-bold text-gray-900">
+                  Confirme se todos os requisitos abaixo estão atendidos:
+                </p>
+                <ul className="space-y-2 pl-1">
+                  {[
+                    'Processo aberto;',
+                    'Etapa de Prova Prática;',
+                    'Taxa Exame de Direção Veicular devidamente paga;',
+                    'Sem vinculação com CFC;',
+                    'Curso Prático lançado no sistema;',
+                    'Checklist preenchido;',
+                    'Instrutor cadastrado;',
+                    'Veículos sem débitos ou multas vencidas.',
+                  ].map((requirement) => (
+                    <li key={requirement} className="flex items-start gap-2">
+                      <Check className="mt-1 h-4 w-4 shrink-0 text-green-700" aria-hidden="true" />
+                      <span>{requirement}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="rounded-lg border border-red-200 bg-red-50 p-3 font-bold text-red-800">
+                IMPORTANTE: se o carro ou a motocicleta apresentar qualquer irregularidade, não efetue o agendamento.
+              </p>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 border-t bg-gray-50 p-4 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setIsCnhSchedulingWarningOpen(false)}
+                className="rounded-md border border-gray-300 bg-white px-4 py-2.5 font-semibold text-gray-700 transition-colors hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCnhSchedulingWarningOpen(false);
+                  openCreateModal();
+                }}
+                className="rounded-md bg-blue-700 px-4 py-2.5 font-semibold text-white transition-colors hover:bg-blue-800"
+              >
+                Continuar para cadastro
               </button>
             </div>
           </div>
