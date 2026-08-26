@@ -44,7 +44,11 @@ const formatDateDisplay = (dateString: string | null | undefined) => {
   if (!dateString) return '-';
   const cleanDate = dateString.split('T')[0];
   const parts = cleanDate.split('-');
-  return parts.length !== 3 ? cleanDate : `${parts[2]}/${parts[1]}`;
+  if (parts.length !== 3) return cleanDate;
+  const date = new Date(`${cleanDate}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return cleanDate;
+  const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(date);
+  return `${parts[2]}/${parts[1]} (${weekday})`;
 };
 
 const maskCpf = (cpf: string) => {
