@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
-const formatDateDisplay = (dateString: string | null | undefined) => {
+const getDateDisplayParts = (dateString: string | null | undefined) => {
   if (!dateString) return '-';
   const cleanDate = dateString.split('T')[0];
   const parts = cleanDate.split('-');
@@ -48,7 +48,24 @@ const formatDateDisplay = (dateString: string | null | undefined) => {
   const date = new Date(`${cleanDate}T12:00:00`);
   if (Number.isNaN(date.getTime())) return cleanDate;
   const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(date);
-  return `${parts[2]}/${parts[1]} (${weekday})`;
+  return { date: `${parts[2]}/${parts[1]}`, weekday };
+};
+
+const formatDateDisplay = (dateString: string | null | undefined) => {
+  const parts = getDateDisplayParts(dateString);
+  if (typeof parts === 'string') return parts;
+  return `${parts.date} (${parts.weekday})`;
+};
+
+const DateDisplay: React.FC<{ dateString: string | null | undefined }> = ({ dateString }) => {
+  const parts = getDateDisplayParts(dateString);
+  if (typeof parts === 'string') return <>{parts}</>;
+  return (
+    <>
+      {parts.date}{' '}
+      <span className="text-sm font-normal text-gray-500">({parts.weekday})</span>
+    </>
+  );
 };
 
 const maskCpf = (cpf: string) => {
@@ -1185,7 +1202,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 mb-1">
                         {s.code && <span className="text-gray-500 mr-2 text-lg font-mono">#{s.code}</span>}
-                        {formatDateDisplay(s.date)}
+                        <DateDisplay dateString={s.date} />
                     </h3>
                     {(() => {
                       if (!s.locationId) return null;
@@ -1300,7 +1317,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         <div className="flex items-center gap-3 mb-2">
                             <h2 className="text-2xl font-bold text-gray-900">
                                 {selectedSchedule.code && <span className="text-gray-500 mr-2 font-mono">#{selectedSchedule.code}</span>}
-                                {formatDateDisplay(selectedSchedule.date)}
+                                <DateDisplay dateString={selectedSchedule.date} />
                             </h2>
                             <StatusBadge status={selectedSchedule.status} />
                         </div>
