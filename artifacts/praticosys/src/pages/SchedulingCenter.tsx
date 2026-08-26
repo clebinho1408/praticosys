@@ -63,7 +63,7 @@ const DateDisplay: React.FC<{ dateString: string | null | undefined }> = ({ date
   return (
     <>
       {parts.date}{' '}
-      <span className="text-sm font-normal text-gray-500">({parts.weekday})</span>
+      <span className="text-sm font-bold text-gray-500">({parts.weekday})</span>
     </>
   );
 };
