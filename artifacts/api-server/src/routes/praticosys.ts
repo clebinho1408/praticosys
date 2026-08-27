@@ -586,7 +586,7 @@ const ALLOWED_REQ_FIELDS = [
 
 /** Campos removidos de cada tabela de módulo — não podem ser gravados nelas */
 const MODULE_DROPPED_FIELDS: Record<string, string[]> = {
-  CNH_BRASIL: ['disabilityType', 'specialNeeds', 'semDuploComando', 'categoryQuantities'],
+  CNH_BRASIL: ['disabilityType', 'specialNeeds', 'categoryQuantities'],
   CFC:        ['disabilityType', 'specialNeeds'],
   PCD:        ['semDuploComando', 'categoryQuantities'],
 };

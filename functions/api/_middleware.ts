@@ -1,5 +1,5 @@
 // functions/api/_middleware.ts — valida sessão e injeta userId/role em context.data
-import { getDb, error, ensurePortugueseSchema } from '../_db.js';
+import { getDb, error, ensureCnhBrasilSdcStorage, ensurePortugueseSchema } from '../_db.js';
 import { sql } from 'drizzle-orm';
 
 const PUBLIC_PATHS = [
@@ -31,6 +31,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
     const db = getDb(env as any);
     // Garante schema em português (roda a migração de renomeação na 1ª requisição)
     await ensurePortugueseSchema(db);
+    // SDC é um dado do exame de categoria B também no módulo CNH do Brasil.
+    await ensureCnhBrasilSdcStorage(db);
     // Garante que sessoes existe antes de consultar (idempotente)
     await db.execute(sql`CREATE TABLE IF NOT EXISTS sessoes (id text PRIMARY KEY, usuario_id text NOT NULL, expira_em timestamp NOT NULL, criado_em timestamp DEFAULT now())`).catch(() => {});
     const rows = await db.execute(sql`

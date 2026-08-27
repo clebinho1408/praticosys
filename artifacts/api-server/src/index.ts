@@ -396,6 +396,7 @@ async function runMigrations() {
     await db.execute(sql`CREATE TABLE IF NOT EXISTS solicitacoes_cnhbrasil (LIKE solicitacoes INCLUDING ALL)`);
     await db.execute(sql`CREATE TABLE IF NOT EXISTS solicitacoes_cfc (LIKE solicitacoes INCLUDING ALL)`);
     await db.execute(sql`CREATE TABLE IF NOT EXISTS solicitacoes_pcd (LIKE solicitacoes INCLUDING ALL)`);
+    await db.execute(sql`ALTER TABLE solicitacoes_cnhbrasil ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`);
     await db.execute(sql`CREATE TABLE IF NOT EXISTS vagas_cfc (LIKE vagas_banca INCLUDING ALL)`);
     await db.execute(sql`CREATE TABLE IF NOT EXISTS vagas_pcd (LIKE vagas_banca INCLUDING ALL)`);
     await db.execute(sql`ALTER TABLE resultados_banca ADD COLUMN IF NOT EXISTS modulo text`);
@@ -419,7 +420,6 @@ async function runMigrations() {
     // ─── Remover colunas desnecessárias por módulo (idempotente) ──────────────
     await db.execute(sql`ALTER TABLE solicitacoes_cnhbrasil DROP COLUMN IF EXISTS tipo_deficiencia`);
     await db.execute(sql`ALTER TABLE solicitacoes_cnhbrasil DROP COLUMN IF EXISTS necessidades_especiais`);
-    await db.execute(sql`ALTER TABLE solicitacoes_cnhbrasil DROP COLUMN IF EXISTS sem_duplo_comando`);
     await db.execute(sql`ALTER TABLE solicitacoes_cnhbrasil DROP COLUMN IF EXISTS quantidades_categoria`);
     await db.execute(sql`ALTER TABLE solicitacoes_cfc DROP COLUMN IF EXISTS tipo_deficiencia`);
     await db.execute(sql`ALTER TABLE solicitacoes_cfc DROP COLUMN IF EXISTS necessidades_especiais`);

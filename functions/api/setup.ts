@@ -133,6 +133,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`CREATE TABLE IF NOT EXISTS solicitacoes_cnhbrasil (LIKE solicitacoes INCLUDING ALL)`,
       sql`CREATE TABLE IF NOT EXISTS solicitacoes_cfc (LIKE solicitacoes INCLUDING ALL)`,
       sql`CREATE TABLE IF NOT EXISTS solicitacoes_pcd (LIKE solicitacoes INCLUDING ALL)`,
+      sql`ALTER TABLE solicitacoes_cnhbrasil ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`,
       sql`CREATE TABLE IF NOT EXISTS vagas_cfc (LIKE vagas_banca INCLUDING ALL)`,
       sql`CREATE TABLE IF NOT EXISTS vagas_pcd (LIKE vagas_banca INCLUDING ALL)`,
     ];
@@ -158,7 +159,6 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
     const dropColumns = [
       sql`ALTER TABLE solicitacoes_cnhbrasil DROP COLUMN IF EXISTS tipo_deficiencia`,
       sql`ALTER TABLE solicitacoes_cnhbrasil DROP COLUMN IF EXISTS necessidades_especiais`,
-      sql`ALTER TABLE solicitacoes_cnhbrasil DROP COLUMN IF EXISTS sem_duplo_comando`,
       sql`ALTER TABLE solicitacoes_cnhbrasil DROP COLUMN IF EXISTS quantidades_categoria`,
       sql`ALTER TABLE solicitacoes_cfc DROP COLUMN IF EXISTS tipo_deficiencia`,
       sql`ALTER TABLE solicitacoes_cfc DROP COLUMN IF EXISTS necessidades_especiais`,

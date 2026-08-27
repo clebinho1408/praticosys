@@ -12,6 +12,7 @@ import * as schema from '../db/schema.js';
 import { PT_SCHEMA_DO_BLOCK, PT_SCHEMA_VERIFY_SQL, PT_SCHEMA_MARKER_SQL } from './_migration-sql.mjs';
 
 let _schemaMigrated = false;
+let _cnhBrasilSdcStorageReady = false;
 
 async function verifyPtSchema(db: any): Promise<boolean> {
   try {
@@ -42,6 +43,19 @@ export async function ensurePortugueseSchema(db: any): Promise<void> {
     try { await db.execute(sql.raw(PT_SCHEMA_MARKER_SQL)); } catch {}
     _schemaMigrated = true;
   }
+}
+
+/**
+ * Garante o armazenamento do SDC no módulo CNH do Brasil após a separação
+ * das tabelas por módulo. É executado uma vez por instância do Worker.
+ */
+export async function ensureCnhBrasilSdcStorage(db: any): Promise<void> {
+  if (_cnhBrasilSdcStorageReady) return;
+  await db.execute(sql`
+    ALTER TABLE solicitacoes_cnhbrasil
+    ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false
+  `);
+  _cnhBrasilSdcStorageReady = true;
 }
 
 export function getDb(env: Record<string, string>) {
