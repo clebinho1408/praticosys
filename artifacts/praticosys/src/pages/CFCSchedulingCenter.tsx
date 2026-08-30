@@ -328,7 +328,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         api.getSchoolsAsync(),
         api.getExaminersAsync(),
         api.getSettings(),
-        fetch('/api/blocked-dates').then(res => res.ok ? res.json() : []),
+        api.getBlockedDates(),
         api.getBancaResults()
       ]);
 

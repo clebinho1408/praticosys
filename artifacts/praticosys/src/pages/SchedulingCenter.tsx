@@ -297,7 +297,7 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
         api.getExaminersAsync(), 
         api.getSettings(), 
         api.getRequests(),
-        fetch('/api/blocked-dates').then(res => res.ok ? res.json() : []),
+        api.getBlockedDates(),
         api.getExamLocations().catch(() => [] as ExamLocation[]),
         api.getCities().catch(() => [] as City[]),
       ]);
