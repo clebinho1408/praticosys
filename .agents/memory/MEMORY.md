@@ -1,3 +1,3 @@
-- [Cloudflare Pages setup](cloudflare-deploy.md) — dual-mode backend: Express in dev (Replit), Pages Functions in prod; DATABASE_URL must point to Neon in production.
+- [Cloudflare Pages setup](cloudflare-deploy.md) — Express local prioriza DATA_BASE_NEON para compartilhar dados com Cloudflare; Pages Functions usam DATABASE_URL.
 - [Neon schema migration](neon-schema-migration.md) — migrações em UM bloco DO $$ (não N execuções HTTP); todo rename guardado por EXCEPTION; marcador só após verificar colunas.
 - [Cloudflare Pages 2FA errors](cloudflare-two-factor-errors.md) — nunca use 502 para falha tratada do Resend; Cloudflare troca JSON por página HTML genérica.
