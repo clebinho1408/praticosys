@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Calendar as CalendarIcon, X } from 'lucide-react';
 import { BlockedDate, SystemSettings } from '../types';
-import { isDateBlocked } from '../lib/dateBlocking';
+import { isDateBlocked, isDateInPast } from '../lib/dateBlocking';
 
 interface DatePickerProps {
   value: string;
@@ -29,6 +29,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const selectedDate = value ? parseISO(value) : undefined;
 
   const disabledDays: Matcher[] = [
+    (date: Date) => isDateInPast(format(date, 'yyyy-MM-dd')),
     (date: Date) => {
       if (!settings) return false;
       const dateStr = format(date, 'yyyy-MM-dd');
@@ -49,7 +50,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   const handleSelect = (date: Date | undefined) => {
     if (date) {
-      onChange(format(date, 'yyyy-MM-dd'));
+      const dateStr = format(date, 'yyyy-MM-dd');
+      if (isDateInPast(dateStr)) return;
+      onChange(dateStr);
       setIsOpen(false);
     }
   };

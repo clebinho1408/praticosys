@@ -5,6 +5,7 @@ import { SystemSettings, City, ExamLocation, Examiner, BlockedDate, UserRole, Us
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert, Edit2, ScrollText, RefreshCw } from 'lucide-react';
 import { AlertModal, ConfirmModal } from '../components/CustomModals';
 import DatePicker from '../components/DatePicker';
+import { isDateInPast } from '../lib/dateBlocking';
 
 type TabType = 'GENERAL' | 'CNH_BRASIL' | 'PROVA_PRATICA_CFC' | 'BACKUPS' | 'RISK_AREA';
 
@@ -263,6 +264,10 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
 
   const handleAddBlockedDate = async () => {
     if (!newBlockedDate.date || !newBlockedDate.description) return;
+    if (isDateInPast(newBlockedDate.date)) {
+      alert('Não é permitido cadastrar um bloqueio em uma data passada.');
+      return;
+    }
     try {
       await api.createBlockedDate(newBlockedDate);
       setNewBlockedDate({ date: '', description: '' });

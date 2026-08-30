@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
 import { ExamRequest, ExamSchedule, ExamLocation, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate, RequestSource, City } from '../types';
-import { isDateBlocked } from '../lib/dateBlocking';
+import { isDateBlocked, isDateInPast } from '../lib/dateBlocking';
 import { 
   Calendar, 
   Clock, 
@@ -892,6 +892,13 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     // Validação de campos obrigatórios
     if (!scheduleForm.date) {
         setErrorMessage("O campo Data da Prova é obrigatório.");
+        setErrorField('scheduleDate');
+        setIsErrorModalOpen(true);
+        return;
+    }
+
+    if (isDateInPast(scheduleForm.date)) {
+        setErrorMessage("Não é permitido agendar uma banca em uma data passada.");
         setErrorField('scheduleDate');
         setIsErrorModalOpen(true);
         return;
