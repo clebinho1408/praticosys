@@ -31,7 +31,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const disabledDays: Matcher[] = [
     (date: Date) => isDateInPast(format(date, 'yyyy-MM-dd')),
     (date: Date) => {
-      if (!settings) return false;
       const dateStr = format(date, 'yyyy-MM-dd');
       const check = isDateBlocked(dateStr, blockedDates, settings);
       return check.blocked;

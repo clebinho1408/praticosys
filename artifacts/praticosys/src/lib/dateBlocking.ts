@@ -13,18 +13,21 @@ export function isDateInPast(dateStr: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(cleanDate) && cleanDate < getTodayDateString();
 }
 
-export function isDateBlocked(dateStr: string, blockedDates: BlockedDate[], settings: SystemSettings): { blocked: boolean; reason?: string } {
-  if (!dateStr) return { blocked: false };
+export function isDateBlocked(dateStr: string, blockedDates: BlockedDate[], settings?: SystemSettings | null): { blocked: boolean; reason?: string } {
+  const cleanDate = dateStr?.split('T')[0] ?? '';
+  if (!cleanDate) return { blocked: false };
 
-  if (settings.blockWeekends) {
-    const d = new Date(dateStr + 'T00:00:00');
+  if (settings?.blockWeekends) {
+    const d = new Date(cleanDate + 'T00:00:00');
     const day = d.getDay();
     if (day === 0 || day === 6) {
       return { blocked: true, reason: 'Finais de semana estão bloqueados.' };
     }
   }
 
-  const block = blockedDates.find(b => b.date === dateStr);
+  // Datas cadastradas manualmente devem ser reconhecidas mesmo enquanto
+  // as configurações gerais ainda não foram carregadas.
+  const block = blockedDates.find(b => b.date?.split('T')[0] === cleanDate);
   if (block) {
     return { blocked: true, reason: block.description };
   }
