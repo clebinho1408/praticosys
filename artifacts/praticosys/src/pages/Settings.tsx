@@ -174,11 +174,8 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
 
   const loadBlockedDates = async () => {
     try {
-      const response = await fetch('/api/blocked-dates');
-      if (response.ok) {
-        const data = await response.json();
-        setBlockedDates(data);
-      }
+      const data = await api.getBlockedDates();
+      setBlockedDates(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error loading blocked dates:", error);
     }
@@ -267,36 +264,27 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const handleAddBlockedDate = async () => {
     if (!newBlockedDate.date || !newBlockedDate.description) return;
     try {
-      const response = await fetch('/api/blocked-dates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBlockedDate)
-      });
-      if (response.ok) {
-        setNewBlockedDate({ date: '', description: '' });
-        loadBlockedDates();
-        setSuccessMsg('Data bloqueada com sucesso!');
-        setTimeout(() => setSuccessMsg(''), 3000);
-      } else {
-        const err = await response.json();
-        alert(err.error || 'Erro ao bloquear data');
-      }
+      await api.createBlockedDate(newBlockedDate);
+      setNewBlockedDate({ date: '', description: '' });
+      await loadBlockedDates();
+      setSuccessMsg('Data bloqueada com sucesso!');
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (error) {
-      console.error(error);
+      console.error("Error blocking date:", error);
+      alert(error instanceof Error ? error.message : 'Erro ao bloquear data');
     }
   };
 
   const handleDeleteBlockedDate = async (id: string) => {
     if (!confirm('Deseja remover este bloqueio?')) return;
     try {
-      const response = await fetch(`/api/blocked-dates?id=${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        loadBlockedDates();
-        setSuccessMsg('Bloqueio removido!');
-        setTimeout(() => setSuccessMsg(''), 3000);
-      }
+      await api.deleteBlockedDate(id);
+      await loadBlockedDates();
+      setSuccessMsg('Bloqueio removido!');
+      setTimeout(() => setSuccessMsg(''), 3000);
     } catch (error) {
-      console.error(error);
+      console.error("Error removing blocked date:", error);
+      alert(error instanceof Error ? error.message : 'Erro ao remover bloqueio');
     }
   };
 
@@ -321,24 +309,50 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
       return day !== 0 && day !== 6; // Not Sunday (0) or Saturday (6)
     });
 
+    const existingDates = new Set(blockedDates.map(blockedDate => blockedDate.date));
+    const holidaysToCreate = weekdayHolidays.filter(holiday => !existingDates.has(holiday.date));
+
+    if (holidaysToCreate.length === 0) {
+      setAlertConfig({
+        isOpen: true,
+        title: 'Feriados já cadastrados',
+        message: `Os feriados de ${year} em dias de semana já estão cadastrados.`,
+        type: 'info'
+      });
+      return;
+    }
+
     setSaving(true);
     try {
-      for (const h of weekdayHolidays) {
-        await fetch('/api/blocked-dates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...h, isHoliday: true })
-        });
+      const failedDates: string[] = [];
+      for (const holiday of holidaysToCreate) {
+        try {
+          await api.createBlockedDate({ ...holiday, isHoliday: true });
+        } catch (error) {
+          console.error(`Error adding holiday ${holiday.date}:`, error);
+          failedDates.push(holiday.description);
+        }
       }
-      loadBlockedDates();
+      await loadBlockedDates();
+
+      if (failedDates.length > 0) {
+        throw new Error(`Não foi possível cadastrar: ${failedDates.join(', ')}.`);
+      }
+
       setAlertConfig({
         isOpen: true,
         title: 'Sucesso',
-        message: 'Feriados nacionais em dias de semana foram adicionados.',
+        message: `${holidaysToCreate.length} feriado(s) nacional(is) em dias de semana foram adicionados.`,
         type: 'success'
       });
     } catch (error) {
       console.error(error);
+      setAlertConfig({
+        isOpen: true,
+        title: 'Cadastro incompleto',
+        message: error instanceof Error ? error.message : 'Não foi possível cadastrar todos os feriados.',
+        type: 'error'
+      });
     } finally {
       setSaving(false);
     }
@@ -721,9 +735,10 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                         <button 
                                             type="button"
                                             onClick={handleAutoPopulateHolidays}
+                                             disabled={saving}
                                             className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-md border border-blue-200 hover:bg-blue-100 font-bold flex items-center gap-2"
                                         >
-                                            <Plus className="h-3 w-3" /> Pré-cadastrar Feriados (Dias de Semana)
+                                             <Plus className="h-3 w-3" /> {saving ? 'Cadastrando...' : 'Pré-cadastrar Feriados (Dias de Semana)'}
                                         </button>
                                     )}
                                 </div>
