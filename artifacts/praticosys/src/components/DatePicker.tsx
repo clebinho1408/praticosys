@@ -28,14 +28,12 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   const selectedDate = value ? parseISO(value) : undefined;
 
-  const disabledDays: Matcher[] = [
-    (date: Date) => isDateInPast(format(date, 'yyyy-MM-dd')),
-    (date: Date) => {
-      const dateStr = format(date, 'yyyy-MM-dd');
-      const check = isDateBlocked(dateStr, blockedDates, settings);
-      return check.blocked;
-    }
-  ];
+  const isDateUnavailable = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return isDateInPast(dateStr) || isDateBlocked(dateStr, blockedDates, settings).blocked;
+  };
+
+  const disabledDays: Matcher = isDateUnavailable;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,7 +48,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const handleSelect = (date: Date | undefined) => {
     if (date) {
       const dateStr = format(date, 'yyyy-MM-dd');
-      if (isDateInPast(dateStr)) return;
+      if (isDateUnavailable(date)) return;
       onChange(dateStr);
       setIsOpen(false);
     }
