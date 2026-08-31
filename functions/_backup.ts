@@ -1,5 +1,6 @@
 // functions/_backup.ts — geração de snapshot de backup (Cloudflare Pages Functions)
 import { sql } from 'drizzle-orm';
+export { normalizeBackupPayload, restoreBackup } from './_backup-restore.js';
 
 // Tabelas de dados incluídas no backup (sessões, OTPs e logs de auditoria ficam fora)
 const BACKUP_TABLES = [

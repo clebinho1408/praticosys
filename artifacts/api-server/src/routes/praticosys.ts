@@ -12,6 +12,11 @@ import crypto from "crypto";
 import { createHash } from "crypto";
 import type { Response } from "express";
 import { ReplitConnectors } from "@replit/connectors-sdk";
+// The Pages Functions and Express server intentionally share this compatibility
+// layer. It lives outside this package so the production bundle uses the same
+// mapping as the development server.
+// @ts-ignore TypeScript rootDir is narrower than the esbuild bundle boundary.
+import { restoreBackup } from "../../../../functions/_backup-restore.js";
 
 function hashCode(code: string): string {
   return createHash('sha256').update(code).digest('hex');
@@ -294,6 +299,18 @@ router.get("/backups", async (req, res) => {
 router.post("/backups", async (req, res) => {
   if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
+    const { payload, backupId } = req.body ?? {};
+    if (payload !== undefined || backupId) {
+      let restorePayload = payload;
+      if (backupId) {
+        const stored = await db.execute(sql`SELECT dados AS payload FROM backups WHERE id = ${backupId} LIMIT 1`);
+        const storedRows = (stored as any).rows ?? stored;
+        if (!storedRows || storedRows.length === 0) return res.status(404).json({ error: "Backup não encontrado" });
+        restorePayload = storedRows[0].payload;
+      }
+      const result = await restoreBackup(db, restorePayload);
+      return res.json({ success: true, ...result });
+    }
     const result = await createBackupSnapshot("manual");
     return res.json({ success: true, ...result });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }

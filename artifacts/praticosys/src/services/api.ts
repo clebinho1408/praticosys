@@ -162,6 +162,14 @@ export const api = {
   getBackups: () => request<any[]>('/backups'),
   getBackupPayload: (id: string) => request<any>(`/backups?id=${id}`),
   createBackup: () => request<any>('/backups', { method: 'POST' }),
+  restoreBackup: (payload: unknown) => request<any>('/backups', {
+    method: 'POST',
+    body: JSON.stringify({ payload }),
+  }),
+  restoreStoredBackup: (backupId: string) => request<any>('/backups', {
+    method: 'POST',
+    body: JSON.stringify({ backupId }),
+  }),
 
   // --- CNH BRASIL LOGS ---
   getCnhLogs: (limit = 300) => request<any[]>(`/cnh-logs?limit=${limit}`),

@@ -53,6 +53,8 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [backupsLoading, setBackupsLoading] = useState(false);
   const [creatingBackup, setCreatingBackup] = useState(false);
   const [downloadingBackupId, setDownloadingBackupId] = useState<string | null>(null);
+  const [restoringBackup, setRestoringBackup] = useState(false);
+  const restoreFileInputRef = useRef<HTMLInputElement>(null);
 
   const loadBackups = async () => {
     setBackupsLoading(true);
@@ -98,6 +100,47 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
       setAlertConfig({ isOpen: true, title: 'Erro', message: 'Não foi possível baixar o backup.', type: 'error' });
     } finally {
       setDownloadingBackupId(null);
+    }
+  };
+
+  const handleRestoreBackupFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setRestoringBackup(true);
+    try {
+      const payload = JSON.parse(await file.text());
+      const result = await api.restoreBackup(payload);
+      const total = Object.values(result?.restored ?? {}).reduce((sum: number, count: any) => sum + Number(count || 0), 0);
+      setAlertConfig({
+        isOpen: true,
+        title: 'Backup restaurado',
+        message: `${total} registro(s) foram inseridos ou atualizados. Formato detectado: ${result?.format === 'english' ? 'antigo (inglês)' : result?.format === 'portuguese' ? 'atual (português)' : 'misto'}.`,
+        type: 'success',
+      });
+    } catch (err: any) {
+      setAlertConfig({ isOpen: true, title: 'Erro ao restaurar', message: err.message || 'Arquivo de backup inválido.', type: 'error' });
+    } finally {
+      setRestoringBackup(false);
+    }
+  };
+
+  const handleRestoreStoredBackup = async (backup: any) => {
+    if (!window.confirm('Restaurar este backup irá inserir ou atualizar os registros correspondentes. Deseja continuar?')) return;
+    setRestoringBackup(true);
+    try {
+      const result = await api.restoreStoredBackup(backup.id);
+      const total = Object.values(result?.restored ?? {}).reduce((sum: number, count: any) => sum + Number(count || 0), 0);
+      setAlertConfig({
+        isOpen: true,
+        title: 'Backup restaurado',
+        message: `${total} registro(s) foram inseridos ou atualizados. Formato detectado: ${result?.format === 'english' ? 'antigo (inglês)' : result?.format === 'portuguese' ? 'atual (português)' : 'misto'}.`,
+        type: 'success',
+      });
+    } catch (err: any) {
+      setAlertConfig({ isOpen: true, title: 'Erro ao restaurar', message: err.message || 'Não foi possível restaurar o backup.', type: 'error' });
+    } finally {
+      setRestoringBackup(false);
     }
   };
 
@@ -1502,6 +1545,15 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                             >
                                 <Plus className="h-4 w-4" /> {creatingBackup ? 'Criando...' : 'Criar backup agora'}
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => restoreFileInputRef.current?.click()}
+                                disabled={restoringBackup}
+                                className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                            >
+                                <Upload className="h-4 w-4" /> {restoringBackup ? 'Restaurando...' : 'Restaurar arquivo'}
+                            </button>
+                            <input ref={restoreFileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleRestoreBackupFile} />
                         </div>
 
                         {backupsLoading ? (
@@ -1535,10 +1587,18 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDownloadBackup(b)}
-                                                        disabled={downloadingBackupId === b.id}
+                                                        disabled={downloadingBackupId === b.id || restoringBackup}
                                                         className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 disabled:opacity-50 font-semibold"
                                                     >
                                                         <Upload className="h-4 w-4 rotate-180" /> {downloadingBackupId === b.id ? 'Baixando...' : 'Baixar'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRestoreStoredBackup(b)}
+                                                        disabled={restoringBackup}
+                                                        className="inline-flex items-center gap-1 ml-4 text-amber-700 hover:text-amber-900 disabled:opacity-50 font-semibold"
+                                                    >
+                                                        <RefreshCw className="h-4 w-4" /> Restaurar
                                                     </button>
                                                 </td>
                                             </tr>
