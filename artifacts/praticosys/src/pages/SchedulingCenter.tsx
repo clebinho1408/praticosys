@@ -673,11 +673,12 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
   const handleCopyComprovante = async (req: ExamRequest) => {
     const text = buildComprovanteBody(req);
+    const copyText = type === ExamType.COMMON ? text.replace(/[>*_]/g, '') : text;
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(copyText);
     } catch {
       const ta = document.createElement('textarea');
-      ta.value = text;
+      ta.value = copyText;
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
       document.body.appendChild(ta);
