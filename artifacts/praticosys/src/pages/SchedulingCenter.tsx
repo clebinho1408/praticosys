@@ -750,25 +750,25 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       const hasB = (filter === 'B' || filter === 'AB') && locB.length > 0;
       if (!hasA && !hasB) return [];
 
-      blockLines.push(`_Datas e Horários disponíveis para o Exame Prático${cityLabel}:_`);
+      blockLines.push(`Datas e Horários disponíveis para o Exame Prático${cityLabel}:`);
 
       if (hasA) {
         blockLines.push('');
-        blockLines.push('*🏍️ Categoria A:*');
+        blockLines.push('🏍️ Categoria A:');
         blockLines.push('');
         for (const s of locA) {
-          const aviso = s.isTomorrow ? ` _(Confirmar hoje até às 17:30)_` : '';
-          blockLines.push(`> 📆 Data: *${s.date}* ⏰ Hora: *${s.time}*${aviso}`);
+          const aviso = s.isTomorrow ? ` (Confirmar hoje até às 17:30)` : '';
+          blockLines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
         }
       }
 
       if (hasB) {
         blockLines.push('');
-        blockLines.push('*🚗 Categoria B:*');
+        blockLines.push('🚗 Categoria B:');
         blockLines.push('');
         for (const s of locB) {
-          const aviso = s.isTomorrow ? ` _(Confirmar hoje até às 17:30)_` : '';
-          blockLines.push(`> 📆 Data: *${s.date}* ⏰ Hora: *${s.time}*${aviso}`);
+          const aviso = s.isTomorrow ? ` (Confirmar hoje até às 17:30)` : '';
+          blockLines.push(`📆 Data: ${s.date} ⏰ Hora: ${s.time}${aviso}`);
         }
       }
 
@@ -777,7 +777,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
     // Só aplica formatação WhatsApp no módulo CNH do Brasil
     if (type === ExamType.COMMON) {
-      lines.push('> _*Atenção: Essa mensagem ainda não é a confirmação do seu agendamento.*_');
+      lines.push('Atenção: Essa mensagem ainda não é a confirmação do seu agendamento.');
       lines.push('');
 
       if (!locationId) {
@@ -823,9 +823,9 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       }
 
       lines.push('');
-      lines.push('👉 _Escolha uma data para sua categoria._');
+      lines.push('👉 Escolha uma data para sua categoria.');
       lines.push('');
-      lines.push('_*⚠️ ATENÇÃO: É OBRIGATÓRIA a presença do instrutor no dia da prova.*_');
+      lines.push('📌 Obs.: Caso queira agendar as duas categorias, A e B, poderá realizar o agendamento para a mesma data. 📅');
     } else {
       // PCD / padrão — sem formatação WhatsApp
       const pcdA: { date: string; time: string; isTomorrow: boolean }[] = [];
