@@ -10,7 +10,9 @@ type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
 import { FIPE_CAR_BRANDS, FIPE_MOTO_BRANDS, FIPE_CAR_MODELS, FIPE_MOTO_MODELS } from '../data/fipeData';
 
 const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('USERS');
+  const isSupervisor = user.role === UserRole.SUPERVISOR;
+  const [activeTab, setActiveTab] = useState<Tab>(() => isSupervisor ? 'INSTRUCTORS' : 'USERS');
+  const visibleTab: Tab = isSupervisor ? 'INSTRUCTORS' : activeTab;
 
   return (
     <div className="space-y-6">
@@ -21,34 +23,34 @@ const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Tabs Header */}
         <div className="flex border-b border-gray-100 flex-wrap">
-          <button
+          {!isSupervisor && <button
             onClick={() => setActiveTab('USERS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
-              activeTab === 'USERS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              visibleTab === 'USERS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
             <Users className="h-4 w-4" /> Usuários
-          </button>
-          <button
+          </button>}
+          {!isSupervisor && <button
             onClick={() => setActiveTab('SCHOOLS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
-              activeTab === 'SCHOOLS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              visibleTab === 'SCHOOLS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
             <Building2 className="h-4 w-4" /> Autoescolas
-          </button>
-          <button
+          </button>}
+          {!isSupervisor && <button
             onClick={() => setActiveTab('EXAMINERS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
-              activeTab === 'EXAMINERS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              visibleTab === 'EXAMINERS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
             <GraduationCap className="h-4 w-4" /> Examinadores
-          </button>
+          </button>}
           <button
             onClick={() => setActiveTab('INSTRUCTORS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
-              activeTab === 'INSTRUCTORS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              visibleTab === 'INSTRUCTORS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
             <Car className="h-4 w-4" /> Instrutores
@@ -57,10 +59,10 @@ const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
 
         {/* Content */}
         <div className="p-6">
-          {activeTab === 'USERS' && <UsersManager user={user} />}
-          {activeTab === 'SCHOOLS' && <SchoolsManager user={user} />}
-          {activeTab === 'EXAMINERS' && <ExaminersManager user={user} />}
-          {activeTab === 'INSTRUCTORS' && <InstructorsManager user={user} />}
+          {visibleTab === 'USERS' && <UsersManager user={user} />}
+          {visibleTab === 'SCHOOLS' && <SchoolsManager user={user} />}
+          {visibleTab === 'EXAMINERS' && <ExaminersManager user={user} />}
+          {visibleTab === 'INSTRUCTORS' && <InstructorsManager user={user} />}
         </div>
       </div>
     </div>

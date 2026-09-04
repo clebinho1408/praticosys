@@ -125,14 +125,15 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        });
     } else {
 
-       // For OPERATOR: determine which modules are allowed
+       // Operador e Supervisor respeitam a seleção de módulos permitidos
        const isOperator = user.role === UserRole.OPERATOR;
-       const allowed: OperatorModule[] = (isOperator && user.allowedModules && user.allowedModules.length > 0)
+       const hasModuleRestrictions = isOperator || user.role === UserRole.SUPERVISOR;
+       const allowed: OperatorModule[] = (hasModuleRestrictions && user.allowedModules && user.allowedModules.length > 0)
          ? user.allowedModules
          : ['cnh', 'cfc', 'pcd'];
 
        // --- PAINEL DE CONTROLE GERAL (only for non-operator or operators with all 3 modules) ---
-       if (!isOperator) {
+       if (!hasModuleRestrictions) {
          items.push({
            icon: LayoutDashboard,
            label: 'Painel de Controle',
@@ -141,7 +142,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        }
 
        // --- GRUPO: CNH DO BRASIL ---
-       if (!isOperator || allowed.includes('cnh')) {
+       if (!hasModuleRestrictions || allowed.includes('cnh')) {
          items.push({
            icon: Map,
            label: 'CNH do Brasil',
@@ -155,7 +156,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        }
 
        // --- GRUPO: PROVA PRÁTICA CFC ---
-       if (!isOperator || allowed.includes('cfc')) {
+       if (!hasModuleRestrictions || allowed.includes('cfc')) {
          items.push({
            icon: Car,
            label: 'Exame Prático CFC',
@@ -168,7 +169,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        }
 
        // --- GRUPO: PROVA PRÁTICA PCD ---
-       if (!isOperator || allowed.includes('pcd')) {
+       if (!hasModuleRestrictions || allowed.includes('pcd')) {
          items.push({
            icon: Accessibility,
            label: 'Exame Prático PCD',
@@ -182,8 +183,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
        }
     }
 
-    if (user.role === UserRole.ADMIN) {
+    if (user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR) {
       items.push({ icon: Users, label: 'Cadastros', path: '/admin/usuarios' });
+    }
+    if (user.role === UserRole.ADMIN) {
       items.push({ icon: Settings, label: 'Configurações', path: '/admin/configuracoes' });
     }
 

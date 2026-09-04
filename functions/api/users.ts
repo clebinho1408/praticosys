@@ -26,10 +26,10 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
     const method = request.method;
     const query = getQuery(request.url);
 
-    // Listar usuários: Admin e Supervisor podem ver
+    // Listar e gerenciar usuários: somente Admin
     if (method === 'GET') {
-      if (!['ADMIN', 'SUPERVISOR'].includes(sessionUserRole)) {
-        return error('Acesso negado', 403);
+      if (sessionUserRole !== 'ADMIN') {
+        return error('Acesso negado — apenas administradores', 403);
       }
       await ensureSchema(db);
       const userData = await db.select().from(users);

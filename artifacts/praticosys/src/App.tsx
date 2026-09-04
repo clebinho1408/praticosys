@@ -57,6 +57,24 @@ const App: React.FC = () => {
     localStorage.removeItem('praticosys_auth');
   };
 
+  const hasModuleRestrictions =
+    auth.user?.role === UserRole.OPERATOR || auth.user?.role === UserRole.SUPERVISOR;
+  const allowedModules: OperatorModule[] =
+    hasModuleRestrictions && auth.user?.allowedModules && auth.user.allowedModules.length > 0
+      ? auth.user.allowedModules
+      : ['cnh', 'cfc', 'pcd'];
+  const canAccessModule = (module: OperatorModule) =>
+    !hasModuleRestrictions || allowedModules.includes(module);
+  const restrictedUserHome = () => {
+    const first = allowedModules[0];
+    if (first === 'cnh') return '/admin/cnhdobrasil/candidatos';
+    if (first === 'cfc') return '/admin/cfc/agendamentos';
+    if (first === 'pcd') return '/admin/pcd/candidatos';
+    return '/admin/dashboard';
+  };
+  const protectModule = (module: OperatorModule, element: React.ReactElement) =>
+    canAccessModule(module) ? element : <Navigate to={restrictedUserHome()} replace />;
+
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
@@ -82,66 +100,64 @@ const App: React.FC = () => {
                         ? <Navigate to="/admin/cfc/agendamentos" replace /> 
                         : auth.user?.role === UserRole.INSTRUCTOR
                         ? <Navigate to="/admin/cnhdobrasil/candidatos" replace />
-                        : auth.user?.role === UserRole.OPERATOR
-                        ? (() => {
-                            const mods: OperatorModule[] = (auth.user?.allowedModules && auth.user.allowedModules.length > 0)
-                              ? auth.user.allowedModules
-                              : ['cnh', 'cfc', 'pcd'];
-                            const first = mods[0];
-                            if (first === 'cnh') return <Navigate to="/admin/cnhdobrasil/candidatos" replace />;
-                            if (first === 'cfc') return <Navigate to="/admin/cfc/agendamentos" replace />;
-                            if (first === 'pcd') return <Navigate to="/admin/pcd/candidatos" replace />;
-                            return <Navigate to="/admin/dashboard" replace />;
-                          })()
+                        : (auth.user?.role === UserRole.OPERATOR || auth.user?.role === UserRole.SUPERVISOR)
+                        ? <Navigate to={restrictedUserHome()} replace />
                         : <Navigate to="/admin/dashboard" replace />
                     } 
                   />
 
                   {/* Dashboard Geral */}
-                  <Route path="dashboard" element={<DashboardGeral user={auth.user!} />} />
+                  <Route
+                    path="dashboard"
+                    element={
+                      hasModuleRestrictions
+                        ? <Navigate to={restrictedUserHome()} replace />
+                        : <DashboardGeral user={auth.user!} />
+                    }
+                  />
                   
                   {/* ══════════════════════════════════════════════════════ */}
                   {/* CNH do Brasil — rotas em PT-BR                        */}
                   {/* ══════════════════════════════════════════════════════ */}
-                  <Route path="cnhdobrasil/dashboard"   element={<CnhDoBrasil user={auth.user} view="dashboard" />} />
-                  <Route path="cnhdobrasil/bancas"      element={<CnhDoBrasil user={auth.user} view="scheduling" />} />
-                  <Route path="cnhdobrasil/candidatos"  element={<CnhDoBrasil user={auth.user} view="requests" />} />
-                  <Route path="cnhdobrasil/relatorios"  element={<CnhDoBrasilReport user={auth.user} />} />
+                  <Route path="cnhdobrasil/dashboard"   element={protectModule('cnh', <CnhDoBrasil user={auth.user} view="dashboard" />)} />
+                  <Route path="cnhdobrasil/bancas"      element={protectModule('cnh', <CnhDoBrasil user={auth.user} view="scheduling" />)} />
+                  <Route path="cnhdobrasil/candidatos"  element={protectModule('cnh', <CnhDoBrasil user={auth.user} view="requests" />)} />
+                  <Route path="cnhdobrasil/relatorios"  element={protectModule('cnh', <CnhDoBrasilReport user={auth.user} />)} />
                   {/* Aliases legados — redirecionam para as novas rotas PT-BR */}
-                  <Route path="dashboard/cnh"      element={<Navigate to="/admin/cnhdobrasil/dashboard"  replace />} />
-                  <Route path="requests/common"    element={<Navigate to="/admin/cnhdobrasil/candidatos" replace />} />
-                  <Route path="scheduling/common"  element={<Navigate to="/admin/cnhdobrasil/bancas"     replace />} />
-                  <Route path="reports/cnh"        element={<Navigate to="/admin/cnhdobrasil/relatorios" replace />} />
+                  <Route path="dashboard/cnh"      element={protectModule('cnh', <Navigate to="/admin/cnhdobrasil/dashboard"  replace />)} />
+                  <Route path="requests/common"    element={protectModule('cnh', <Navigate to="/admin/cnhdobrasil/candidatos" replace />)} />
+                  <Route path="scheduling/common"  element={protectModule('cnh', <Navigate to="/admin/cnhdobrasil/bancas"     replace />)} />
+                  <Route path="reports/cnh"        element={protectModule('cnh', <Navigate to="/admin/cnhdobrasil/relatorios" replace />)} />
 
                   {/* ══════════════════════════════════════════════════════ */}
                   {/* Prova Prática CFC — rotas em PT-BR                    */}
                   {/* ══════════════════════════════════════════════════════ */}
-                  <Route path="cfc/dashboard"    element={<ProvaPraticaCFCDashboard user={auth.user} />} />
-                  <Route path="cfc/agendamentos" element={<ProvaPraticaCFC user={auth.user} />} />
-                  <Route path="cfc/relatorios"   element={<ProvaPraticaCFCReport user={auth.user} />} />
+                  <Route path="cfc/dashboard"    element={protectModule('cfc', <ProvaPraticaCFCDashboard user={auth.user} />)} />
+                  <Route path="cfc/agendamentos" element={protectModule('cfc', <ProvaPraticaCFC user={auth.user} />)} />
+                  <Route path="cfc/relatorios"   element={protectModule('cfc', <ProvaPraticaCFCReport user={auth.user} />)} />
                   {/* Aliases legados */}
-                  <Route path="dashboard/cfc"  element={<Navigate to="/admin/cfc/dashboard"    replace />} />
-                  <Route path="scheduling/cfc" element={<Navigate to="/admin/cfc/agendamentos" replace />} />
-                  <Route path="reports/cfc"    element={<Navigate to="/admin/cfc/relatorios"   replace />} />
+                  <Route path="dashboard/cfc"  element={protectModule('cfc', <Navigate to="/admin/cfc/dashboard"    replace />)} />
+                  <Route path="scheduling/cfc" element={protectModule('cfc', <Navigate to="/admin/cfc/agendamentos" replace />)} />
+                  <Route path="reports/cfc"    element={protectModule('cfc', <Navigate to="/admin/cfc/relatorios"   replace />)} />
 
                   {/* ══════════════════════════════════════════════════════ */}
                   {/* Prova Prática PCD — rotas em PT-BR                    */}
                   {/* ══════════════════════════════════════════════════════ */}
-                  <Route path="pcd/dashboard"    element={<ProvaPraticaPCD user={auth.user} view="dashboard" />} />
-                  <Route path="pcd/agendamentos" element={<ProvaPraticaPCD user={auth.user} view="scheduling" />} />
-                  <Route path="pcd/candidatos"   element={<ProvaPraticaPCD user={auth.user} view="requests" />} />
-                  <Route path="pcd/relatorios"   element={<ProvaPraticaPCDReport user={auth.user} />} />
+                  <Route path="pcd/dashboard"    element={protectModule('pcd', <ProvaPraticaPCD user={auth.user} view="dashboard" />)} />
+                  <Route path="pcd/agendamentos" element={protectModule('pcd', <ProvaPraticaPCD user={auth.user} view="scheduling" />)} />
+                  <Route path="pcd/candidatos"   element={protectModule('pcd', <ProvaPraticaPCD user={auth.user} view="requests" />)} />
+                  <Route path="pcd/relatorios"   element={protectModule('pcd', <ProvaPraticaPCDReport user={auth.user} />)} />
                   {/* Aliases legados */}
-                  <Route path="dashboard/pcd"  element={<Navigate to="/admin/pcd/dashboard"    replace />} />
-                  <Route path="requests/pcd"   element={<Navigate to="/admin/pcd/candidatos"   replace />} />
-                  <Route path="scheduling/pcd" element={<Navigate to="/admin/pcd/agendamentos" replace />} />
-                  <Route path="reports/pcd"    element={<Navigate to="/admin/pcd/relatorios"   replace />} />
+                  <Route path="dashboard/pcd"  element={protectModule('pcd', <Navigate to="/admin/pcd/dashboard"    replace />)} />
+                  <Route path="requests/pcd"   element={protectModule('pcd', <Navigate to="/admin/pcd/candidatos"   replace />)} />
+                  <Route path="scheduling/pcd" element={protectModule('pcd', <Navigate to="/admin/pcd/agendamentos" replace />)} />
+                  <Route path="reports/pcd"    element={protectModule('pcd', <Navigate to="/admin/pcd/relatorios"   replace />)} />
 
-                  {/* Cadastros - ADMIN only */}
+                  {/* Cadastros - ADMIN completo; SUPERVISOR somente Instrutores */}
                   <Route 
                     path="usuarios" 
                     element={
-                      auth.user?.role === UserRole.ADMIN
+                      auth.user?.role === UserRole.ADMIN || auth.user?.role === UserRole.SUPERVISOR
                         ? <Cadastros user={auth.user!} />
                         : <Navigate to="/admin/dashboard" replace />
                     } 
@@ -162,8 +178,22 @@ const App: React.FC = () => {
                   <Route path="settings" element={<Navigate to="/admin/configuracoes" replace />} />
                   
                   {/* Student Database */}
-                  <Route path="alunos"   element={<StudentDatabase />} />
-                  <Route path="students" element={<Navigate to="/admin/alunos" replace />} />
+                  <Route
+                    path="alunos"
+                    element={
+                      hasModuleRestrictions
+                        ? <Navigate to={restrictedUserHome()} replace />
+                        : <StudentDatabase />
+                    }
+                  />
+                  <Route
+                    path="students"
+                    element={
+                      hasModuleRestrictions
+                        ? <Navigate to={restrictedUserHome()} replace />
+                        : <Navigate to="/admin/alunos" replace />
+                    }
+                  />
                 </Routes>
               </Layout>
             ) : (

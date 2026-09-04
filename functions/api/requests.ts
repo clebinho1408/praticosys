@@ -62,7 +62,7 @@ async function findRequestById(db: any, id: string): Promise<{ row: any; modulo:
   return null;
 }
 
-export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
+export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
@@ -122,12 +122,30 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
       // Encontra registro atual (camelCase via ORM)
       const found = await findRequestById(db, id);
+      if (
+        (data as any)?.sessionUserRole === 'SUPERVISOR' &&
+        found?.row?.scheduleId &&
+        (
+          rawUpdates.scheduleId === null ||
+          (rawUpdates.scheduleId !== undefined && rawUpdates.scheduleId !== found.row.scheduleId) ||
+          (rawUpdates.status !== undefined && rawUpdates.status !== 'SCHEDULED')
+        )
+      ) {
+        return error('Supervisores não podem remover candidatos da banca.', 403);
+      }
       const oldModulo = found?.modulo ?? deriveModulo(rawUpdates);
       // Deriva módulo destino a partir dos dados mesclados (old + incoming)
       // para capturar mudanças em examType/schoolId mesmo sem campo modulo explícito
       const mergedExamType = rawUpdates.examType ?? found?.row?.examType;
       const mergedSchoolId = rawUpdates.schoolId ?? found?.row?.schoolId;
       const newModulo = filtered.modulo || deriveModulo({ examType: mergedExamType, schoolId: mergedSchoolId });
+      if (
+        (data as any)?.sessionUserRole === 'SUPERVISOR' &&
+        found?.row?.scheduleId &&
+        newModulo !== found?.modulo
+      ) {
+        return error('Supervisores não podem mover candidatos agendados para outro módulo.', 403);
+      }
       const oldTable = getRequestTable(oldModulo);
       const newTable = getRequestTable(newModulo);
 
@@ -168,6 +186,9 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     if (method === 'DELETE') {
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
+      if ((data as any)?.sessionUserRole === 'SUPERVISOR') {
+        return error('Supervisores não podem excluir candidatos.', 403);
+      }
       // Busca antes de excluir para poder registrar no log
       const found = await findRequestById(db, id);
       // Apaga das 3 tabelas (apenas uma terá o registro)

@@ -12,7 +12,7 @@ async function ensureSchema(db: any) {
   } catch {}
 }
 
-export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
+export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
@@ -24,6 +24,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     }
 
     if (method === 'POST') {
+      if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
       await ensureSchema(db);
       const body = await parseBody<any>(request);
       const newItem = await db.insert(examiners).values({ id: crypto.randomUUID(), ...body }).returning();
@@ -31,6 +32,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     }
 
     if (method === 'PUT') {
+      if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
       const body = await parseBody<any>(request);
       const { id, createdAt, updatedAt, ...updates } = body;
       const updated = await db.update(examiners).set(updates).where(eq(examiners.id, id)).returning();
@@ -38,6 +40,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     }
 
     if (method === 'DELETE') {
+      if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
       await db.delete(examiners).where(eq(examiners.id, id));

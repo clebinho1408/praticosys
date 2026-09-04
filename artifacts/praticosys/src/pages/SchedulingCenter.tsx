@@ -990,6 +990,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   const filteredSchedules = schedules.filter(s => {
     // Operators only see OPEN bancas
     if (user.role === UserRole.OPERATOR && s.status !== 'OPEN') return false;
+    // Supervisors only see OPEN and CLOSED bancas
+    if (user.role === UserRole.SUPERVISOR && s.status !== 'OPEN' && s.status !== 'CLOSED') return false;
 
     // Location access restriction: if user has allowedLocationIds, only show bancas whose locationId is in the list
     if (user.allowedLocationIds && user.allowedLocationIds.length > 0) {
@@ -1107,8 +1109,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                         <option value="ALL">Status</option>
                         <option value="OPEN">Abertas</option>
                         <option value="CLOSED">Fechadas</option>
-                        <option value="CONCLUDED">Concluídas</option>
-                        <option value="CANCELLED">Canceladas</option>
+                        {user.role !== UserRole.SUPERVISOR && <option value="CONCLUDED">Concluídas</option>}
+                        {user.role !== UserRole.SUPERVISOR && <option value="CANCELLED">Canceladas</option>}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -1250,9 +1252,11 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                  <button onClick={(e) => { e.stopPropagation(); handleOpenModal(s); }} className="p-1.5 text-blue-600 hover:bg-blue-100 rounded">
                                     <Edit2 className="h-4 w-4" />
                                  </button>
-                                 <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Cancelar Banca">
-                                    <Ban className="h-4 w-4" />
-                                 </button>
+                                  {user.role === UserRole.ADMIN && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleCancelSchedule(s.id); }} className="p-1.5 text-red-600 hover:bg-red-100 rounded" title="Cancelar Banca">
+                                       <Ban className="h-4 w-4" />
+                                    </button>
+                                  )}
                                  {user.role === UserRole.ADMIN && (
                                     <button onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(s.id); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded" title="Excluir Banca">
                                         <Trash2 className="h-4 w-4" />
@@ -1642,7 +1646,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                     </button>
 
                                                     {/* Botão Remover da Banca */}
-                                                    {user.role !== UserRole.OPERATOR && (
+                                                    {user.role !== UserRole.OPERATOR && user.role !== UserRole.SUPERVISOR && (
                                                     <button
                                                         onClick={async () => {
                                                             if (!confirm(`Remover ${req.socialName || req.studentName} da banca e devolver para Aguardando Agendamento?`)) return;

@@ -319,7 +319,7 @@ router.post("/backups", async (req, res) => {
 // ─── USERS ────────────────────────────────────────────────────────────────────
 router.get("/users", async (req, res) => {
   const role = (req as any).sessionUser?.role;
-  if (!["ADMIN", "SUPERVISOR"].includes(role)) return res.status(403).json({ error: "Acesso negado" });
+  if (role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const data = await db.select().from(users);
     return res.json(data.map(({ password: _p, ...rest }: any) => rest));
@@ -375,6 +375,7 @@ router.put("/users", async (req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/users", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const { id } = req.query as any;
     await db.delete(users).where(eq(users.id, id));
@@ -388,12 +389,14 @@ router.get("/schools", async (_req, res) => {
   catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/schools", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const item = await db.insert(drivingSchools).values({ id: crypto.randomUUID(), ...req.body }).returning();
     return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/schools", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const { id, createdAt, ...updates } = req.body;
     const item = await db.update(drivingSchools).set(updates).where(eq(drivingSchools.id, id)).returning();
@@ -401,6 +404,7 @@ router.put("/schools", async (req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/schools", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const { id } = req.query as any;
     await db.delete(drivingSchools).where(eq(drivingSchools.id, id));
@@ -417,12 +421,14 @@ router.get("/examiners", async (_req, res) => {
   catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/examiners", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const item = await db.insert(examiners).values({ id: crypto.randomUUID(), ...req.body }).returning();
     return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/examiners", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const { id, createdAt, ...updates } = req.body;
     const item = await db.update(examiners).set(updates).where(eq(examiners.id, id)).returning();
@@ -430,6 +436,7 @@ router.put("/examiners", async (req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/examiners", async (req, res) => {
+  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
     const { id } = req.query as any;
     await db.delete(examiners).where(eq(examiners.id, id));
@@ -568,6 +575,12 @@ router.put("/schedules", async (req, res) => {
   try {
     const body = req.body;
     const { id, action, reason, createdAt, ...updates } = body;
+    if (
+      (req as any).sessionUser?.role === "SUPERVISOR" &&
+      (action === "CANCEL" || updates.status === "CANCELLED")
+    ) {
+      return res.status(403).json({ error: "Supervisores não podem cancelar bancas." });
+    }
     if (action === "CANCEL") {
       const item = await db.update(examSchedules)
         .set({ status: "CANCELLED", cancellationReason: reason })
@@ -581,6 +594,9 @@ router.put("/schedules", async (req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/schedules", async (req, res) => {
+  if ((req as any).sessionUser?.role === "SUPERVISOR") {
+    return res.status(403).json({ error: "Supervisores não podem excluir bancas." });
+  }
   try {
     const { id } = req.query as any;
     await db.delete(examSchedules).where(eq(examSchedules.id, id));
@@ -731,12 +747,30 @@ router.put("/requests", async (req, res) => {
 
     // Busca registro para saber qual tabela atualizar e para auditoria
     const found = await findRequestById(id);
+    if (
+      (req as any).sessionUser?.role === "SUPERVISOR" &&
+      found?.row?.scheduleId &&
+      (
+        rawUpdates.scheduleId === null ||
+        (rawUpdates.scheduleId !== undefined && rawUpdates.scheduleId !== found.row.scheduleId) ||
+        (rawUpdates.status !== undefined && rawUpdates.status !== "SCHEDULED")
+      )
+    ) {
+      return res.status(403).json({ error: "Supervisores não podem remover candidatos da banca." });
+    }
     const oldModulo = found?.modulo ?? deriveModulo(rawUpdates);
     // Deriva módulo destino a partir dos dados mesclados (old + incoming)
     // para capturar mudanças em examType/schoolId sem campo modulo explícito
     const mergedExamType = rawUpdates.examType ?? found?.row?.examType;
     const mergedSchoolId = rawUpdates.schoolId ?? found?.row?.schoolId;
     const newModulo = updates.modulo || deriveModulo({ examType: mergedExamType, schoolId: mergedSchoolId });
+    if (
+      (req as any).sessionUser?.role === "SUPERVISOR" &&
+      found?.row?.scheduleId &&
+      newModulo !== found?.modulo
+    ) {
+      return res.status(403).json({ error: "Supervisores não podem mover candidatos agendados para outro módulo." });
+    }
     const oldTable = getRequestTable(oldModulo);
     const newTable = getRequestTable(newModulo);
 
@@ -793,6 +827,9 @@ router.put("/requests", async (req, res) => {
 router.delete("/requests", async (req, res) => {
   try {
     const { id } = req.query as any;
+    if ((req as any).sessionUser?.role === "SUPERVISOR") {
+      return res.status(403).json({ error: "Supervisores não podem excluir candidatos." });
+    }
     const found = await findRequestById(id);
     // Apaga da tabela correta (e das outras como segurança)
     await db.delete(cnhbrasilRequests).where(eq(cnhbrasilRequests.id, id));

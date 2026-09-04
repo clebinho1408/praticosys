@@ -25,7 +25,7 @@ async function updateAllModuleTables(
   }
 }
 
-export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
+export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
@@ -74,6 +74,12 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const body = await parseBody<any>(request);
       const { id, action, reason, createdAt, updatedAt, ...updates } = body;
       if (!id) return error('ID obrigatório', 400);
+      if (
+        (data as any)?.sessionUserRole === 'SUPERVISOR' &&
+        (action === 'CANCEL' || updates.status === 'CANCELLED')
+      ) {
+        return error('Supervisores não podem cancelar bancas.', 403);
+      }
 
       if (action === 'CANCEL') {
         const updated = await db.update(examSchedules)
@@ -138,6 +144,9 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     }
 
     if (method === 'DELETE') {
+      if ((data as any)?.sessionUserRole === 'SUPERVISOR') {
+        return error('Supervisores não podem excluir bancas.', 403);
+      }
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
       await db.delete(examSchedules).where(eq(examSchedules.id, id));
