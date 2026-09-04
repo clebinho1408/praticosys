@@ -747,13 +747,24 @@ router.put("/requests", async (req, res) => {
 
     // Busca registro para saber qual tabela atualizar e para auditoria
     const found = await findRequestById(id);
+    const isResultConfirmation =
+      rawUpdates.result !== undefined &&
+      Array.isArray(rawUpdates.examHistory);
+    const isCurrentlyScheduled = found?.row?.status === "SCHEDULED";
     if (
       (req as any).sessionUser?.role === "SUPERVISOR" &&
-      found?.row?.scheduleId &&
       (
         rawUpdates.scheduleId === null ||
-        (rawUpdates.scheduleId !== undefined && rawUpdates.scheduleId !== found.row.scheduleId) ||
-        (rawUpdates.status !== undefined && rawUpdates.status !== "SCHEDULED")
+        (
+          isCurrentlyScheduled &&
+          rawUpdates.scheduleId !== undefined &&
+          rawUpdates.scheduleId !== found?.row?.scheduleId
+        ) ||
+        (
+          isCurrentlyScheduled &&
+          rawUpdates.status === "WAITING_SCHEDULING" &&
+          !isResultConfirmation
+        )
       )
     ) {
       return res.status(403).json({ error: "Supervisores não podem remover candidatos da banca." });
@@ -766,7 +777,7 @@ router.put("/requests", async (req, res) => {
     const newModulo = updates.modulo || deriveModulo({ examType: mergedExamType, schoolId: mergedSchoolId });
     if (
       (req as any).sessionUser?.role === "SUPERVISOR" &&
-      found?.row?.scheduleId &&
+      isCurrentlyScheduled &&
       newModulo !== found?.modulo
     ) {
       return res.status(403).json({ error: "Supervisores não podem mover candidatos agendados para outro módulo." });

@@ -122,13 +122,24 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
       // Encontra registro atual (camelCase via ORM)
       const found = await findRequestById(db, id);
+      const isResultConfirmation =
+        rawUpdates.result !== undefined &&
+        Array.isArray(rawUpdates.examHistory);
+      const isCurrentlyScheduled = found?.row?.status === 'SCHEDULED';
       if (
         (data as any)?.sessionUserRole === 'SUPERVISOR' &&
-        found?.row?.scheduleId &&
         (
           rawUpdates.scheduleId === null ||
-          (rawUpdates.scheduleId !== undefined && rawUpdates.scheduleId !== found.row.scheduleId) ||
-          (rawUpdates.status !== undefined && rawUpdates.status !== 'SCHEDULED')
+          (
+            isCurrentlyScheduled &&
+            rawUpdates.scheduleId !== undefined &&
+            rawUpdates.scheduleId !== found?.row?.scheduleId
+          ) ||
+          (
+            isCurrentlyScheduled &&
+            rawUpdates.status === 'WAITING_SCHEDULING' &&
+            !isResultConfirmation
+          )
         )
       ) {
         return error('Supervisores não podem remover candidatos da banca.', 403);
@@ -141,7 +152,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const newModulo = filtered.modulo || deriveModulo({ examType: mergedExamType, schoolId: mergedSchoolId });
       if (
         (data as any)?.sessionUserRole === 'SUPERVISOR' &&
-        found?.row?.scheduleId &&
+        isCurrentlyScheduled &&
         newModulo !== found?.modulo
       ) {
         return error('Supervisores não podem mover candidatos agendados para outro módulo.', 403);
