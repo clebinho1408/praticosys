@@ -1474,7 +1474,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   const fetch = async () => setInstructors(await api.getInstructorsAsync());
   useEffect(() => { fetch(); }, []);
 
-  useEffect(() => {
+  const openModal = (inst?: Instructor) => {
+    // Busca limites de idade frescos a cada abertura do modal
     window.fetch('/api/settings').then(r => r.json()).then((s: any) => {
       if (s?.anoFabricacaoMaximo) {
         setVehicleAgeLimit({
@@ -1484,9 +1485,6 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
         });
       }
     }).catch(() => {});
-  }, []);
-
-  const openModal = (inst?: Instructor) => {
     setEditing(inst || null);
     if (inst) {
         setFormData({
@@ -1565,7 +1563,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                   transmission: newVehicle.transmission,
                   accessories: newVehicle.accessories,
                   duploComando: newVehicle.duploComando,
-                  procuracao: newVehicle.procuracao
+                  procuracao: newVehicle.procuracao,
+                  anoFabricacao: newVehicle.anoFabricacao || undefined,
               } : v)
           }));
           setEditingVehicleId(null);
@@ -1582,7 +1581,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
               transmission: newVehicle.transmission,
               accessories: newVehicle.accessories,
               duploComando: newVehicle.duploComando,
-              procuracao: newVehicle.procuracao
+              procuracao: newVehicle.procuracao,
+              anoFabricacao: newVehicle.anoFabricacao || undefined,
           };
 
           setFormData(prev => ({
