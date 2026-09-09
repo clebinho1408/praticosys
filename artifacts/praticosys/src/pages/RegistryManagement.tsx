@@ -1659,6 +1659,18 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
       return [];
   }, [availableData, newVehicle.brand]);
 
+  const vehicleYearValidation = useMemo(() => {
+      if (newVehicle.anoFabricacao.length !== 4) return null;
+      const year = parseInt(newVehicle.anoFabricacao, 10);
+      const limit = modalTab === 'CARS'
+          ? vehicleAgeLimit.B
+          : modalTab === 'MOTOS'
+              ? vehicleAgeLimit.A
+              : null;
+      if (!year || limit === null || new Date().getFullYear() - year <= limit) return null;
+      return { limit };
+  }, [modalTab, newVehicle.anoFabricacao, vehicleAgeLimit]);
+
   // Filter Logic
   const filteredInstructors = instructors
     .filter(i =>
@@ -1900,32 +1912,18 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                                 setNewVehicle({ ...newVehicle, anoFabricacao: val });
                                             }}
                                         />
-                                        {(() => {
-                                            const year = parseInt(newVehicle.anoFabricacao, 10);
-                                            if (!year || newVehicle.anoFabricacao.length < 4) return null;
-                                            const currentYear = new Date().getFullYear();
-                                            const age = currentYear - year;
-                                            let limit: number | null = null;
-                                            if (modalTab === 'CARS') limit = vehicleAgeLimitRef.current.B;
-                                            else if (modalTab === 'MOTOS') limit = vehicleAgeLimitRef.current.A;
-                                            if (limit !== null && age > limit) {
-                                                return (
-                                                    <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
-                                                        ⚠️ Veículo não poderá ser cadastrado — ano mais antigo que o permitido ({limit} anos máx.).
-                                                    </p>
-                                                );
-                                            }
-                                            if (year > 0) {
-                                                return (
-                                                    <p className="text-xs text-green-600 mt-1">
-                                                        Idade: {age} ano{age !== 1 ? 's' : ''}{limit !== null ? ` (máx. ${limit} anos)` : ''}
-                                                    </p>
-                                                );
-                                            }
-                                            return null;
-                                        })()}
                                     </div>
                                 </div>
+
+                                {vehicleYearValidation ? (
+                                    <p role="alert" className="mt-3 w-full rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center text-xs font-semibold text-red-600">
+                                        ⚠️ Veículo não poderá ser cadastrado — ano mais antigo que o permitido ({vehicleYearValidation.limit} anos máx.).
+                                    </p>
+                                ) : newVehicle.anoFabricacao.length === 4 && (
+                                    <p className="mt-2 w-full text-center text-xs text-green-600">
+                                        Idade: {new Date().getFullYear() - parseInt(newVehicle.anoFabricacao, 10)} anos
+                                    </p>
+                                )}
 
                                 <div className="flex justify-between items-center mt-3">
                                     <div className="flex items-center gap-4">
@@ -1941,7 +1939,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                     <button 
                                         type="button" 
                                         onClick={() => handleAddVehicle(modalTab === 'CARS' ? 'CAR' : 'MOTO')}
-                                        className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700"
+                                        disabled={!!vehicleYearValidation}
+                                        className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
                                     >
                                         {editingVehicleId ? 'Salvar Alterações' : 'Adicionar'}
                                     </button>
