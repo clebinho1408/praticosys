@@ -33,9 +33,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS banca_principal_cnh_brasil JSONB`);
       await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS max_vagas_mudanca_padrao INTEGER DEFAULT 10`);
       await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS chave_area_risco text`);
-      await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS cnh_brasil_main_schedule JSONB`);
-      await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS default_max_slots_mudanca INTEGER DEFAULT 10`);
-      await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS ano_fabricacao_maximo JSONB`);
+      await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS ano_fabricacao_maximo JSONB`);
     } catch {}
 
     if (method === 'GET') {

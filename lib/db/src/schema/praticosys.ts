@@ -181,6 +181,7 @@ export const systemSettings = pgTable('configuracoes', {
   cnhBrasilMainSchedule: jsonb('banca_principal_cnh_brasil'),
   blockWeekends: boolean('bloquear_fins_semana').default(false),
   riskAreaKey: text('chave_area_risco'),
+  anoFabricacaoMaximo: jsonb('ano_fabricacao_maximo'),
 });
 
 export const auditLogs = pgTable('logs_auditoria', {
