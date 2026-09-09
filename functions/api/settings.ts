@@ -21,6 +21,7 @@ const DEFAULTS = {
   pcdDefaultExamAddress: DEFAULT_ADDR, pcdDefaultExamAddressLink: 'https://maps.google.com',
   pcdMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
   cnhBrasilMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
+  anoFabricacaoMaximo: { A: null, B: null, CDE: null },
 };
 
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
@@ -32,6 +33,9 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS banca_principal_cnh_brasil JSONB`);
       await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS max_vagas_mudanca_padrao INTEGER DEFAULT 10`);
       await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS chave_area_risco text`);
+      await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS cnh_brasil_main_schedule JSONB`);
+      await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS default_max_slots_mudanca INTEGER DEFAULT 10`);
+      await db.execute(sql`ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS ano_fabricacao_maximo JSONB`);
     } catch {}
 
     if (method === 'GET') {
@@ -47,6 +51,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       if (s.defaultMaxSlotsA == null) s.defaultMaxSlotsA = 10;
       if (s.defaultMaxSlotsB == null) s.defaultMaxSlotsB = 10;
       if (s.defaultMaxSlotsMudanca == null) s.defaultMaxSlotsMudanca = 10;
+      if (!s.anoFabricacaoMaximo) s.anoFabricacaoMaximo = DEFAULTS.anoFabricacaoMaximo;
       return json(s);
     }
 

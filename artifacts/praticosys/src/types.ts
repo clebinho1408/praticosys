@@ -249,6 +249,13 @@ export interface SystemSettings {
   cnhBrasilMainSchedule?: SchoolSchedule;
   blockWeekends?: boolean;
   riskAreaKey?: string;
+
+  // Ano de Fabricação Máximo por Categoria
+  anoFabricacaoMaximo?: {
+    A?: number | null;
+    B?: number | null;
+    CDE?: number | null;
+  };
 }
 
 export interface BlockedDate {

@@ -28,7 +28,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [activeTab, setActiveTab] = useState<TabType>('GENERAL');
   const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'BLOCKED_DATES'>('AGENCY_DATA');
 
-  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
+  const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL' | 'ANO_FABRICACAO'>('COMMUNICATION');
   const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS' | 'LOGS'>('LOCAIS');
   const [cnhLogs, setCnhLogs] = useState<any[]>([]);
   const [cnhLogsLoading, setCnhLogsLoading] = useState(false);
@@ -1085,6 +1085,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                         <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>GERAL</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_PCD')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_PCD' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO PCD</button>
                         <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO CNH DO BRASIL</button>
+                        <button type="button" onClick={() => setActiveSubTabCFC('ANO_FABRICACAO')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ANO_FABRICACAO' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ANO DE FABRICAÇÃO</button>
                     </div>
 
                     {activeSubTabCFC === 'COMMUNICATION' && (
@@ -1311,6 +1312,96 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                     ))}
                                     {settings.pcdMainSchedule.slots.length === 0 && (
                                         <p className="text-xs text-gray-500 italic">Nenhum horário configurado.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeSubTabCFC === 'ANO_FABRICACAO' && (
+                        <div className="space-y-6 animate-fadeIn">
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
+                                <p className="text-sm text-blue-800">
+                                    Defina o <strong>ano máximo de fabricação</strong> permitido para veículos em cada categoria. Deixe o campo em branco para não aplicar limite.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                {/* Categoria A */}
+                                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-700 font-black text-sm">A</span>
+                                        <span className="font-bold text-gray-800 text-sm">Categoria A</span>
+                                    </div>
+                                    <label className="block text-xs text-gray-500 mb-1">Ano máximo de fabricação</label>
+                                    <input
+                                        type="number"
+                                        min="1990"
+                                        max="2099"
+                                        placeholder="Ex: 2015"
+                                        value={settings.anoFabricacaoMaximo?.A ?? ''}
+                                        onChange={e => {
+                                            const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                                            setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, A: val } });
+                                        }}
+                                        className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
+                                    />
+                                    {settings.anoFabricacaoMaximo?.A ? (
+                                        <p className="text-xs text-orange-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.A}</p>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 mt-1.5 italic">Sem limite definido</p>
+                                    )}
+                                </div>
+
+                                {/* Categoria B */}
+                                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm">B</span>
+                                        <span className="font-bold text-gray-800 text-sm">Categoria B</span>
+                                    </div>
+                                    <label className="block text-xs text-gray-500 mb-1">Ano máximo de fabricação</label>
+                                    <input
+                                        type="number"
+                                        min="1990"
+                                        max="2099"
+                                        placeholder="Ex: 2015"
+                                        value={settings.anoFabricacaoMaximo?.B ?? ''}
+                                        onChange={e => {
+                                            const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                                            setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, B: val } });
+                                        }}
+                                        className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
+                                    />
+                                    {settings.anoFabricacaoMaximo?.B ? (
+                                        <p className="text-xs text-blue-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.B}</p>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 mt-1.5 italic">Sem limite definido</p>
+                                    )}
+                                </div>
+
+                                {/* Categorias C, D, E */}
+                                <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-black text-sm">C/D/E</span>
+                                        <span className="font-bold text-gray-800 text-sm">Categorias C, D e E</span>
+                                    </div>
+                                    <label className="block text-xs text-gray-500 mb-1">Ano máximo de fabricação</label>
+                                    <input
+                                        type="number"
+                                        min="1990"
+                                        max="2099"
+                                        placeholder="Ex: 2012"
+                                        value={settings.anoFabricacaoMaximo?.CDE ?? ''}
+                                        onChange={e => {
+                                            const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                                            setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, CDE: val } });
+                                        }}
+                                        className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
+                                    />
+                                    {settings.anoFabricacaoMaximo?.CDE ? (
+                                        <p className="text-xs text-green-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.CDE}</p>
+                                    ) : (
+                                        <p className="text-xs text-gray-400 mt-1.5 italic">Sem limite definido</p>
                                     )}
                                 </div>
                             </div>
