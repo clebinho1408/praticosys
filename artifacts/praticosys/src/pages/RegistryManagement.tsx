@@ -1550,6 +1550,16 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           return;
       }
 
+      if (newVehicle.anoFabricacao.length === 4) {
+          const year = parseInt(newVehicle.anoFabricacao, 10);
+          const age = new Date().getFullYear() - year;
+          const limit = type === 'CAR' ? vehicleAgeLimit.B : vehicleAgeLimit.A;
+          if (limit !== null && age > limit) {
+              alert(`Veículo não pode ser cadastrado. Ano de fabricação ${newVehicle.anoFabricacao} resulta em ${age} anos de uso, acima do limite de ${limit} anos para esta categoria.`);
+              return;
+          }
+      }
+
       if (editingVehicleId) {
           // Update existing vehicle
           setFormData(prev => ({
