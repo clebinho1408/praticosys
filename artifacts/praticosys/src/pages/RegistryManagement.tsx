@@ -1477,7 +1477,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   useEffect(() => {
     fetch();
     // Busca os limites de fabricação logo ao montar o componente
-    window.fetch('/api/settings').then(r => r.json()).then((s: any) => {
+    api.getSettings().then((s) => {
       const lim = {
         A: s?.anoFabricacaoMaximo?.A ?? null,
         B: s?.anoFabricacaoMaximo?.B ?? null,
@@ -1485,7 +1485,9 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
       };
       vehicleAgeLimitRef.current = lim;
       setVehicleAgeLimit(lim);
-    }).catch(() => {});
+    }).catch((error) => {
+      console.error('Erro ao carregar limites de ano de fabricação:', error);
+    });
   }, []);
 
   const openModal = (inst?: Instructor) => {
