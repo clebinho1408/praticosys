@@ -1966,21 +1966,23 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                                     </>
                                                 )}
                                             </div>
-                                            {(vehicle as any).anoFabricacao && (
-                                                <span className="text-xs text-gray-500 mt-0.5 block">
-                                                    Fab: {(vehicle as any).anoFabricacao}
-                                                    {(() => {
-                                                        const year = parseInt((vehicle as any).anoFabricacao, 10);
-                                                        const currentYear = new Date().getFullYear();
-                                                        const age = currentYear - year;
-                                                        const limit = vehicle.type === 'CAR' ? vehicleAgeLimit.B : vehicleAgeLimit.A;
-                                                        if (limit !== null && age > limit) {
-                                                            return <span className="text-red-500 font-semibold ml-1">⚠️ {age} anos (máx. {limit})</span>;
-                                                        }
-                                                        return <span className="text-gray-400 ml-1">({age} ano{age !== 1 ? 's' : ''})</span>;
-                                                    })()}
-                                                </span>
-                                            )}
+                                            {(() => {
+                                                const fab = (vehicle as any).anoFabricacao || (vehicle as any).ano_fabricacao;
+                                                if (!fab) return null;
+                                                const year = parseInt(fab, 10);
+                                                if (!year || year < 1900) return null;
+                                                const currentYear = new Date().getFullYear();
+                                                const age = currentYear - year;
+                                                const limit = vehicle.type === 'CAR' ? vehicleAgeLimit.B : vehicleAgeLimit.A;
+                                                const overLimit = limit !== null && age > limit;
+                                                return (
+                                                    <div className={`text-xs mt-1 flex items-center gap-1 ${overLimit ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                                        {overLimit && <span>⚠️</span>}
+                                                        <span>Fab: {fab} ({age} ano{age !== 1 ? 's' : ''})</span>
+                                                        {overLimit && <span>— acima do limite ({limit} anos máx.)</span>}
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button 
