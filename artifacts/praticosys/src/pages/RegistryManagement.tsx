@@ -1417,6 +1417,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Instructor | null>(null);
+  const vehicleAgeLimitRef = React.useRef<{ A: number | null; B: number | null; CDE: number | null }>({ A: null, B: null, CDE: null });
   
   // State for Form Tabs
   const [modalTab, setModalTab] = useState<'DATA' | 'CARS' | 'MOTOS'>('DATA');
@@ -1453,6 +1454,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   
   const [accessoryInput, setAccessoryInput] = useState('');
   const [vehicleAgeLimit, setVehicleAgeLimit] = useState<{ A: number | null; B: number | null; CDE: number | null }>({ A: null, B: null, CDE: null });
+
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -1472,19 +1474,21 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   });
 
   const fetch = async () => setInstructors(await api.getInstructorsAsync());
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => {
+    fetch();
+    // Busca os limites de fabricação logo ao montar o componente
+    window.fetch('/api/settings').then(r => r.json()).then((s: any) => {
+      const lim = {
+        A: s?.anoFabricacaoMaximo?.A ?? null,
+        B: s?.anoFabricacaoMaximo?.B ?? null,
+        CDE: s?.anoFabricacaoMaximo?.CDE ?? null,
+      };
+      vehicleAgeLimitRef.current = lim;
+      setVehicleAgeLimit(lim);
+    }).catch(() => {});
+  }, []);
 
   const openModal = (inst?: Instructor) => {
-    // Busca limites de idade frescos a cada abertura do modal
-    window.fetch('/api/settings').then(r => r.json()).then((s: any) => {
-      if (s?.anoFabricacaoMaximo) {
-        setVehicleAgeLimit({
-          A: s.anoFabricacaoMaximo.A ?? null,
-          B: s.anoFabricacaoMaximo.B ?? null,
-          CDE: s.anoFabricacaoMaximo.CDE ?? null,
-        });
-      }
-    }).catch(() => {});
     setEditing(inst || null);
     if (inst) {
         setFormData({
@@ -1553,7 +1557,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
       if (newVehicle.anoFabricacao.length === 4) {
           const year = parseInt(newVehicle.anoFabricacao, 10);
           const age = new Date().getFullYear() - year;
-          const limit = type === 'CAR' ? vehicleAgeLimit.B : vehicleAgeLimit.A;
+          const lim = vehicleAgeLimitRef.current;
+          const limit = type === 'CAR' ? lim.B : lim.A;
           if (limit !== null && age > limit) {
               alert(`Veículo não pode ser cadastrado. Ano de fabricação ${newVehicle.anoFabricacao} resulta em ${age} anos de uso, acima do limite de ${limit} anos para esta categoria.`);
               return;
@@ -1899,8 +1904,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                             const currentYear = new Date().getFullYear();
                                             const age = currentYear - year;
                                             let limit: number | null = null;
-                                            if (modalTab === 'CARS') limit = vehicleAgeLimit.B;
-                                            else if (modalTab === 'MOTOS') limit = vehicleAgeLimit.A;
+                                            if (modalTab === 'CARS') limit = vehicleAgeLimitRef.current.B;
+                                            else if (modalTab === 'MOTOS') limit = vehicleAgeLimitRef.current.A;
                                             if (limit !== null && age > limit) {
                                                 return (
                                                     <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
