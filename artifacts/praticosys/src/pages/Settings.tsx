@@ -1082,7 +1082,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                         <div className="space-y-6 animate-fadeIn">
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 mb-4">
                                 <p className="text-sm text-blue-800">
-                                    Defina o <strong>ano máximo de fabricação</strong> permitido para veículos em cada categoria. Deixe o campo em branco para não aplicar limite.
+                                    Defina a <strong>idade máxima (em anos)</strong> permitida para veículos em cada categoria. Deixe o campo em branco para não aplicar limite.
                                 </p>
                             </div>
 
@@ -1093,21 +1093,24 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                         <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-orange-100 text-orange-700 font-black text-sm">A</span>
                                         <span className="font-bold text-gray-800 text-sm">Categoria A</span>
                                     </div>
-                                    <label className="block text-xs text-gray-500 mb-1">Ano máximo de fabricação</label>
-                                    <input
-                                        type="number"
-                                        min="1990"
-                                        max="2099"
-                                        placeholder="Ex: 2015"
-                                        value={settings.anoFabricacaoMaximo?.A ?? ''}
-                                        onChange={e => {
-                                            const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
-                                            setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, A: val } });
-                                        }}
-                                        className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
-                                    />
+                                    <label className="block text-xs text-gray-500 mb-1">Idade máxima do veículo (anos)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="99"
+                                            placeholder="Ex: 8"
+                                            value={settings.anoFabricacaoMaximo?.A ?? ''}
+                                            onChange={e => {
+                                                const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                                                setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, A: val } });
+                                            }}
+                                            className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
+                                        />
+                                        <span className="text-sm text-gray-500 whitespace-nowrap">anos</span>
+                                    </div>
                                     {settings.anoFabricacaoMaximo?.A ? (
-                                        <p className="text-xs text-orange-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.A}</p>
+                                        <p className="text-xs text-orange-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.A} anos</p>
                                     ) : (
                                         <p className="text-xs text-gray-400 mt-1.5 italic">Sem limite definido</p>
                                     )}
@@ -1119,21 +1122,24 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                         <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-black text-sm">B</span>
                                         <span className="font-bold text-gray-800 text-sm">Categoria B</span>
                                     </div>
-                                    <label className="block text-xs text-gray-500 mb-1">Ano máximo de fabricação</label>
-                                    <input
-                                        type="number"
-                                        min="1990"
-                                        max="2099"
-                                        placeholder="Ex: 2015"
-                                        value={settings.anoFabricacaoMaximo?.B ?? ''}
-                                        onChange={e => {
-                                            const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
-                                            setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, B: val } });
-                                        }}
-                                        className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
-                                    />
+                                    <label className="block text-xs text-gray-500 mb-1">Idade máxima do veículo (anos)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="99"
+                                            placeholder="Ex: 8"
+                                            value={settings.anoFabricacaoMaximo?.B ?? ''}
+                                            onChange={e => {
+                                                const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                                                setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, B: val } });
+                                            }}
+                                            className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
+                                        />
+                                        <span className="text-sm text-gray-500 whitespace-nowrap">anos</span>
+                                    </div>
                                     {settings.anoFabricacaoMaximo?.B ? (
-                                        <p className="text-xs text-blue-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.B}</p>
+                                        <p className="text-xs text-blue-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.B} anos</p>
                                     ) : (
                                         <p className="text-xs text-gray-400 mt-1.5 italic">Sem limite definido</p>
                                     )}
@@ -1145,21 +1151,24 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                                         <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-700 font-black text-sm">C/D/E</span>
                                         <span className="font-bold text-gray-800 text-sm">Categorias C, D e E</span>
                                     </div>
-                                    <label className="block text-xs text-gray-500 mb-1">Ano máximo de fabricação</label>
-                                    <input
-                                        type="number"
-                                        min="1990"
-                                        max="2099"
-                                        placeholder="Ex: 2012"
-                                        value={settings.anoFabricacaoMaximo?.CDE ?? ''}
-                                        onChange={e => {
-                                            const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
-                                            setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, CDE: val } });
-                                        }}
-                                        className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
-                                    />
+                                    <label className="block text-xs text-gray-500 mb-1">Idade máxima do veículo (anos)</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max="99"
+                                            placeholder="Ex: 10"
+                                            value={settings.anoFabricacaoMaximo?.CDE ?? ''}
+                                            onChange={e => {
+                                                const val = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                                                setSettings({ ...settings, anoFabricacaoMaximo: { ...settings.anoFabricacaoMaximo, CDE: val } });
+                                            }}
+                                            className="w-full border rounded-md p-2 text-gray-900 bg-white focus:ring-2 focus:ring-blue-300 focus:outline-none"
+                                        />
+                                        <span className="text-sm text-gray-500 whitespace-nowrap">anos</span>
+                                    </div>
                                     {settings.anoFabricacaoMaximo?.CDE ? (
-                                        <p className="text-xs text-green-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.CDE}</p>
+                                        <p className="text-xs text-green-600 mt-1.5 font-medium">Máximo: {settings.anoFabricacaoMaximo.CDE} anos</p>
                                     ) : (
                                         <p className="text-xs text-gray-400 mt-1.5 italic">Sem limite definido</p>
                                     )}
