@@ -83,6 +83,7 @@ export const vehicles = pgTable('veiculos', {
   accessories: jsonb('acessorios').$type<string[]>().default([]),
   duploComando: boolean('duplo_comando').default(false),
   procuracao: boolean('procuracao').default(false),
+  anoFabricacao: text('ano_fabricacao'),
   createdAt: timestamp('criado_em').defaultNow(),
 });
 

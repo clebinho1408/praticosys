@@ -12,6 +12,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     try {
       await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS duplo_comando boolean DEFAULT false`);
       await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
+      await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS ano_fabricacao text`);
     } catch {}
 
     if (method === 'GET') {
@@ -38,6 +39,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
             transmission: v.transmission, accessories: v.accessories || [],
             duploComando: v.duploComando ?? false,
             procuracao: v.procuracao ?? false,
+            anoFabricacao: v.anoFabricacao || null,
           });
         }
       }
@@ -59,6 +61,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
             accessories: v.accessories || [],
             duploComando: v.duploComando ?? false,
             procuracao: v.procuracao ?? false,
+            anoFabricacao: v.anoFabricacao || null,
           });
         }
       }

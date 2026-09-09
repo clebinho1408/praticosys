@@ -1448,9 +1448,11 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
     accessories: string[];
     duploComando: boolean;
     procuracao: boolean;
-  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false });
+    anoFabricacao: string;
+  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' });
   
   const [accessoryInput, setAccessoryInput] = useState('');
+  const [vehicleAgeLimit, setVehicleAgeLimit] = useState<{ A: number | null; B: number | null; CDE: number | null }>({ A: null, B: null, CDE: null });
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -1471,6 +1473,18 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
 
   const fetch = async () => setInstructors(await api.getInstructorsAsync());
   useEffect(() => { fetch(); }, []);
+
+  useEffect(() => {
+    window.fetch('/api/settings').then(r => r.json()).then((s: any) => {
+      if (s?.anoFabricacaoMaximo) {
+        setVehicleAgeLimit({
+          A: s.anoFabricacaoMaximo.A ?? null,
+          B: s.anoFabricacaoMaximo.B ?? null,
+          CDE: s.anoFabricacaoMaximo.CDE ?? null,
+        });
+      }
+    }).catch(() => {});
+  }, []);
 
   const openModal = (inst?: Instructor) => {
     setEditing(inst || null);
@@ -1494,7 +1508,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
         });
     }
     setModalTab('DATA');
-    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false });
+    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' });
     setAccessoryInput('');
     setEditingVehicleId(null);
     setIsModalOpen(true);
@@ -1577,7 +1591,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           }));
       }
 
-      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false });
+      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' });
       setAccessoryInput('');
   };
 
@@ -1590,7 +1604,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           transmission: vehicle.transmission || 'MANUAL',
           accessories: vehicle.accessories || [],
           duploComando: vehicle.duploComando ?? false,
-          procuracao: vehicle.procuracao ?? false
+          procuracao: vehicle.procuracao ?? false,
+          anoFabricacao: vehicle.anoFabricacao || '',
       });
       setEditingVehicleId(vehicle.id);
       setAccessoryInput('');
@@ -1748,7 +1763,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'B' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false }); setAccessoryInput(''); }} 
+                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'CARS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Car className="h-4 w-4" /> Carros
@@ -1758,7 +1773,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'A' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false }); setAccessoryInput(''); }} 
+                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'MOTOS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Bike className="h-4 w-4" /> Motos
@@ -1856,65 +1871,44 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                         </div>
                                     )}
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Acessórios</label>
-                                        <div className="flex gap-1">
-                                            <input 
-                                                type="text"
-                                                placeholder="Ex: Acelerador à esquerda"
-                                                className="flex-1 border rounded p-2 text-sm bg-white min-w-0"
-                                                value={accessoryInput}
-                                                onChange={e => setAccessoryInput(e.target.value)}
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        if (accessoryInput.trim()) {
-                                                            setNewVehicle({
-                                                                ...newVehicle,
-                                                                accessories: [...newVehicle.accessories, accessoryInput.trim()]
-                                                            });
-                                                            setAccessoryInput('');
-                                                        }
-                                                    }
-                                                }}
-                                            />
-                                            <button 
-                                                type="button"
-                                                onClick={() => {
-                                                    if (accessoryInput.trim()) {
-                                                        setNewVehicle({
-                                                            ...newVehicle,
-                                                            accessories: [...newVehicle.accessories, accessoryInput.trim()]
-                                                        });
-                                                        setAccessoryInput('');
-                                                    }
-                                                }}
-                                                className="px-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 flex-shrink-0"
-                                            >
-                                                <Plus className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ano de Fabricação</label>
+                                        <input
+                                            type="text"
+                                            maxLength={4}
+                                            placeholder="Ex: 2002"
+                                            className="w-full border rounded p-2 text-sm bg-white"
+                                            value={newVehicle.anoFabricacao}
+                                            onChange={e => {
+                                                const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                                                setNewVehicle({ ...newVehicle, anoFabricacao: val });
+                                            }}
+                                        />
+                                        {(() => {
+                                            const year = parseInt(newVehicle.anoFabricacao, 10);
+                                            if (!year || newVehicle.anoFabricacao.length < 4) return null;
+                                            const currentYear = new Date().getFullYear();
+                                            const age = currentYear - year;
+                                            let limit: number | null = null;
+                                            if (modalTab === 'CARS') limit = vehicleAgeLimit.B;
+                                            else if (modalTab === 'MOTOS') limit = vehicleAgeLimit.A;
+                                            if (limit !== null && age > limit) {
+                                                return (
+                                                    <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
+                                                        ⚠️ Veículo não poderá ser cadastrado — ano mais antigo que o permitido ({limit} anos máx.).
+                                                    </p>
+                                                );
+                                            }
+                                            if (year > 0) {
+                                                return (
+                                                    <p className="text-xs text-green-600 mt-1">
+                                                        Idade: {age} ano{age !== 1 ? 's' : ''}{limit !== null ? ` (máx. ${limit} anos)` : ''}
+                                                    </p>
+                                                );
+                                            }
+                                            return null;
+                                        })()}
                                     </div>
                                 </div>
-
-                                {newVehicle.accessories.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mt-2">
-                                        {newVehicle.accessories.map((acc, idx) => (
-                                            <span key={idx} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full border border-blue-100">
-                                                {acc}
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => setNewVehicle({
-                                                        ...newVehicle,
-                                                        accessories: newVehicle.accessories.filter((_, i) => i !== idx)
-                                                    })}
-                                                    className="hover:text-red-500"
-                                                >
-                                                    <XCircle className="h-3 w-3" />
-                                                </button>
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
 
                                 <div className="flex justify-between items-center mt-3">
                                     <div className="flex items-center gap-4">
@@ -1939,7 +1933,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                             type="button" 
                                             onClick={() => {
                                                 setEditingVehicleId(null);
-                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false });
+                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' });
                                                 setAccessoryInput('');
                                             }}
                                             className="px-4 py-2 bg-gray-200 text-gray-600 text-xs font-bold rounded hover:bg-gray-300"
@@ -1972,14 +1966,20 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                                     </>
                                                 )}
                                             </div>
-                                            {vehicle.accessories && vehicle.accessories.length > 0 && (
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {vehicle.accessories.map((acc, idx) => (
-                                                        <span key={idx} className="bg-gray-100 text-gray-600 text-[9px] px-1.5 py-0.5 rounded">
-                                                            {acc}
-                                                        </span>
-                                                    ))}
-                                                </div>
+                                            {(vehicle as any).anoFabricacao && (
+                                                <span className="text-xs text-gray-500 mt-0.5 block">
+                                                    Fab: {(vehicle as any).anoFabricacao}
+                                                    {(() => {
+                                                        const year = parseInt((vehicle as any).anoFabricacao, 10);
+                                                        const currentYear = new Date().getFullYear();
+                                                        const age = currentYear - year;
+                                                        const limit = vehicle.type === 'CAR' ? vehicleAgeLimit.B : vehicleAgeLimit.A;
+                                                        if (limit !== null && age > limit) {
+                                                            return <span className="text-red-500 font-semibold ml-1">⚠️ {age} anos (máx. {limit})</span>;
+                                                        }
+                                                        return <span className="text-gray-400 ml-1">({age} ano{age !== 1 ? 's' : ''})</span>;
+                                                    })()}
+                                                </span>
                                             )}
                                         </div>
                                         <div className="flex items-center gap-2">
