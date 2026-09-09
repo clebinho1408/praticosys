@@ -9,11 +9,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     const method = request.method;
     const query = getQuery(request.url);
 
-    try {
-      await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS duplo_comando boolean DEFAULT false`);
-      await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
-      await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS ano_fabricacao text`);
-    } catch {}
+    // Colunas garantidas pelo middleware (ensureColumnMigrations)
 
     if (method === 'GET') {
       const allInstructors = await db.select().from(instructors);

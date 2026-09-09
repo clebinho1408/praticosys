@@ -29,12 +29,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     const db = getDb(env as any);
     const method = request.method;
 
-    try {
-      await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS banca_principal_cnh_brasil JSONB`);
-      await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS max_vagas_mudanca_padrao INTEGER DEFAULT 10`);
-      await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS chave_area_risco text`);
-      await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS ano_fabricacao_maximo JSONB`);
-    } catch {}
+    // Colunas garantidas pelo middleware (ensureColumnMigrations)
 
     if (method === 'GET') {
       const data = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));

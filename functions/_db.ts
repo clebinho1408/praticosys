@@ -13,6 +13,7 @@ import { PT_SCHEMA_DO_BLOCK, PT_SCHEMA_VERIFY_SQL, PT_SCHEMA_MARKER_SQL } from '
 
 let _schemaMigrated = false;
 let _cnhBrasilSdcStorageReady = false;
+let _columnMigrationsReady = false;
 
 async function verifyPtSchema(db: any): Promise<boolean> {
   try {
@@ -56,6 +57,29 @@ export async function ensureCnhBrasilSdcStorage(db: any): Promise<void> {
     ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false
   `);
   _cnhBrasilSdcStorageReady = true;
+}
+
+/**
+ * Garante que todas as colunas adicionadas após a migration inicial existam.
+ * Usa ADD COLUMN IF NOT EXISTS — 100% idempotente e seguro.
+ * Roda uma vez por instância de Worker (cold start).
+ */
+export async function ensureColumnMigrations(db: any): Promise<void> {
+  if (_columnMigrationsReady) return;
+  try {
+    // veiculos — colunas adicionadas após schema inicial
+    await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS duplo_comando boolean DEFAULT false`);
+    await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
+    await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS ano_fabricacao text`);
+    // configuracoes — colunas adicionadas após schema inicial
+    await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS banca_principal_cnh_brasil JSONB`);
+    await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS max_vagas_mudanca_padrao INTEGER DEFAULT 10`);
+    await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS chave_area_risco text`);
+    await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS ano_fabricacao_maximo JSONB`);
+    // solicitacoes — sem_duplo_comando
+    await db.execute(sql`ALTER TABLE solicitacoes ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`);
+  } catch {}
+  _columnMigrationsReady = true;
 }
 
 export function getDb(env: Record<string, string>) {
