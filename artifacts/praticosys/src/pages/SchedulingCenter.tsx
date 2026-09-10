@@ -488,6 +488,37 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     window.open(whatsappUrl, '_blank');
   };
 
+  const handlePrintCandidateList = () => {
+    if (!selectedSchedule?.date) {
+      window.print();
+      return;
+    }
+
+    const originalTitle = document.title;
+    const cleanDate = selectedSchedule.date.split('T')[0];
+    const [year, month, day] = cleanDate.split('-');
+    const examDate = year && month && day ? `${day}-${month}` : cleanDate.replace(/\//g, '-');
+    let restored = false;
+
+    const restoreTitle = () => {
+      if (restored) return;
+      restored = true;
+      document.title = originalTitle;
+      window.removeEventListener('afterprint', restoreTitle);
+    };
+
+    document.title = `LISTA DE CANDIDATOS DO EXAME PRÁTICO ${examDate}`;
+    window.addEventListener('afterprint', restoreTitle, { once: true });
+
+    requestAnimationFrame(() => {
+      try {
+        window.print();
+      } finally {
+        restoreTitle();
+      }
+    });
+  };
+
   const toggleAttendance = async (req: ExamRequest) => {
     await api.updateRequest(req.id, { 
       attendanceConfirmed: !req.attendanceConfirmed,
@@ -1281,7 +1312,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                 </button>
                 <div className="flex gap-2">
                     {selectedSchedule.status !== 'CONCLUDED' && !isConsultant && (
-                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 bg-white shadow-sm text-sm font-bold">
+                        <button onClick={handlePrintCandidateList} className="flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-gray-50 bg-white shadow-sm text-sm font-bold">
                             <Printer className="h-4 w-4" /> Imprimir Lista
                         </button>
                     )}
