@@ -1630,13 +1630,19 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                                               </span>
                                                           </td>
                                                           <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
-                                                              {inst.vehicles && inst.vehicles.length > 0 ? (
+                                                              {inst.vehicles && inst.vehicles.filter(v => v.active).length > 0 ? (
                                                                   <div className="flex flex-col gap-1">
-                                                                      {inst.vehicles.filter(v => v.active).map(v => (
-                                                                          <span key={v.id} className="text-xs">
-                                                                              {v.type === 'CAR' ? '🚗' : '🏍️'} {v.model} ({v.plate})
-                                                                          </span>
-                                                                      ))}
+                                                                      {inst.vehicles.filter(v => v.active).map(v => {
+                                                                          const anoFab = (v as any).anoFabricacao || (v as any).ano_fabricacao;
+                                                                          const age = anoFab ? new Date().getFullYear() - parseInt(anoFab, 10) : null;
+                                                                          return (
+                                                                              <span key={v.id} className="text-xs font-mono">
+                                                                                  {v.type === 'CAR' ? '🚗' : '🏍️'}{' '}
+                                                                                  {v.plate}
+                                                                                  {anoFab && age !== null ? ` (${anoFab} ${age} ${age === 1 ? 'Ano' : 'Anos'})` : ''}
+                                                                              </span>
+                                                                          );
+                                                                      })}
                                                                   </div>
                                                               ) : (
                                                                   <span className="text-gray-400 print:text-black">-</span>
