@@ -858,7 +858,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       lines.push('👉 Escolha uma data para sua categoria.');
       lines.push('');
       if (filter === 'AB') {
-        lines.push('📌 Obs.: Caso queira agendar as duas categorias, A e B, poderá realizar o agendamento para a mesma data. 📅');
+        lines.push('📌 Obs.: Caso tenha vaga e queira agendar as duas categorias, A e B, poderá realizar o agendamento para a mesma data. 📅');
       }
     } else {
       // PCD / padrão — sem formatação WhatsApp
