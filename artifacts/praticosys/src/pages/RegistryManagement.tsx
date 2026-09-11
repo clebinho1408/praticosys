@@ -1773,7 +1773,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                               ? <Car className={`h-3 w-3 ${hasError ? 'text-red-500' : nearLimit ? 'text-red-500' : 'text-gray-400'}`} />
                               : <Bike className={`h-3 w-3 ${hasError ? 'text-red-500' : nearLimit ? 'text-red-500' : 'text-gray-400'}`} />}
                             {hasError
-                              ? <span className="text-red-600 font-bold">❌ {missing ? 'Não informado' : `${anoFab} (${age} ${age === 1 ? 'ano' : 'anos'}) — acima do limite`}</span>
+                              ? <span className="text-red-600 font-bold">❌ {missing ? '' : `${anoFab} (${age} ${age === 1 ? 'ano' : 'anos'}) — acima do limite`}</span>
                               : <span className={`font-mono ${nearLimit ? 'text-red-600 font-bold' : ''}`}>{anoFab} ({age} {age === 1 ? 'ano' : 'anos'})</span>
                             }
                           </span>

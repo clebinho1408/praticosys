@@ -1645,7 +1645,7 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                                                                   {v.type === 'CAR' ? '🚗' : '🏍️'}{' '}
                                                                                   {v.plate}
                                                                                   {hasError
-                                                                                      ? <> ❌ {missing ? 'Não informado' : `(${anoFab} ${age} ${age === 1 ? 'Ano' : 'Anos'}) — acima do limite`}</>
+                                                                                      ? <> ❌ {missing ? '' : `(${anoFab} ${age} ${age === 1 ? 'Ano' : 'Anos'}) — acima do limite`}</>
                                                                                       : anoFab && age !== null ? ` (${anoFab} ${age} ${age === 1 ? 'Ano' : 'Anos'})` : ''
                                                                                   }
                                                                               </span>
