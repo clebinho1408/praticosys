@@ -1634,12 +1634,20 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                                                   <div className="flex flex-col gap-0.5">
                                                                       {inst.vehicles.filter(v => v.active).map(v => {
                                                                           const anoFab = (v as any).anoFabricacao || (v as any).ano_fabricacao;
-                                                                          const age = anoFab ? new Date().getFullYear() - parseInt(anoFab, 10) : null;
+                                                                          const limit = v.type === 'CAR' ? (settings?.anoFabricacaoMaximo?.B ?? null) : (settings?.anoFabricacaoMaximo?.A ?? null);
+                                                                          const missing = !anoFab;
+                                                                          const age = missing ? null : new Date().getFullYear() - parseInt(anoFab, 10);
+                                                                          const overLimit = !missing && limit !== null && age! > limit;
+                                                                          const nearLimit = !missing && !overLimit && limit !== null && age! >= limit - 1;
+                                                                          const hasError = missing || overLimit;
                                                                           return (
-                                                                              <span key={v.id} className="text-xs font-mono print:text-[10px]">
+                                                                              <span key={v.id} className={`text-xs font-mono print:text-[10px] ${hasError ? 'text-red-600 font-bold' : nearLimit ? 'text-red-600 font-bold' : ''}`}>
                                                                                   {v.type === 'CAR' ? '🚗' : '🏍️'}{' '}
                                                                                   {v.plate}
-                                                                                  {anoFab && age !== null ? ` (${anoFab} ${age} ${age === 1 ? 'Ano' : 'Anos'})` : ''}
+                                                                                  {hasError
+                                                                                      ? <> ❌ {missing ? 'Não informado' : `(${anoFab} ${age} ${age === 1 ? 'Ano' : 'Anos'}) — acima do limite`}</>
+                                                                                      : anoFab && age !== null ? ` (${anoFab} ${age} ${age === 1 ? 'Ano' : 'Anos'})` : ''
+                                                                                  }
                                                                               </span>
                                                                           );
                                                                       })}
