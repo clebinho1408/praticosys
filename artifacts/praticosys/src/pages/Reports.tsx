@@ -1541,21 +1541,21 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
               </div>
 
               {/* Print Header (Visible only in print) */}
-              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-0 print:-mt-6">
-                  <div className="flex items-center gap-6 border-b-2 border-black pb-4 print:pb-1 print:gap-6">
+              <div className="hidden print:block border-b-2 border-black mb-4 print:mb-0 print:mt-0">
+                  <div className="flex items-center gap-4 border-b-2 border-black pb-2 print:pb-1 print:gap-4">
                       {settings?.logoUrl ? (
-                          <img src={settings.logoUrl} className="h-16 w-auto print:h-16" />
+                          <img src={settings.logoUrl} className="h-16 w-auto print:h-14 print:w-auto print:max-w-[80px] print:object-contain print:flex-shrink-0" />
                       ) : (
-                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-16 print:w-16 print:text-xs">LOGO</div>
+                          <div className="h-16 w-16 bg-gray-200 flex items-center justify-center text-black font-bold text-xs border border-black print:h-14 print:w-14 print:flex-shrink-0 print:text-xs">LOGO</div>
                       )}
                       <div>
-                          <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-xl">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
-                          <h2 className="text-2xl font-bold uppercase text-black print:text-2xl">{reportType === 'cfc' ? 'LISTA GERAL DE EXAMINADORES' : 'LISTA GERAL DE INSTRUTORES DA CNH DO BRASIL'}</h2>
+                          <h1 className="text-xl font-bold uppercase tracking-tight text-black print:text-base">{settings?.agencyName || 'AGÊNCIA REGIONAL'}</h1>
+                          <h2 className="text-2xl font-bold uppercase text-black print:text-lg">{reportType === 'cfc' ? 'LISTA GERAL DE EXAMINADORES' : 'LISTA GERAL DE INSTRUTORES DA CNH DO BRASIL'}</h2>
                       </div>
                   </div>
               </div>
 
-              <div className="overflow-x-auto print:overflow-visible print:mt-1 print:mb-1">
+              <div className="overflow-x-auto print:overflow-visible print:mt-1 print:mb-1 [&_*]:print:text-[10px]">
                   <table className="w-full">
                       <tfoot className="hidden print:table-footer-group">
                           <tr>
@@ -1608,35 +1608,35 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                       filteredInstructors.length === 0 ? (
                                           <div className="p-10 text-center text-gray-400">Nenhum instrutor encontrado.</div>
                                       ) : (
-                                          <table className="w-full text-sm text-left">
+                                          <table className="w-full text-sm text-left print:text-[10px]">
                                               <thead className="bg-gray-50 text-gray-500 border-b print:bg-white print:text-black print:border-black">
                                                   <tr>
-                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Nome</th>
-                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">CPF</th>
-                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Telefone</th>
-                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Categoria</th>
-                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-1">Veículos</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-0.5 print:text-[10px]">Nome</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-0.5 print:text-[10px]">CPF</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-0.5 print:text-[10px]">Telefone</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-0.5 print:text-[10px]">Categoria</th>
+                                                      <th className="px-6 py-3 font-bold uppercase text-xs print:px-2 print:py-0.5 print:text-[10px]">Veículos</th>
                                                   </tr>
                                               </thead>
                                               <tbody className="divide-y divide-gray-100 print:divide-gray-200">
                                                   {filteredInstructors.map(inst => (
                                                       <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
-                                                          <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-1 print:text-black">{inst.name}</td>
-                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.cpf}</td>
-                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">{inst.phone}</td>
-                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
-                                                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0">
+                                                          <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-0.5 print:text-black print:text-[10px]">{inst.name}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-0.5 print:text-black print:text-[10px]">{inst.cpf}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-0.5 print:text-black print:text-[10px]">{inst.phone}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-0.5 print:text-black print:text-[10px]">
+                                                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0 print:text-[10px]">
                                                                   {inst.category || 'N/A'}
                                                               </span>
                                                           </td>
-                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-1 print:text-black">
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-0.5 print:text-black print:text-[10px]">
                                                               {inst.vehicles && inst.vehicles.filter(v => v.active).length > 0 ? (
-                                                                  <div className="flex flex-col gap-1">
+                                                                  <div className="flex flex-col gap-0.5">
                                                                       {inst.vehicles.filter(v => v.active).map(v => {
                                                                           const anoFab = (v as any).anoFabricacao || (v as any).ano_fabricacao;
                                                                           const age = anoFab ? new Date().getFullYear() - parseInt(anoFab, 10) : null;
                                                                           return (
-                                                                              <span key={v.id} className="text-xs font-mono">
+                                                                              <span key={v.id} className="text-xs font-mono print:text-[10px]">
                                                                                   {v.type === 'CAR' ? '🚗' : '🏍️'}{' '}
                                                                                   {v.plate}
                                                                                   {anoFab && age !== null ? ` (${anoFab} ${age} ${age === 1 ? 'Ano' : 'Anos'})` : ''}
