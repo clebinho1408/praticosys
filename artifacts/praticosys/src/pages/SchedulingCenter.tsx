@@ -507,7 +507,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       window.removeEventListener('afterprint', restoreTitle);
     };
 
-    document.title = `LISTA DE CANDIDATOS DO EXAME PRÁTICO ${examDate}`;
+    document.title = `Lista de Candidatos do Exame Prático ${examDate}`;
     window.addEventListener('afterprint', restoreTitle, { once: true });
 
     requestAnimationFrame(() => {
