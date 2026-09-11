@@ -1279,6 +1279,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               {user.role !== UserRole.INSTRUCTOR && (
                 <option value="">Selecione...</option>
               )}
+              <option value="PROVA DE DIRECAO PCD">PROVA DE DIRECAO PCD</option>
+              <option value="PROVA DE REABILITACAO">PROVA DE REABILITACAO</option>
               {availableInstructors.map((inst) => (
                 <option key={inst.id} value={inst.name}>
                   {inst.name}
@@ -1419,7 +1421,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const handleNewCandidate = () => {
     const isCnhBrasil = typeFilter === ExamType.COMMON && excludeRegularSchools;
-    if (isCnhBrasil) {
+    const isAdminOrSup = user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR;
+    if (isCnhBrasil && !isAdminOrSup) {
       setIsCnhSchedulingWarningOpen(true);
       return;
     }
