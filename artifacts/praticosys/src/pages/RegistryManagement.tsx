@@ -1757,17 +1757,25 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                    )}
                 </td>
                 <td className="px-4 py-3 text-gray-500 text-xs">
-                  {inst.vehicles && inst.vehicles.filter(v => v.active && (v as any).anoFabricacao).length > 0 ? (
+                  {inst.vehicles && inst.vehicles.filter(v => v.active).length > 0 ? (
                     <div className="flex flex-col gap-1">
-                      {inst.vehicles.filter(v => v.active && (v as any).anoFabricacao).map(v => {
-                        const ano = parseInt((v as any).anoFabricacao, 10);
-                        const age = new Date().getFullYear() - ano;
+                      {inst.vehicles.filter(v => v.active).map(v => {
+                        const anoFab = (v as any).anoFabricacao;
                         const limit = v.type === 'CAR' ? vehicleAgeLimit.B : vehicleAgeLimit.A;
-                        const nearLimit = limit !== null && age >= limit - 1;
+                        const missing = !anoFab;
+                        const age = missing ? null : new Date().getFullYear() - parseInt(anoFab, 10);
+                        const overLimit = !missing && limit !== null && age! > limit;
+                        const nearLimit = !missing && !overLimit && limit !== null && age! >= limit - 1;
+                        const hasError = missing || overLimit;
                         return (
                           <span key={v.id} className="inline-flex items-center gap-1">
-                            {v.type === 'CAR' ? <Car className={`h-3 w-3 ${nearLimit ? 'text-red-500' : 'text-gray-400'}`} /> : <Bike className={`h-3 w-3 ${nearLimit ? 'text-red-500' : 'text-gray-400'}`} />}
-                            <span className={`font-mono ${nearLimit ? 'text-red-600 font-bold' : ''}`}>{(v as any).anoFabricacao} ({age} {age === 1 ? 'ano' : 'anos'})</span>
+                            {v.type === 'CAR'
+                              ? <Car className={`h-3 w-3 ${hasError ? 'text-red-500' : nearLimit ? 'text-red-500' : 'text-gray-400'}`} />
+                              : <Bike className={`h-3 w-3 ${hasError ? 'text-red-500' : nearLimit ? 'text-red-500' : 'text-gray-400'}`} />}
+                            {hasError
+                              ? <span className="text-red-600 font-bold">❌ {missing ? 'Não informado' : `${anoFab} (${age} ${age === 1 ? 'ano' : 'anos'}) — acima do limite`}</span>
+                              : <span className={`font-mono ${nearLimit ? 'text-red-600 font-bold' : ''}`}>{anoFab} ({age} {age === 1 ? 'ano' : 'anos'})</span>
+                            }
                           </span>
                         );
                       })}
