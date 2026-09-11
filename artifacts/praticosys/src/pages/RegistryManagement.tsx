@@ -1762,10 +1762,12 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                       {inst.vehicles.filter(v => v.active && (v as any).anoFabricacao).map(v => {
                         const ano = parseInt((v as any).anoFabricacao, 10);
                         const age = new Date().getFullYear() - ano;
+                        const limit = v.type === 'CAR' ? vehicleAgeLimit.B : vehicleAgeLimit.A;
+                        const nearLimit = limit !== null && age >= limit - 1;
                         return (
                           <span key={v.id} className="inline-flex items-center gap-1">
-                            {v.type === 'CAR' ? <Car className="h-3 w-3 text-gray-400" /> : <Bike className="h-3 w-3 text-gray-400" />}
-                            <span className="font-mono">{(v as any).anoFabricacao} ({age} {age === 1 ? 'ano' : 'anos'})</span>
+                            {v.type === 'CAR' ? <Car className={`h-3 w-3 ${nearLimit ? 'text-red-500' : 'text-gray-400'}`} /> : <Bike className={`h-3 w-3 ${nearLimit ? 'text-red-500' : 'text-gray-400'}`} />}
+                            <span className={`font-mono ${nearLimit ? 'text-red-600 font-bold' : ''}`}>{(v as any).anoFabricacao} ({age} {age === 1 ? 'ano' : 'anos'})</span>
                           </span>
                         );
                       })}
