@@ -1622,7 +1622,7 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                                   {filteredInstructors.map(inst => (
                                                       <tr key={inst.id} className="hover:bg-gray-50 transition-colors print:hover:bg-transparent">
                                                           <td className="px-6 py-4 font-bold text-gray-800 uppercase print:px-2 print:py-0.5 print:text-black print:text-[10px]">{inst.name}</td>
-                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-0.5 print:text-black print:text-[10px]">{inst.cpf ? inst.cpf.replace(/^(\d{3})\.(\d{3})\.(\d{3})-(\d{2})$/, '***.***.$3-**') : inst.cpf}</td>
+                                                          <td className="px-6 py-4 text-gray-500 print:px-2 print:py-0.5 print:text-black print:text-[10px]">{inst.cpf ? (() => { const d = inst.cpf.replace(/\D/g, ''); return d.length === 11 ? `***.***.${ d.slice(6,9) }-**` : inst.cpf; })() : '-'}</td>
                                                           <td className="px-6 py-4 text-gray-500 print:px-2 print:py-0.5 print:text-black print:text-[10px]">{inst.phone}</td>
                                                           <td className="px-6 py-4 text-gray-500 print:px-2 print:py-0.5 print:text-black print:text-[10px]">
                                                               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-bold print:bg-transparent print:text-black print:p-0 print:text-[10px]">
