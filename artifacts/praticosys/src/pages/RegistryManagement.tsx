@@ -1717,6 +1717,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
               <th className="px-4 py-3">Telefone</th>
               <th className="px-4 py-3">Categoria</th>
               <th className="px-4 py-3">Veículos</th>
+              <th className="px-4 py-3">Carro/Moto Ano Fab.</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
@@ -1755,6 +1756,24 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                        <span className="text-gray-400">-</span>
                    )}
                 </td>
+                <td className="px-4 py-3 text-gray-500 text-xs">
+                  {inst.vehicles && inst.vehicles.filter(v => v.active && (v as any).anoFabricacao).length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      {inst.vehicles.filter(v => v.active && (v as any).anoFabricacao).map(v => {
+                        const ano = parseInt((v as any).anoFabricacao, 10);
+                        const age = new Date().getFullYear() - ano;
+                        return (
+                          <span key={v.id} className="inline-flex items-center gap-1">
+                            {v.type === 'CAR' ? <Car className="h-3 w-3 text-gray-400" /> : <Bike className="h-3 w-3 text-gray-400" />}
+                            <span className="font-mono">{(v as any).anoFabricacao} ({age} {age === 1 ? 'ano' : 'anos'})</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   {user?.role !== UserRole.CONSULTANT && (
                     <>
@@ -1766,7 +1785,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
               </tr>
             ))}
              {filteredInstructors.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-center text-gray-500">Nenhum instrutor encontrado.</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-gray-500">Nenhum instrutor encontrado.</td></tr>
             )}
           </tbody>
         </table>
