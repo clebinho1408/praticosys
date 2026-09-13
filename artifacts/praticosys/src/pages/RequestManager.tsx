@@ -1810,10 +1810,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   };
 
   const filteredRequests = requests.filter(
-    (r) =>
-      (r.socialName || r.studentName)
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) || r.cpf.includes(searchTerm),
+      (r) => {
+        const term = searchTerm.replace(/[.\-]/g, '');
+        return (
+          (r.socialName || r.studentName).toLowerCase().includes(term.toLowerCase()) ||
+          (r.cpf || '').replace(/[.\-]/g, '').includes(term)
+        );
+      },
   );
 
   // Group requests by status
@@ -1986,12 +1989,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               placeholder="Buscar por nome ou CPF..."
               className="w-full pl-10 pr-4 py-3 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
               value={searchTerm}
-              onChange={(e) => {
-                let val = e.target.value;
-                // Normaliza CPF colado com pontos/traços → apenas dígitos
-                if (/^[\d.\-/]+$/.test(val) && val.replace(/\D/g, '').length >= 11) val = val.replace(/\D/g, '');
-                setSearchTerm(val);
-              }}
+              onChange={(e) => setSearchTerm(e.target.value.replace(/[.\-]/g, ''))}
             />
           </div>
 
@@ -2028,12 +2026,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 placeholder="Buscar por nome ou CPF..."
                 className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
                 value={searchTerm}
-                onChange={(e) => {
-                  let val = e.target.value;
-                  // Normaliza CPF colado com pontos/traços → apenas dígitos
-                  if (/^[\d.\-/]+$/.test(val) && val.replace(/\D/g, '').length >= 11) val = val.replace(/\D/g, '');
-                  setSearchTerm(val);
-                }}
+                onChange={(e) => setSearchTerm(e.target.value.replace(/[.\-]/g, ''))}
               />
             </div>
 
