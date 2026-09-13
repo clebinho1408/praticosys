@@ -1434,7 +1434,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
                                                         )}
                                                     </div>
                                                     <div className="flex gap-2 text-xs text-gray-500">
-                                                        <span>CPF: {maskCpf(req.cpf)}</span>
+                                                        <span>CPF: {req.cpf}</span>
                                                         <span className="text-gray-300">|</span>
                                                         <span>Cidade: {req.city || '-'}</span>
                                                         <span className="text-gray-300">|</span>
@@ -1942,7 +1942,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                               </div>
                                               <div className="flex-1">
                                                   <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
-                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">CPF: {cand.cpf}</div>
+                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">CPF: {maskCpf(cand.cpf)}</div>
                                                   <div className="text-xs text-gray-600 font-medium mt-0.5">Cidade: {cand.city || "-"}</div>
                                                   <div className="text-xs text-gray-400 mt-1">Instrutor: {cand.instructor || "-"}</div>
                                               </div>
@@ -1993,7 +1993,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                               </div>
                                               <div className="flex-1">
                                                   <div className="text-sm font-bold text-gray-800 uppercase">{cand.socialName || cand.studentName}</div>
-                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">CPF: {cand.cpf}</div>
+                                                  <div className="text-xs text-gray-600 font-medium mt-0.5">CPF: {maskCpf(cand.cpf)}</div>
                                                   <div className="text-xs text-gray-600 font-medium mt-0.5">Cidade: {cand.city || "-"}</div>
                                                   <div className="text-xs text-gray-400 mt-1">Instrutor: {cand.instructor || "-"}</div>
                                               </div>
