@@ -147,6 +147,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const isAdminOpSup = user.role === UserRole.ADMIN || user.role === UserRole.OPERATOR || user.role === UserRole.SUPERVISOR;
   const isConsultant = user.role === UserRole.CONSULTANT;
+  const requiresManualVehicleYearCheck =
+    typeFilter === ExamType.COMMON && !!excludeRegularSchools;
 
   // Estado para controlar quais grupos estão expandidos
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
@@ -205,6 +207,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   // Form State
   const [formData, setFormData] = useState<Partial<ExamRequest>>({});
+  const [manualVehicleYears, setManualVehicleYears] = useState<
+    Record<"A" | "B", { year: string; verified: boolean }>
+  >({
+    A: { year: "", verified: false },
+    B: { year: "", verified: false },
+  });
   const [resultData, setResultData] = useState<{
     result: ExamResult;
     observation: string;
@@ -492,6 +500,30 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       setErrorField("cpf");
       setIsErrorModalOpen(true);
       return;
+    }
+
+    const categoriesToValidate: Array<"A" | "B"> =
+      formData.intendedCategory === "AB"
+        ? ["A", "B"]
+        : formData.intendedCategory === "A" || formData.intendedCategory === "B"
+          ? [formData.intendedCategory]
+          : [];
+
+    for (const category of categoriesToValidate) {
+      const flagKey =
+        category === "A" ? "doCandidatoMoto" : "doCandidatoCarro";
+      if (
+        requiresManualVehicleYearCheck &&
+        !!(formData as Record<string, unknown>)[flagKey] &&
+        !manualVehicleYears[category].verified
+      ) {
+        setErrorMessage(
+          `Verifique o Ano Veículo da Categoria ${category} antes de preencher a placa.`,
+        );
+        setErrorField(`vehicleYear_${category}`);
+        setIsErrorModalOpen(true);
+        return;
+      }
     }
 
     // Verificação de CPF duplicado (somente ao criar novo candidato)
@@ -1152,9 +1184,21 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     // doCandidatoMoto → Cat A, doCandidatoCarro → Cat B
     const flagKey = categoryCode === "A" ? "doCandidatoMoto" : "doCandidatoCarro";
     const isDoCandidato = !!(formData as any)[flagKey];
+    const shouldVerifyManualVehicleYear =
+      requiresManualVehicleYearCheck && isDoCandidato && !isViewOnly;
+    const manualVehicleYear = manualVehicleYears[categoryCode];
+    const vehicleAgeLimit =
+      categoryCode === "A"
+        ? settings?.anoFabricacaoMaximo?.A
+        : settings?.anoFabricacaoMaximo?.B;
 
     // Helper para marcar/desmarcar o checkbox
     const setDoCandidato = (checked: boolean) => {
+      setManualVehicleYears((current) => ({
+        ...current,
+        [categoryCode]: { year: "", verified: false },
+      }));
+
       if (formData.intendedCategory === "AB") {
         if (categoryCode === "A") {
           const otherPartInstr = formData.instructor?.split(" / ")[1] || "";
@@ -1178,6 +1222,64 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       } else {
         setFormData({ ...formData, [flagKey]: checked, vehiclePlate: "" } as any);
       }
+    };
+
+    const updateManualVehicleYear = (value: string) => {
+      const year = value.replace(/\D/g, "").slice(0, 4);
+      setManualVehicleYears((current) => ({
+        ...current,
+        [categoryCode]: { year, verified: false },
+      }));
+      updatePlate("");
+    };
+
+    const verifyManualVehicleYear = () => {
+      const year = Number(manualVehicleYear.year);
+      const currentYear = new Date().getFullYear();
+
+      if (
+        manualVehicleYear.year.length !== 4 ||
+        !Number.isInteger(year) ||
+        year <= 0 ||
+        year > currentYear
+      ) {
+        setErrorMessage("Informe um Ano Veículo válido com quatro dígitos.");
+        setErrorField(`vehicleYear_${categoryCode}`);
+        setIsErrorModalOpen(true);
+        return;
+      }
+
+      if (vehicleAgeLimit == null || vehicleAgeLimit <= 0) {
+        setErrorMessage(
+          `O limite de idade para veículos da Categoria ${categoryCode} não está configurado.`,
+        );
+        setErrorField(`vehicleYear_${categoryCode}`);
+        setIsErrorModalOpen(true);
+        return;
+      }
+
+      const vehicleAge = currentYear - year;
+      if (vehicleAge > vehicleAgeLimit) {
+        setManualVehicleYears((current) => ({
+          ...current,
+          [categoryCode]: {
+            year: manualVehicleYear.year,
+            verified: false,
+          },
+        }));
+        updatePlate("");
+        setErrorMessage(
+          `⚠️ Veículo não poderá ser cadastrado — ano mais antigo que o permitido (${vehicleAgeLimit} anos máx.).`,
+        );
+        setErrorField(`vehicleYear_${categoryCode}`);
+        setIsErrorModalOpen(true);
+        return;
+      }
+
+      setManualVehicleYears((current) => ({
+        ...current,
+        [categoryCode]: { year: manualVehicleYear.year, verified: true },
+      }));
     };
 
     // Helper para atualizar placa no formData (respeitando formato AB)
@@ -1291,7 +1393,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700">
-                Veículo/Placa <span className="text-red-500">*</span>
+                {shouldVerifyManualVehicleYear && !manualVehicleYear.verified
+                  ? "Ano Veículo"
+                  : "Veículo/Placa"}{" "}
+                <span className="text-red-500">*</span>
               </label>
               {categoryCode === "B" && (
                 <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -1308,8 +1413,29 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 </label>
               )}
             </div>
-            {/* Quando "Inserir placa manualmente" marcado: campo de texto livre para placa */}
-            {isDoCandidato ? (
+            {shouldVerifyManualVehicleYear && !manualVehicleYear.verified ? (
+              <div className="flex gap-2">
+                <input
+                  id={`vehicleYear_${categoryCode}`}
+                  type="text"
+                  inputMode="numeric"
+                  className="min-w-0 flex-1 border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900"
+                  placeholder="Ex: 2018"
+                  value={manualVehicleYear.year}
+                  onChange={(e) => updateManualVehicleYear(e.target.value)}
+                  maxLength={4}
+                  disabled={isViewOnly}
+                />
+                <button
+                  type="button"
+                  onClick={verifyManualVehicleYear}
+                  disabled={isViewOnly || manualVehicleYear.year.length !== 4}
+                  className="shrink-0 rounded-md bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                >
+                  Verificar
+                </button>
+              </div>
+            ) : isDoCandidato ? (
               <input
                 type="text"
                 className="w-full border rounded-md p-2 focus:ring-2 focus:ring-blue-500 outline-none bg-white text-gray-900 uppercase"
@@ -1317,6 +1443,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 value={currentPlate}
                 onChange={(e) => updatePlate(e.target.value.toUpperCase())}
                 maxLength={8}
+                disabled={isViewOnly}
               />
             ) : (
               <select
@@ -1382,6 +1509,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const openCreateModal = (req?: ExamRequest) => {
     setEditingRequest(req || null);
     setActiveTab("personal");
+    setManualVehicleYears({
+      A: { year: "", verified: false },
+      B: { year: "", verified: false },
+    });
     if (req) {
       setFormData(req);
     } else {
