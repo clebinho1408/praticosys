@@ -1083,7 +1083,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
   // Usa fullAvailableRequests como base (já aplica filtro de regiões do local padrão)
   const availableRequests = fullAvailableRequests
     .filter(r => {
-        const matchesSearch = (r.socialName || r.studentName || '').toLowerCase().includes(studentSearch.toLowerCase()) || (r.cpf || '').includes(studentSearch);
+        const term = studentSearch.replace(/[.\-]/g, '');
+        const matchesSearch = (r.socialName || r.studentName || '').toLowerCase().includes(term.toLowerCase()) || (r.cpf || '').replace(/[.\-]/g, '').includes(term);
         const matchesSchool = user.role !== UserRole.SCHOOL || r.schoolId === user.schoolId;
         const matchesSource = r.source === RequestSource.STUDENT_DIRECT;
         return matchesSearch && matchesSchool && matchesSource;
@@ -1896,7 +1897,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                             placeholder="Buscar nome ou CPF..." 
                             className="w-full pl-10 pr-4 py-2 border rounded-md text-sm bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                             value={studentSearch} 
-                            onChange={e => setSearchTermInput(e.target.value)} 
+                            onChange={e => setSearchTermInput(e.target.value.replace(/[.\-]/g, ''))} 
                           />
                       </div>
                   </div>
