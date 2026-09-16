@@ -509,6 +509,71 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           ? [formData.intendedCategory]
           : [];
 
+    if (requiresManualVehicleYearCheck) {
+      for (const category of categoriesToValidate) {
+        const flagKey =
+          category === "A" ? "doCandidatoMoto" : "doCandidatoCarro";
+        const isManualPlate = !!(formData as Record<string, unknown>)[flagKey];
+        if (isManualPlate) continue;
+
+        const instructorName =
+          formData.intendedCategory === "AB"
+            ? formData.instructor
+                ?.split(" / ")
+                [category === "A" ? 0 : 1]?.replace(
+                  category === "A" ? /^Moto:\s*/ : /^Carro:\s*/,
+                  "",
+                )
+            : formData.instructor;
+        const plate =
+          formData.intendedCategory === "AB"
+            ? formData.vehiclePlate
+                ?.split(" / ")
+                [category === "A" ? 0 : 1]?.replace(
+                  category === "A" ? /^Moto:\s*/ : /^Carro:\s*/,
+                  "",
+                )
+            : formData.vehiclePlate;
+
+        if (!instructorName || !plate || plate === "A DEFINIR") continue;
+
+        const instructor = instructors.find(
+          (item) => item.name === instructorName,
+        );
+        const vehicle = instructor?.vehicles?.find(
+          (item) =>
+            item.plate === plate &&
+            item.type === (category === "A" ? "MOTO" : "CAR"),
+        );
+        const ageLimit =
+          category === "A"
+            ? settings?.anoFabricacaoMaximo?.A
+            : settings?.anoFabricacaoMaximo?.B;
+        const manufactureYear = Number(vehicle?.anoFabricacao);
+        const hasValidManufactureYear =
+          !!vehicle?.anoFabricacao &&
+          /^\d{4}$/.test(vehicle.anoFabricacao) &&
+          manufactureYear > 0 &&
+          manufactureYear <= new Date().getFullYear();
+        const exceedsAgeLimit =
+          hasValidManufactureYear &&
+          ageLimit != null &&
+          ageLimit > 0 &&
+          new Date().getFullYear() - manufactureYear > ageLimit;
+
+        if (!hasValidManufactureYear || exceedsAgeLimit) {
+          setErrorMessage(
+            `⚠️ ATENÇÃO!\n\nA placa ${plate} já atingiu o número máximo de anos permitido para a realização da Prova Prática.\n\n❌ Não é possível prosseguir com o agendamento.`,
+          );
+          setErrorField(
+            category === "A" ? "instructor_A" : "instructor_B",
+          );
+          setIsErrorModalOpen(true);
+          return;
+        }
+      }
+    }
+
     for (const category of categoriesToValidate) {
       const flagKey =
         category === "A" ? "doCandidatoMoto" : "doCandidatoCarro";
@@ -3729,7 +3794,9 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               </div>
 
               <h3 className="text-xl font-bold text-gray-900 mb-2">Atenção</h3>
-              <div className="text-gray-600 mb-6">{errorMessage}</div>
+              <div className="text-gray-600 mb-6 whitespace-pre-line">
+                {errorMessage}
+              </div>
 
               <button
                 onClick={() => {
