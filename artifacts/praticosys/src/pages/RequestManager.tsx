@@ -553,8 +553,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         const hasValidManufactureYear =
           !!vehicle?.anoFabricacao &&
           /^\d{4}$/.test(vehicle.anoFabricacao) &&
-          manufactureYear > 0 &&
-          manufactureYear <= new Date().getFullYear();
+          manufactureYear > 0;
         const exceedsAgeLimit =
           hasValidManufactureYear &&
           ageLimit != null &&
@@ -1305,8 +1304,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       if (
         manualVehicleYear.year.length !== 4 ||
         !Number.isInteger(year) ||
-        year <= 0 ||
-        year > currentYear
+        year <= 0
       ) {
         setErrorMessage("Informe um Ano Veículo válido com quatro dígitos.");
         setErrorField(`vehicleYear_${categoryCode}`);
