@@ -1633,7 +1633,7 @@ const Reports: React.FC<{ reportTypeProp?: string; user?: User }> = ({ reportTyp
                                                               {inst.vehicles && inst.vehicles.filter(v => v.active).length > 0 ? (
                                                                   <div className="flex flex-col gap-0.5">
                                                                       {inst.vehicles.filter(v => v.active).map(v => {
-                                                                          const anoFab = (v as any).anoModelo || (v as any).ano_modelo || (v as any).anoFabricacao || (v as any).ano_fabricacao;
+                                                                          const anoFab = (v as any).anoFabricacao || (v as any).ano_fabricacao;
                                                                           const limit = v.type === 'CAR' ? (settings?.anoFabricacaoMaximo?.B ?? null) : (settings?.anoFabricacaoMaximo?.A ?? null);
                                                                           const missing = !anoFab;
                                                                           const age = missing ? null : new Date().getFullYear() - parseInt(anoFab, 10);

@@ -1,13 +1,5 @@
 import { ExamRequest, ExamSchedule, ExamLocation, Examiner, Instructor, DrivingSchool, SystemSettings, User, City, BancaResult } from '../types';
 
-export interface VehicleLookupResult {
-  plate: string;
-  brand: string;
-  model: string;
-  brandModel: string;
-  modelYear: string;
-}
-
 // With Cloudflare Pages Functions, the API runs on the same domain as the frontend.
 // All /api/* requests are handled by functions/api/* — no external backend needed.
 // In development, the Vite proxy forwards /api/* to localhost:3000.
@@ -95,8 +87,8 @@ export const api = {
   updateInstructor: (id: string, data: Partial<Instructor>) => request<Instructor>('/instructors', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteInstructor: (id: string) => request<void>(`/instructors?id=${id}`, { method: 'DELETE' }),
 
-  // --- VEHICLE LOOKUP (API FULL, via backend) ---
-  lookupVehicle: (plate: string) => request<VehicleLookupResult>(`/vehicle-lookup?plate=${encodeURIComponent(plate)}`),
+  // --- VEHICLE LOOKUP (SINESP) ---
+  lookupVehicle: (plate: string) => request<any>(`/vehicle-lookup?plate=${encodeURIComponent(plate)}`),
 
   // --- DRIVING SCHOOLS ---
   getSchools: () => request<DrivingSchool[]>('/schools'),

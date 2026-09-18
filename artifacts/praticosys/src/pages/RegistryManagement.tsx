@@ -7,6 +7,8 @@ import { ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
 
+import { FIPE_CAR_BRANDS, FIPE_MOTO_BRANDS, FIPE_CAR_MODELS, FIPE_MOTO_MODELS } from '../data/fipeData';
+
 const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
   const isSupervisor = user.role === UserRole.SUPERVISOR;
   const [activeTab, setActiveTab] = useState<Tab>(() => isSupervisor ? 'INSTRUCTORS' : 'USERS');
@@ -1447,17 +1449,11 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
     accessories: string[];
     duploComando: boolean;
     procuracao: boolean;
-    anoModelo: string;
-  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoModelo: '' });
+    anoFabricacao: string;
+  }>({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' });
   
   const [accessoryInput, setAccessoryInput] = useState('');
   const [vehicleAgeLimit, setVehicleAgeLimit] = useState<{ A: number | null; B: number | null; CDE: number | null }>({ A: null, B: null, CDE: null });
-  const [vehicleLookupLoading, setVehicleLookupLoading] = useState(false);
-  const [vehicleLookupError, setVehicleLookupError] = useState('');
-  const [lookedUpPlate, setLookedUpPlate] = useState('');
-  const [brandModelText, setBrandModelText] = useState('');
-  const vehiclePlateRef = React.useRef('');
-  const vehicleLookupRequestRef = React.useRef(0);
 
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -1480,8 +1476,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   const fetch = async () => setInstructors(await api.getInstructorsAsync());
   useEffect(() => {
     fetch();
-    // Os limites históricos continuam com o mesmo nome na configuração,
-    // mas a validação de novos cadastros usa o ano do modelo.
+    // Busca os limites de fabricação logo ao montar o componente
     api.getSettings().then((s) => {
       const lim = {
         A: s?.anoFabricacaoMaximo?.A ?? null,
@@ -1491,13 +1486,11 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
       vehicleAgeLimitRef.current = lim;
       setVehicleAgeLimit(lim);
     }).catch((error) => {
-      console.error('Erro ao carregar limites de idade do veículo:', error);
+      console.error('Erro ao carregar limites de ano de fabricação:', error);
     });
   }, []);
 
   const openModal = (inst?: Instructor) => {
-    vehicleLookupRequestRef.current += 1;
-    setVehicleLookupLoading(false);
     setEditing(inst || null);
     if (inst) {
         setFormData({
@@ -1519,10 +1512,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
         });
     }
     setModalTab('DATA');
-    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoModelo: '' });
-    setVehicleLookupError('');
-    setLookedUpPlate('');
-    setBrandModelText('');
+    setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' });
     setAccessoryInput('');
     setEditingVehicleId(null);
     setIsModalOpen(true);
@@ -1530,8 +1520,6 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    vehicleLookupRequestRef.current += 1;
-    setVehicleLookupLoading(false);
     if (editing) await api.updateInstructor(editing.id, formData);
     else await api.createInstructor(formData);
     setIsModalOpen(false);
@@ -1562,98 +1550,19 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
   };
 
   // --- Vehicle Management Logic ---
-  const handleVehiclePlateChange = (rawValue: string) => {
-      const plate = rawValue.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
-      vehiclePlateRef.current = plate;
-      const shouldClearLookup = !!lookedUpPlate && plate !== lookedUpPlate;
-      setNewVehicle(current => ({
-          ...current,
-          plate,
-          ...(shouldClearLookup ? { brand: '', model: '', anoModelo: '' } : {}),
-      }));
-      if (shouldClearLookup) {
-          setLookedUpPlate('');
-          setBrandModelText('');
-      }
-      setVehicleLookupError('');
-  };
-
-  const handleBrandModelChange = (rawValue: string) => {
-      const value = rawValue.toUpperCase();
-      setBrandModelText(value);
-      const [brand = '', ...modelParts] = value.split(/\s*\/\s*/);
-      setNewVehicle(current => ({
-          ...current,
-          brand: brand.trim(),
-          model: modelParts.join(' / ').trim(),
-      }));
-      setVehicleLookupError('');
-  };
-
-  const handleVehicleLookup = async () => {
-      const plate = newVehicle.plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
-      if (!/^[A-Z]{3}(?:[0-9]{4}|[0-9][A-Z][0-9]{2})$/.test(plate)) {
-          setVehicleLookupError('Informe uma placa brasileira válida.');
-          return;
-      }
-      const requestId = ++vehicleLookupRequestRef.current;
-      setVehicleLookupLoading(true);
-      setVehicleLookupError('');
-      try {
-          const result = await api.lookupVehicle(plate);
-          if (vehicleLookupRequestRef.current !== requestId || vehiclePlateRef.current !== plate) return;
-          setNewVehicle(current => ({
-              ...current,
-              plate: result.plate,
-              brand: result.brand,
-              model: result.model,
-              anoModelo: result.modelYear,
-          }));
-          setLookedUpPlate(result.plate);
-          setBrandModelText(result.brandModel);
-      } catch (error: any) {
-          if (vehicleLookupRequestRef.current !== requestId) return;
-          setVehicleLookupError(error?.message || 'Não foi possível consultar a placa.');
-      } finally {
-          if (vehicleLookupRequestRef.current === requestId) {
-              setVehicleLookupLoading(false);
-          }
-      }
-  };
-
-  const clearVehicleLookup = () => {
-      vehicleLookupRequestRef.current += 1;
-      vehiclePlateRef.current = '';
-      setVehicleLookupLoading(false);
-      setNewVehicle(current => ({ ...current, plate: '', brand: '', model: '', anoModelo: '' }));
-      setVehicleLookupError('');
-      setLookedUpPlate('');
-      setBrandModelText('');
-  };
-
   const handleAddVehicle = (type: 'CAR' | 'MOTO') => {
       if (!newVehicle.brand || !newVehicle.model || !newVehicle.plate) {
-          alert('Preencha a placa e informe Marca / Modelo usando o separador "/".');
-          return;
-      }
-      const modelYear = parseInt(newVehicle.anoModelo, 10);
-      if (
-          newVehicle.anoModelo.length !== 4 ||
-          !Number.isInteger(modelYear) ||
-          modelYear < 1900 ||
-          modelYear > new Date().getFullYear() + 1
-      ) {
-          alert(`Informe um ano do modelo válido entre 1900 e ${new Date().getFullYear() + 1}.`);
+          alert('Preencha marca, modelo e placa.');
           return;
       }
 
-      if (newVehicle.anoModelo.length === 4) {
-          const year = parseInt(newVehicle.anoModelo, 10);
+      if (newVehicle.anoFabricacao.length === 4) {
+          const year = parseInt(newVehicle.anoFabricacao, 10);
           const age = new Date().getFullYear() - year;
           const lim = vehicleAgeLimitRef.current;
           const limit = type === 'CAR' ? lim.B : lim.A;
           if (limit !== null && age > limit) {
-              alert(`Veículo não pode ser cadastrado. Ano do modelo ${newVehicle.anoModelo} resulta em ${age} anos de uso, acima do limite de ${limit} anos para esta categoria.`);
+              alert(`Veículo não pode ser cadastrado. Ano de fabricação ${newVehicle.anoFabricacao} resulta em ${age} anos de uso, acima do limite de ${limit} anos para esta categoria.`);
               return;
           }
       }
@@ -1672,7 +1581,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                   accessories: newVehicle.accessories,
                   duploComando: newVehicle.duploComando,
                   procuracao: newVehicle.procuracao,
-                  anoModelo: newVehicle.anoModelo || undefined,
+                  anoFabricacao: newVehicle.anoFabricacao || undefined,
               } : v)
           }));
           setEditingVehicleId(null);
@@ -1690,7 +1599,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
               accessories: newVehicle.accessories,
               duploComando: newVehicle.duploComando,
               procuracao: newVehicle.procuracao,
-              anoModelo: newVehicle.anoModelo || undefined,
+              anoFabricacao: newVehicle.anoFabricacao || undefined,
           };
 
           setFormData(prev => ({
@@ -1699,11 +1608,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           }));
       }
 
-      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoModelo: '' });
-      vehiclePlateRef.current = '';
-      setVehicleLookupError('');
-      setLookedUpPlate('');
-      setBrandModelText('');
+      setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' });
       setAccessoryInput('');
   };
 
@@ -1717,14 +1622,10 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
           accessories: vehicle.accessories || [],
           duploComando: vehicle.duploComando ?? false,
           procuracao: vehicle.procuracao ?? false,
-          anoModelo: vehicle.anoModelo || vehicle.anoFabricacao || '',
+          anoFabricacao: vehicle.anoFabricacao || '',
       });
-      vehiclePlateRef.current = vehicle.plate;
       setEditingVehicleId(vehicle.id);
       setAccessoryInput('');
-      setVehicleLookupError('');
-      setLookedUpPlate(vehicle.plate);
-      setBrandModelText(`${vehicle.brand} / ${vehicle.model}`);
   };
 
   const handleRemoveVehicle = (id: string) => {
@@ -1741,9 +1642,26 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
       }));
   };
   
+  // --- Auto-Complete Helpers ---
+  const availableData = useMemo(() => {
+      const isCar = modalTab === 'CARS';
+      return {
+          brands: isCar ? FIPE_CAR_BRANDS : FIPE_MOTO_BRANDS,
+          models: isCar ? FIPE_CAR_MODELS : FIPE_MOTO_MODELS
+      };
+  }, [modalTab]);
+
+  const availableModels = useMemo(() => {
+      const brand = newVehicle.brand.toUpperCase();
+      if (brand && availableData.models[brand]) {
+          return availableData.models[brand].sort();
+      }
+      return [];
+  }, [availableData, newVehicle.brand]);
+
   const vehicleYearValidation = useMemo(() => {
-      if (newVehicle.anoModelo.length !== 4) return null;
-      const year = parseInt(newVehicle.anoModelo, 10);
+      if (newVehicle.anoFabricacao.length !== 4) return null;
+      const year = parseInt(newVehicle.anoFabricacao, 10);
       const limit = modalTab === 'CARS'
           ? vehicleAgeLimit.B
           : modalTab === 'MOTOS'
@@ -1751,7 +1669,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
               : null;
       if (!year || limit === null || new Date().getFullYear() - year <= limit) return null;
       return { limit };
-  }, [modalTab, newVehicle.anoModelo, vehicleAgeLimit]);
+  }, [modalTab, newVehicle.anoFabricacao, vehicleAgeLimit]);
 
   // Filter Logic
   const filteredInstructors = instructors
@@ -1842,7 +1760,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                   {inst.vehicles && inst.vehicles.filter(v => v.active).length > 0 ? (
                     <div className="flex flex-col gap-1">
                       {inst.vehicles.filter(v => v.active).map(v => {
-                        const anoFab = v.anoModelo || v.anoFabricacao;
+                        const anoFab = (v as any).anoFabricacao;
                         const limit = v.type === 'CAR' ? vehicleAgeLimit.B : vehicleAgeLimit.A;
                         const missing = !anoFab;
                         const age = missing ? null : new Date().getFullYear() - parseInt(anoFab, 10);
@@ -1903,7 +1821,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'B' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { vehicleLookupRequestRef.current += 1; setVehicleLookupLoading(false); setModalTab('CARS'); setEditingVehicleId(null); vehiclePlateRef.current = ''; setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoModelo: '' }); setVehicleLookupError(''); setLookedUpPlate(''); setBrandModelText(''); setAccessoryInput(''); }}
+                        onClick={() => { setModalTab('CARS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'CARS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Car className="h-4 w-4" /> Carros
@@ -1913,7 +1831,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                 {(formData.category === 'A' || formData.category === 'AB') && (
                     <button 
                         type="button"
-                        onClick={() => { vehicleLookupRequestRef.current += 1; setVehicleLookupLoading(false); setModalTab('MOTOS'); setEditingVehicleId(null); vehiclePlateRef.current = ''; setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoModelo: '' }); setVehicleLookupError(''); setLookedUpPlate(''); setBrandModelText(''); setAccessoryInput(''); }}
+                        onClick={() => { setModalTab('MOTOS'); setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' }); setAccessoryInput(''); }} 
                         className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${modalTab === 'MOTOS' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                     >
                        <Bike className="h-4 w-4" /> Motos
@@ -1958,93 +1876,81 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                     {editingVehicleId ? <Edit2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                                     {editingVehicleId ? 'Editar' : 'Adicionar'} {modalTab === 'CARS' ? 'Carro' : 'Moto'}
                                 </h4>
-                                <div>
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Placa</label>
-                                    <div className="flex flex-col sm:flex-row gap-2">
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <input 
+                                            list="brandList"
+                                            placeholder="Marca" 
+                                            className="border rounded p-2 text-sm bg-white w-full uppercase" 
+                                            value={newVehicle.brand}
+                                            onChange={e => setNewVehicle({...newVehicle, brand: e.target.value})}
+                                        />
+                                        <datalist id="brandList">
+                                            {availableData.brands.map(b => <option key={b} value={b} />)}
+                                        </datalist>
+                                    </div>
+                                    
+                                    <div>
+                                        <input 
+                                            list="modelList"
+                                            placeholder="Modelo" 
+                                            className="border rounded p-2 text-sm bg-white w-full uppercase" 
+                                            value={newVehicle.model}
+                                            onChange={e => setNewVehicle({...newVehicle, model: e.target.value})}
+                                        />
+                                        <datalist id="modelList">
+                                            {availableModels.map(m => <option key={m} value={m} />)}
+                                        </datalist>
+                                    </div>
+
+                                    <div className="flex gap-1">
                                         <input 
                                             placeholder="Placa (ex: ABC1234)"
                                             className="flex-1 border rounded p-2 text-sm bg-white font-mono uppercase min-w-0"
                                             value={newVehicle.plate}
-                                            maxLength={7}
-                                            disabled={vehicleLookupLoading}
-                                            onChange={e => handleVehiclePlateChange(e.target.value)}
+                                            maxLength={8}
+                                            onChange={e => setNewVehicle({...newVehicle, plate: e.target.value})}
                                         />
-                                        <button
-                                            type="button"
-                                            onClick={handleVehicleLookup}
-                                            disabled={vehicleLookupLoading || newVehicle.plate.length !== 7}
-                                            className="inline-flex items-center justify-center gap-1.5 rounded bg-blue-600 px-3 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-                                        >
-                                            <Search className="h-3.5 w-3.5" />
-                                            {vehicleLookupLoading ? 'Pesquisando...' : 'Pesquisar'}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={clearVehicleLookup}
-                                            disabled={vehicleLookupLoading || (!newVehicle.plate && !newVehicle.brand && !newVehicle.model && !newVehicle.anoModelo)}
-                                            className="inline-flex items-center justify-center gap-1.5 rounded border border-gray-300 bg-white px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                            <XCircle className="h-3.5 w-3.5" />
-                                            Limpar
-                                        </button>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                                    {modalTab === 'CARS' && (
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Duplo Comando</label>
+                                            <select
+                                                className="w-full border rounded p-2 text-sm bg-white"
+                                                value={newVehicle.duploComando ? 'SIM' : 'NAO'}
+                                                onChange={e => setNewVehicle({...newVehicle, duploComando: e.target.value === 'SIM'})}
+                                            >
+                                                <option value="SIM">Sim</option>
+                                                <option value="NAO">Não</option>
+                                            </select>
+                                        </div>
+                                    )}
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Marca / Modelo</label>
-                                        <input
-                                            type="text"
-                                            placeholder="Ex: VW / NOVO GOL"
-                                            className="w-full border rounded p-2 text-sm bg-white uppercase"
-                                            value={brandModelText}
-                                            onChange={e => handleBrandModelChange(e.target.value)}
-                                        />
-                                        <p className="mt-1 text-[10px] text-gray-400">Para edição manual, mantenha o separador “/”.</p>
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ano do Modelo</label>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Ano de Fabricação</label>
                                         <input
                                             type="text"
                                             maxLength={4}
-                                            placeholder="Ex: 2022"
+                                            placeholder="Ex: 2002"
                                             className="w-full border rounded p-2 text-sm bg-white"
-                                            value={newVehicle.anoModelo}
+                                            value={newVehicle.anoFabricacao}
                                             onChange={e => {
                                                 const val = e.target.value.replace(/\D/g, '').slice(0, 4);
-                                                setNewVehicle({ ...newVehicle, anoModelo: val });
+                                                setNewVehicle({ ...newVehicle, anoFabricacao: val });
                                             }}
                                         />
                                     </div>
                                 </div>
 
-                                {vehicleLookupError && (
-                                    <p role="alert" className="mt-3 w-full rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center text-xs font-semibold text-red-600">
-                                        {vehicleLookupError}
-                                    </p>
-                                )}
-
-                                {modalTab === 'CARS' && (
-                                    <div className="mt-3">
-                                        <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1">Duplo Comando</label>
-                                        <select
-                                            className="w-full border rounded p-2 text-sm bg-white"
-                                            value={newVehicle.duploComando ? 'SIM' : 'NAO'}
-                                            onChange={e => setNewVehicle({...newVehicle, duploComando: e.target.value === 'SIM'})}
-                                        >
-                                            <option value="SIM">Sim</option>
-                                            <option value="NAO">Não</option>
-                                        </select>
-                                    </div>
-                                )}
-
                                 {vehicleYearValidation ? (
                                     <p role="alert" className="mt-3 w-full rounded-md border border-red-200 bg-red-50 px-3 py-2 text-center text-xs font-semibold text-red-600">
                                         ⚠️ Veículo não poderá ser cadastrado — ano mais antigo que o permitido ({vehicleYearValidation.limit} anos máx.).
                                     </p>
-                                ) : newVehicle.anoModelo.length === 4 && (
+                                ) : newVehicle.anoFabricacao.length === 4 && (
                                     <p className="mt-2 w-full text-center text-xs text-green-600">
-                                        Idade pelo ano do modelo: {new Date().getFullYear() - parseInt(newVehicle.anoModelo, 10)} anos
+                                        Idade: {new Date().getFullYear() - parseInt(newVehicle.anoFabricacao, 10)} anos
                                     </p>
                                 )}
 
@@ -2062,7 +1968,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                     <button 
                                         type="button" 
                                         onClick={() => handleAddVehicle(modalTab === 'CARS' ? 'CAR' : 'MOTO')}
-                                        disabled={vehicleLookupLoading || !!vehicleYearValidation}
+                                        disabled={!!vehicleYearValidation}
                                         className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500"
                                     >
                                         {editingVehicleId ? 'Salvar Alterações' : 'Adicionar'}
@@ -2072,11 +1978,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                             type="button" 
                                             onClick={() => {
                                                 setEditingVehicleId(null);
-                                                vehiclePlateRef.current = '';
-                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoModelo: '' });
-                                                setVehicleLookupError('');
-                                                setLookedUpPlate('');
-                                                setBrandModelText('');
+                                                setNewVehicle({ brand: '', model: '', plate: '', active: true, transmission: 'MANUAL', accessories: [], duploComando: false, procuracao: false, anoFabricacao: '' });
                                                 setAccessoryInput('');
                                             }}
                                             className="px-4 py-2 bg-gray-200 text-gray-600 text-xs font-bold rounded hover:bg-gray-300"
@@ -2110,7 +2012,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                                 )}
                                             </div>
                                             {(() => {
-                                                const fab = vehicle.anoModelo || vehicle.anoFabricacao || (vehicle as any).ano_modelo || (vehicle as any).ano_fabricacao;
+                                                const fab = (vehicle as any).anoFabricacao || (vehicle as any).ano_fabricacao;
                                                 if (!fab) return null;
                                                 const year = parseInt(fab, 10);
                                                 if (!year || year < 1900) return null;
@@ -2121,7 +2023,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                                 return (
                                                     <div className={`text-xs mt-1 flex items-center gap-1 ${overLimit ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
                                                         {overLimit && <span>⚠️</span>}
-                                                        <span>Modelo: {fab} ({age} ano{age !== 1 ? 's' : ''})</span>
+                                                        <span>Fab: {fab} ({age} ano{age !== 1 ? 's' : ''})</span>
                                                         {overLimit && <span>— acima do limite ({limit} anos máx.)</span>}
                                                     </div>
                                                 );
@@ -2162,8 +2064,8 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
             </div>
             
             <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-                <button type="button" onClick={() => { vehicleLookupRequestRef.current += 1; setVehicleLookupLoading(false); setIsModalOpen(false); }} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                <button type="submit" form="instructorForm" disabled={vehicleLookupLoading} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300">Salvar</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                <button type="submit" form="instructorForm" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
             </div>
 
           </div>

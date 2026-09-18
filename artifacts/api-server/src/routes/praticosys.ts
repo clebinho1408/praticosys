@@ -17,8 +17,6 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 // mapping as the development server.
 // @ts-ignore TypeScript rootDir is narrower than the esbuild bundle boundary.
 import { restoreBackup } from "../../../../functions/_backup-restore.js";
-// @ts-ignore TypeScript rootDir is narrower than the esbuild bundle boundary.
-import { lookupVehicleWithApiFull, VehicleLookupError } from "../../../../functions/_vehicle-lookup.js";
 
 function hashCode(code: string): string {
   return createHash('sha256').update(code).digest('hex');
@@ -462,67 +460,53 @@ router.post("/instructors", async (req, res) => {
   try {
     const { vehicles: vList, ...instructorData } = req.body;
     const newId = crypto.randomUUID();
-    const result = await db.transaction(async (tx) => {
-      const item = await tx.insert(instructors).values({ id: newId, ...instructorData }).returning();
-      if (instructorData.cpf) {
-        const cpfNum = instructorData.cpf.replace(/\D/g, "");
-        if (cpfNum) {
-          await tx.insert(users).values({
-            id: crypto.randomUUID(), name: instructorData.name,
-            login: cpfNum, password: await hashPassword("123456"), role: "INSTRUCTOR", instructorId: newId
-          }).onConflictDoNothing();
-        }
+    const item = await db.insert(instructors).values({ id: newId, ...instructorData }).returning();
+    if (instructorData.cpf) {
+      const cpfNum = instructorData.cpf.replace(/\D/g, "");
+      if (cpfNum) {
+        await db.insert(users).values({
+          id: crypto.randomUUID(), name: instructorData.name,
+          login: cpfNum, password: await hashPassword("123456"), role: "INSTRUCTOR", instructorId: newId
+        }).onConflictDoNothing();
       }
-      if (Array.isArray(vList)) {
-        for (const v of vList) {
-          await tx.insert(vehicles).values({
-            id: crypto.randomUUID(), instructorId: newId, type: v.type, brand: v.brand,
-            model: v.model, plate: v.plate, active: v.active ?? true,
-            transmission: v.transmission, accessories: v.accessories || [],
-            duploComando: v.duploComando ?? false, procuracao: v.procuracao ?? false,
-            anoFabricacao: v.anoModelo ? null : (v.anoFabricacao || null),
-            anoModelo: v.anoModelo || null,
-          });
-        }
+    }
+    if (vList && Array.isArray(vList)) {
+      for (const v of vList) {
+        await db.insert(vehicles).values({ id: crypto.randomUUID(), instructorId: newId, ...v });
       }
-      const allVehicles = await tx.select().from(vehicles).where(eq(vehicles.instructorId, newId));
-      return { ...item[0], vehicles: allVehicles };
-    });
-    return res.json(result);
+    }
+    const allVehicles = await db.select().from(vehicles).where(eq(vehicles.instructorId, newId));
+    return res.json({ ...item[0], vehicles: allVehicles });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/instructors", async (req, res) => {
   try {
     const { id, createdAt, vehicles: vList, ...updates } = req.body;
-    const result = await db.transaction(async (tx) => {
-      const item = await tx.update(instructors).set(updates).where(eq(instructors.id, id)).returning();
-      if (updates.cpf !== undefined) {
+    const item = await db.update(instructors).set(updates).where(eq(instructors.id, id)).returning();
+    // Sincronizar login do usuário instrutor vinculado quando o CPF muda
+    if (updates.cpf !== undefined) {
+      try {
         const cpfNum = (updates.cpf ?? '').replace(/\D/g, '');
         if (cpfNum) {
-          await tx.execute(sql`
+          await db.execute(sql`
             UPDATE usuarios SET login = ${cpfNum}
             WHERE instrutor_id = ${id} AND perfil = 'INSTRUCTOR'
           `);
         }
-      }
-      if (Array.isArray(vList)) {
-        await tx.delete(vehicles).where(eq(vehicles.instructorId, id));
-        for (const v of vList) {
-          await tx.insert(vehicles).values({
-            id: (!v.id || v.id.startsWith("temp_")) ? crypto.randomUUID() : v.id,
-            instructorId: id, type: v.type, brand: v.brand, model: v.model,
-            plate: v.plate, active: v.active ?? true, transmission: v.transmission,
-            accessories: v.accessories || [], duploComando: v.duploComando ?? false,
-            procuracao: v.procuracao ?? false,
-            anoFabricacao: v.anoModelo ? null : (v.anoFabricacao || null),
-            anoModelo: v.anoModelo || null,
-          });
+      } catch {}
+    }
+    if (vList && Array.isArray(vList)) {
+      for (const v of vList) {
+        if (v.id) {
+          const { id: vid, instructorId, createdAt: _c, ...vUpdates } = v;
+          await db.update(vehicles).set(vUpdates).where(eq(vehicles.id, vid));
+        } else {
+          await db.insert(vehicles).values({ id: crypto.randomUUID(), instructorId: id, ...v });
         }
       }
-      const allVehicles = await tx.select().from(vehicles).where(eq(vehicles.instructorId, id));
-      return { ...item[0], vehicles: allVehicles };
-    });
-    return res.json(result);
+    }
+    const allVehicles = await db.select().from(vehicles).where(eq(vehicles.instructorId, id));
+    return res.json({ ...item[0], vehicles: allVehicles });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/instructors", async (req, res) => {
@@ -1015,22 +999,34 @@ router.get("/risk-area", (_req, res) => res.json({ enabled: false, areas: [] }))
 router.post("/risk-area", (_req, res) => res.json({ success: true }));
 
 // ─── VEHICLE LOOKUP ───────────────────────────────────────────────────────────
+import https from "https";
+const PLATE_RE = /^[A-Z]{3}[0-9]{4}$|^[A-Z]{3}[0-9][A-Z][0-9]{2}$|^[A-Z]{3}[0-9]{2}[A-Z][0-9]$/;
+
 router.get("/vehicle-lookup", async (req, res) => {
+  const plate = ((req.query as any).plate || "").toString().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!plate || plate.length < 7) return res.status(400).json({ error: "Placa inválida" });
+  if (!PLATE_RE.test(plate)) return res.status(400).json({ error: "Formato de placa inválido" });
   try {
-    const sessionUser = (req as any).sessionUser;
-    if (!["ADMIN", "SUPERVISOR", "OPERATOR"].includes(sessionUser?.role || "")) {
-      return res.status(403).json({ error: "Você não tem permissão para consultar veículos." });
-    }
-    return res.json(await lookupVehicleWithApiFull(
-      process.env.API_FULL_TOKEN,
-      req.query.plate,
-      sessionUser.id,
-    ));
-  } catch (error) {
-    const status = error instanceof VehicleLookupError ? error.statusCode : 500;
-    const message = error instanceof Error ? error.message : "Erro ao consultar placa";
-    return res.status(status).json({ error: message });
-  }
+    const data = await new Promise<any>((resolve, reject) => {
+      const r = https.get(`https://apicarros.com/v1/consulta/${plate}/json`, {
+        headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0" },
+        rejectUnauthorized: false,
+      }, (resp) => {
+        let body = "";
+        resp.on("data", (c) => { body += c; });
+        resp.on("end", () => resolve({ status: resp.statusCode, body }));
+      });
+      r.on("error", reject);
+      r.setTimeout(9000, () => r.destroy(new Error("timeout")));
+    });
+    if (data.status === 404) return res.status(404).json({ error: "Veículo não encontrado" });
+    if (data.status !== 200) return res.status(503).json({ error: "Serviço indisponível" });
+    const d = JSON.parse(data.body);
+    return res.json({
+      plate: d.placa || plate, brand: d.marca || "", model: d.modelo || "",
+      color: d.cor || "", year: d.anoModelo || "", state: d.uf || "", city: d.municipio || "",
+    });
+  } catch (err: any) { return res.status(503).json({ error: "Serviço indisponível" }); }
 });
 
 // ─── SCHEDULE SLOTS ───────────────────────────────────────────────────────────

@@ -25,51 +25,43 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const body = await parseBody<any>(request);
       const { vehicles: vehiclesList, ...instructorData } = body;
       const newId = crypto.randomUUID();
-      const result = await db.transaction(async (tx: any) => {
-        const newItem = await tx.insert(instructors).values({ id: newId, ...instructorData }).returning();
-        if (Array.isArray(vehiclesList)) {
-          for (const v of vehiclesList) {
-            await tx.insert(vehicles).values({
-              id: crypto.randomUUID(), instructorId: newId, type: v.type, brand: v.brand,
-              model: v.model, plate: v.plate, active: v.active ?? true,
-              transmission: v.transmission, accessories: v.accessories || [],
-              duploComando: v.duploComando ?? false,
-              procuracao: v.procuracao ?? false,
-              anoFabricacao: v.anoModelo ? null : (v.anoFabricacao || null),
-              anoModelo: v.anoModelo || null,
-            });
-          }
+      const newItem = await db.insert(instructors).values({ id: newId, ...instructorData }).returning();
+
+      if (Array.isArray(vehiclesList)) {
+        for (const v of vehiclesList) {
+          await db.insert(vehicles).values({
+            id: crypto.randomUUID(), instructorId: newId, type: v.type, brand: v.brand,
+            model: v.model, plate: v.plate, active: v.active ?? true,
+            transmission: v.transmission, accessories: v.accessories || [],
+            duploComando: v.duploComando ?? false,
+            procuracao: v.procuracao ?? false,
+            anoFabricacao: v.anoFabricacao || null,
+          });
         }
-        const savedVehicles = await tx.select().from(vehicles).where(eq(vehicles.instructorId, newId));
-        return { ...newItem[0], vehicles: savedVehicles };
-      });
-      return json(result);
+      }
+      return json({ ...newItem[0], vehicles: vehiclesList || [] });
     }
 
     if (method === 'PUT') {
       const body = await parseBody<any>(request);
       const { id, vehicles: vehiclesList, createdAt, updatedAt, ...updates } = body;
-      const result = await db.transaction(async (tx: any) => {
-        const updated = await tx.update(instructors).set(updates).where(eq(instructors.id, id)).returning();
-        if (Array.isArray(vehiclesList)) {
-          await tx.delete(vehicles).where(eq(vehicles.instructorId, id));
-          for (const v of vehiclesList) {
-            await tx.insert(vehicles).values({
-              id: (!v.id || v.id.startsWith('temp_')) ? crypto.randomUUID() : v.id,
-              instructorId: id, type: v.type, brand: v.brand, model: v.model,
-              plate: v.plate, active: v.active ?? true, transmission: v.transmission,
-              accessories: v.accessories || [],
-              duploComando: v.duploComando ?? false,
-              procuracao: v.procuracao ?? false,
-              anoFabricacao: v.anoModelo ? null : (v.anoFabricacao || null),
-              anoModelo: v.anoModelo || null,
-            });
-          }
+      const updated = await db.update(instructors).set(updates).where(eq(instructors.id, id)).returning();
+
+      if (Array.isArray(vehiclesList)) {
+        await db.delete(vehicles).where(eq(vehicles.instructorId, id));
+        for (const v of vehiclesList) {
+          await db.insert(vehicles).values({
+            id: (!v.id || v.id.startsWith('temp_')) ? crypto.randomUUID() : v.id,
+            instructorId: id, type: v.type, brand: v.brand, model: v.model,
+            plate: v.plate, active: v.active ?? true, transmission: v.transmission,
+            accessories: v.accessories || [],
+            duploComando: v.duploComando ?? false,
+            procuracao: v.procuracao ?? false,
+            anoFabricacao: v.anoFabricacao || null,
+          });
         }
-        const savedVehicles = await tx.select().from(vehicles).where(eq(vehicles.instructorId, id));
-        return { ...updated[0], vehicles: savedVehicles };
-      });
-      return json(result);
+      }
+      return json({ ...updated[0], vehicles: vehiclesList || [] });
     }
 
     if (method === 'DELETE') {
