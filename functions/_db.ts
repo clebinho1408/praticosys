@@ -71,6 +71,7 @@ export async function ensureColumnMigrations(db: any): Promise<void> {
     await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS duplo_comando boolean DEFAULT false`);
     await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
     await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS ano_fabricacao text`);
+    await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS ano_modelo text`);
     // configuracoes — colunas adicionadas após schema inicial
     await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS banca_principal_cnh_brasil JSONB`);
     await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS max_vagas_mudanca_padrao INTEGER DEFAULT 10`);

@@ -84,6 +84,7 @@ export const vehicles = pgTable('veiculos', {
   duploComando: boolean('duplo_comando').default(false),
   procuracao: boolean('procuracao').default(false),
   anoFabricacao: text('ano_fabricacao'),
+  anoModelo: text('ano_modelo'),
   createdAt: timestamp('criado_em').defaultNow(),
 });
 

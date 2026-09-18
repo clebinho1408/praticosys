@@ -337,6 +337,7 @@ async function runMigrations() {
     await db.execute(sql`ALTER TABLE bancas ADD COLUMN IF NOT EXISTS local_id text`);
     await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS locais_permitidos_ids jsonb DEFAULT '[]'`);
     await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS procuracao boolean DEFAULT false`);
+    await db.execute(sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS ano_modelo text`);
     await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS chave_area_risco text`);
     await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS email text`);
     await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS telefone text`);

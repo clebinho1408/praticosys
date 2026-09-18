@@ -549,18 +549,19 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           category === "A"
             ? settings?.anoFabricacaoMaximo?.A
             : settings?.anoFabricacaoMaximo?.B;
-        const manufactureYear = Number(vehicle?.anoFabricacao);
-        const hasValidManufactureYear =
-          !!vehicle?.anoFabricacao &&
-          /^\d{4}$/.test(vehicle.anoFabricacao) &&
-          manufactureYear > 0;
+        const modelYearValue = vehicle?.anoModelo || vehicle?.anoFabricacao;
+        const modelYear = Number(modelYearValue);
+        const hasValidModelYear =
+          !!modelYearValue &&
+          /^\d{4}$/.test(modelYearValue) &&
+          modelYear > 0;
         const exceedsAgeLimit =
-          hasValidManufactureYear &&
+          hasValidModelYear &&
           ageLimit != null &&
           ageLimit > 0 &&
-          new Date().getFullYear() - manufactureYear > ageLimit;
+          new Date().getFullYear() - modelYear > ageLimit;
 
-        if (!hasValidManufactureYear || exceedsAgeLimit) {
+        if (!hasValidModelYear || exceedsAgeLimit) {
           setErrorMessage(
             `⚠️ ATENÇÃO!\n\nA placa ${plate} já atingiu o número máximo de anos permitido para a realização da Prova Prática.\n\n❌ Não é possível prosseguir com o agendamento.`,
           );
@@ -582,7 +583,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         !manualVehicleYears[category].verified
       ) {
         setErrorMessage(
-          `Verifique o Ano Veículo da Categoria ${category} antes de preencher a placa.`,
+          `Verifique o Ano do Modelo da Categoria ${category} antes de preencher a placa.`,
         );
         setErrorField(`vehicleYear_${category}`);
         setIsErrorModalOpen(true);
@@ -1306,7 +1307,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
         !Number.isInteger(year) ||
         year <= 0
       ) {
-        setErrorMessage("Informe um Ano Veículo válido com quatro dígitos.");
+        setErrorMessage("Informe um Ano do Modelo válido com quatro dígitos.");
         setErrorField(`vehicleYear_${categoryCode}`);
         setIsErrorModalOpen(true);
         return;
@@ -1457,7 +1458,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             <div className="flex items-center justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700">
                 {shouldVerifyManualVehicleYear && !manualVehicleYear.verified
-                  ? "Ano Veículo"
+                  ? "Ano do Modelo"
                   : "Veículo/Placa"}{" "}
                 <span className="text-red-500">*</span>
               </label>

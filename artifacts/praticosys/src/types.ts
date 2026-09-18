@@ -107,6 +107,7 @@ export interface Vehicle {
   duploComando?: boolean; // Somente para CAR
   procuracao?: boolean; // Veículo autorizado por procuração
   anoFabricacao?: string; // Ano de fabricação (ex: "2002")
+  anoModelo?: string; // Ano do modelo; preferido para novos cadastros
 }
 
 export interface Instructor {
