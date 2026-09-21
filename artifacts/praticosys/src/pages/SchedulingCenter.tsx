@@ -631,12 +631,14 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       }).join(', ');
     })();
 
-    // ── PROVA DE DIRECAO PCD ─────────────────────────────────────────────────
-    if (type === ExamType.COMMON && (req.instructor || '').toUpperCase() === 'PROVA DE DIRECAO PCD') {
+    // ── PROVA DE DIRECAO PCD / PROVA DE REABILITACAO ─────────────────────
+    const instrUpper = (req.instructor || '').toUpperCase();
+    if (type === ExamType.COMMON && (instrUpper === 'PROVA DE DIRECAO PCD' || instrUpper === 'PROVA DE REABILITACAO')) {
+      const provaLabel = instrUpper === 'PROVA DE DIRECAO PCD' ? 'PROVA DE DIREÇÃO PCD' : 'PROVA DE REABILITAÇÃO';
       const bodyLines = [
         `COMPROVANTE DE AGENDAMENTO`,
         ``,
-        `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para a PROVA DE DIREÇÃO PCD:`,
+        `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para a ${provaLabel}:`,
         ``,
         ` 📅 Data: ${fullDate}`,
         ` ⏰ Hora: ${examTime} (Chegar 20 min antes)`,
@@ -2410,11 +2412,11 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                     COMPROVANTE DE AGENDAMENTO
                   </h1>
 
-                  {(req.instructor || '').toUpperCase() === 'PROVA DE DIRECAO PCD' ? (
+                  {(() => { const instrUp = (req.instructor || '').toUpperCase(); return instrUp === 'PROVA DE DIRECAO PCD' || instrUp === 'PROVA DE REABILITACAO'; })() ? (
                     <>
-                      {/* Body text — PCD */}
+                      {/* Body text — PCD / REABILITAÇÃO */}
                       <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
-                        Segue agendamento solicitado por <strong>{candidateName} (CPF: {candidateCpf})</strong> para a <strong>PROVA DE DIREÇÃO PCD:</strong>
+                        Segue agendamento solicitado por <strong>{candidateName} (CPF: {candidateCpf})</strong> para a <strong>{(req.instructor || '').toUpperCase() === 'PROVA DE DIRECAO PCD' ? 'PROVA DE DIREÇÃO PCD' : 'PROVA DE REABILITAÇÃO'}:</strong>
                       </p>
                       <div style={{margin:'0 0 10px'}}> 📅 <strong>Data:</strong> {fullDate}</div>
                       <div style={{margin:'0 0 10px'}}> ⏰ <strong>Hora:</strong> {sched.time} (Chegar 20 min antes)</div>
