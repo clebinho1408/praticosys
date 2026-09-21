@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthState, User, UserRole, OperatorModule } from './types';
 import Layout from './components/Layout';
@@ -56,6 +56,20 @@ const App: React.FC = () => {
     setAuth({ user: null, token: null, isAuthenticated: false });
     localStorage.removeItem('praticosys_auth');
   };
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      localStorage.removeItem('praticosys_auth');
+      setAuth({ user: null, token: null, isAuthenticated: false });
+    };
+
+    window.addEventListener('praticosys:session-expired', handleSessionExpired);
+    return () =>
+      window.removeEventListener(
+        'praticosys:session-expired',
+        handleSessionExpired,
+      );
+  }, []);
 
   const hasModuleRestrictions =
     auth.user?.role === UserRole.OPERATOR || auth.user?.role === UserRole.SUPERVISOR;

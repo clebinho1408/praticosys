@@ -474,7 +474,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
-    setIsSaving(true);
 
     // Validação de Campos Obrigatórios (base)
     const requiredFields = [
@@ -700,6 +699,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       return;
     }
 
+    setIsSaving(true);
     try {
       // Para TODOS os usuários: status determinado pelos 3 checkboxes.
       // Se os 3 estiverem marcados → WAITING_SCHEDULING (Aguardando Agendamento).
@@ -802,7 +802,13 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       setIsModalOpen(false);
       fetchRequests(true);
     } catch (err) {
-      alert("Erro ao salvar");
+      const message =
+        err instanceof Error ? err.message : "Erro ao salvar o candidato.";
+      if (!message.includes("Sessão expirada")) {
+        setErrorMessage(message || "Erro ao salvar o candidato.");
+        setErrorField(null);
+        setIsErrorModalOpen(true);
+      }
     } finally {
       setIsSaving(false);
     }

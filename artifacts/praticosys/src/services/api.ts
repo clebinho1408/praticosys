@@ -37,7 +37,8 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     // Sessão expirada — limpa estado e redireciona para login
     if (response.status === 401 && endpoint !== '/auth' && endpoint !== '/verify-otp') {
       localStorage.removeItem('praticosys_auth');
-      window.location.href = '/#/login';
+      window.dispatchEvent(new Event('praticosys:session-expired'));
+      window.location.hash = '#/login';
       throw new Error('Sessão expirada. Redirecionando para login...');
     }
     const errorText = await response.text();
