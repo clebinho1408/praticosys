@@ -198,6 +198,8 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
 
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [removeConfirmReq, setRemoveConfirmReq] = useState<ExamRequest | null>(null);
+  const [removeCpfInput, setRemoveCpfInput] = useState('');
   
   // Date Filters - Default to 30 days ago and 30 days ahead
   const [startDate, setStartDate] = useState(() => {
@@ -1702,10 +1704,9 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                     {/* Botão Remover da Banca */}
                                                     {user.role !== UserRole.OPERATOR && user.role !== UserRole.SUPERVISOR && (
                                                     <button
-                                                        onClick={async () => {
-                                                            if (!confirm(`Remover ${req.socialName || req.studentName} da banca e devolver para Aguardando Agendamento?`)) return;
-                                                            await api.removeStudentFromSchedule(req.id);
-                                                            refreshData(true);
+                                                        onClick={() => {
+                                                            setRemoveConfirmReq(req);
+                                                            setRemoveCpfInput('');
                                                         }}
                                                         className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-all"
                                                         title="Remover da Banca"
@@ -2472,6 +2473,72 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
 
 
                 </div>{/* /comprovante-print-area */}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* MODAL CONFIRMAÇÃO REMOÇÃO DE CANDIDATO DA BANCA */}
+      {removeConfirmReq && (() => {
+        const req = removeConfirmReq;
+        const candidateName = (req.socialName || req.studentName || '').trim().toUpperCase();
+        const candidateCpf = (req.cpf || '').trim();
+        const cpfDigits = candidateCpf.replace(/\D/g, '');
+        const inputDigits = removeCpfInput.replace(/\D/g, '');
+        const cpfMatch = inputDigits === cpfDigits;
+        return (
+          <div className="fixed inset-0 bg-black/60 z-[110] flex items-center justify-center p-4 animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="flex items-center gap-3 px-6 py-4 border-b bg-red-50">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 shrink-0">
+                  <X className="h-5 w-5 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-red-800">Remover Candidato da Banca</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-1.5">
+                  <div className="text-sm text-gray-500 uppercase tracking-wide font-semibold">Candidato</div>
+                  <div className="font-bold text-gray-900 text-base uppercase">{candidateName}</div>
+                  <div className="text-sm text-gray-600">CPF: <span className="font-mono font-semibold">{candidateCpf}</span></div>
+                  {req.instructor && <div className="text-sm text-gray-600">Instrutor: <span className="font-semibold">{req.instructor}</span></div>}
+                </div>
+                <p className="text-sm text-gray-600">O candidato será devolvido para <strong>Aguardando Agendamento</strong>. Esta ação não pode ser desfeita.</p>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Digite o CPF do candidato para confirmar:
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full border rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-red-400 outline-none bg-white text-gray-900 placeholder-gray-400"
+                    placeholder="Somente números ou com pontuação"
+                    value={removeCpfInput}
+                    onChange={e => setRemoveCpfInput(e.target.value)}
+                    onKeyDown={async e => { if (e.key === 'Enter' && cpfMatch) { setRemoveConfirmReq(null); await api.removeStudentFromSchedule(req.id); refreshData(true); } }}
+                    autoFocus
+                  />
+                  {removeCpfInput.length > 0 && !cpfMatch && (
+                    <p className="text-xs text-red-500 mt-1">CPF não confere. Tente novamente.</p>
+                  )}
+                  {cpfMatch && (
+                    <p className="text-xs text-green-600 mt-1 font-semibold">✓ CPF confirmado.</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3 px-6 pb-6">
+                <button
+                  onClick={() => setRemoveConfirmReq(null)}
+                  className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition-colors"
+                >Cancelar</button>
+                <button
+                  disabled={!cpfMatch}
+                  onClick={async () => { setRemoveConfirmReq(null); await api.removeStudentFromSchedule(req.id); refreshData(true); }}
+                  className={`flex-1 px-4 py-2 rounded-lg font-bold text-sm transition-colors ${
+                    cpfMatch
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+                >Confirmar Remoção</button>
               </div>
             </div>
           </div>
