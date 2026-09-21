@@ -631,6 +631,26 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       }).join(', ');
     })();
 
+    // ── PROVA DE DIRECAO PCD ─────────────────────────────────────────────────
+    if (type === ExamType.COMMON && (req.instructor || '').toUpperCase() === 'PROVA DE DIRECAO PCD') {
+      const bodyLines = [
+        `COMPROVANTE DE AGENDAMENTO`,
+        ``,
+        `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para a PROVA DIREÇÃO PCD:`,
+        ``,
+        ` 📅 Data: ${fullDate}`,
+        ` ⏰ Hora: ${examTime} (Chegar 20 min antes)`,
+        ...(examAddress ? [` 📍 Local do Exame: ${examAddress}`] : []),
+        ``,
+        ` ♿ Restrição da CNH: ${restrictionText}`,
+        ``,
+        ...(req.vehiclePlate ? [`🚗 Placa: ${req.vehiclePlate}`] : []),
+        ``,
+        `🚫 Em caso de ausência ou cancelamento por: incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar 20 dias antes de solicitar novo agendamento.`,
+      ];
+      return bodyLines.join('\n');
+    }
+
     // ── CNH do Brasil ────────────────────────────────────────────────────────
     if (type === ExamType.COMMON) {
       const bodyLines = [
@@ -2390,33 +2410,50 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                     COMPROVANTE DE AGENDAMENTO
                   </h1>
 
-                  {/* Body text */}
-                  <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
-                    Eu&nbsp;<strong>{candidateName}</strong>, portador(a) do CPF <strong>{candidateCpf}</strong>, declaro estar ciente do&nbsp;<strong>AGENDAMENTO DO EXAME PRÁTICO</strong>;
-                  </p>
-
-                  {/* Exam details */}
-                  <div style={{margin:'0 0 14px'}}><strong>Data:</strong> {fullDate}</div>
-                  <div style={{margin:'0 0 14px'}}><strong>Hora:</strong> {sched.time} <em style={{fontSize:'8.5pt', color:'#444'}}>(Chegar 20min antes)</em></div>
-                  {examAddress && (
-                    <div style={{margin:'0 0 14px'}}><strong>Local do Exame:</strong> {examAddress}</div>
+                  {(req.instructor || '').toUpperCase() === 'PROVA DE DIRECAO PCD' ? (
+                    <>
+                      {/* Body text — PCD */}
+                      <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
+                        Segue agendamento solicitado por <strong>{candidateName} (CPF: {candidateCpf})</strong> para a <strong>PROVA DIREÇÃO PCD:</strong>
+                      </p>
+                      <div style={{margin:'0 0 10px'}}> 📅 <strong>Data:</strong> {fullDate}</div>
+                      <div style={{margin:'0 0 10px'}}> ⏰ <strong>Hora:</strong> {sched.time} (Chegar 20 min antes)</div>
+                      {examAddress && <div style={{margin:'0 0 10px'}}> 📍 <strong>Local do Exame:</strong> {examAddress}</div>}
+                      <br />
+                      <div style={{margin:'0 0 10px'}}> ♿ <strong>Restrição da CNH:</strong> {restrictionText || 'Nenhuma'}</div>
+                      <br />
+                      {req.vehiclePlate && <div style={{margin:'0 0 10px'}}>🚗 <strong>Placa:</strong> {req.vehiclePlate}</div>}
+                      <p style={{marginTop:'36px', fontSize:'10pt', lineHeight:'1.7', color:'#222', textAlign:'justify'}}>
+                        🚫 <strong>Em caso de ausência ou cancelamento por:</strong> incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar <strong>20 dias</strong> antes de solicitar novo agendamento.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      {/* Body text — padrão */}
+                      <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
+                        Eu&nbsp;<strong>{candidateName}</strong>, portador(a) do CPF <strong>{candidateCpf}</strong>, declaro estar ciente do&nbsp;<strong>AGENDAMENTO DO EXAME PRÁTICO</strong>;
+                      </p>
+                      <div style={{margin:'0 0 14px'}}><strong>Data:</strong> {fullDate}</div>
+                      <div style={{margin:'0 0 14px'}}><strong>Hora:</strong> {sched.time} <em style={{fontSize:'8.5pt', color:'#444'}}>(Chegar 20min antes)</em></div>
+                      {examAddress && (
+                        <div style={{margin:'0 0 14px'}}><strong>Local do Exame:</strong> {examAddress}</div>
+                      )}
+                      <div style={{margin:'0 0 14px'}}><strong>Categoria:</strong> {category}</div>
+                      <div style={{margin:'0 0 14px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
+                      {req.instructor && (
+                        <div style={{margin:'14px 0 14px'}}><strong>Instrutor:</strong> {req.instructor} <em style={{fontSize:'9pt', color:'#444'}}>(A presença do seu instrutor é obrigatória no dia)</em></div>
+                      )}
+                      {req.vehiclePlate && (
+                        <div style={{margin:'0 0 14px'}}><strong>Placa:</strong> {req.vehiclePlate}</div>
+                      )}
+                      <p style={{marginTop:'72px', fontSize:'10.5pt', lineHeight:'1.8', color:'#222'}}>
+                        <strong>Atenção:</strong> <span style={{fontWeight:600}}>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV - Licença de Aprendizagem de Direção Veicular.</span>
+                      </p>
+                      <p style={{fontSize:'10pt', lineHeight:'1.7', color:'#222', marginTop:'28px', textAlign:'justify'}}>
+                        <strong>Em caso de cancelamento por:</strong> incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar <strong>20 dias</strong> antes de solicitar novo agendamento.
+                      </p>
+                    </>
                   )}
-                  <div style={{margin:'0 0 14px'}}><strong>Categoria:</strong> {category}</div>
-                  <div style={{margin:'0 0 14px'}}><strong>Restrição da CNH:</strong> {restrictionText || <span style={{color:'#555'}}>Nenhuma</span>}</div>
-                  {req.instructor && (
-                    <div style={{margin:'14px 0 14px'}}><strong>Instrutor:</strong> {req.instructor} <em style={{fontSize:'9pt', color:'#444'}}>(A presença do seu instrutor é obrigatória no dia)</em></div>
-                  )}
-                  {req.vehiclePlate && (
-                    <div style={{margin:'0 0 14px'}}><strong>Placa:</strong> {req.vehiclePlate}</div>
-                  )}
-
-                  {/* Notice */}
-                  <p style={{marginTop:'72px', fontSize:'10.5pt', lineHeight:'1.8', color:'#222'}}>
-                    <strong>Atenção:</strong> <span style={{fontWeight:600}}>É obrigatório apresentar, no dia, um documento oficial com foto, válido e em bom estado de conservação, e a LADV - Licença de Aprendizagem de Direção Veicular.</span>
-                  </p>
-                  <p style={{fontSize:'10pt', lineHeight:'1.7', color:'#222', marginTop:'28px', textAlign:'justify'}}>
-                    <strong>Em caso de cancelamento por:</strong> incapacidade técnica manifesta e reiterada do candidato, instabilidade emocional, comportamento incompatível com a prova ou circunstâncias externas que comprometam a segurança do exame, será necessário aguardar <strong>20 dias</strong> antes de solicitar novo agendamento.
-                  </p>
 
                   {/* Location + date */}
                   <p style={{marginTop:'80px', fontSize:'11pt', textAlign:'center'}}>
