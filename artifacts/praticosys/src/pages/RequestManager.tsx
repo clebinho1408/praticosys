@@ -163,6 +163,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isCnhSchedulingWarningOpen, setIsCnhSchedulingWarningOpen] = useState(false);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
   const [copiedCpf, setCopiedCpf] = useState(false);
@@ -472,6 +473,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
+    setIsSaving(true);
 
     // Validação de Campos Obrigatórios (base)
     const requiredFields = [
@@ -800,6 +803,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       fetchRequests(true);
     } catch (err) {
       alert("Erro ao salvar");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -3539,15 +3544,17 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 {!isViewOnly && !isConsultant && (
                 <button
                   type="button"
-                  onClick={(e) => {
-                    // Se não estiver na última aba, avança. Se estiver, submete.
-                    // Mas o usuário pediu abas para navegar, então o botão Salvar deve estar sempre disponível ou apenas no final?
-                    // O padrão geralmente é Salvar disponível sempre.
-                    handleSave(e as any);
-                  }}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-md font-bold hover:bg-blue-700 shadow-sm transition-all"
+                  onClick={(e) => { handleSave(e as any); }}
+                  disabled={isSaving}
+                  className={`px-6 py-2 rounded-md font-bold shadow-sm transition-all flex items-center gap-2 ${
+                    isSaving
+                      ? 'bg-blue-400 text-white cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
                 >
-                  Salvar
+                  {isSaving ? (
+                    <><svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>Salvando...</>
+                  ) : 'Salvar'}
                 </button>
               )}
             </div>
