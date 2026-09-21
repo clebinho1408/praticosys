@@ -658,7 +658,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       const bodyLines = [
         `*COMPROVANTE DE AGENDAMENTO DA CATEGORIA ${category}*`,
         ``,
-        `_Segue agendamento solicitado por_ _*${candidateName} (CPF: ${candidateCpf})*_ _para EXAME PRÁTICO:_`,
+        `_Segue agendamento solicitado por_ _*${candidateName} (CPF: ${candidateCpf})*_ _para o EXAME PRÁTICO:_`,
         ``,
         `> 📅 Data: *${fullDate}*`,
         `> ⏰ Hora: *${examTime}* _(Chegar 20 min antes)_`,
@@ -682,7 +682,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     const bodyLines = [
       `COMPROVANTE DE AGENDAMENTO`,
       ``,
-      `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para EXAME PRÁTICO:`,
+      `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para o EXAME PRÁTICO:`,
       ``,
       `📅 Data: ${fullDate}`,
       `⏰ Hora: ${examTime} (Chegar 20 min antes)`,
