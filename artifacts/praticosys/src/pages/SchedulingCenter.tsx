@@ -636,7 +636,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       const bodyLines = [
         `COMPROVANTE DE AGENDAMENTO`,
         ``,
-        `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para a PROVA DIREÇÃO PCD:`,
+        `Segue agendamento solicitado por ${candidateName} (CPF: ${candidateCpf}) para a PROVA DE DIREÇÃO PCD:`,
         ``,
         ` 📅 Data: ${fullDate}`,
         ` ⏰ Hora: ${examTime} (Chegar 20 min antes)`,
@@ -2414,7 +2414,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                     <>
                       {/* Body text — PCD */}
                       <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
-                        Segue agendamento solicitado por <strong>{candidateName} (CPF: {candidateCpf})</strong> para a <strong>PROVA DIREÇÃO PCD:</strong>
+                        Segue agendamento solicitado por <strong>{candidateName} (CPF: {candidateCpf})</strong> para a <strong>PROVA DE DIREÇÃO PCD:</strong>
                       </p>
                       <div style={{margin:'0 0 10px'}}> 📅 <strong>Data:</strong> {fullDate}</div>
                       <div style={{margin:'0 0 10px'}}> ⏰ <strong>Hora:</strong> {sched.time} (Chegar 20 min antes)</div>
