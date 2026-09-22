@@ -1254,6 +1254,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
     const selectedVehicle = availableVehicles.find(v => v.plate === currentPlate);
 
+    // Se o instrutor Cat B possui duplo comando no carro, SDC deve ficar desabilitado
+    const instructorFirstCar = categoryCode === "B" && selectedInstructor
+      ? selectedInstructor.vehicles?.find(v => v.type === "CAR" && v.active)
+      : null;
+    const instructorHasDuploComando = !!(instructorFirstCar && (instructorFirstCar as any).duploComando);
+
     // "Inserir placa manualmente": controlado por campos especiais no formData.
     // Quando marcado, a placa é digitada livremente.
     // doCandidatoMoto → Cat A, doCandidatoCarro → Cat B
@@ -1473,12 +1479,14 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 <span className="text-red-500">*</span>
               </label>
               {categoryCode === "B" && (
-                <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <label className={`flex items-center gap-1.5 select-none ${instructorHasDuploComando ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                  title={instructorHasDuploComando ? 'Instrutor possui Duplo Comando — SDC não aplicável' : ''}
+                >
                   <input
                     type="checkbox"
-                    className="w-4 h-4 cursor-pointer accent-green-600"
+                    className="w-4 h-4 accent-green-600"
                     checked={!!(formData as any).semDuploComando}
-                    disabled={isViewOnly}
+                    disabled={isViewOnly || instructorHasDuploComando}
                     onChange={(e) =>
                       setFormData({ ...formData, semDuploComando: e.target.checked } as any)
                     }
