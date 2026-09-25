@@ -770,6 +770,10 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
 
     const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
     const tomorrowStr = tomorrowDate.toLocaleDateString('sv-SE');
+    // Se hoje é sexta-feira (5), segunda-feira também exige confirmação até 17:30
+    const todayDow = new Date().getDay(); // 0=Dom, 5=Sex
+    const mondayDate = new Date(); mondayDate.setDate(mondayDate.getDate() + 3);
+    const mondayStr = todayDow === 5 ? mondayDate.toLocaleDateString('sv-SE') : null;
 
     const lines: string[] = [];
 
@@ -790,7 +794,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         const [y, m, d] = raw.split('-');
         const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
         const time = s.time || '-';
-        const isTomorrow = raw === tomorrowStr;
+        const isTomorrow = raw === tomorrowStr || (mondayStr !== null && raw === mondayStr);
 
         const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A').length;
         const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length;
@@ -893,7 +897,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         const [y, m, d] = raw.split('-');
         const dateFormatted = raw ? `${d}/${m}/${y}` : '-';
         const time = s.time || '-';
-        const isTomorrow = raw === tomorrowStr;
+        const isTomorrow = raw === tomorrowStr || (mondayStr !== null && raw === mondayStr);
         const occupiedA = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'A').length;
         const occupiedB = allRequests.filter(r => r.scheduleId === s.id && r.scheduledCategory === 'B').length;
         if (Math.max(0, (s.maxSlotsA || 0) - occupiedA) > 0) pcdA.push({ date: dateFormatted, time, isTomorrow });
