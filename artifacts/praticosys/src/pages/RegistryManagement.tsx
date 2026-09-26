@@ -1241,47 +1241,6 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
     }
   };
 
-  const handleSyncUsers = async () => {
-    if (!confirm('Deseja atualizar/criar usuários para todos os examinadores? O login será o nome em minúsculo e a senha padrão será 123456.')) return;
-    
-    try {
-      const users = await api.getUsers();
-      const examinerUsers = users.filter(u => u.role === UserRole.EXAMINER);
-      
-      let createdCount = 0;
-      let updatedCount = 0;
-      
-      for (const ex of examiners) {
-        const login = ex.name.toLowerCase().replace(/\s+/g, '.');
-        const existingUser = examinerUsers.find(u => u.examinerId === ex.id || u.login === ex.registrationNumber);
-        
-        if (existingUser) {
-          // Update existing user
-          await api.updateUser(existingUser.id, {
-            login: login,
-            password: '123456',
-            name: ex.name
-          });
-          updatedCount++;
-        } else {
-          // Create new user
-          await api.createUser({
-            name: ex.name,
-            login: login,
-            password: '123456',
-            role: UserRole.EXAMINER,
-            examinerId: ex.id
-          });
-          createdCount++;
-        }
-      }
-      alert(`${createdCount} usuários criados e ${updatedCount} atualizados com sucesso.`);
-    } catch (error) {
-      console.error('Error syncing examiner users:', error);
-      alert('Erro ao sincronizar usuários.');
-    }
-  };
-
   const handleDelete = (id: string) => {
       setConfirmState({
           isOpen: true,
@@ -1339,14 +1298,9 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           {user?.role !== UserRole.CONSULTANT && (
-            <>
-              <button onClick={handleSyncUsers} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-200 justify-center">
-                Sincronizar Usuários
-              </button>
-              <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 justify-center">
-                <Plus className="h-4 w-4" /> Novo Examinador
-              </button>
-            </>
+            <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 justify-center">
+              <Plus className="h-4 w-4" /> Novo Examinador
+            </button>
           )}
         </div>
       </div>
