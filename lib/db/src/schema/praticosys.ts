@@ -64,6 +64,7 @@ export const examiners = pgTable('examinadores', {
   rotationAvailability: jsonb('disponibilidade_rodizio').$type<{
     days: string[];
     defaultTime: string;
+    secondDefaultTime?: string;
     examsPerDay: 1 | 2;
     cityIds: string[];
   }>(),

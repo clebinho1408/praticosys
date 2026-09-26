@@ -86,7 +86,8 @@ export interface DrivingSchool {
 
 export interface ExaminerRotationAvailability {
   days: string[]; // SEG, TER, QUA, QUI, SEX, SAB, DOM
-  defaultTime: string; // HH:mm
+  defaultTime: string; // HH:mm — primeira prova
+  secondDefaultTime?: string; // HH:mm — segunda prova, quando houver
   examsPerDay: 1 | 2;
   cityIds: string[];
 }

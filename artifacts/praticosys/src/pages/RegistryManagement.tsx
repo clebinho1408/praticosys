@@ -1136,7 +1136,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   const [isRotationModalOpen, setIsRotationModalOpen] = useState(false);
   const [rotationError, setRotationError] = useState('');
   const [editing, setEditing] = useState<Examiner | null>(null);
-  const emptyRotation: ExaminerRotationAvailability = { days: [], defaultTime: '', examsPerDay: 1, cityIds: [] };
+  const emptyRotation: ExaminerRotationAvailability = { days: [], defaultTime: '', secondDefaultTime: '', examsPerDay: 1, cityIds: [] };
   type ExaminerForm = { name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string; defaultMaxSlotsMudanca: string; examRotation: boolean; rotationAvailability: ExaminerRotationAvailability | null };
   const [formData, setFormData] = useState<ExaminerForm>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '', examRotation: false, rotationAvailability: null });
   const [rotationDraft, setRotationDraft] = useState<ExaminerRotationAvailability>(emptyRotation);
@@ -1178,11 +1178,19 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
 
   const saveRotation = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rotationDraft.days.length || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(rotationDraft.defaultTime) || !rotationDraft.cityIds.length) {
-      setRotationError('Selecione ao menos um dia e uma cidade e informe o horário padrão.');
+    const validTime = (time: string | undefined) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time ?? '');
+    if (!rotationDraft.days.length || !validTime(rotationDraft.defaultTime) || (rotationDraft.examsPerDay === 2 && !validTime(rotationDraft.secondDefaultTime)) || !rotationDraft.cityIds.length) {
+      setRotationError('Selecione ao menos um dia e uma cidade e informe todos os horários padrão.');
       return;
     }
-    setFormData(prev => ({ ...prev, examRotation: true, rotationAvailability: rotationDraft }));
+    setFormData(prev => ({
+      ...prev,
+      examRotation: true,
+      rotationAvailability: {
+        ...rotationDraft,
+        secondDefaultTime: rotationDraft.examsPerDay === 2 ? rotationDraft.secondDefaultTime : '',
+      },
+    }));
     setIsRotationModalOpen(false);
   };
 
@@ -1506,10 +1514,6 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   ))}
                 </div>
               </fieldset>
-              <div>
-                <label htmlFor="rotation-time" className="block text-sm font-medium mb-1">Horário padrão</label>
-                <input id="rotation-time" type="time" required value={rotationDraft.defaultTime} onChange={e => setRotationDraft(prev => ({ ...prev, defaultTime: e.target.value }))} className="w-full border rounded p-2 bg-white text-gray-900" />
-              </div>
               <fieldset>
                 <legend className="text-sm font-medium mb-2">Provas por dia</legend>
                 <div className="flex gap-5 text-sm">
@@ -1521,6 +1525,20 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   ))}
                 </div>
               </fieldset>
+              <div className={rotationDraft.examsPerDay === 2 ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : ''}>
+                <div>
+                  <label htmlFor="rotation-time" className="block text-sm font-medium mb-1">
+                    {rotationDraft.examsPerDay === 2 ? 'Horário padrão da 1ª prova' : 'Horário padrão'}
+                  </label>
+                  <input id="rotation-time" type="time" required value={rotationDraft.defaultTime} onChange={e => setRotationDraft(prev => ({ ...prev, defaultTime: e.target.value }))} className="w-full border rounded p-2 bg-white text-gray-900" />
+                </div>
+                {rotationDraft.examsPerDay === 2 && (
+                  <div>
+                    <label htmlFor="rotation-second-time" className="block text-sm font-medium mb-1">Horário padrão da 2ª prova</label>
+                    <input id="rotation-second-time" type="time" required value={rotationDraft.secondDefaultTime ?? ''} onChange={e => setRotationDraft(prev => ({ ...prev, secondDefaultTime: e.target.value }))} className="w-full border rounded p-2 bg-white text-gray-900" />
+                  </div>
+                )}
+              </div>
               <fieldset>
                 <legend className="text-sm font-medium mb-2">Cidades atendidas</legend>
                 {citiesError && <p className="text-sm text-red-600">{citiesError}</p>}
