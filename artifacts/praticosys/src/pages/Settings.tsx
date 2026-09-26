@@ -1183,8 +1183,6 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
                         <button type="button" onClick={() => setActiveSubTabCFC('COMMUNICATION')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'COMMUNICATION' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>GERAL</button>
-                        <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_PCD')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_PCD' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO PCD</button>
-                        <button type="button" onClick={() => setActiveSubTabCFC('ESCALA_PADRAO_CNH_BRASIL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCFC === 'ESCALA_PADRAO_CNH_BRASIL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ESCALA PADRÃO CNH DO BRASIL</button>
                     </div>
 
                     {activeSubTabCFC === 'COMMUNICATION' && (

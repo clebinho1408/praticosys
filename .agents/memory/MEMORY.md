@@ -2,3 +2,4 @@
 - [Neon schema migration](neon-schema-migration.md) — migrações em UM bloco DO $$ (não N execuções HTTP); todo rename guardado por EXCEPTION; marcador só após verificar colunas.
 - [Cloudflare Pages 2FA errors](cloudflare-two-factor-errors.md) — nunca use 502 para falha tratada do Resend; Cloudflare troca JSON por página HTML genérica.
 - [Chamadas autenticadas](authenticated-api-calls.md) — rotas protegidas devem usar o serviço central de API; fetch direto pode converter 401 em estado vazio e ocultar dados.
+- [Escalas automáticas CFC](cfc-auto-scales.md) — desativar modelos PCD/CNH não é limpeza de dados; preservar agendamentos históricos e confirmados.
