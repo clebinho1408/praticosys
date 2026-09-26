@@ -13,7 +13,11 @@ async function ensureSchema(db: any) {
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS endereco_patio_mudanca text`);
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS banca_principal jsonb`);
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS banca_provisoria jsonb`);
-  } catch {}
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS nao_criar_usuario boolean NOT NULL DEFAULT false`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
+  } catch (e) {
+    throw new Error('Não foi possível preparar o cadastro de autoescolas.', { cause: e });
+  }
 }
 
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
@@ -37,6 +41,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     if (method === 'PUT') {
       if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
+      await ensureSchema(db);
       const body = await parseBody<any>(request);
       const { id, createdAt, ...updates } = body;
       const updated = await db.update(drivingSchools).set(updates).where(eq(drivingSchools.id, id)).returning();

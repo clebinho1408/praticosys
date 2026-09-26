@@ -71,6 +71,8 @@ export interface DrivingSchool {
   address: string;
   city?: string;
   services: string[]; // ['A', 'B', 'C', 'D', 'E']
+  doNotCreateUser?: boolean;
+  examRotation?: boolean;
   
   // Pátios
   motoYardAddress?: string;

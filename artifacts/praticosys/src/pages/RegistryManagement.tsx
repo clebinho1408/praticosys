@@ -462,6 +462,8 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     address: '',
     city: '',
     services: [],
+    doNotCreateUser: false,
+    examRotation: false,
     motoYardAddress: '',
     carYardAddress: '',
     categoryChangeYardAddress: '',
@@ -519,22 +521,24 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
         await api.updateSchool(editing.id, formData);
       } else {
         const createdSchool = await api.createSchool(formData);
-        
-        // Automatically create a user for this school
-        // Sanitize name for login: lowercase, no spaces, no accents
-        const login = formData.name!
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^a-z0-9]/g, "");
 
-        await api.createUser({
-          name: formData.name!,
-          login: login,
-          password: '123456',
-          role: UserRole.SCHOOL,
-          schoolId: createdSchool.id
-        });
+        if (!formData.doNotCreateUser) {
+          // Automatically create a user for this school
+          // Sanitize name for login: lowercase, no spaces, no accents
+          const login = formData.name!
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]/g, "");
+
+          await api.createUser({
+            name: formData.name!,
+            login: login,
+            password: '123456',
+            role: UserRole.SCHOOL,
+            schoolId: createdSchool.id
+          });
+        }
       }
       setIsModalOpen(false);
       fetch();
@@ -1067,6 +1071,26 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                           </label>
                         ))}
                       </div>
+                    </div>
+                    <div className="flex flex-wrap gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.doNotCreateUser ?? false}
+                          onChange={e => setFormData({ ...formData, doNotCreateUser: e.target.checked })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm font-medium">Não criar usuário</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.examRotation ?? false}
+                          onChange={e => setFormData({ ...formData, examRotation: e.target.checked })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm font-medium">Rodízio de Provas</span>
+                      </label>
                     </div>
                   </div>
                 )}

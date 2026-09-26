@@ -40,6 +40,8 @@ export const drivingSchools = pgTable('autoescolas', {
   address: text('endereco'),
   city: text('cidade'),
   services: jsonb('servicos').$type<string[]>().default([]),
+  doNotCreateUser: boolean('nao_criar_usuario').notNull().default(false),
+  examRotation: boolean('rodizio_provas').notNull().default(false),
   motoYardAddress: text('endereco_patio_moto'),
   carYardAddress: text('endereco_patio_carro'),
   categoryChangeYardAddress: text('endereco_patio_mudanca'),

@@ -426,6 +426,9 @@ async function runMigrations() {
     await db.execute(sql`ALTER TABLE solicitacoes_pcd DROP COLUMN IF EXISTS sem_duplo_comando`);
     await db.execute(sql`ALTER TABLE solicitacoes_pcd DROP COLUMN IF EXISTS quantidades_categoria`);
 
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS nao_criar_usuario boolean NOT NULL DEFAULT false`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
+
     logger.info("DB migrations complete");
   } catch (err) {
     logger.warn({ err }, "DB migration step skipped or failed");
