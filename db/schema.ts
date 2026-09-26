@@ -60,6 +60,13 @@ export const examiners = pgTable('examinadores', {
   defaultMaxSlotsA: integer('max_vagas_a_padrao'),
   defaultMaxSlotsB: integer('max_vagas_b_padrao'),
   defaultMaxSlotsMudanca: integer('max_vagas_mudanca_padrao'),
+  examRotation: boolean('rodizio_provas').notNull().default(false),
+  rotationAvailability: jsonb('disponibilidade_rodizio').$type<{
+    days: string[];
+    defaultTime: string;
+    examsPerDay: 1 | 2;
+    cityIds: string[];
+  }>(),
   createdAt: timestamp('criado_em').defaultNow(),
 });
 

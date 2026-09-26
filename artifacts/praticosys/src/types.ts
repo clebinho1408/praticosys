@@ -84,6 +84,13 @@ export interface DrivingSchool {
   provisionalSchedule?: SchoolSchedule;
 }
 
+export interface ExaminerRotationAvailability {
+  days: string[]; // SEG, TER, QUA, QUI, SEX, SAB, DOM
+  defaultTime: string; // HH:mm
+  examsPerDay: 1 | 2;
+  cityIds: string[];
+}
+
 export interface Examiner {
   id: string;
   name: string;
@@ -94,6 +101,8 @@ export interface Examiner {
   defaultMaxSlotsA?: number | null; // Vagas padrão Cat. A por examinador
   defaultMaxSlotsB?: number | null; // Vagas padrão Cat. B por examinador
   defaultMaxSlotsMudanca?: number | null; // Vagas padrão Cat. C, D, E (Mud. Cat.)
+  examRotation?: boolean;
+  rotationAvailability?: ExaminerRotationAvailability | null;
 }
 
 export interface Vehicle {

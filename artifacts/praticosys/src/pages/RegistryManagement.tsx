@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, OperatorModule, DrivingSchool, Examiner, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
+import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
@@ -1130,9 +1130,16 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
 
 const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   const [examiners, setExaminers] = useState<Examiner[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [citiesError, setCitiesError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRotationModalOpen, setIsRotationModalOpen] = useState(false);
+  const [rotationError, setRotationError] = useState('');
   const [editing, setEditing] = useState<Examiner | null>(null);
-  const [formData, setFormData] = useState<{ name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string; defaultMaxSlotsMudanca: string }>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '' });
+  const emptyRotation: ExaminerRotationAvailability = { days: [], defaultTime: '', examsPerDay: 1, cityIds: [] };
+  type ExaminerForm = { name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string; defaultMaxSlotsMudanca: string; examRotation: boolean; rotationAvailability: ExaminerRotationAvailability | null };
+  const [formData, setFormData] = useState<ExaminerForm>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '', examRotation: false, rotationAvailability: null });
+  const [rotationDraft, setRotationDraft] = useState<ExaminerRotationAvailability>(emptyRotation);
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1153,7 +1160,31 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   });
 
   const fetch = async () => setExaminers(await api.getExaminersAsync());
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => {
+    fetch();
+    api.getCities().then(setCities).catch(() => setCitiesError('Não foi possível carregar as cidades. Reabra a página e tente novamente.'));
+  }, []);
+
+  const openRotationModal = () => {
+    setRotationDraft({
+      ...emptyRotation,
+      ...formData.rotationAvailability,
+      days: [...(formData.rotationAvailability?.days ?? [])],
+      cityIds: [...(formData.rotationAvailability?.cityIds ?? [])],
+    });
+    setRotationError('');
+    setIsRotationModalOpen(true);
+  };
+
+  const saveRotation = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rotationDraft.days.length || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(rotationDraft.defaultTime) || !rotationDraft.cityIds.length) {
+      setRotationError('Selecione ao menos um dia e uma cidade e informe o horário padrão.');
+      return;
+    }
+    setFormData(prev => ({ ...prev, examRotation: true, rotationAvailability: rotationDraft }));
+    setIsRotationModalOpen(false);
+  };
 
   const openModal = (ex?: Examiner) => {
     setEditing(ex || null);
@@ -1164,7 +1195,10 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       defaultMaxSlotsA: ex.defaultMaxSlotsA != null ? String(ex.defaultMaxSlotsA) : '',
       defaultMaxSlotsB: ex.defaultMaxSlotsB != null ? String(ex.defaultMaxSlotsB) : '',
       defaultMaxSlotsMudanca: ex.defaultMaxSlotsMudanca != null ? String(ex.defaultMaxSlotsMudanca) : '',
-    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '' });
+      examRotation: ex.examRotation ?? false,
+      rotationAvailability: ex.rotationAvailability ?? null,
+    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '', examRotation: false, rotationAvailability: null });
+    setIsRotationModalOpen(false);
     setIsModalOpen(true);
   };
 
@@ -1360,7 +1394,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">{editing ? 'Editar Examinador' : 'Novo Examinador'}</h3>
             <form onSubmit={handleSave} className="space-y-4">
               <div>
@@ -1425,9 +1459,88 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   />
                 </div>
               )}
+              <div className="rounded border bg-gray-50 p-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.examRotation}
+                    onChange={e => {
+                      if (e.target.checked) openRotationModal();
+                      else setFormData(prev => ({ ...prev, examRotation: false }));
+                    }}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="text-sm font-medium">Rodízio de Provas</span>
+                </label>
+                {formData.examRotation && (
+                  <button type="button" onClick={openRotationModal} className="mt-2 text-sm font-medium text-blue-600 hover:underline">
+                    Configurar disponibilidade
+                  </button>
+                )}
+              </div>
               <div className="flex justify-end gap-3 mt-6">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
                 <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {isRotationModalOpen && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="rotation-title" className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
+            <h3 id="rotation-title" className="text-lg font-bold mb-1">Disponibilidade no Rodízio de Provas</h3>
+            <p className="text-sm text-gray-500 mb-4">Configure os dias, o horário e as cidades atendidas pelo examinador.</p>
+            <form onSubmit={saveRotation} className="space-y-5">
+              <fieldset>
+                <legend className="text-sm font-medium mb-2">Dias da semana</legend>
+                <div className="flex flex-wrap gap-2">
+                  {([['SEG', 'Seg'], ['TER', 'Ter'], ['QUA', 'Qua'], ['QUI', 'Qui'], ['SEX', 'Sex'], ['SAB', 'Sáb'], ['DOM', 'Dom']] as const).map(([value, label]) => (
+                    <label key={value} className="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer text-sm">
+                      <input type="checkbox" checked={rotationDraft.days.includes(value)} onChange={e => setRotationDraft(prev => ({
+                        ...prev,
+                        days: e.target.checked ? [...prev.days, value] : prev.days.filter(d => d !== value),
+                      }))} />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <div>
+                <label htmlFor="rotation-time" className="block text-sm font-medium mb-1">Horário padrão</label>
+                <input id="rotation-time" type="time" required value={rotationDraft.defaultTime} onChange={e => setRotationDraft(prev => ({ ...prev, defaultTime: e.target.value }))} className="w-full border rounded p-2 bg-white text-gray-900" />
+              </div>
+              <fieldset>
+                <legend className="text-sm font-medium mb-2">Provas por dia</legend>
+                <div className="flex gap-5 text-sm">
+                  {([1, 2] as const).map(count => (
+                    <label key={count} className="flex items-center gap-2 cursor-pointer">
+                      <input type="radio" name="rotation-exams-per-day" checked={rotationDraft.examsPerDay === count} onChange={() => setRotationDraft(prev => ({ ...prev, examsPerDay: count }))} />
+                      {count === 1 ? 'Uma prova' : 'Duas provas'}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend className="text-sm font-medium mb-2">Cidades atendidas</legend>
+                {citiesError && <p className="text-sm text-red-600">{citiesError}</p>}
+                {!citiesError && cities.length === 0 && <p className="text-sm text-gray-500">Nenhuma cidade cadastrada.</p>}
+                <div className="max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {cities.map(city => (
+                    <label key={city.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={rotationDraft.cityIds.includes(city.id)} onChange={e => setRotationDraft(prev => ({
+                        ...prev,
+                        cityIds: e.target.checked ? [...prev.cityIds, city.id] : prev.cityIds.filter(id => id !== city.id),
+                      }))} />
+                      {city.name}
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+              {rotationError && <p role="alert" className="text-sm text-red-600">{rotationError}</p>}
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setIsRotationModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirmar disponibilidade</button>
               </div>
             </form>
           </div>

@@ -9,7 +9,11 @@ async function ensureSchema(db: any) {
     await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS max_vagas_a_padrao integer`);
     await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS max_vagas_b_padrao integer`);
     await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS max_vagas_mudanca_padrao integer`);
-  } catch {}
+    await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
+    await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS disponibilidade_rodizio jsonb`);
+  } catch (e) {
+    throw new Error('Não foi possível preparar o cadastro de examinadores.', { cause: e });
+  }
 }
 
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
@@ -33,6 +37,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     if (method === 'PUT') {
       if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
+      await ensureSchema(db);
       const body = await parseBody<any>(request);
       const { id, createdAt, updatedAt, ...updates } = body;
       const updated = await db.update(examiners).set(updates).where(eq(examiners.id, id)).returning();
