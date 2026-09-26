@@ -464,6 +464,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     services: [],
     doNotCreateUser: false,
     examRotation: false,
+    cnhBrasilProfile: false,
     motoYardAddress: '',
     carYardAddress: '',
     categoryChangeYardAddress: '',
@@ -1090,6 +1091,16 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                           className="w-4 h-4 text-blue-600"
                         />
                         <span className="text-sm font-medium">Rodízio de Provas</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          data-testid="checkbox-perfil-cnh-brasil"
+                          checked={formData.cnhBrasilProfile ?? false}
+                          onChange={e => setFormData({ ...formData, cnhBrasilProfile: e.target.checked })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm font-medium">Perfil CNH do Brasil</span>
                       </label>
                     </div>
                   </div>

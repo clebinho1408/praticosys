@@ -428,6 +428,7 @@ async function runMigrations() {
 
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS nao_criar_usuario boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS perfil_cnh_brasil boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE examinadores ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE examinadores ADD COLUMN IF NOT EXISTS disponibilidade_rodizio jsonb`);
 

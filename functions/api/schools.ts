@@ -15,6 +15,7 @@ async function ensureSchema(db: any) {
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS banca_provisoria jsonb`);
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS nao_criar_usuario boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS perfil_cnh_brasil boolean NOT NULL DEFAULT false`);
   } catch (e) {
     throw new Error('Não foi possível preparar o cadastro de autoescolas.', { cause: e });
   }

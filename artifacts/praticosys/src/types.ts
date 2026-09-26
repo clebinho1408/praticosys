@@ -73,6 +73,7 @@ export interface DrivingSchool {
   services: string[]; // ['A', 'B', 'C', 'D', 'E']
   doNotCreateUser?: boolean;
   examRotation?: boolean;
+  cnhBrasilProfile?: boolean;
   
   // Pátios
   motoYardAddress?: string;
