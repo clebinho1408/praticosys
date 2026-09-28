@@ -4,3 +4,4 @@
 - [Chamadas autenticadas](authenticated-api-calls.md) — rotas protegidas devem usar o serviço central de API; fetch direto pode converter 401 em estado vazio e ocultar dados.
 - [Escalas automáticas CFC](cfc-auto-scales.md) — desativar modelos PCD/CNH não é limpeza de dados; preservar agendamentos históricos e confirmados.
 - [Concorrência nas escalas CFC](cfc-scale-concurrency.md) — pré-checagem no cliente não evita sobreposição entre autoescolas geradas ao mesmo tempo.
+- [Bancas CNH com origem de cadastro](cnh-banca-source.md) — autoescola elegível autoriza a criação, mas sua identidade não vira vínculo permanente da banca.

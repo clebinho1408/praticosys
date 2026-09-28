@@ -102,7 +102,7 @@ export const api = {
 
   // --- EXAM SCHEDULES ---
   getSchedules: () => request<ExamSchedule[]>('/schedules'),
-  createSchedule: (data: Partial<ExamSchedule>) => request<ExamSchedule>('/schedules', { method: 'POST', body: JSON.stringify(data) }),
+  createSchedule: (data: Partial<ExamSchedule> & { sourceSchoolId?: string }) => request<ExamSchedule>('/schedules', { method: 'POST', body: JSON.stringify(data) }),
   updateSchedule: (id: string, data: Partial<ExamSchedule>) => request<ExamSchedule>('/schedules', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteSchedule: (id: string) => request<void>(`/schedules?id=${id}`, { method: 'DELETE' }),
   cancelSchedule: (scheduleOrId: ExamSchedule | string, reason: string) => {

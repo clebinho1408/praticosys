@@ -553,7 +553,20 @@ router.get("/schedules", async (_req, res) => {
 });
 router.post("/schedules", async (req, res) => {
   try {
-    const body = req.body;
+    const { sourceSchoolId, ...body } = req.body ?? {};
+    if (body.type === "COMMON") {
+      if (!["ADMIN", "SUPERVISOR"].includes((req as any).sessionUser?.role)) {
+        return res.status(403).json({ error: "Acesso negado para criar bancas CNH do Brasil." });
+      }
+      if (typeof sourceSchoolId !== "string" || !sourceSchoolId) {
+        return res.status(400).json({ error: "Selecione uma autoescola com Perfil CNH do Brasil." });
+      }
+      const school = (await db.select().from(drivingSchools)
+        .where(eq(drivingSchools.id, sourceSchoolId)).limit(1))[0];
+      if (!school?.cnhBrasilProfile) {
+        return res.status(409).json({ error: "A autoescola não possui Perfil CNH do Brasil ativo." });
+      }
+    }
     const cleanDate = body.date.split("T")[0];
     const initialStatus = calcStatus(cleanDate, body.time, "OPEN");
     const last = await db.select({ code: examSchedules.code }).from(examSchedules)

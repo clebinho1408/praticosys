@@ -1,6 +1,6 @@
 // functions/api/schedules.ts  →  GET|POST|PUT|DELETE /api/schedules
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
-import { examSchedules, cnhbrasilRequests, cfcRequests, pcdRequests } from '../../db/schema.js';
+import { examSchedules, cnhbrasilRequests, cfcRequests, pcdRequests, drivingSchools } from '../../db/schema.js';
 import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
 
 const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string) => {
@@ -54,7 +54,20 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     }
 
     if (method === 'POST') {
-      const body = await parseBody<any>(request);
+      const { sourceSchoolId, ...body } = await parseBody<any>(request);
+      if (body.type === 'COMMON') {
+        if (!['ADMIN', 'SUPERVISOR'].includes((data as any)?.sessionUserRole)) {
+          return error('Acesso negado para criar bancas CNH do Brasil.', 403);
+        }
+        if (typeof sourceSchoolId !== 'string' || !sourceSchoolId) {
+          return error('Selecione uma autoescola com Perfil CNH do Brasil.', 400);
+        }
+        const school = (await db.select().from(drivingSchools)
+          .where(eq(drivingSchools.id, sourceSchoolId)).limit(1))[0];
+        if (!school?.cnhBrasilProfile) {
+          return error('A autoescola não possui Perfil CNH do Brasil ativo.', 409);
+        }
+      }
       const cleanDate = body.date.split('T')[0];
       const initialStatus = calculateStatus(cleanDate, body.time, 'OPEN');
       const last = await db.select({ code: examSchedules.code }).from(examSchedules)

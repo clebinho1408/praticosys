@@ -2,8 +2,9 @@
 // Scheduling Center Page
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { ExamRequest, ExamSchedule, ExamLocation, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate, RequestSource, City } from '../types';
+import { ExamRequest, ExamSchedule, ExamLocation, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate, RequestSource, City, DrivingSchool } from '../types';
 import { isDateBlocked, isDateInPast } from '../lib/dateBlocking';
+import { cnhBancaSuggestions, type CnhBancaCommitment } from '../lib/cnhBancaRotation';
 import { 
   Calendar, 
   Clock, 
@@ -216,6 +217,16 @@ const SchedulingCenter: React.FC<SchedulingCenterProps> = ({ type, user }) => {
   const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [editingSchedule, setEditingSchedule] = useState<ExamSchedule | null>(null);
+  const [creationChoiceOpen, setCreationChoiceOpen] = useState(false);
+  const [creationMode, setCreationMode] = useState<'manual' | 'rotation' | null>(null);
+  const [sourceSchoolId, setSourceSchoolId] = useState('');
+  const [rotationDate, setRotationDate] = useState('');
+  const [schools, setSchools] = useState<DrivingSchool[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(false);
+  const [schoolsError, setSchoolsError] = useState('');
+  const [rotationCommitments, setRotationCommitments] = useState<CnhBancaCommitment[]>([]);
+  const [rotationCommitmentsDate, setRotationCommitmentsDate] = useState('');
+  const [rotationCommitmentsError, setRotationCommitmentsError] = useState('');
   const [scheduleForm, setScheduleForm] = useState({ 
     date: '', 
     time: '', 
@@ -554,6 +565,68 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       });
     }
     setIsModalOpen(true);
+  };
+
+  const openCreationChoice = async () => {
+    setCreationMode(null);
+    setSourceSchoolId('');
+    setRotationDate('');
+    setSchools([]);
+    setSchoolsError('');
+    setSchoolsLoading(true);
+    setRotationCommitmentsDate('');
+    setCreationChoiceOpen(true);
+    try {
+      setSchools(await api.getSchoolsAsync());
+    } catch (err: any) {
+      setSchoolsError(err?.message || 'Não foi possível consultar as autoescolas.');
+    } finally {
+      setSchoolsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!creationChoiceOpen || creationMode !== 'rotation' || !rotationDate) return;
+    let live = true;
+    setRotationCommitmentsDate('');
+    setRotationCommitmentsError('');
+    api.getScheduleSlots({ scheduledDate: rotationDate })
+      .then(items => {
+        if (!live) return;
+        setRotationCommitments(items);
+        setRotationCommitmentsDate(rotationDate);
+      })
+      .catch((err: any) => {
+        if (!live) return;
+        setRotationCommitmentsError(err?.message || 'Não foi possível consultar os horários ocupados.');
+      });
+    return () => { live = false; };
+  }, [creationChoiceOpen, creationMode, rotationDate]);
+
+  const eligibleSchools = schools.filter(s => s.cnhBrasilProfile);
+  const selectedSchool = eligibleSchools.find(s => s.id === sourceSchoolId);
+  const suggested = creationMode === 'rotation' && selectedSchool && rotationDate
+    ? cnhBancaSuggestions(selectedSchool, rotationDate, examiners, cities, schedules, rotationCommitments)
+    : null;
+
+  const startCreation = (suggestion?: { examinerId: string; time: string }) => {
+    if (!selectedSchool) return;
+    handleOpenModal();
+    if (suggestion) {
+      const examiner = examiners.find(ex => ex.id === suggestion.examinerId);
+      const city = cities.find(c => c.name.trim() === selectedSchool.city?.trim());
+      const matchingLocations = examLocations.filter(loc => loc.cityId === city?.id);
+      setScheduleForm(prev => ({
+        ...prev,
+        date: rotationDate,
+        time: suggestion.time,
+        examinerIds: [suggestion.examinerId],
+        maxSlotsA: examiner?.defaultMaxSlotsA ?? settings?.defaultMaxSlotsA ?? 10,
+        maxSlotsB: examiner?.defaultMaxSlotsB ?? settings?.defaultMaxSlotsB ?? 10,
+        locationId: matchingLocations.length === 1 ? matchingLocations[0].id : null,
+      }));
+    }
+    setCreationChoiceOpen(false);
   };
 
   const handleOpenAddStudent = () => {
@@ -994,13 +1067,18 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
       if (editingSchedule) {
         await api.updateSchedule(editingSchedule.id, scheduleForm);
       } else {
-        await api.createSchedule({ ...scheduleForm, status: 'OPEN' });
+        await api.createSchedule({
+          ...scheduleForm, status: 'OPEN',
+          ...(type === ExamType.COMMON ? { sourceSchoolId } : {}),
+        });
       }
       setIsModalOpen(false);
       refreshData(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Erro ao salvar banca.");
+      setErrorMessage(error?.message || 'Erro ao salvar banca.');
+      setErrorField(null);
+      setIsErrorModalOpen(true);
     }
   };
 
@@ -1247,7 +1325,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
              <div className="w-full md:w-auto flex justify-end">
                 {user.role !== UserRole.SCHOOL && !isConsultant && user.role !== UserRole.OPERATOR && (
                   <button 
-                    onClick={() => handleOpenModal()}
+                     onClick={() => type === ExamType.COMMON ? void openCreationChoice() : handleOpenModal()}
                     className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2 shadow-sm font-bold transition-colors"
                   >
                     <Plus className="h-4 w-4" /> Nova Banca
@@ -1791,6 +1869,80 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
         </div>
       )}
 
+      {/* ESCOLHA: BANCA CNH DO BRASIL */}
+      {type === ExamType.COMMON && creationChoiceOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div role="dialog" aria-modal="true" aria-labelledby="creation-choice-title"
+            className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <div>
+                <h3 id="creation-choice-title" className="text-lg font-bold text-gray-900">Nova Banca — CNH do Brasil</h3>
+                <p className="text-sm text-gray-500 mt-1">Como deseja preparar esta banca?</p>
+              </div>
+              <button type="button" aria-label="Fechar" onClick={() => setCreationChoiceOpen(false)} className="text-gray-500 hover:text-gray-800"><X className="h-5 w-5" /></button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+              <button type="button" onClick={() => { setCreationMode('manual'); setSourceSchoolId(''); }}
+                className={`p-4 rounded-lg border-2 text-left hover:border-blue-400 ${creationMode === 'manual' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}>
+                <span className="font-bold block">Criar manualmente</span>
+                <span className="text-xs text-gray-600">Preencha os dados da banca.</span>
+              </button>
+              <button type="button" onClick={() => { setCreationMode('rotation'); setSourceSchoolId(''); }}
+                className={`p-4 rounded-lg border-2 text-left hover:border-blue-400 ${creationMode === 'rotation' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}>
+                <span className="font-bold block">Usar dados do rodízio</span>
+                <span className="text-xs text-gray-600">Escolha uma sugestão e revise antes de salvar.</span>
+              </button>
+            </div>
+            {schoolsLoading ? <p role="status" className="text-sm text-gray-500">Consultando autoescolas...</p> :
+              schoolsError ? <p role="alert" className="text-sm text-red-700">{schoolsError}</p> :
+              eligibleSchools.length === 0 ? <p role="status" className="text-sm text-amber-800 bg-amber-50 p-3 rounded-lg">
+                Nenhuma autoescola com Perfil CNH do Brasil ativo. Ative essa opção no cadastro para criar a banca.
+              </p> : creationMode && (
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="cnh-source-school" className="block text-sm font-medium mb-1">Autoescola com Perfil CNH do Brasil</label>
+                    <select id="cnh-source-school" className="w-full border rounded-md p-2 bg-white text-gray-900"
+                      value={sourceSchoolId} onChange={e => setSourceSchoolId(e.target.value)}>
+                      <option value="">Selecione a autoescola</option>
+                      {eligibleSchools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  {creationMode === 'rotation' && selectedSchool && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Data da prova</label>
+                        <DatePicker value={rotationDate} onChange={setRotationDate} blockedDates={blockedDates}
+                          settings={settings} placeholder="Selecione a data" />
+                      </div>
+                      {rotationDate && (isDateInPast(rotationDate) || (settings && isDateBlocked(rotationDate, blockedDates, settings).blocked)
+                        ? <p role="alert" className="text-sm text-red-700">Data passada ou bloqueada. Selecione outra data.</p>
+                        : rotationCommitmentsError ? <p role="alert" className="text-sm text-red-700">{rotationCommitmentsError}</p>
+                        : rotationCommitmentsDate !== rotationDate ? <p role="status" className="text-sm text-gray-600">Consultando horários ocupados...</p>
+                        : suggested?.reason ? <p role="status" className="text-sm text-amber-800 bg-amber-50 p-3 rounded">{suggested.reason}</p>
+                        : suggested && <div className="space-y-2">
+                            <p className="text-sm font-medium text-gray-700">Escolha um horário e examinador:</p>
+                            {suggested.options.map(option => (
+                              <button type="button" key={`${option.examinerId}-${option.time}`} onClick={() => startCreation(option)}
+                                className="w-full text-left rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm hover:bg-blue-100 focus:ring-2 focus:ring-blue-500">
+                                <strong>{option.time}</strong> · {examiners.find(ex => ex.id === option.examinerId)?.name}
+                              </button>
+                            ))}
+                          </div>)}
+                    </div>
+                  )}
+                  {creationMode === 'manual' && (
+                    <button type="button" disabled={!selectedSchool} onClick={() => startCreation()}
+                      className="w-full bg-blue-600 text-white font-bold rounded-md p-2.5 disabled:opacity-50 hover:bg-blue-700">
+                      Continuar para o formulário
+                    </button>
+                  )}
+                </div>
+              )}
+            <button type="button" onClick={() => setCreationChoiceOpen(false)} className="mt-5 text-sm text-gray-600 hover:text-gray-900">Cancelar</button>
+          </div>
+        </div>
+      )}
+
       {/* MODAL: NOVA BANCA */}
       {isModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
@@ -1800,6 +1952,11 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                       <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors"><X className="h-6 w-6" /></button>
                   </div>
                   <form onSubmit={handleSaveSchedule} className="space-y-4">
+                      {!editingSchedule && type === ExamType.COMMON && selectedSchool && (
+                        <p className="text-sm rounded-lg bg-blue-50 text-blue-800 px-3 py-2">
+                          Autoescola: <strong>{selectedSchool.name}</strong>. Revise e edite os dados antes de salvar.
+                        </p>
+                      )}
                       <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Data da Prova <span className="text-red-500">*</span></label>
