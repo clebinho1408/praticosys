@@ -1064,6 +1064,30 @@ router.post("/schedule-slots", async (req, res) => {
         new Set(slots.map((s: any) => s.scheduledTime)).size !== slots.length) {
         return res.status(400).json({ error: "Dados inválidos para a escala fixa." });
       }
+      const school = (await db.select().from(drivingSchools)
+        .where(eq(drivingSchools.id, schoolId)).limit(1))[0];
+      if (!school) return res.status(404).json({ error: "Autoescola não encontrada." });
+      const day = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"][new Date(`${date}T00:00:00`).getDay()];
+      const schedule = school.provisionalSchedule?.active ? school.provisionalSchedule :
+        school.mainSchedule?.active ? school.mainSchedule : null;
+      const configured = schedule?.days?.includes(day)
+        ? (schedule.slots ?? []).filter((s: any) => !s.day || s.day === day) : [];
+      if (!configured.length || configured.length !== slots.length) {
+        return res.status(409).json({ error: "A escala da autoescola mudou. Consulte a data novamente." });
+      }
+      if (!school.examRotation) {
+        const ordered = (items: string[]) => items.sort().join("|");
+        if (ordered(configured.map((s: any) => `${s.examiner}:${s.time}`)) !==
+          ordered(slots.map((s: any) => `${s.examinerId}:${s.scheduledTime}`))) {
+          return res.status(409).json({ error: "Rodízio de Provas desativado para a autoescola; use os horários e examinadores da escala fixa." });
+        }
+      }
+      const city = school.examRotation
+        ? (await db.select().from(cities)).find(c => c.name.trim() === school.city?.trim())
+        : null;
+      if (school.examRotation && !city) {
+        return res.status(409).json({ error: "Cidade da autoescola não cadastrada para o rodízio." });
+      }
       const existing = await db.select().from(cfcScheduleSlots).where(and(
         eq(cfcScheduleSlots.schoolId, schoolId), eq(cfcScheduleSlots.scheduledDate, date),
         eq(cfcScheduleSlots.requestType, "FIXA")));
@@ -1078,6 +1102,18 @@ router.post("/schedule-slots", async (req, res) => {
         ]);
         const active = booked.filter(s => s.status !== "CANCELLED");
         const assigned = slots.filter((s: any) => s.examinerId === examinerId);
+        if (school.examRotation) {
+          const examiner = examinerRows[0];
+          const availability = examiner?.rotationAvailability;
+          const times = availability?.examsPerDay === 2
+            ? [availability.defaultTime, availability.secondDefaultTime] : [availability?.defaultTime];
+          if (!examiner?.examRotation || examiner.canExamCommon === false ||
+            !availability?.days?.includes(day) || !availability.cityIds?.includes(city!.id) ||
+            ![1, 2].includes(availability.examsPerDay) ||
+            assigned.some((s: any) => !times.includes(s.scheduledTime))) {
+            return res.status(409).json({ error: "Rodízio de Provas desativado ou disponibilidade incompatível para o examinador." });
+          }
+        }
         const capacity = examinerRows[0]?.examRotation
           ? examinerRows[0].rotationAvailability?.examsPerDay : null;
         if (assigned.some((s: any) => active.some(b => b.scheduledTime === s.scheduledTime)) ||

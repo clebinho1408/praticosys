@@ -34,6 +34,9 @@ export function rotationCandidates(
   examiners: Examiner[],
   cities: City[],
 ): { eligible: Examiner[]; reason?: string } {
+  if (!school.examRotation) {
+    return { eligible: [], reason: 'Rodízio de Provas desativado para esta autoescola.' };
+  }
   // Autoescolas guardam o nome da cidade; a disponibilidade guarda IDs.
   const city = cities.find(item => item.name.trim() === school.city?.trim());
   if (!city) return { eligible: [], reason: 'Cidade da autoescola não cadastrada ou não informada.' };

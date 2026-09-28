@@ -88,6 +88,18 @@ test('does not use a city that is missing from city registry', () => {
   assert.match(result.issues[0].reason, /Cidade/);
 });
 
+test('rotation requires both school and examiner checkboxes enabled', () => {
+  const disabledExaminer = examiner('ex-a', ['cidade-a'], { examRotation: false });
+  const rotated = plan({ examiners: [disabledExaminer] });
+  assert.equal(rotated.plans.length, 0);
+  assert.match(rotated.issues[0].reason, /Nenhum examinador/);
+
+  const normalSchool = school('escola', { examRotation: false });
+  const normal = plan({ schools: [normalSchool], examiners: [disabledExaminer] });
+  assert.deepEqual(normal.plans[0].slots, [{ examinerId: 'antigo', scheduledTime: '06:00' }]);
+  assert.equal(rotationCandidates(normalSchool, 'SEG', [examiner('ex-b')], cities).eligible.length, 0);
+});
+
 test('distributes two schools between examiners with capacity for one per day', () => {
   const result = plan({ schools: [school('escola'), school('escola-2')],
     selectedSchoolIds: ['escola', 'escola-2'] });
