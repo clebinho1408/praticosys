@@ -1051,6 +1051,55 @@ router.get("/schedule-slots", async (req, res) => {
 router.post("/schedule-slots", async (req, res) => {
   try {
     const body = req.body;
+    if (body?.automaticFixed) {
+      const role = (req as any).sessionUser?.role;
+      if (!["ADMIN", "SUPERVISOR", "OPERATOR"].includes(role)) {
+        return res.status(403).json({ error: "Acesso negado para gerar escalas." });
+      }
+      const { schoolId, date, slots } = body.automaticFixed;
+      if (typeof schoolId !== "string" || !schoolId || !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+        !Array.isArray(slots) || slots.length < 1 || slots.length > 20 ||
+        slots.some((s: any) => !s || typeof s.examinerId !== "string" || !s.examinerId ||
+          !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(s.scheduledTime)) ||
+        new Set(slots.map((s: any) => s.scheduledTime)).size !== slots.length) {
+        return res.status(400).json({ error: "Dados inválidos para a escala fixa." });
+      }
+      const existing = await db.select().from(cfcScheduleSlots).where(and(
+        eq(cfcScheduleSlots.schoolId, schoolId), eq(cfcScheduleSlots.scheduledDate, date),
+        eq(cfcScheduleSlots.requestType, "FIXA")));
+      if (existing.some(s => s.status !== "CANCELLED")) {
+        return res.status(409).json({ error: "Esta autoescola já possui uma escala fixa nesta data." });
+      }
+      for (const examinerId of new Set<string>(slots.map((s: any) => s.examinerId))) {
+        const [booked, examinerRows] = await Promise.all([
+          db.select().from(cfcScheduleSlots).where(and(
+            eq(cfcScheduleSlots.examinerId, examinerId), eq(cfcScheduleSlots.scheduledDate, date))),
+          db.select().from(examiners).where(eq(examiners.id, examinerId)).limit(1),
+        ]);
+        const active = booked.filter(s => s.status !== "CANCELLED");
+        const assigned = slots.filter((s: any) => s.examinerId === examinerId);
+        const capacity = examinerRows[0]?.examRotation
+          ? examinerRows[0].rotationAvailability?.examsPerDay : null;
+        if (assigned.some((s: any) => active.some(b => b.scheduledTime === s.scheduledTime)) ||
+          (capacity && active.length + assigned.length > capacity)) {
+          return res.status(409).json({ error: "O examinador já possui prova nesse horário ou atingiu a capacidade diária." });
+        }
+      }
+      // Um único INSERT grava todas as provas da autoescola ou nenhuma. IDs estáveis
+      // impedem que duas gerações simultâneas, que leram o mesmo estado, dupliquem a escala.
+      const created = await db.insert(cfcScheduleSlots).values(slots.map((s: any, index: number) => ({
+        id: `auto-fixed:${schoolId}:${date}:${existing.length}:${index}`,
+        schoolId, scheduledDate: date, scheduledTime: s.scheduledTime, examinerId: s.examinerId,
+        examType: "COMMON", requestType: "FIXA", intendedCategory: "A,B",
+        status: "SCHEDULED", attendanceConfirmed: true, observation: "",
+        createdAt: new Date(), updatedAt: new Date(),
+      }))).returning();
+      return res.json(created);
+    }
+    if ((body?.requestType || "FIXA") === "FIXA" &&
+      !["ADMIN", "SUPERVISOR", "OPERATOR"].includes((req as any).sessionUser?.role)) {
+      return res.status(403).json({ error: "Acesso negado para criar escala fixa." });
+    }
     const table = getSlotTable(body.examType || '');
     const item = await db.insert(table).values({
       id: body.id || crypto.randomUUID(),
@@ -1064,7 +1113,12 @@ router.post("/schedule-slots", async (req, res) => {
       createdAt: new Date(), updatedAt: new Date(),
     }).returning();
     return res.json(item[0]);
-  } catch (err: any) { return res.status(500).json({ error: err.message }); }
+  } catch (err: any) {
+    if (err.code === "23505" || err.cause?.code === "23505") {
+      return res.status(409).json({ error: "A escala fixa já foi gerada por outra pessoa. Atualize os agendamentos." });
+    }
+    return res.status(500).json({ error: err.message });
+  }
 });
 router.put("/schedule-slots", async (req, res) => {
   try {

@@ -1,7 +1,7 @@
 // functions/api/schedule-slots.ts  →  GET|POST|PUT|DELETE /api/schedule-slots
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
-import { cfcScheduleSlots, pcdScheduleSlots } from '../../db/schema.js';
-import { eq } from 'drizzle-orm';
+import { cfcScheduleSlots, pcdScheduleSlots, examiners } from '../../db/schema.js';
+import { eq, and } from 'drizzle-orm';
 
 function getSlotTable(examType: string) {
   return examType === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
@@ -18,7 +18,7 @@ async function findSlotById(db: any, id: string): Promise<{ row: any; module: 'C
   return null;
 }
 
-export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
+export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
@@ -42,6 +42,52 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     if (method === 'POST') {
       const body = await parseBody<any>(request);
+      if (body?.automaticFixed) {
+        if (!['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes((data as any)?.sessionUserRole)) {
+          return error('Acesso negado para gerar escalas.', 403);
+        }
+        const { schoolId, date, slots } = body.automaticFixed;
+        if (typeof schoolId !== 'string' || !schoolId || !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+          !Array.isArray(slots) || slots.length < 1 || slots.length > 20 ||
+          slots.some((s: any) => !s || typeof s.examinerId !== 'string' || !s.examinerId ||
+            !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(s.scheduledTime)) ||
+          new Set(slots.map((s: any) => s.scheduledTime)).size !== slots.length) {
+          return error('Dados inválidos para a escala fixa.', 400);
+        }
+        const existing = await db.select().from(cfcScheduleSlots).where(and(
+          eq(cfcScheduleSlots.schoolId, schoolId), eq(cfcScheduleSlots.scheduledDate, date),
+          eq(cfcScheduleSlots.requestType, 'FIXA')));
+        if (existing.some(s => s.status !== 'CANCELLED')) {
+          return error('Esta autoescola já possui uma escala fixa nesta data.', 409);
+        }
+        for (const examinerId of new Set<string>(slots.map((s: any) => s.examinerId))) {
+          const [booked, examinerRows] = await Promise.all([
+            db.select().from(cfcScheduleSlots).where(and(
+              eq(cfcScheduleSlots.examinerId, examinerId), eq(cfcScheduleSlots.scheduledDate, date))),
+            db.select().from(examiners).where(eq(examiners.id, examinerId)).limit(1),
+          ]);
+          const active = booked.filter(s => s.status !== 'CANCELLED');
+          const assigned = slots.filter((s: any) => s.examinerId === examinerId);
+          const capacity = examinerRows[0]?.examRotation
+            ? examinerRows[0].rotationAvailability?.examsPerDay : null;
+          if (assigned.some((s: any) => active.some(b => b.scheduledTime === s.scheduledTime)) ||
+            (capacity && active.length + assigned.length > capacity)) {
+            return error('O examinador já possui prova nesse horário ou atingiu a capacidade diária.', 409);
+          }
+        }
+        const created = await db.insert(cfcScheduleSlots).values(slots.map((s: any, index: number) => ({
+          id: `auto-fixed:${schoolId}:${date}:${existing.length}:${index}`,
+          schoolId, scheduledDate: date, scheduledTime: s.scheduledTime, examinerId: s.examinerId,
+          examType: 'COMMON', requestType: 'FIXA', intendedCategory: 'A,B',
+          status: 'SCHEDULED', attendanceConfirmed: true, observation: '',
+          createdAt: new Date(), updatedAt: new Date(),
+        }))).returning();
+        return json(created);
+      }
+      if ((body?.requestType || 'FIXA') === 'FIXA' &&
+        !['ADMIN', 'SUPERVISOR', 'OPERATOR'].includes((data as any)?.sessionUserRole)) {
+        return error('Acesso negado para criar escala fixa.', 403);
+      }
       const table = getSlotTable(body.examType || '');
       const newItem = await db.insert(table).values({
         id: body.id || crypto.randomUUID(),
@@ -113,6 +159,9 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     return error('Method Not Allowed', 405);
   } catch (e: any) {
+    if (e.code === '23505' || e.cause?.code === '23505') {
+      return error('A escala fixa já foi gerada por outra pessoa. Atualize os agendamentos.', 409);
+    }
     return error(e.message ?? 'Erro interno', 500);
   }
 };

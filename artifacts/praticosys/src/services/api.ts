@@ -150,6 +150,11 @@ export const api = {
     return request<any[]>(`/schedule-slots${qs}`);
   },
   createScheduleSlot: (data: any) => request<any>('/schedule-slots', { method: 'POST', body: JSON.stringify(data) }),
+  createAutomaticFixedScale: (data: {
+    schoolId: string; date: string; slots: { scheduledTime: string; examinerId: string }[];
+  }) => request<any[]>('/schedule-slots', {
+    method: 'POST', body: JSON.stringify({ automaticFixed: data }),
+  }),
   updateScheduleSlot: (id: string, data: any) => request<any>('/schedule-slots', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteScheduleSlot: (id: string) => request<void>(`/schedule-slots?id=${id}`, { method: 'DELETE' }),
 
