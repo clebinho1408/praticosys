@@ -1888,8 +1888,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               <td className="px-4 py-3 text-slate-600">
                                 {getExamTypeLabel(req)}
                               </td>
-                              <td className="px-4 py-3 text-slate-600">
-                                {req.categoryQuantities ? Object.entries(req.categoryQuantities).map(([cat, qty]) => `${cat}: ${qty}`).join(' · ') : 'Padrão'}
+                              <td className="px-4 py-3 text-slate-700">
+                                {req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {Object.entries(req.categoryQuantities).map(([cat, qty]) => (
+                                      <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
+                                        {qty}{cat}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-400">—</span>
+                                )}
                               </td>
                               {user.role !== UserRole.SCHOOL && !isConsultant && (
                                 <td className="px-4 py-3">
