@@ -150,6 +150,14 @@ export default function ConfirmedAppointmentModal(props: Props) {
             ) : (
               <fieldset disabled={busy} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="text-sm font-bold">Tipo
+                    <select required value={requestType} onChange={e => setRequestType(e.target.value as RequestType)}
+                      className="block w-full border rounded-lg p-2.5 mt-1 font-normal">
+                      <option value={RequestType.FIXA}>Fixa</option>
+                      <option value={RequestType.EXTRA}>Extra</option>
+                      <option value={RequestType.REPOSICAO}>Reposição</option>
+                    </select>
+                  </label>
                   <label className="text-sm font-bold">Exame
                     <select required value={examGroup} onChange={e => changeExamGroup(e.target.value)}
                       className="block w-full border rounded-lg p-2.5 mt-1 font-normal">
@@ -158,14 +166,6 @@ export default function ConfirmedAppointmentModal(props: Props) {
                         <option value="MUD_CAT">Mudança Categoria</option>
                         <option value="MISTO">Misto (1º Hab. e Mud. Cat.)</option>
                       </>}
-                    </select>
-                  </label>
-                  <label className="text-sm font-bold">Tipo
-                    <select required value={requestType} onChange={e => setRequestType(e.target.value as RequestType)}
-                      className="block w-full border rounded-lg p-2.5 mt-1 font-normal">
-                      <option value={RequestType.FIXA}>Fixa</option>
-                      <option value={RequestType.EXTRA}>Extra</option>
-                      <option value={RequestType.REPOSICAO}>Reposição</option>
                     </select>
                   </label>
                 </div>
