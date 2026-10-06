@@ -1,7 +1,8 @@
 // functions/api/schedule-slots.ts  →  GET|POST|PUT|DELETE /api/schedule-slots
-import { getDb, json, error, parseBody, getQuery } from '../_db.js';
-import { cfcScheduleSlots, pcdScheduleSlots, examiners, drivingSchools, cities } from '../../db/schema.js';
+import { getDb, json, error, parseBody, getQuery, ensureSlotQuantities } from '../_db.js';
+import { cfcScheduleSlots, pcdScheduleSlots, examiners, drivingSchools, cities, systemSettings, blockedDates } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
+import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit } from '../_cfc-confirmed.js';
 
 function getSlotTable(examType: string) {
   return examType === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
@@ -21,6 +22,7 @@ async function findSlotById(db: any, id: string): Promise<{ row: any; module: 'C
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
   try {
     const db = getDb(env as any);
+    await ensureSlotQuantities(db);
     const method = request.method;
     const query = getQuery(request.url);
 
@@ -158,6 +160,19 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
       // Encontra o slot atual (camelCase via ORM)
       const found = await findSlotById(db, id);
+      const role = (data as any)?.sessionUserRole;
+      const denied = confirmedAccessError(found?.row, found?.module ?? '', true, role, body);
+      if (denied) return error(denied, body.confirmedEdit && !isConfirmedCfc(found?.row, '', true) ? 409 : 403);
+      if (body.confirmedEdit) {
+        if (!canManageConfirmed(role)) return error('Acesso negado.', 403);
+        const invalid = await validateConfirmedEdit(db, { examiners, systemSettings, blockedDates }, found!.row, body);
+        if (invalid) return error(invalid, 400);
+        const table = found!.module === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
+        const rows = await db.update(table).set({ ...confirmedPatch(body), updatedAt: new Date() })
+          .where(and(eq(table.id, id), eq(table.status, 'SCHEDULED'), eq(table.attendanceConfirmed, true))).returning();
+        if (!rows.length) return error('O agendamento mudou. Atualize a lista.', 409);
+        return json(rows[0]);
+      }
       const oldModule = found?.module;
       const newExamType = filtered.examType ?? found?.row?.examType ?? '';
       const newModule: 'CFC' | 'PCD' = newExamType === 'PCD' ? 'PCD' : 'CFC';
@@ -187,6 +202,19 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     if (method === 'DELETE') {
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
+      const found = await findSlotById(db, id);
+      if (isConfirmedCfc(found?.row, found?.module ?? '', true) && !canManageConfirmed((data as any)?.sessionUserRole)) {
+        return error('Somente administradores e supervisores podem excluir provas confirmadas.', 403);
+      }
+      if (query.confirmedDelete === 'true') {
+        if (!canManageConfirmed((data as any)?.sessionUserRole)) return error('Acesso negado.', 403);
+        if (!isConfirmedCfc(found?.row, found?.module ?? '', true)) return error('O agendamento não está mais confirmado.', 409);
+        const table = found!.module === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
+        const removed = await db.delete(table).where(and(eq(table.id, id), eq(table.status, 'SCHEDULED'),
+          eq(table.attendanceConfirmed, true))).returning();
+        if (!removed.length) return error('O agendamento mudou. Atualize a lista.', 409);
+        return json({ success: true });
+      }
       // Apaga das 2 tabelas (apenas uma terá o registro)
       await db.delete(cfcScheduleSlots).where(eq(cfcScheduleSlots.id, id));
       await db.delete(pcdScheduleSlots).where(eq(pcdScheduleSlots.id, id));

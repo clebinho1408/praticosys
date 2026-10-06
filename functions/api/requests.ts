@@ -1,7 +1,8 @@
 // functions/api/requests.ts  →  GET|POST|PUT|DELETE /api/requests
 import { getDb, json, error, parseBody, getQuery, writeAuditLog, extractActor } from '../_db.js';
-import { cnhbrasilRequests, cfcRequests, pcdRequests } from '../../db/schema.js';
-import { eq, like } from 'drizzle-orm';
+import { cnhbrasilRequests, cfcRequests, pcdRequests, examiners, systemSettings, blockedDates } from '../../db/schema.js';
+import { eq, like, and } from 'drizzle-orm';
+import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit, hasCandidateIdentity, clearAppointment } from '../_cfc-confirmed.js';
 
 const ALLOWED_FIELDS = [
   'id','studentName','socialName','cpf','phone','email','address','city',
@@ -122,6 +123,18 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
       // Encontra registro atual (camelCase via ORM)
       const found = await findRequestById(db, id);
+      const role = (data as any)?.sessionUserRole;
+      const denied = confirmedAccessError(found?.row, found?.modulo ?? '', false, role, body);
+      if (denied) return error(denied, body.confirmedEdit && !isConfirmedCfc(found?.row, found?.modulo ?? '') ? 409 : 403);
+      if (body.confirmedEdit) {
+        if (!canManageConfirmed(role)) return error('Acesso negado.', 403);
+        const invalid = await validateConfirmedEdit(db, { examiners, systemSettings, blockedDates }, found!.row, body);
+        if (invalid) return error(invalid, 400);
+        const rows = await db.update(cfcRequests).set({ ...confirmedPatch(body), updatedAt: new Date() })
+          .where(and(eq(cfcRequests.id, id), eq(cfcRequests.status, 'SCHEDULED'), eq(cfcRequests.attendanceConfirmed, true))).returning();
+        if (!rows.length) return error('O agendamento mudou. Atualize a lista.', 409);
+        return json(rows[0]);
+      }
       const isResultConfirmation =
         rawUpdates.result !== undefined &&
         Array.isArray(rawUpdates.examHistory);
@@ -197,11 +210,25 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     if (method === 'DELETE') {
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
+      const found = await findRequestById(db, id);
+      const role = (data as any)?.sessionUserRole;
+      if (isConfirmedCfc(found?.row, found?.modulo ?? '') && !canManageConfirmed(role)) {
+        return error('Somente administradores e supervisores podem excluir provas confirmadas.', 403);
+      }
+      if (query.confirmedDelete === 'true') {
+        if (!canManageConfirmed(role)) return error('Acesso negado.', 403);
+        if (!isConfirmedCfc(found?.row, found?.modulo ?? '')) return error('O agendamento não está mais confirmado.', 409);
+        const condition = and(eq(cfcRequests.id, id), eq(cfcRequests.status, 'SCHEDULED'), eq(cfcRequests.attendanceConfirmed, true));
+        const affected = hasCandidateIdentity(found!.row)
+          ? await db.update(cfcRequests).set({ ...clearAppointment, updatedAt: new Date() }).where(condition).returning()
+          : await db.delete(cfcRequests).where(condition).returning();
+        if (!affected.length) return error('O agendamento mudou. Atualize a lista.', 409);
+        return json({ success: true });
+      }
       if ((data as any)?.sessionUserRole === 'SUPERVISOR') {
         return error('Supervisores não podem excluir candidatos.', 403);
       }
       // Busca antes de excluir para poder registrar no log
-      const found = await findRequestById(db, id);
       // Apaga das 3 tabelas (apenas uma terá o registro)
       await db.delete(cnhbrasilRequests).where(eq(cnhbrasilRequests.id, id));
       await db.delete(cfcRequests).where(eq(cfcRequests.id, id));

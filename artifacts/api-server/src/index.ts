@@ -431,6 +431,8 @@ async function runMigrations() {
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS perfil_cnh_brasil boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE examinadores ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE examinadores ADD COLUMN IF NOT EXISTS disponibilidade_rodizio jsonb`);
+    await db.execute(sql`ALTER TABLE vagas_cfc ADD COLUMN IF NOT EXISTS quantidades_categoria jsonb`);
+    await db.execute(sql`ALTER TABLE vagas_pcd ADD COLUMN IF NOT EXISTS quantidades_categoria jsonb`);
 
     logger.info("DB migrations complete");
   } catch (err) {

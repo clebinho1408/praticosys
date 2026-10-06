@@ -14,6 +14,16 @@ import { PT_SCHEMA_DO_BLOCK, PT_SCHEMA_VERIFY_SQL, PT_SCHEMA_MARKER_SQL } from '
 let _schemaMigrated = false;
 let _cnhBrasilSdcStorageReady = false;
 let _columnMigrationsReady = false;
+let _slotQuantitiesReady = false;
+
+export async function ensureSlotQuantities(db: any): Promise<void> {
+  if (_slotQuantitiesReady) return;
+  await db.execute(sql`DO $$ BEGIN
+    ALTER TABLE vagas_cfc ADD COLUMN IF NOT EXISTS quantidades_categoria jsonb;
+    ALTER TABLE vagas_pcd ADD COLUMN IF NOT EXISTS quantidades_categoria jsonb;
+  END $$`);
+  _slotQuantitiesReady = true;
+}
 
 async function verifyPtSchema(db: any): Promise<boolean> {
   try {

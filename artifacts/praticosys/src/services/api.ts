@@ -157,6 +157,12 @@ export const api = {
   }),
   updateScheduleSlot: (id: string, data: any) => request<any>('/schedule-slots', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteScheduleSlot: (id: string) => request<void>(`/schedule-slots?id=${id}`, { method: 'DELETE' }),
+  updateConfirmedCfc: (id: string, slot: boolean, data: Pick<ExamRequest, 'scheduledDate' | 'scheduledTime' | 'examinerId' | 'intendedCategory' | 'categoryQuantities'>) =>
+    request<any>(slot ? '/schedule-slots' : '/requests', {
+      method: 'PUT', body: JSON.stringify({ id, ...data, confirmedEdit: true }),
+    }),
+  deleteConfirmedCfc: (id: string, slot: boolean) =>
+    request<void>(`${slot ? '/schedule-slots' : '/requests'}?${new URLSearchParams({ id, confirmedDelete: 'true' })}`, { method: 'DELETE' }),
 
   // --- EXAM LOCATIONS ---
   getExamLocations: () => request<ExamLocation[]>('/exam-locations'),

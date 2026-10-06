@@ -17,6 +17,8 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 // mapping as the development server.
 // @ts-ignore TypeScript rootDir is narrower than the esbuild bundle boundary.
 import { restoreBackup } from "../../../../functions/_backup-restore.js";
+// @ts-ignore Shared compatibility policy for Express and Cloudflare.
+import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit, hasCandidateIdentity, clearAppointment } from "../../../../functions/_cfc-confirmed.js";
 
 function hashCode(code: string): string {
   return createHash('sha256').update(code).digest('hex');
@@ -760,6 +762,19 @@ router.put("/requests", async (req, res) => {
 
     // Busca registro para saber qual tabela atualizar e para auditoria
     const found = await findRequestById(id);
+    const role = (req as any).sessionUser?.role;
+    const denied = confirmedAccessError(found?.row, found?.modulo ?? "", false, role, body);
+    if (denied) return res.status(body.confirmedEdit && !isConfirmedCfc(found?.row, found?.modulo ?? "") ? 409 : 403).json({ error: denied });
+    if (body.confirmedEdit) {
+      if (!canManageConfirmed(role)) return res.status(403).json({ error: "Acesso negado." });
+      const invalid = await validateConfirmedEdit(db, { examiners, systemSettings, blockedDates }, found!.row, body);
+      if (invalid) return res.status(400).json({ error: invalid });
+      const rows = await db.update(cfcRequests).set({ ...confirmedPatch(body), updatedAt: new Date() })
+        .where(and(eq(cfcRequests.id, id), eq(cfcRequests.status, "SCHEDULED"), eq(cfcRequests.attendanceConfirmed, true))).returning();
+      if (!rows.length) return res.status(409).json({ error: "O agendamento mudou. Atualize a lista." });
+      broadcast("requests_updated", rows[0]);
+      return res.json(rows[0]);
+    }
     const isResultConfirmation =
       rawUpdates.result !== undefined &&
       Array.isArray(rawUpdates.examHistory);
@@ -851,10 +866,26 @@ router.put("/requests", async (req, res) => {
 router.delete("/requests", async (req, res) => {
   try {
     const { id } = req.query as any;
+    if (!id) return res.status(400).json({ error: "ID obrigatório" });
+    const found = await findRequestById(id);
+    const role = (req as any).sessionUser?.role;
+    if (isConfirmedCfc(found?.row, found?.modulo ?? "") && !canManageConfirmed(role)) {
+      return res.status(403).json({ error: "Somente administradores e supervisores podem excluir provas confirmadas." });
+    }
+    if (req.query.confirmedDelete === "true") {
+      if (!canManageConfirmed(role)) return res.status(403).json({ error: "Acesso negado." });
+      if (!isConfirmedCfc(found?.row, found?.modulo ?? "")) return res.status(409).json({ error: "O agendamento não está mais confirmado." });
+      const condition = and(eq(cfcRequests.id, id), eq(cfcRequests.status, "SCHEDULED"), eq(cfcRequests.attendanceConfirmed, true));
+      const affected = hasCandidateIdentity(found!.row)
+        ? await db.update(cfcRequests).set({ ...clearAppointment, updatedAt: new Date() }).where(condition).returning()
+        : await db.delete(cfcRequests).where(condition).returning();
+      if (!affected.length) return res.status(409).json({ error: "O agendamento mudou. Atualize a lista." });
+      broadcast("requests_updated", { id });
+      return res.json({ success: true });
+    }
     if ((req as any).sessionUser?.role === "SUPERVISOR") {
       return res.status(403).json({ error: "Supervisores não podem excluir candidatos." });
     }
-    const found = await findRequestById(id);
     // Apaga da tabela correta (e das outras como segurança)
     await db.delete(cnhbrasilRequests).where(eq(cnhbrasilRequests.id, id));
     await db.delete(cfcRequests).where(eq(cfcRequests.id, id));
@@ -1180,6 +1211,20 @@ router.put("/schedule-slots", async (req, res) => {
     for (const k of allowed) { if (updates[k] !== undefined) filtered[k] = updates[k]; }
     // Descobre em qual tabela está o slot e atualiza (ORM devolve camelCase)
     const foundSlot = await findSlotById(id);
+    const role = (req as any).sessionUser?.role;
+    const denied = confirmedAccessError(foundSlot?.row, foundSlot?.module ?? "", true, role, req.body);
+    if (denied) return res.status(req.body.confirmedEdit && !isConfirmedCfc(foundSlot?.row, "", true) ? 409 : 403).json({ error: denied });
+    if (req.body.confirmedEdit) {
+      if (!canManageConfirmed(role)) return res.status(403).json({ error: "Acesso negado." });
+      const invalid = await validateConfirmedEdit(db, { examiners, systemSettings, blockedDates }, foundSlot!.row, req.body);
+      if (invalid) return res.status(400).json({ error: invalid });
+      const table = foundSlot!.module === "PCD" ? pcdScheduleSlots : cfcScheduleSlots;
+      const rows = await db.update(table).set({ ...confirmedPatch(req.body), updatedAt: new Date() })
+        .where(and(eq(table.id, id), eq(table.status, "SCHEDULED"), eq(table.attendanceConfirmed, true))).returning();
+      if (!rows.length) return res.status(409).json({ error: "O agendamento mudou. Atualize a lista." });
+      broadcast("requests_updated", rows[0]);
+      return res.json(rows[0]);
+    }
     const oldSlotModule = foundSlot?.module;
     const newExamType = filtered.examType ?? foundSlot?.row?.examType ?? '';
     const newSlotModule: 'CFC' | 'PCD' = newExamType === 'PCD' ? 'PCD' : 'CFC';
@@ -1207,6 +1252,21 @@ router.delete("/schedule-slots", async (req, res) => {
   try {
     const { id } = req.query as any;
     if (!id) return res.status(400).json({ error: "ID required" });
+    const found = await findSlotById(id);
+    const role = (req as any).sessionUser?.role;
+    if (isConfirmedCfc(found?.row, found?.module ?? "", true) && !canManageConfirmed(role)) {
+      return res.status(403).json({ error: "Somente administradores e supervisores podem excluir provas confirmadas." });
+    }
+    if (req.query.confirmedDelete === "true") {
+      if (!canManageConfirmed(role)) return res.status(403).json({ error: "Acesso negado." });
+      if (!isConfirmedCfc(found?.row, found?.module ?? "", true)) return res.status(409).json({ error: "O agendamento não está mais confirmado." });
+      const table = found!.module === "PCD" ? pcdScheduleSlots : cfcScheduleSlots;
+      const removed = await db.delete(table).where(and(eq(table.id, id), eq(table.status, "SCHEDULED"),
+        eq(table.attendanceConfirmed, true))).returning();
+      if (!removed.length) return res.status(409).json({ error: "O agendamento mudou. Atualize a lista." });
+      broadcast("requests_updated", { id });
+      return res.json({ success: true });
+    }
     // Apaga das 2 tabelas — apenas uma terá o registro
     await db.delete(cfcScheduleSlots).where(eq(cfcScheduleSlots.id, id));
     await db.delete(pcdScheduleSlots).where(eq(pcdScheduleSlots.id, id));

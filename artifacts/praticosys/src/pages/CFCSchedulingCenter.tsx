@@ -42,6 +42,7 @@ import {
   Pencil
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
+import ConfirmedAppointmentModal from '../components/cfc/ConfirmedAppointmentModal';
 
 // Global reference to keep track of the WhatsApp window
 let whatsappWindowRef: Window | null = null;
@@ -52,6 +53,8 @@ interface CFCSchedulingCenterProps {
 
 const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const isConsultant = user.role === UserRole.CONSULTANT;
+  const canManageConfirmed = user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR;
+  const [confirmedAction, setConfirmedAction] = useState<{ item: ExamRequest; mode: 'edit' | 'delete' } | null>(null);
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
@@ -1321,6 +1324,21 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   return (
     <div className="space-y-6 pb-10">
+      {confirmedAction && canManageConfirmed && (
+        <ConfirmedAppointmentModal
+          key={`${confirmedAction.item.id}:${confirmedAction.mode}`}
+          item={confirmedAction.item} mode={confirmedAction.mode} role={user.role}
+          schoolName={getSchoolName(confirmedAction.item.schoolId)}
+          examiners={examiners} settings={systemSettings} blockedDates={blockedDates}
+          onClose={() => setConfirmedAction(null)}
+          onSuccess={updated => {
+            const id = confirmedAction.item.id;
+            setRequests(prev => updated ? prev.map(item => item.id === id ? updated : item) : prev.filter(item => item.id !== id));
+            setConfirmedAction(null);
+            fetchData(true);
+          }}
+        />
+      )}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{user.role === UserRole.SCHOOL ? 'Pedidos' : 'Agendamentos'}</h1>
@@ -1855,6 +1873,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             <th className="px-4 py-3">Horário</th>
                             <th className="px-4 py-3">Examinador</th>
                             <th className="px-4 py-3">Exame</th>
+                            <th className="px-4 py-3">Vagas liberadas</th>
                             {user.role !== UserRole.SCHOOL && <th className="px-4 py-3">Ações</th>}
                           </tr>
                         </thead>
@@ -1869,9 +1888,24 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                               <td className="px-4 py-3 text-slate-600">
                                 {getExamTypeLabel(req)}
                               </td>
+                              <td className="px-4 py-3 text-slate-600">
+                                {req.categoryQuantities ? Object.entries(req.categoryQuantities).map(([cat, qty]) => `${cat}: ${qty}`).join(' · ') : 'Padrão'}
+                              </td>
                               {user.role !== UserRole.SCHOOL && !isConsultant && (
                                 <td className="px-4 py-3">
                                   <div className="flex items-center gap-2">
+                                    {canManageConfirmed && <>
+                                      <button onClick={() => setConfirmedAction({ item: { ...req }, mode: 'edit' })}
+                                        className="border border-blue-200 text-blue-600 hover:bg-blue-50 p-2 rounded-md"
+                                        title="Editar prova confirmada" aria-label="Editar prova confirmada">
+                                        <Pencil className="h-4 w-4" />
+                                      </button>
+                                      <button onClick={() => setConfirmedAction({ item: { ...req }, mode: 'delete' })}
+                                        className="border border-red-200 text-red-600 hover:bg-red-50 p-2 rounded-md"
+                                        title="Excluir agendamento" aria-label="Excluir agendamento">
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </>}
                                     <button 
                                       onClick={() => handleCancelAction(req)}
                                       className="border border-red-200 text-red-600 hover:bg-red-50 p-2 rounded-md flex items-center justify-center transition-colors"
@@ -1886,7 +1920,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           ))}
                           {groupedByDayOfWeek[dayName].length === 0 && (
                             <tr>
-                              <td colSpan={user.role === UserRole.SCHOOL ? 6 : 7} className="px-4 py-8 text-center text-slate-400 italic">Nenhum agendamento para este dia.</td>
+                               <td colSpan={user.role === UserRole.SCHOOL ? 7 : 8} className="px-4 py-8 text-center text-slate-400 italic">Nenhum agendamento para este dia.</td>
                             </tr>
                           )}
                         </tbody>

@@ -409,6 +409,7 @@ export const cfcScheduleSlots = pgTable('vagas_cfc', {
   attendanceConfirmed: boolean('presenca_confirmada').default(false),
   cancellationReason: text('motivo_cancelamento'),
   observation: text('observacao'),
+  categoryQuantities: jsonb('quantidades_categoria').$type<Record<string, number>>(),
   createdAt: timestamp('criado_em').defaultNow(),
   updatedAt: timestamp('atualizado_em').defaultNow(),
 });
@@ -428,6 +429,7 @@ export const pcdScheduleSlots = pgTable('vagas_pcd', {
   attendanceConfirmed: boolean('presenca_confirmada').default(false),
   cancellationReason: text('motivo_cancelamento'),
   observation: text('observacao'),
+  categoryQuantities: jsonb('quantidades_categoria').$type<Record<string, number>>(),
   createdAt: timestamp('criado_em').defaultNow(),
   updatedAt: timestamp('atualizado_em').defaultNow(),
 });
