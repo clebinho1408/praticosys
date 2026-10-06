@@ -186,24 +186,32 @@ export default function ConfirmedAppointmentModal(props: Props) {
                   </select>
                 </label>
                 <div>
-                  <p className="text-sm font-bold mb-2">Categoria e vagas liberadas</p>
-                  <div className="space-y-2">
-                    {availableCategories.map(cat => (
-                      <div key={cat} className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 w-28 text-sm font-bold">
-                          <input type="checkbox" checked={categories.includes(cat)} onChange={e => {
-                            setCategories(prev => (e.target.checked ? [...prev, cat] : prev.filter(c => c !== cat)).sort());
-                          }} />{cat}
-                        </label>
-                        {categories.includes(cat) && (
-                          <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold mb-2">Categoria</p>
+                      <div className="flex flex-wrap gap-x-3 gap-y-2">
+                        {availableCategories.map(cat => (
+                          <label key={cat} className="flex items-center gap-2 text-sm font-bold">
+                            <input type="checkbox" checked={categories.includes(cat)} onChange={e => {
+                              setCategories(prev => (e.target.checked ? [...prev, cat] : prev.filter(c => c !== cat)).sort());
+                            }} />{cat}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold mb-2">Vagas liberadas</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availableCategories.filter(cat => categories.includes(cat)).map(cat => (
+                          <label key={cat} className="flex items-center gap-2 text-sm text-slate-600">
+                            {cat}
                             <input aria-label={`Vagas liberadas categoria ${cat}`} required type="number" min="0" step="1"
                               value={quantities[cat] ?? ''} onChange={e => setQuantities(prev => ({ ...prev, [cat]: e.target.value }))}
-                              className="w-24 border rounded-lg p-2" /> vagas
+                              className="w-16 border rounded-lg p-2" />
                           </label>
-                        )}
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
                   {!item.categoryQuantities && <p className="text-xs text-slate-500 mt-3">
                     Este agendamento não tinha vagas registradas. Os valores padrão estão preenchidos para sua revisão.
