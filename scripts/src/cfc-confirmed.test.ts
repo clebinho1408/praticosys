@@ -5,7 +5,7 @@ import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatc
 
 const confirmed = {
   id: 'isolated-fixture', status: 'SCHEDULED', attendanceConfirmed: true,
-  schoolId: 'school-fixture', examType: 'COMMON', intendedCategory: 'A,B',
+  schoolId: 'school-fixture', examType: 'COMMON', requestType: 'FIXA', intendedCategory: 'A,B',
   examinerId: 'examiner-fixture', scheduledDate: '2099-05-05', scheduledTime: '08:00',
   categoryQuantities: { A: 0, B: 12 },
 };
@@ -16,7 +16,7 @@ test('only ADMIN and SUPERVISOR manage stored confirmed CFC appointments', () =>
     const manager = role === 'ADMIN' || role === 'SUPERVISOR';
     assert.equal(canManageConfirmed(role), manager);
     assert.equal(!!confirmedAccessError(confirmed, 'CFC', false, role, edit), !manager);
-    for (const field of ['scheduledDate', 'scheduledTime', 'examinerId', 'intendedCategory', 'categoryQuantities', 'schoolId', 'examType', 'modulo', 'scheduleId']) {
+    for (const field of ['scheduledDate', 'scheduledTime', 'examinerId', 'intendedCategory', 'categoryQuantities', 'requestType', 'schoolId', 'examType', 'modulo', 'scheduleId']) {
       assert.equal(!!confirmedAccessError(confirmed, 'CFC', false, role, { [field]: 'different' }), !manager, field);
     }
   }
@@ -34,7 +34,7 @@ test('uses stored confirmation and module; preserves unrelated workflows', () =>
   assert.equal(confirmedAccessError(confirmed, 'CFC', false, 'CONSULTANT', { observation: 'unrelated' }), null);
 });
 
-test('edit accepts only the five requested fields without confirmation/module changes', () => {
+test('edit accepts the requested fields without confirmation/module changes', () => {
   assert.deepEqual(confirmedPatch({ ...edit, schoolId: 'other', status: 'CANCELLED', attendanceConfirmed: false, modulo: 'PCD', observation: 'other' }),
     confirmedPatch(confirmed));
   assert.equal(validateConfirmedFields(confirmed, edit, '2099-05-01'), null);
@@ -45,11 +45,24 @@ test('validates real dates, time, examiner, categories and integral nonnegative 
   for (const patch of [
     { scheduledDate: '2099-02-30' }, { scheduledDate: '2098-05-05' }, { scheduledDate: null },
     { scheduledTime: '24:00' }, { scheduledTime: 'abc' }, { examinerId: '' },
-    { intendedCategory: '' }, { intendedCategory: 'A,A' }, { intendedCategory: 'A,C' },
+    { intendedCategory: '' }, { intendedCategory: 'A,A' }, { requestType: 'INVALID' },
+    { intendedCategory: 'A,C', examGroup: '1HAB' },
     { intendedCategory: 'PCD' }, { categoryQuantities: null }, { categoryQuantities: { A: 0 } },
     { categoryQuantities: { A: -1, B: 12 } }, { categoryQuantities: { A: 1.5, B: 12 } },
     { categoryQuantities: { A: '2', B: 12 } }, { categoryQuantities: { A: 0, B: 12, C: 1 } },
   ]) assert.ok(validateConfirmedFields(confirmed, { ...edit, ...patch }, '2099-05-01'), JSON.stringify(patch));
+});
+
+test('exam and request type edits persist through the allowed patch', () => {
+  for (const requestType of ['FIXA', 'EXTRA', 'REPOSICAO']) {
+    const mixed = { ...edit, requestType, examGroup: 'MISTO', intendedCategory: 'A,C', categoryQuantities: { A: 3, C: 4 } };
+    assert.equal(validateConfirmedFields(confirmed, mixed, '2099-05-01'), null);
+    assert.equal(confirmedPatch(mixed).requestType, requestType);
+    assert.equal(confirmedPatch(mixed).intendedCategory, 'A,C');
+    assert.equal('examGroup' in confirmedPatch(mixed), false);
+  }
+  assert.ok(validateConfirmedFields(confirmed, { ...edit, examGroup: 'MISTO' }, '2099-05-01'));
+  assert.equal(validateConfirmedFields(confirmed, { ...edit, examGroup: 'MUD_CAT', intendedCategory: 'C', categoryQuantities: { C: 4 } }, '2099-05-01'), null);
 });
 
 test('candidate appointment removal preserves identity; aggregates are distinguishable', () => {

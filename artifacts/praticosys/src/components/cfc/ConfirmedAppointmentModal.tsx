@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, Save, Trash2, X } from 'lucide-react';
 import { api } from '../../services/api';
-import { ExamRequest, Examiner, SystemSettings, BlockedDate, UserRole } from '../../types';
+import { ExamRequest, Examiner, SystemSettings, BlockedDate, UserRole, RequestType } from '../../types';
 import { isDateBlocked, isDateInPast } from '../../lib/dateBlocking';
 import DatePicker from '../DatePicker';
 
@@ -26,6 +26,33 @@ export default function ConfirmedAppointmentModal(props: Props) {
   const [time, setTime] = useState(item.scheduledTime ?? '');
   const [examinerId, setExaminerId] = useState(item.examinerId ?? '');
   const [categories, setCategories] = useState((item.intendedCategory ?? '').split(',').filter(Boolean));
+  const [requestType, setRequestType] = useState(item.requestType);
+  const [examGroup, setExamGroup] = useState(() => {
+    if (pcd) return 'PCD';
+    const cats = (item.intendedCategory ?? '').split(',');
+    const hab = cats.some(c => ['A', 'B'].includes(c));
+    const mudanca = cats.some(c => ['C', 'D', 'E'].includes(c));
+    return hab && mudanca ? 'MISTO' : mudanca ? 'MUD_CAT' : '1HAB';
+  });
+  const availableCategories = pcd ? ['PCD'] : examGroup === '1HAB' ? ['A', 'B']
+    : examGroup === 'MUD_CAT' ? ['C', 'D', 'E'] : ['A', 'B', 'C', 'D', 'E'];
+  const changeExamGroup = (group: string) => {
+    setExamGroup(group);
+    setCategories(prev => {
+      if (group === '1HAB') {
+        const compatible = prev.filter(c => ['A', 'B'].includes(c));
+        return compatible.length ? compatible : ['A'];
+      }
+      if (group === 'MUD_CAT') {
+        const compatible = prev.filter(c => ['C', 'D', 'E'].includes(c));
+        return compatible.length ? compatible : ['C'];
+      }
+      const mixed = prev.filter(c => ['A', 'B', 'C', 'D', 'E'].includes(c));
+      if (!mixed.some(c => ['A', 'B'].includes(c))) mixed.push('A');
+      if (!mixed.some(c => ['C', 'D', 'E'].includes(c))) mixed.push('C');
+      return mixed.sort();
+    });
+  };
   const defaultQuantity = (cat: string) => cat === 'A' ? settings?.defaultMaxSlotsA ?? 10
     : cat === 'B' ? settings?.defaultMaxSlotsB ?? 10 : settings?.defaultMaxSlotsMudanca ?? 10;
   const [quantities, setQuantities] = useState<Record<string, string>>(() =>
@@ -59,8 +86,8 @@ export default function ConfirmedAppointmentModal(props: Props) {
         !Number.isSafeInteger(Number(quantities[c])))) {
         setError('Informe vagas inteiras, não negativas, para cada categoria.'); return;
       }
-      if (categories.some(c => ['A', 'B'].includes(c)) && categories.some(c => ['C', 'D', 'E'].includes(c))) {
-        setError('Não é permitido selecionar categorias A/B junto com C/D/E.'); return;
+      if (examGroup === 'MISTO' && (!categories.some(c => ['A', 'B'].includes(c)) || !categories.some(c => ['C', 'D', 'E'].includes(c)))) {
+        setError('Para exame misto, selecione ao menos uma categoria A/B e uma C/D/E.'); return;
       }
     }
     running.current = true;
@@ -71,7 +98,7 @@ export default function ConfirmedAppointmentModal(props: Props) {
         onSuccess();
       } else {
         const updated = await api.updateConfirmedCfc(item.id, !!item._isSlot, {
-          scheduledDate: date, scheduledTime: time, examinerId,
+          scheduledDate: date, scheduledTime: time, examinerId, requestType, examGroup,
           intendedCategory: categories.join(','),
           categoryQuantities: Object.fromEntries(categories.map(c => [c, Number(quantities[c])])),
         });
@@ -123,6 +150,26 @@ export default function ConfirmedAppointmentModal(props: Props) {
             ) : (
               <fieldset disabled={busy} className="space-y-5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <label className="text-sm font-bold">Exame
+                    <select required value={examGroup} onChange={e => changeExamGroup(e.target.value)}
+                      className="block w-full border rounded-lg p-2.5 mt-1 font-normal">
+                      {pcd ? <option value="PCD">PCD</option> : <>
+                        <option value="1HAB">1º Habilitação</option>
+                        <option value="MUD_CAT">Mudança Categoria</option>
+                        <option value="MISTO">Misto (1º Hab. e Mud. Cat.)</option>
+                      </>}
+                    </select>
+                  </label>
+                  <label className="text-sm font-bold">Tipo
+                    <select required value={requestType} onChange={e => setRequestType(e.target.value as RequestType)}
+                      className="block w-full border rounded-lg p-2.5 mt-1 font-normal">
+                      <option value={RequestType.FIXA}>Fixa</option>
+                      <option value={RequestType.EXTRA}>Extra</option>
+                      <option value={RequestType.REPOSICAO}>Reposição</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div><label className="block text-sm font-bold mb-1">Data</label>
                     <DatePicker value={date} onChange={setDate} blockedDates={blockedDates} settings={settings} />
                   </div>
@@ -141,7 +188,7 @@ export default function ConfirmedAppointmentModal(props: Props) {
                 <div>
                   <p className="text-sm font-bold mb-2">Categoria e vagas liberadas</p>
                   <div className="space-y-2">
-                    {(pcd ? ['PCD'] : ['A', 'B', 'C', 'D', 'E']).map(cat => (
+                    {availableCategories.map(cat => (
                       <div key={cat} className="flex items-center gap-4">
                         <label className="flex items-center gap-2 w-28 text-sm font-bold">
                           <input type="checkbox" checked={categories.includes(cat)} onChange={e => {

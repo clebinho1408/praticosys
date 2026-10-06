@@ -1,7 +1,7 @@
 // Shared policy for Express and Cloudflare. Decisions use the stored row, not
 // module/status/role supplied by the browser.
 export const confirmedFields = [
-  'scheduledDate', 'scheduledTime', 'examinerId', 'intendedCategory', 'categoryQuantities',
+  'scheduledDate', 'scheduledTime', 'examinerId', 'intendedCategory', 'categoryQuantities', 'requestType',
 ] as const;
 
 export function canManageConfirmed(role: unknown) {
@@ -45,13 +45,17 @@ export function validateConfirmedFields(row: any, updates: any, today: string) {
   if (date < today) return 'Não é permitido reagendar para uma data passada.';
   if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(merged.scheduledTime ?? '')) return 'Informe um horário válido.';
   if (typeof merged.examinerId !== 'string' || !merged.examinerId) return 'Selecione o examinador.';
+  if (!['FIXA', 'EXTRA', 'REPOSICAO'].includes(merged.requestType)) return 'Selecione um tipo de agendamento válido.';
   const cats = typeof merged.intendedCategory === 'string' ? merged.intendedCategory.split(',') : [];
   const allowed = row.examType === 'PCD' || row.schoolId === 'PCD' ? ['PCD'] : ['A', 'B', 'C', 'D', 'E'];
   if (!cats.length || cats.some((c: string) => !allowed.includes(c)) || new Set(cats).size !== cats.length) {
     return 'Selecione categorias válidas.';
   }
-  if (cats.some((c: string) => ['A', 'B'].includes(c)) && cats.some((c: string) => ['C', 'D', 'E'].includes(c))) {
-    return 'Não é permitido selecionar categorias A/B junto com C/D/E.';
+  const hasHab = cats.some((c: string) => ['A', 'B'].includes(c));
+  const hasMudanca = cats.some((c: string) => ['C', 'D', 'E'].includes(c));
+  const group = cats.includes('PCD') ? 'PCD' : hasHab && hasMudanca ? 'MISTO' : hasMudanca ? 'MUD_CAT' : '1HAB';
+  if (updates.examGroup !== undefined && updates.examGroup !== group) {
+    return 'As categorias selecionadas não correspondem ao exame informado.';
   }
   const quantities = merged.categoryQuantities;
   // Legacy records may have no quantities yet. A confirmed editor always sends

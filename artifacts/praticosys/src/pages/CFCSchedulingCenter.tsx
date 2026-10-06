@@ -663,12 +663,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   const getExamTypeLabel = (req: ExamRequest) => {
     if (req.examType === ExamType.PCD) return 'PCD';
-    if (req.schoolId === 'CNH_BRASIL') return '1º Habilitação';
-    return req.intendedCategory?.split(',').some(c => ['C', 'D', 'E'].includes(c)) 
-      ? 'Mudança Categoria' 
-      : req.intendedCategory?.split(',').some(c => ['A', 'B'].includes(c))
-      ? '1º Habilitação'
-      : '-';
+    const categories = req.intendedCategory?.split(',') ?? [];
+    const hab = categories.some(c => ['A', 'B'].includes(c));
+    const mudanca = categories.some(c => ['C', 'D', 'E'].includes(c));
+    if (hab && mudanca) return 'Misto (1º Hab. e Mud. Cat.)';
+    if (mudanca) return 'Mudança Categoria';
+    return hab || req.schoolId === 'CNH_BRASIL' ? '1º Habilitação' : '-';
   };
 
   // Sort each day by examiner name and then by time

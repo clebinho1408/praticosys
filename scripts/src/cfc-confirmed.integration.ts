@@ -31,11 +31,11 @@ const appointment = {
 };
 const patch = {
   scheduledDate: '2099-05-06', scheduledTime: '09:30', examinerId,
-  intendedCategory: 'B', categoryQuantities: { B: 17 }, confirmedEdit: true,
+  intendedCategory: 'B', categoryQuantities: { B: 17 }, requestType: 'EXTRA', examGroup: '1HAB', confirmedEdit: true,
 };
 try {
   await db.insert(drivingSchools).values({ id: schoolId, name: 'Fixture CFC confirmed', doNotCreateUser: true });
-  await db.insert(examiners).values({ id: examinerId, name: 'Fixture examiner', registrationNumber: prefix, categories: ['A', 'B'], canExamPCD: true });
+  await db.insert(examiners).values({ id: examinerId, name: 'Fixture examiner', registrationNumber: prefix, categories: ['A', 'B', 'C'], canExamPCD: true });
   for (const role of roles) {
     await db.insert(users).values({ id: `${prefix}-${role}`, name: 'Fixture user', login: `${prefix}-${role}`, role, forcePasswordChange: false });
     await db.execute(sql`INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
@@ -64,14 +64,30 @@ try {
     assert.equal(edited.body.attendanceConfirmed, true);
     assert.deepEqual(edited.body.categoryQuantities, { B: 17 });
     assert.equal(edited.body.scheduledTime, '09:30');
+    assert.equal(edited.body.requestType, 'EXTRA');
     const table = route === '/requests' ? cfcRequests : cfcScheduleSlots;
     const saved = await db.select().from(table).where(eq(table.id, id));
     assert.deepEqual(saved[0].categoryQuantities, { B: 17 });
+    const changeExam = await call(role, 'PUT', route, {
+      id, ...patch, examGroup: 'MUD_CAT', intendedCategory: 'C',
+      categoryQuantities: { C: 9 }, requestType: 'REPOSICAO',
+    });
+    assert.equal(changeExam.status, 200, JSON.stringify(changeExam.body));
+    assert.equal(changeExam.body.intendedCategory, 'C');
+    assert.equal(changeExam.body.requestType, 'REPOSICAO');
+    const mixedExam = await call(role, 'PUT', route, {
+      id, ...patch, examGroup: 'MISTO', intendedCategory: 'A,C',
+      categoryQuantities: { A: 5, C: 9 }, requestType: 'FIXA',
+    });
+    assert.equal(mixedExam.status, 200, JSON.stringify(mixedExam.body));
+    const [persisted] = await db.select().from(table).where(eq(table.id, id));
+    assert.equal(persisted.requestType, 'FIXA');
+    assert.equal(persisted.intendedCategory, 'A,C');
     assert.equal((await call(role, 'PUT', route, { id, ...patch, categoryQuantities: { B: -1 } })).status, 400);
     assert.equal((await call(role, 'DELETE', `${route}?id=${id}&confirmedDelete=true`)).status, 200);
     assert.equal((await db.select().from(table).where(eq(table.id, id))).length, 0);
   }
-  const pcdPatch = { ...patch, intendedCategory: 'PCD', categoryQuantities: { PCD: 8 } };
+  const pcdPatch = { ...patch, examGroup: 'PCD', intendedCategory: 'PCD', categoryQuantities: { PCD: 8 } };
   assert.equal((await call('SUPERVISOR', 'PUT', '/schedule-slots', { id: pcdSlotId, ...pcdPatch })).status, 200);
   assert.equal((await call('SUPERVISOR', 'DELETE', `/schedule-slots?id=${pcdSlotId}&confirmedDelete=true`)).status, 200);
   assert.equal((await call('SUPERVISOR', 'DELETE', `/requests?id=${candidateId}&confirmedDelete=true`)).status, 200);
