@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
+import { User, UserRole, DrivingSchool, Examiner, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
+import UserFormModal, { type UserFormData } from '../components/registry/UserFormModal';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
 
@@ -83,7 +84,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   // Form State
   const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[]; email: string; phone: string; twoFactorEnabled: boolean }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
+  const [formData, setFormData] = useState<UserFormData>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
 
   // Confirmation Modal State
   const [confirmState, setConfirmState] = useState<{
@@ -291,152 +292,11 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold mb-4">{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</h3>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium">Nome Completo</label>
-                <input required type="text" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Login (Usuário)</label>
-                <input 
-                    required 
-                    type="text" 
-                    className="w-full border rounded p-2 bg-white text-gray-900" 
-                    value={formData.login} 
-                    onChange={handleLoginChange}
-                    placeholder="apenas letras minúsculas"
-                    readOnly={!!editingUser}
-                    title={editingUser ? "Não é possível alterar o login" : "Apenas letras minúsculas, sem espaço"}
-                />
-                <p className="text-xs text-gray-500 mt-1">Apenas letras minúsculas, sem espaço, sem acento.</p>
-              </div>
-              {!editingUser && (
-                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                      Senha padrão será definida como: <strong>123456</strong>
-                  </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium">Função</label>
-                <select className="w-full border rounded p-2 bg-white text-gray-900" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})}>
-                  <option value={UserRole.ADMIN}>Admin</option>
-                  <option value={UserRole.SUPERVISOR}>Supervisor</option>
-                  <option value={UserRole.OPERATOR}>Operador</option>
-                  <option value={UserRole.CONSULTANT}>Consultor</option>
-                  <option value={UserRole.SCHOOL}>Autoescola</option>
-                </select>
-              </div>
-              {formData.role === UserRole.SCHOOL && (
-                <div>
-                  <label className="block text-sm font-medium">Autoescola Vinculada</label>
-                  <select required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.schoolId} onChange={e => setFormData({...formData, schoolId: e.target.value})}>
-                    <option value="">Selecione...</option>
-                    {schools.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Módulos Permitidos</label>
-                  <div className="space-y-2 border rounded p-3 bg-gray-50">
-                    {(['cnh', 'cfc', 'pcd'] as OperatorModule[]).map(mod => {
-                      const labels: Record<OperatorModule, string> = { cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD' };
-                      const isChecked = formData.allowedModules.includes(mod);
-                      return (
-                        <label key={mod} className="flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={e => {
-                              const next = e.target.checked
-                                ? [...formData.allowedModules, mod]
-                                : formData.allowedModules.filter(m => m !== mod);
-                              setFormData({ ...formData, allowedModules: next });
-                            }}
-                            className="h-4 w-4 accent-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">{labels[mod]}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  {formData.allowedModules.length === 0 && (
-                    <p className="text-xs text-red-500 mt-1">Selecione ao menos um módulo.</p>
-                  )}
-                </div>
-              )}
-              {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && formData.allowedModules.includes('cnh') && examLocations.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Locais de Acesso — CNH do Brasil</label>
-                  <p className="text-xs text-gray-500 mb-2">Deixe em branco para liberar todos os locais.</p>
-                  <div className="space-y-2 border rounded p-3 bg-gray-50 max-h-40 overflow-y-auto">
-                    {examLocations.map(loc => {
-                      const locCity = cities.find(c => c.id === loc.cityId);
-                      const label = locCity?.name || loc.cityId;
-                      const isChecked = formData.allowedLocationIds.includes(loc.id);
-                      return (
-                        <label key={loc.id} className="flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={e => {
-                              const next = e.target.checked
-                                ? [...formData.allowedLocationIds, loc.id]
-                                : formData.allowedLocationIds.filter(id => id !== loc.id);
-                              setFormData({ ...formData, allowedLocationIds: next });
-                            }}
-                            className="h-4 w-4 accent-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">{label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {/* Contato e segurança */}
-              <div className="border-t pt-4 space-y-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contato & Segurança</p>
-                <div>
-                  <label className="block text-sm font-medium">E-mail</label>
-                  <input
-                    type="email"
-                    className="w-full border rounded p-2 bg-white text-gray-900 text-sm"
-                    value={formData.email}
-                    onChange={e => setFormData({...formData, email: e.target.value})}
-                    placeholder="exemplo@email.com"
-                  />
-                </div>
-                <label className="flex items-start gap-3 cursor-pointer select-none p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-blue-600 mt-0.5"
-                    checked={formData.twoFactorEnabled}
-                    onChange={e => setFormData({...formData, twoFactorEnabled: e.target.checked})}
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-800">Ativar verificação em 2 etapas</span>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Ao fazer login, um código será enviado para o e-mail cadastrado acima.
-                      {!formData.email && formData.twoFactorEnabled && (
-                        <span className="text-red-600 block mt-1">⚠️ Cadastre um e-mail para ativar este recurso.</span>
-                      )}
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"><Save className="h-4 w-4" /> Salvar</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <UserFormModal key={editingUser?.id ?? 'new-user'} editingUser={editingUser} value={formData}
+          schools={schools} examLocations={examLocations} cities={cities}
+          loginExists={!editingUser && users.some(existing => existing.login === formData.login)}
+          onChange={setFormData} onLoginChange={handleLoginChange}
+          onSave={handleSave} onClose={() => setIsModalOpen(false)} />
       )}
     </div>
   );
