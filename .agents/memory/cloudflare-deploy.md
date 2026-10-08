@@ -8,6 +8,12 @@ PráticoSys runs dual-mode:
 - **Dev (Replit)**: frontend Vite proxy → Express (port 8080) → Neon externo via `DATA_BASE_NEON` quando configurado; `DATABASE_URL` é fallback
 - **Prod (Cloudflare)**: static Vite build + Cloudflare Pages Functions → Neon (neon-http / @neondatabase/serverless)
 
+O site publicado informado pelo usuário é https://praticosys.com.br/.
+
+**Why:** o usuário confirmou esse endereço ao investigar uma alteração que não aparecia no site publicado.
+
+**How to apply:** ao investigar diferenças entre a prévia e produção, verificar os arquivos efetivamente servidos nesse domínio antes de atribuir o problema a uma publicação desatualizada.
+
 ## Key files
 - `functions/` at repo root = Cloudflare Pages Functions (NOT inside artifacts/)
 - `db/schema.ts` at repo root = schema for Cloudflare functions (separate from lib/db which is for Express)
