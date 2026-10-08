@@ -3,6 +3,7 @@ import { getDb, json, error, parseBody, getQuery, writeAuditLog, extractActor } 
 import { cnhbrasilRequests, cfcRequests, pcdRequests, examiners, systemSettings, blockedDates } from '../../db/schema.js';
 import { eq, like, and } from 'drizzle-orm';
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit, hasCandidateIdentity, clearAppointment } from '../_cfc-confirmed.js';
+import { extraEditError, extraPatch } from '../_cfc-extra.js';
 
 const ALLOWED_FIELDS = [
   'id','studentName','socialName','cpf','phone','email','address','city',
@@ -124,6 +125,14 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       // Encontra registro atual (camelCase via ORM)
       const found = await findRequestById(db, id);
       const role = (data as any)?.sessionUserRole;
+      if (body.extraEdit) {
+        const invalid = extraEditError(found?.row, found?.modulo ?? '', role, body);
+        if (invalid) return error(invalid.error, invalid.status);
+        const rows = await db.update(cfcRequests).set({ ...extraPatch(body), updatedAt: new Date() })
+          .where(and(eq(cfcRequests.id, id), eq(cfcRequests.status, 'WAITING_SCHEDULING'))).returning();
+        if (!rows.length) return error('O pedido mudou. Atualize a lista.', 409);
+        return json(rows[0]);
+      }
       const denied = confirmedAccessError(found?.row, found?.modulo ?? '', false, role, body);
       if (denied) return error(denied, body.confirmedEdit && !isConfirmedCfc(found?.row, found?.modulo ?? '') ? 409 : 403);
       if (body.confirmedEdit) {

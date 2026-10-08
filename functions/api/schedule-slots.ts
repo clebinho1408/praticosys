@@ -3,6 +3,7 @@ import { getDb, json, error, parseBody, getQuery, ensureSlotQuantities } from '.
 import { cfcScheduleSlots, pcdScheduleSlots, examiners, drivingSchools, cities, systemSettings, blockedDates } from '../../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit } from '../_cfc-confirmed.js';
+import { extraEditError, extraPatch } from '../_cfc-extra.js';
 
 function getSlotTable(examType: string) {
   return examType === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
@@ -161,6 +162,14 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       // Encontra o slot atual (camelCase via ORM)
       const found = await findSlotById(db, id);
       const role = (data as any)?.sessionUserRole;
+      if (body.extraEdit) {
+        const invalid = extraEditError(found?.row, found?.module ?? '', role, body);
+        if (invalid) return error(invalid.error, invalid.status);
+        const rows = await db.update(cfcScheduleSlots).set({ ...extraPatch(body), updatedAt: new Date() })
+          .where(and(eq(cfcScheduleSlots.id, id), eq(cfcScheduleSlots.status, 'WAITING_SCHEDULING'))).returning();
+        if (!rows.length) return error('O pedido mudou. Atualize a lista.', 409);
+        return json(rows[0]);
+      }
       const denied = confirmedAccessError(found?.row, found?.module ?? '', true, role, body);
       if (denied) return error(denied, body.confirmedEdit && !isConfirmedCfc(found?.row, '', true) ? 409 : 403);
       if (body.confirmedEdit) {

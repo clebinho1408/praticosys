@@ -19,6 +19,8 @@ import { ReplitConnectors } from "@replit/connectors-sdk";
 import { restoreBackup } from "../../../../functions/_backup-restore.js";
 // @ts-ignore Shared compatibility policy for Express and Cloudflare.
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit, hasCandidateIdentity, clearAppointment } from "../../../../functions/_cfc-confirmed.js";
+// @ts-ignore Shared compatibility policy for Express and Cloudflare.
+import { extraEditError, extraPatch } from "../../../../functions/_cfc-extra.js";
 
 function hashCode(code: string): string {
   return createHash('sha256').update(code).digest('hex');
@@ -763,6 +765,15 @@ router.put("/requests", async (req, res) => {
     // Busca registro para saber qual tabela atualizar e para auditoria
     const found = await findRequestById(id);
     const role = (req as any).sessionUser?.role;
+    if (body.extraEdit) {
+      const invalid = extraEditError(found?.row, found?.modulo ?? "", role, body);
+      if (invalid) return res.status(invalid.status).json({ error: invalid.error });
+      const rows = await db.update(cfcRequests).set({ ...extraPatch(body), updatedAt: new Date() })
+        .where(and(eq(cfcRequests.id, id), eq(cfcRequests.status, "WAITING_SCHEDULING"))).returning();
+      if (!rows.length) return res.status(409).json({ error: "O pedido mudou. Atualize a lista." });
+      broadcast("requests_updated", rows[0]);
+      return res.json(rows[0]);
+    }
     const denied = confirmedAccessError(found?.row, found?.modulo ?? "", false, role, body);
     if (denied) return res.status(body.confirmedEdit && !isConfirmedCfc(found?.row, found?.modulo ?? "") ? 409 : 403).json({ error: denied });
     if (body.confirmedEdit) {
@@ -1212,6 +1223,15 @@ router.put("/schedule-slots", async (req, res) => {
     // Descobre em qual tabela está o slot e atualiza (ORM devolve camelCase)
     const foundSlot = await findSlotById(id);
     const role = (req as any).sessionUser?.role;
+    if (req.body.extraEdit) {
+      const invalid = extraEditError(foundSlot?.row, foundSlot?.module ?? "", role, req.body);
+      if (invalid) return res.status(invalid.status).json({ error: invalid.error });
+      const rows = await db.update(cfcScheduleSlots).set({ ...extraPatch(req.body), updatedAt: new Date() })
+        .where(and(eq(cfcScheduleSlots.id, id), eq(cfcScheduleSlots.status, "WAITING_SCHEDULING"))).returning();
+      if (!rows.length) return res.status(409).json({ error: "O pedido mudou. Atualize a lista." });
+      broadcast("requests_updated", rows[0]);
+      return res.json(rows[0]);
+    }
     const denied = confirmedAccessError(foundSlot?.row, foundSlot?.module ?? "", true, role, req.body);
     if (denied) return res.status(req.body.confirmedEdit && !isConfirmedCfc(foundSlot?.row, "", true) ? 409 : 403).json({ error: denied });
     if (req.body.confirmedEdit) {

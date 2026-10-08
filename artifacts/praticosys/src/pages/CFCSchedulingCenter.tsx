@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 import ConfirmedAppointmentModal from '../components/cfc/ConfirmedAppointmentModal';
+import ExtraRequestModal from '../components/cfc/ExtraRequestModal';
 
 // Global reference to keep track of the WhatsApp window
 let whatsappWindowRef: Window | null = null;
@@ -54,6 +55,8 @@ interface CFCSchedulingCenterProps {
 const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const isConsultant = user.role === UserRole.CONSULTANT;
   const canManageConfirmed = user.role === UserRole.ADMIN || user.role === UserRole.SUPERVISOR;
+  const canEditExtraRequest = [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.OPERATOR].includes(user.role);
+  const [extraToEdit, setExtraToEdit] = useState<ExamRequest & { _isSlot?: boolean } | null>(null);
   const [confirmedAction, setConfirmedAction] = useState<{ item: ExamRequest; mode: 'edit' | 'delete' } | null>(null);
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState<ExamRequest[]>([]);
@@ -1324,6 +1327,17 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
   return (
     <div className="space-y-6 pb-10">
+      {extraToEdit && canEditExtraRequest && (
+        <ExtraRequestModal key={extraToEdit.id} item={extraToEdit} role={user.role}
+          schoolName={getSchoolName(extraToEdit.schoolId)}
+          onClose={() => setExtraToEdit(null)}
+          onSuccess={updated => {
+            setRequests(prev => prev.map(item => item.id === updated.id ? { ...item, ...updated } : item));
+            setExtraToEdit(null);
+            fetchData(true);
+          }}
+        />
+      )}
       {confirmedAction && canManageConfirmed && (
         <ConfirmedAppointmentModal
           key={`${confirmedAction.item.id}:${confirmedAction.mode}`}
@@ -1632,9 +1646,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         const qtys = (req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0)
                           ? req.categoryQuantities
                           : parseQtyFromObs(req.observation);
-                        const cleanObs = (req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0)
-                          ? (req.observation || '')
-                          : cleanObsFromQty(req.observation);
+                        const cleanObs = cleanObsFromQty(req.observation);
                         return (
                         <tr key={req.id} className={getRowClass(req)}>
                           <td className="px-4 py-3 text-slate-500 text-center">{new Date(req.createdAt).toLocaleString()}</td>
@@ -1663,6 +1675,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate" title={cleanObs || undefined}>{cleanObs || '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
+                              {canEditExtraRequest && (
+                                <button type="button"
+                                  onClick={() => setExtraToEdit({ ...req, categoryQuantities: qtys, observation: cleanObs })}
+                                  className="border border-orange-200 text-orange-600 hover:bg-orange-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                  title="Editar pedido de prova extra" aria-label="Editar pedido de prova extra">
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                              )}
                               {user.role !== UserRole.SCHOOL && !isConsultant && (
                                 <button 
                                   onClick={() => {
