@@ -190,10 +190,10 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
           { ...found?.row, ...filtered, modulo: newModulo, updatedAt: new Date() },
           newModulo
         );
-        await db.transaction(async (tx: any) => {
-          await tx.insert(newTable).values(merged).onConflictDoNothing();
-          await tx.delete(oldTable).where(eq(oldTable.id, id));
-        });
+        await db.batch([
+          db.insert(newTable).values(merged),
+          db.delete(oldTable).where(eq(oldTable.id, id)),
+        ]);
         record = merged;
       } else {
         const safeFiltered = stripDroppedFields({ ...filtered, updatedAt: new Date() }, newModulo);

@@ -4,6 +4,7 @@ import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { sql } from 'drizzle-orm';
 import * as schema from '../db/schema.js';
+import { createD1Db, isD1, verifyD1Schema } from './_d1.js';
 
 // ─── Migração de renomeação: inglês → português ────────────────────────────────
 // O SQL vive em ./_migration-sql.mjs (fonte única, também usada por scripts psql).
@@ -17,6 +18,7 @@ let _columnMigrationsReady = false;
 let _slotQuantitiesReady = false;
 
 export async function ensureSlotQuantities(db: any): Promise<void> {
+  if (isD1(db)) return verifyD1Schema(db);
   if (_slotQuantitiesReady) return;
   await db.execute(sql`DO $$ BEGIN
     ALTER TABLE vagas_cfc ADD COLUMN IF NOT EXISTS quantidades_categoria jsonb;
@@ -34,6 +36,7 @@ async function verifyPtSchema(db: any): Promise<boolean> {
 }
 
 export async function ensurePortugueseSchema(db: any): Promise<void> {
+  if (isD1(db)) return verifyD1Schema(db);
   if (_schemaMigrated) return;
 
   // Verificação rápida do marcador
@@ -61,6 +64,7 @@ export async function ensurePortugueseSchema(db: any): Promise<void> {
  * das tabelas por módulo. É executado uma vez por instância do Worker.
  */
 export async function ensureCnhBrasilSdcStorage(db: any): Promise<void> {
+  if (isD1(db)) return verifyD1Schema(db);
   if (_cnhBrasilSdcStorageReady) return;
   await db.execute(sql`
     ALTER TABLE solicitacoes_cnhbrasil
@@ -75,6 +79,7 @@ export async function ensureCnhBrasilSdcStorage(db: any): Promise<void> {
  * Roda uma vez por instância de Worker (cold start).
  */
 export async function ensureColumnMigrations(db: any): Promise<void> {
+  if (isD1(db)) return verifyD1Schema(db);
   if (_columnMigrationsReady) return;
   try {
     // veiculos — colunas adicionadas após schema inicial
@@ -94,7 +99,12 @@ export async function ensureColumnMigrations(db: any): Promise<void> {
   _columnMigrationsReady = true;
 }
 
-export function getDb(env: Record<string, string>) {
+export function getDb(env: Record<string, any>) {
+  if (env.DB_PROVIDER === 'd1') {
+    if (!env.DB?.prepare) throw new Error('D1 selecionado sem binding DB. Conexão Neon não será usada como fallback.');
+    return createD1Db(env.DB);
+  }
+  if (env.DB_PROVIDER && env.DB_PROVIDER !== 'neon') throw new Error('DB_PROVIDER inválido.');
   const url = env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL not set in environment');
   const sqlClient = neon(url);
@@ -159,7 +169,7 @@ export async function writeAuditLog(
           entidade text NOT NULL,
           entidade_id text,
           detalhes jsonb,
-          criado_em timestamp DEFAULT now()
+          criado_em timestamp DEFAULT (now())
         )
       `);
       _auditTableReady = true;

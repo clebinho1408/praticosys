@@ -3,10 +3,17 @@
 import { getDb, json, error, ensurePortugueseSchema } from '../_db.js';
 import { users } from '../../db/schema.js';
 import { sql } from 'drizzle-orm';
+import { isD1, verifyD1Schema } from '../_d1.js';
 
 export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ env }) => {
   try {
     const db = getDb(env as any);
+    // D1 is provisioned only by an explicit maintenance command. The public
+    // legacy setup endpoint must never mutate/migrate the new database.
+    if (isD1(db)) {
+      await verifyD1Schema(db);
+      return json({ success: true, message: 'D1 preparado por migrações versionadas; setup legado não executado.' });
+    }
 
     // ─── Migração de renomeação: inglês → português (versão pt_schema_v1) ────────
     // Fonte única: functions/_migration-sql.mjs via ensurePortugueseSchema().

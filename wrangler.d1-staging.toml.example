@@ -1,0 +1,15 @@
+# TEMPLATE ONLY. Copy to an explicitly isolated Cloudflare STAGING project,
+# after account/resource approval. Never overwrite the production wrangler.toml.
+name = "praticosys-d1-staging"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+DB_PROVIDER = "d1"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "praticosys-d1-staging"
+database_id = "REPLACE_WITH_APPROVED_STAGING_DATABASE_ID"
+preview_database_id = "DB"

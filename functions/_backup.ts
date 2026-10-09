@@ -1,5 +1,7 @@
 // functions/_backup.ts — geração de snapshot de backup (Cloudflare Pages Functions)
 import { sql } from 'drizzle-orm';
+import { isD1, verifyD1Schema } from './_d1.js';
+import { createD1Backup } from './_d1-backup.js';
 export { normalizeBackupPayload, restoreBackup } from './_backup-restore.js';
 
 // Tabelas de dados incluídas no backup (sessões, OTPs e logs de auditoria ficam fora)
@@ -16,6 +18,7 @@ const BACKUP_TABLES = [
 const MAX_BACKUPS = 15;
 
 export async function ensureBackupSchema(db: any) {
+  if (isD1(db)) return verifyD1Schema(db);
   try {
     await db.execute(sql`CREATE TABLE IF NOT EXISTS backups (
       id text PRIMARY KEY,
@@ -31,6 +34,7 @@ export async function ensureBackupSchema(db: any) {
 
 /** Cria um backup completo. Para trigger 'auto', no máximo 1 por dia. */
 export async function createBackup(db: any, trigger: 'auto' | 'manual'): Promise<{ skipped?: boolean; id?: string }> {
+  if (isD1(db)) return createD1Backup(db, trigger);
   await ensureBackupSchema(db);
 
   if (trigger === 'auto') {

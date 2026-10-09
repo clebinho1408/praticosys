@@ -1,4 +1,7 @@
 import { getTableColumns, sql } from 'drizzle-orm';
+import { isD1 } from './_d1.js';
+import { restoreD1Backup } from './_d1-backup.js';
+import { d1Tables } from '../db/d1-schema.js';
 
 type BackupRow = Record<string, unknown>;
 export type BackupPayload = Record<string, unknown>;
@@ -93,16 +96,19 @@ const TABLE_COLUMNS: Record<RestoreTable, string[]> = {
     'id', 'nome', 'telefone', 'email', 'endereco', 'cidade', 'servicos',
     'endereco_patio_moto', 'endereco_patio_carro', 'endereco_patio_mudanca',
     'banca_principal', 'banca_provisoria', 'criado_em',
+    'nao_criar_usuario', 'rodizio_provas', 'perfil_cnh_brasil',
   ],
   examinadores: [
     'id', 'nome', 'matricula', 'pode_examinar_comum', 'pode_examinar_pcd',
     'categorias', 'max_vagas_a_padrao', 'max_vagas_b_padrao',
     'max_vagas_mudanca_padrao', 'criado_em',
+    'rodizio_provas', 'disponibilidade_rodizio',
   ],
   instrutores: ['id', 'nome', 'cpf', 'telefone', 'categoria', 'placa', 'criado_em'],
   veiculos: [
     'id', 'instrutor_id', 'tipo', 'marca', 'modelo', 'placa', 'ativo', 'transmissao',
     'acessorios', 'duplo_comando', 'procuracao', 'criado_em',
+    'ano_fabricacao',
   ],
   cidades: ['id', 'nome', 'criado_em'],
   bancas: [
@@ -120,8 +126,8 @@ const TABLE_COLUMNS: Record<RestoreTable, string[]> = {
     (column) => !['sem_duplo_comando', 'quantidades_categoria'].includes(column),
   ),
   vagas_banca: COMMON_SLOT_COLUMNS,
-  vagas_cfc: COMMON_SLOT_COLUMNS,
-  vagas_pcd: COMMON_SLOT_COLUMNS,
+   vagas_cfc: [...COMMON_SLOT_COLUMNS, 'quantidades_categoria'],
+   vagas_pcd: [...COMMON_SLOT_COLUMNS, 'quantidades_categoria'],
   resultados_banca: [
     'id', 'banca_id', 'autoescola_id', 'categoria', 'total_vagas', 'vagas_usadas',
     'aprovados', 'reprovados', 'ausentes', 'cancelados', 'modulo', 'criado_em',
@@ -137,6 +143,7 @@ const TABLE_COLUMNS: Record<RestoreTable, string[]> = {
     'restricoes', 'nome_exame_pcd', 'endereco_exame_pcd_padrao',
     'link_exame_pcd_padrao', 'banca_principal_pcd', 'banca_principal_cnh_brasil',
     'bloquear_fins_semana', 'chave_area_risco',
+    'ano_fabricacao_maximo',
   ],
   usuarios: [
     'id', 'nome', 'login', 'senha', 'perfil', 'autoescola_id', 'examinador_id',
@@ -153,12 +160,14 @@ const COLUMN_ALIASES: Record<RestoreTable, Record<string, string>> = {
     category_change_yard_address: 'endereco_patio_mudanca',
     main_schedule: 'banca_principal', provisional_schedule: 'banca_provisoria',
     created_at: 'criado_em',
+    do_not_create_user: 'nao_criar_usuario', exam_rotation: 'rodizio_provas', cnh_brasil_profile: 'perfil_cnh_brasil',
   },
   examinadores: {
     name: 'nome', registration_number: 'matricula', can_exam_common: 'pode_examinar_comum',
     can_exam_pcd: 'pode_examinar_pcd', categories: 'categorias',
     default_max_slots_a: 'max_vagas_a_padrao', default_max_slots_b: 'max_vagas_b_padrao',
     default_max_slots_mudanca: 'max_vagas_mudanca_padrao', created_at: 'criado_em',
+    exam_rotation: 'rodizio_provas', rotation_availability: 'disponibilidade_rodizio',
   },
   instrutores: {
     name: 'nome', phone: 'telefone', category: 'categoria', plate: 'placa',
@@ -168,6 +177,7 @@ const COLUMN_ALIASES: Record<RestoreTable, Record<string, string>> = {
     instructor_id: 'instrutor_id', type: 'tipo', brand: 'marca', model: 'modelo',
     plate: 'placa', active: 'ativo', transmission: 'transmissao',
     accessories: 'acessorios', created_at: 'criado_em',
+    ano_fabricacao: 'ano_fabricacao',
   },
   cidades: { name: 'nome', created_at: 'criado_em' },
   bancas: {
@@ -212,6 +222,7 @@ const COLUMN_ALIASES: Record<RestoreTable, Record<string, string>> = {
     pcd_main_schedule: 'banca_principal_pcd',
     cnh_brasil_main_schedule: 'banca_principal_cnh_brasil',
     block_weekends: 'bloquear_fins_semana', risk_area_key: 'chave_area_risco',
+    ano_fabricacao_maximo: 'ano_fabricacao_maximo',
   },
   usuarios: {
     name: 'nome', password: 'senha', role: 'perfil', school_id: 'autoescola_id',
@@ -251,6 +262,7 @@ for (const table of ['vagas_banca', 'vagas_cfc', 'vagas_pcd'] as RestoreTable[])
     scheduled_category: 'categoria_agendada', attendance_confirmed: 'presenca_confirmada',
     cancellation_reason: 'motivo_cancelamento', created_at: 'criado_em',
     updated_at: 'atualizado_em',
+    category_quantities: 'quantidades_categoria',
   };
 }
 
@@ -259,6 +271,7 @@ const JSON_COLUMNS = new Set([
   'examinadores_ids', 'quantidades_categoria', 'historico_exames', 'restricoes',
   'banca_principal_pcd', 'banca_principal_cnh_brasil', 'modulos_permitidos',
   'locais_permitidos_ids', 'regioes_atendidas',
+  'disponibilidade_rodizio', 'ano_fabricacao_maximo',
 ]);
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -415,6 +428,29 @@ export async function restoreBackup(
   format: 'english' | 'portuguese' | 'mixed' | 'unknown';
 }> {
   const { normalized, format } = prepareRestore(input);
+  if (isD1(db)) {
+    if (format === 'unknown' || !isObject(input)) throw new Error('Backup D1 inválido: tabelas reconhecidas ausentes.');
+    for (const [sourceTable, sourceRows] of Object.entries(input)) {
+      const table = TABLE_ALIASES[sourceTable];
+      if (!table) continue;
+      if (!Array.isArray(sourceRows) || sourceRows.some(row => !isObject(row) || row.id == null)) {
+        throw new Error('Backup D1 inválido: registros sem ID ou tabela malformada. Nada foi restaurado.');
+      }
+      // Current Portuguese snapshots can contain intentionally preserved
+      // legacy SQL columns that are not exposed by the application ORM.
+      if (sourceTable === table) {
+        const originals = new Map(sourceRows.map(row => [(row as BackupRow).id, row as BackupRow]));
+        for (const row of normalized[table] ?? []) {
+          const original = originals.get(row.id)!;
+          for (const column of d1Tables[table]) {
+            if (Object.hasOwn(original, column.name)) row[column.name] = original[column.name];
+          }
+        }
+      }
+    }
+    await restoreD1Backup(db, normalized);
+    return { restored: restoreCounts(normalized), format };
+  }
   if (options?.batchTables) {
     await restoreWithBatch(db, normalized, options.batchTables);
     return { restored: restoreCounts(normalized), format };

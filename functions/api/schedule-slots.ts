@@ -4,6 +4,7 @@ import { cfcScheduleSlots, pcdScheduleSlots, examiners, drivingSchools, cities, 
 import { eq, and } from 'drizzle-orm';
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit } from '../_cfc-confirmed.js';
 import { extraEditError, extraPatch } from '../_cfc-extra.js';
+import { isD1 } from '../_d1.js';
 
 function getSlotTable(examType: string) {
   return examType === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
@@ -114,13 +115,16 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
             return error('O examinador já possui prova nesse horário ou atingiu a capacidade diária.', 409);
           }
         }
-        const created = await db.insert(cfcScheduleSlots).values(slots.map((s: any, index: number) => ({
+        const records = slots.map((s: any, index: number) => ({
           id: `auto-fixed:${schoolId}:${date}:${existing.length}:${index}`,
           schoolId, scheduledDate: date, scheduledTime: s.scheduledTime, examinerId: s.examinerId,
           examType: 'COMMON', requestType: 'FIXA', intendedCategory: 'A,B',
           status: 'SCHEDULED', attendanceConfirmed: true, observation: '',
           createdAt: new Date(), updatedAt: new Date(),
-        }))).returning();
+        }));
+        const created = isD1(db)
+          ? (await db.batch(records.map((record: any) => db.insert(cfcScheduleSlots).values(record).returning()) as any)).flat()
+          : await db.insert(cfcScheduleSlots).values(records).returning();
         return json(created);
       }
       if ((body?.requestType || 'FIXA') === 'FIXA' &&
@@ -193,10 +197,10 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         // examType mudou de categoria: mover slot atomicamente para a tabela correta
         // Merge camelCase (ORM) + incoming updates
         const merged = { ...found!.row, ...filtered, updatedAt: new Date() };
-        await db.transaction(async (tx: any) => {
-          await tx.insert(newTable).values(merged).onConflictDoNothing();
-          await tx.delete(oldTable).where(eq(oldTable.id, id));
-        });
+        await db.batch([
+          db.insert(newTable).values(merged),
+          db.delete(oldTable).where(eq(oldTable.id, id)),
+        ]);
         result = merged;
       } else {
         const updated = await db.update(oldTable)
@@ -232,6 +236,9 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     return error('Method Not Allowed', 405);
   } catch (e: any) {
+    if (String(e.message).includes('D1_EXAMINER_') || String(e.cause?.message).includes('D1_EXAMINER_')) {
+      return error('O examinador já possui prova nesse horário ou atingiu a capacidade diária.', 409);
+    }
     if (e.code === '23505' || e.cause?.code === '23505') {
       return error('A escala fixa já foi gerada por outra pessoa. Atualize os agendamentos.', 409);
     }

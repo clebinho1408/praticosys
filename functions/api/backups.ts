@@ -3,6 +3,8 @@ import { getDb, json, error, getQuery, parseBody } from '../_db.js';
 import { createBackup, ensureBackupSchema, restoreBackup } from '../_backup.js';
 import { sql } from 'drizzle-orm';
 import * as schema from '../../db/schema.js';
+import { isD1 } from '../_d1.js';
+import { readD1Backup } from '../_d1-backup.js';
 
 const RESTORE_SCHEMA_TABLES = {
   autoescolas: schema.drivingSchools,
@@ -39,6 +41,10 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
 
     if (method === 'GET') {
       if (query.id) {
+        if (isD1(db)) {
+          const backup = await readD1Backup(db, query.id);
+          return backup ? json(backup) : error('Backup não encontrado', 404);
+        }
         // Download: retorna o payload completo do backup
         const res = await db.execute(sql`SELECT id, dados AS payload, criado_em AS created_at FROM backups WHERE id = ${query.id} LIMIT 1`);
         const rows = (res as any).rows ?? res;
@@ -57,10 +63,16 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
       if (body.payload !== undefined || body.backupId) {
         let payload = body.payload;
         if (body.backupId) {
+          if (isD1(db)) {
+            const backup = await readD1Backup(db, body.backupId);
+            if (!backup) return error('Backup não encontrado', 404);
+            payload = backup.payload;
+          } else {
           const stored = await db.execute(sql`SELECT dados AS payload FROM backups WHERE id = ${body.backupId} LIMIT 1`);
           const storedRows = (stored as any).rows ?? stored;
           if (!storedRows || storedRows.length === 0) return error('Backup não encontrado', 404);
           payload = storedRows[0].payload;
+          }
         }
         const result = await restoreBackup(db, payload, { batchTables: RESTORE_SCHEMA_TABLES });
         return json({ success: true, ...result });

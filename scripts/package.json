@@ -6,6 +6,13 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "test:backup-restore": "tsx ./src/backup-restore.test.ts",
+    "d1:dev": "tsx ./src/d1-dev.ts",
+    "d1:preview": "tsx ./src/d1-preview.ts",
+    "test:d1": "tsx ./src/d1.test.ts",
+    "test:d1-edge": "tsx ./src/d1-edge.test.ts",
+    "d1:inventory": "tsx ./src/d1-inventory.ts",
+    "d1:migrate": "tsx ./src/d1-transfer.ts",
+    "d1:schema": "tsx ./src/d1-schema.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
