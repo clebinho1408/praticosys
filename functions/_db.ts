@@ -88,6 +88,8 @@ export async function ensureColumnMigrations(db: any): Promise<void> {
     await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS ano_fabricacao_maximo JSONB`);
     // solicitacoes — sem_duplo_comando
     await db.execute(sql`ALTER TABLE solicitacoes ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`);
+    // examinadores — períodos de bloqueio
+    await db.execute(sql`ALTER TABLE examinadores ADD COLUMN IF NOT EXISTS periodos_bloqueio JSONB DEFAULT '[]'::jsonb`);
   } catch {}
   _columnMigrationsReady = true;
 }

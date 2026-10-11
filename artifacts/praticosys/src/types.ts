@@ -93,6 +93,13 @@ export interface ExaminerRotationAvailability {
   cityIds: string[];
 }
 
+export interface ExaminerBlockedPeriod {
+  id: string;         // UUID gerado no cliente
+  startDate: string;  // 'YYYY-MM-DD'
+  endDate: string;    // 'YYYY-MM-DD'
+  description: string;
+}
+
 export interface Examiner {
   id: string;
   name: string;
@@ -105,6 +112,7 @@ export interface Examiner {
   defaultMaxSlotsMudanca?: number | null; // Vagas padrão Cat. C, D, E (Mud. Cat.)
   examRotation?: boolean;
   rotationAvailability?: ExaminerRotationAvailability | null;
+  blockedPeriods?: ExaminerBlockedPeriod[]; // Datas de bloqueio do examinador
 }
 
 export interface Vehicle {

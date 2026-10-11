@@ -1063,6 +1063,20 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         return;
     }
 
+    // Bloqueio de examinadores na data selecionada
+    if (scheduleForm.date) {
+      const blockedExaminers = scheduleForm.examinerIds
+        .map(id => examiners.find(e => e.id === id))
+        .filter(ex => ex && (ex.blockedPeriods || []).some(p => scheduleForm.date >= p.startDate && scheduleForm.date <= p.endDate));
+      if (blockedExaminers.length > 0) {
+        const names = blockedExaminers.map(ex => ex!.name).join(', ');
+        setErrorMessage(`Os seguintes examinadores estão bloqueados na data selecionada: ${names}. Remova-os da banca ou escolha outra data.`);
+        setErrorField('examinersList');
+        setIsErrorModalOpen(true);
+        return;
+      }
+    }
+
     try {
       if (editingSchedule) {
         await api.updateSchedule(editingSchedule.id, scheduleForm);
@@ -1976,9 +1990,19 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                       <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Escalar Examinadores (Máx 3) <span className="text-red-500">*</span></label>
                           <div id="examinersList" className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-gray-50" tabIndex={0}>
-                              {examiners.map(ex => (
-                                  <label key={ex.id} className={`flex items-center gap-3 cursor-pointer p-2 rounded-md transition-all ${scheduleForm.examinerIds.includes(ex.id) ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-100 text-gray-700'}`}>
-                                      <input type="checkbox" className="hidden" checked={scheduleForm.examinerIds.includes(ex.id)} onChange={(e) => {
+                              {examiners.map(ex => {
+                                  const examDate = scheduleForm.date; // 'YYYY-MM-DD'
+                                  const isBlockedOnDate = examDate
+                                    ? (ex.blockedPeriods || []).some(p => examDate >= p.startDate && examDate <= p.endDate)
+                                    : false;
+                                  const blockReason = isBlockedOnDate
+                                    ? (ex.blockedPeriods || []).find(p => examDate >= p.startDate && examDate <= p.endDate)?.description || 'Bloqueado'
+                                    : '';
+                                  const isChecked = scheduleForm.examinerIds.includes(ex.id);
+                                  return (
+                                  <label key={ex.id} className={`flex items-center gap-3 p-2 rounded-md transition-all ${isBlockedOnDate ? 'opacity-50 cursor-not-allowed bg-red-50' : isChecked ? 'bg-blue-50 text-blue-700 cursor-pointer' : 'hover:bg-gray-100 text-gray-700 cursor-pointer'}`}>
+                                      <input type="checkbox" className="hidden" disabled={isBlockedOnDate} checked={isChecked} onChange={(e) => {
+                                            if (isBlockedOnDate) return;
                                             const ids = e.target.checked ? [...scheduleForm.examinerIds, ex.id].slice(0, 3) : scheduleForm.examinerIds.filter(id => id !== ex.id);
                                             // Recalcula vagas com base nos examinadores selecionados
                                             const fallbackA = settings?.defaultMaxSlotsA ?? 10;
@@ -1994,18 +2018,24 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                             }
                                             setScheduleForm({...scheduleForm, examinerIds: ids, maxSlotsA: newSlotsA, maxSlotsB: newSlotsB});
                                       }} />
-                                      <div className={`h-4 w-4 rounded border flex items-center justify-center ${scheduleForm.examinerIds.includes(ex.id) ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'}`}>
-                                          {scheduleForm.examinerIds.includes(ex.id) && <CheckCircle2 className="h-3 w-3" />}
+                                      <div className={`h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 ${isBlockedOnDate ? 'border-red-300 bg-red-100' : isChecked ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 bg-white'}`}>
+                                          {isChecked && !isBlockedOnDate && <CheckCircle2 className="h-3 w-3" />}
+                                          {isBlockedOnDate && <span className="text-red-400 text-xs">🔒</span>}
                                       </div>
-                                      <span className="text-sm font-medium">{ex.name}
-                                        {(ex.defaultMaxSlotsA != null || ex.defaultMaxSlotsB != null) && (
+                                      <span className="text-sm font-medium flex-1 min-w-0">
+                                        {ex.name}
+                                        {isBlockedOnDate && (
+                                          <span className="ml-2 text-xs font-semibold text-red-600">— BLOQUEADO{blockReason ? `: ${blockReason}` : ''}</span>
+                                        )}
+                                        {!isBlockedOnDate && (ex.defaultMaxSlotsA != null || ex.defaultMaxSlotsB != null) && (
                                           <span className="ml-2 text-xs font-normal text-gray-400">
                                             ({ex.defaultMaxSlotsA != null ? `A:${ex.defaultMaxSlotsA}` : ''}{ex.defaultMaxSlotsA != null && ex.defaultMaxSlotsB != null ? ' ' : ''}{ex.defaultMaxSlotsB != null ? `B:${ex.defaultMaxSlotsB}` : ''})
                                           </span>
                                         )}
                                       </span>
                                   </label>
-                              ))}
+                                  );
+                              })}
                           </div>
                       </div>
                       {/* Local Padrão — only shown for CNH do Brasil */}

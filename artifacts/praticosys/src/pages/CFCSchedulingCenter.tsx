@@ -1103,6 +1103,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       return;
     }
 
+    if (isFixa && newRequest.examinerId && newRequest.date) {
+      const ex = examiners.find(e => e.id === newRequest.examinerId);
+      const isBlocked = ex ? (ex.blockedPeriods || []).some(p => newRequest.date >= p.startDate && newRequest.date <= p.endDate) : false;
+      if (isBlocked) {
+        const reason = ex ? (ex.blockedPeriods || []).find(p => newRequest.date >= p.startDate && newRequest.date <= p.endDate)?.description || '' : '';
+        alert(`O examinador selecionado está bloqueado na data ${newRequest.date}${reason ? `: ${reason}` : ''}. Por favor, escolha outro examinador ou outra data.`);
+        return;
+      }
+    }
+
     if (newRequest.date && isDateInPast(newRequest.date)) {
       alert('Não é permitido criar um agendamento em uma data passada.');
       return;
@@ -2526,8 +2536,29 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         onChange={e => setNewRequest({...newRequest, examinerId: e.target.value})}
                       >
                         <option value="">Selecione o examinador</option>
-                        {examiners.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                        {examiners.map(e => {
+                          const examDate = newRequest.date;
+                          const isBlocked = examDate
+                            ? (e.blockedPeriods || []).some(p => examDate >= p.startDate && examDate <= p.endDate)
+                            : false;
+                          const reason = isBlocked
+                            ? (e.blockedPeriods || []).find(p => examDate >= p.startDate && examDate <= p.endDate)?.description || ''
+                            : '';
+                          return (
+                            <option key={e.id} value={e.id} disabled={isBlocked}>
+                              {isBlocked ? `🔒 ${e.name}${reason ? ` — ${reason}` : ' — BLOQUEADO'}` : e.name}
+                            </option>
+                          );
+                        })}
                       </select>
+                      {newRequest.examinerId && newRequest.date && (() => {
+                        const ex = examiners.find(e => e.id === newRequest.examinerId);
+                        const isBlocked = ex ? (ex.blockedPeriods || []).some(p => newRequest.date >= p.startDate && newRequest.date <= p.endDate) : false;
+                        const reason = isBlocked && ex ? (ex.blockedPeriods || []).find(p => newRequest.date >= p.startDate && newRequest.date <= p.endDate)?.description || '' : '';
+                        return isBlocked ? (
+                          <p className="text-xs text-red-600 font-semibold mt-1">⚠️ Este examinador está bloqueado na data selecionada{reason ? `: ${reason}` : ''}.</p>
+                        ) : null;
+                      })()}
                     </div>
 
                     <div className="space-y-1.5">

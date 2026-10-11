@@ -69,6 +69,7 @@ export const examiners = pgTable('examinadores', {
     examsPerDay: 1 | 2;
     cityIds: string[];
   }>(),
+  blockedPeriods: jsonb('periodos_bloqueio').$type<{ id: string; startDate: string; endDate: string; description: string }[]>().default([]),
   createdAt: timestamp('criado_em').defaultNow(),
 });
 

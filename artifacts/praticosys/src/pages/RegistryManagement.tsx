@@ -1,10 +1,9 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, DrivingSchool, Examiner, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
+import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
-import UserFormModal, { type UserFormData } from '../components/registry/UserFormModal';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
 
@@ -84,7 +83,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   // Form State
   const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [formData, setFormData] = useState<UserFormData>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
+  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[]; email: string; phone: string; twoFactorEnabled: boolean }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
 
   // Confirmation Modal State
   const [confirmState, setConfirmState] = useState<{
@@ -292,11 +291,152 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
       </div>
 
       {isModalOpen && (
-        <UserFormModal key={editingUser?.id ?? 'new-user'} editingUser={editingUser} value={formData}
-          schools={schools} examLocations={examLocations} cities={cities}
-          loginExists={!editingUser && users.some(existing => existing.login === formData.login)}
-          onChange={setFormData} onLoginChange={handleLoginChange}
-          onSave={handleSave} onClose={() => setIsModalOpen(false)} />
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-bold mb-4">{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</h3>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium">Nome Completo</label>
+                <input required type="text" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium">Login (Usuário)</label>
+                <input 
+                    required 
+                    type="text" 
+                    className="w-full border rounded p-2 bg-white text-gray-900" 
+                    value={formData.login} 
+                    onChange={handleLoginChange}
+                    placeholder="apenas letras minúsculas"
+                    readOnly={!!editingUser}
+                    title={editingUser ? "Não é possível alterar o login" : "Apenas letras minúsculas, sem espaço"}
+                />
+                <p className="text-xs text-gray-500 mt-1">Apenas letras minúsculas, sem espaço, sem acento.</p>
+              </div>
+              {!editingUser && (
+                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                      Senha padrão será definida como: <strong>123456</strong>
+                  </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium">Função</label>
+                <select className="w-full border rounded p-2 bg-white text-gray-900" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})}>
+                  <option value={UserRole.ADMIN}>Admin</option>
+                  <option value={UserRole.SUPERVISOR}>Supervisor</option>
+                  <option value={UserRole.OPERATOR}>Operador</option>
+                  <option value={UserRole.CONSULTANT}>Consultor</option>
+                  <option value={UserRole.SCHOOL}>Autoescola</option>
+                </select>
+              </div>
+              {formData.role === UserRole.SCHOOL && (
+                <div>
+                  <label className="block text-sm font-medium">Autoescola Vinculada</label>
+                  <select required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.schoolId} onChange={e => setFormData({...formData, schoolId: e.target.value})}>
+                    <option value="">Selecione...</option>
+                    {schools.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Módulos Permitidos</label>
+                  <div className="space-y-2 border rounded p-3 bg-gray-50">
+                    {(['cnh', 'cfc', 'pcd'] as OperatorModule[]).map(mod => {
+                      const labels: Record<OperatorModule, string> = { cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD' };
+                      const isChecked = formData.allowedModules.includes(mod);
+                      return (
+                        <label key={mod} className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              const next = e.target.checked
+                                ? [...formData.allowedModules, mod]
+                                : formData.allowedModules.filter(m => m !== mod);
+                              setFormData({ ...formData, allowedModules: next });
+                            }}
+                            className="h-4 w-4 accent-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">{labels[mod]}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  {formData.allowedModules.length === 0 && (
+                    <p className="text-xs text-red-500 mt-1">Selecione ao menos um módulo.</p>
+                  )}
+                </div>
+              )}
+              {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && formData.allowedModules.includes('cnh') && examLocations.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Locais de Acesso — CNH do Brasil</label>
+                  <p className="text-xs text-gray-500 mb-2">Deixe em branco para liberar todos os locais.</p>
+                  <div className="space-y-2 border rounded p-3 bg-gray-50 max-h-40 overflow-y-auto">
+                    {examLocations.map(loc => {
+                      const locCity = cities.find(c => c.id === loc.cityId);
+                      const label = locCity?.name || loc.cityId;
+                      const isChecked = formData.allowedLocationIds.includes(loc.id);
+                      return (
+                        <label key={loc.id} className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => {
+                              const next = e.target.checked
+                                ? [...formData.allowedLocationIds, loc.id]
+                                : formData.allowedLocationIds.filter(id => id !== loc.id);
+                              setFormData({ ...formData, allowedLocationIds: next });
+                            }}
+                            className="h-4 w-4 accent-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">{label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              {/* Contato e segurança */}
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contato & Segurança</p>
+                <div>
+                  <label className="block text-sm font-medium">E-mail</label>
+                  <input
+                    type="email"
+                    className="w-full border rounded p-2 bg-white text-gray-900 text-sm"
+                    value={formData.email}
+                    onChange={e => setFormData({...formData, email: e.target.value})}
+                    placeholder="exemplo@email.com"
+                  />
+                </div>
+                <label className="flex items-start gap-3 cursor-pointer select-none p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 accent-blue-600 mt-0.5"
+                    checked={formData.twoFactorEnabled}
+                    onChange={e => setFormData({...formData, twoFactorEnabled: e.target.checked})}
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-800">Ativar verificação em 2 etapas</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Ao fazer login, um código será enviado para o e-mail cadastrado acima.
+                      {!formData.email && formData.twoFactorEnabled && (
+                        <span className="text-red-600 block mt-1">⚠️ Cadastre um e-mail para ativar este recurso.</span>
+                      )}
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"><Save className="h-4 w-4" /> Salvar</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -322,9 +462,6 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     address: '',
     city: '',
     services: [],
-    doNotCreateUser: false,
-    examRotation: false,
-    cnhBrasilProfile: false,
     motoYardAddress: '',
     carYardAddress: '',
     categoryChangeYardAddress: '',
@@ -382,24 +519,22 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
         await api.updateSchool(editing.id, formData);
       } else {
         const createdSchool = await api.createSchool(formData);
+        
+        // Automatically create a user for this school
+        // Sanitize name for login: lowercase, no spaces, no accents
+        const login = formData.name!
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]/g, "");
 
-        if (!formData.doNotCreateUser) {
-          // Automatically create a user for this school
-          // Sanitize name for login: lowercase, no spaces, no accents
-          const login = formData.name!
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/[^a-z0-9]/g, "");
-
-          await api.createUser({
-            name: formData.name!,
-            login: login,
-            password: '123456',
-            role: UserRole.SCHOOL,
-            schoolId: createdSchool.id
-          });
-        }
+        await api.createUser({
+          name: formData.name!,
+          login: login,
+          password: '123456',
+          role: UserRole.SCHOOL,
+          schoolId: createdSchool.id
+        });
       }
       setIsModalOpen(false);
       fetch();
@@ -933,36 +1068,6 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                         ))}
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.doNotCreateUser ?? false}
-                          onChange={e => setFormData({ ...formData, doNotCreateUser: e.target.checked })}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <span className="text-sm font-medium">Não criar usuário</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.examRotation ?? false}
-                          onChange={e => setFormData({ ...formData, examRotation: e.target.checked })}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <span className="text-sm font-medium">Rodízio de Provas</span>
-                      </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          data-testid="checkbox-perfil-cnh-brasil"
-                          checked={formData.cnhBrasilProfile ?? false}
-                          onChange={e => setFormData({ ...formData, cnhBrasilProfile: e.target.checked })}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <span className="text-sm font-medium">Perfil CNH do Brasil</span>
-                      </label>
-                    </div>
                   </div>
                 )}
 
@@ -1001,16 +1106,14 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
 
 const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   const [examiners, setExaminers] = useState<Examiner[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
-  const [citiesError, setCitiesError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isRotationModalOpen, setIsRotationModalOpen] = useState(false);
-  const [rotationError, setRotationError] = useState('');
   const [editing, setEditing] = useState<Examiner | null>(null);
-  const emptyRotation: ExaminerRotationAvailability = { days: [], defaultTime: '', secondDefaultTime: '', examsPerDay: 1, cityIds: [] };
-  type ExaminerForm = { name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string; defaultMaxSlotsMudanca: string; examRotation: boolean; rotationAvailability: ExaminerRotationAvailability | null };
-  const [formData, setFormData] = useState<ExaminerForm>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '', examRotation: false, rotationAvailability: null });
-  const [rotationDraft, setRotationDraft] = useState<ExaminerRotationAvailability>(emptyRotation);
+  const [modalTab, setModalTab] = useState<'DADOS' | 'BLOQUEIOS'>('DADOS');
+  const [formData, setFormData] = useState<{ name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string; defaultMaxSlotsMudanca: string }>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '' });
+
+  // Blocked periods state
+  const [blockedPeriods, setBlockedPeriods] = useState<ExaminerBlockedPeriod[]>([]);
+  const [newPeriod, setNewPeriod] = useState<{ startDate: string; endDate: string; description: string }>({ startDate: '', endDate: '', description: '' });
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1031,42 +1134,11 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   });
 
   const fetch = async () => setExaminers(await api.getExaminersAsync());
-  useEffect(() => {
-    fetch();
-    api.getCities().then(setCities).catch(() => setCitiesError('Não foi possível carregar as cidades. Reabra a página e tente novamente.'));
-  }, []);
-
-  const openRotationModal = () => {
-    setRotationDraft({
-      ...emptyRotation,
-      ...formData.rotationAvailability,
-      days: [...(formData.rotationAvailability?.days ?? [])],
-      cityIds: [...(formData.rotationAvailability?.cityIds ?? [])],
-    });
-    setRotationError('');
-    setIsRotationModalOpen(true);
-  };
-
-  const saveRotation = (e: React.FormEvent) => {
-    e.preventDefault();
-    const validTime = (time: string | undefined) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time ?? '');
-    if (!rotationDraft.days.length || !validTime(rotationDraft.defaultTime) || (rotationDraft.examsPerDay === 2 && !validTime(rotationDraft.secondDefaultTime)) || !rotationDraft.cityIds.length) {
-      setRotationError('Selecione ao menos um dia e uma cidade e informe todos os horários padrão.');
-      return;
-    }
-    setFormData(prev => ({
-      ...prev,
-      examRotation: true,
-      rotationAvailability: {
-        ...rotationDraft,
-        secondDefaultTime: rotationDraft.examsPerDay === 2 ? rotationDraft.secondDefaultTime : '',
-      },
-    }));
-    setIsRotationModalOpen(false);
-  };
+  useEffect(() => { fetch(); }, []);
 
   const openModal = (ex?: Examiner) => {
     setEditing(ex || null);
+    setModalTab('DADOS');
     setFormData(ex ? {
       name: ex.name,
       registrationNumber: ex.registrationNumber,
@@ -1074,10 +1146,9 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       defaultMaxSlotsA: ex.defaultMaxSlotsA != null ? String(ex.defaultMaxSlotsA) : '',
       defaultMaxSlotsB: ex.defaultMaxSlotsB != null ? String(ex.defaultMaxSlotsB) : '',
       defaultMaxSlotsMudanca: ex.defaultMaxSlotsMudanca != null ? String(ex.defaultMaxSlotsMudanca) : '',
-      examRotation: ex.examRotation ?? false,
-      rotationAvailability: ex.rotationAvailability ?? null,
-    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '', examRotation: false, rotationAvailability: null });
-    setIsRotationModalOpen(false);
+    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '' });
+    setBlockedPeriods(ex?.blockedPeriods ? [...ex.blockedPeriods] : []);
+    setNewPeriod({ startDate: '', endDate: '', description: '' });
     setIsModalOpen(true);
   };
 
@@ -1089,6 +1160,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       defaultMaxSlotsA: formData.defaultMaxSlotsA !== '' ? Number(formData.defaultMaxSlotsA) : null,
       defaultMaxSlotsB: formData.defaultMaxSlotsB !== '' ? Number(formData.defaultMaxSlotsB) : null,
       defaultMaxSlotsMudanca: hasMudanca && formData.defaultMaxSlotsMudanca !== '' ? Number(formData.defaultMaxSlotsMudanca) : null,
+      blockedPeriods,
     };
     try {
       if (editing) {
@@ -1109,6 +1181,76 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
     } catch (error) {
       console.error('Error saving examiner:', error);
       alert('Erro ao salvar examinador.');
+    }
+  };
+
+  const handleAddBlockedPeriod = () => {
+    if (!newPeriod.startDate || !newPeriod.endDate) {
+      alert('Preencha a Data Início e a Data Fim.');
+      return;
+    }
+    if (newPeriod.endDate < newPeriod.startDate) {
+      alert('A Data Fim não pode ser anterior à Data Início.');
+      return;
+    }
+    const period: ExaminerBlockedPeriod = {
+      id: crypto.randomUUID(),
+      startDate: newPeriod.startDate,
+      endDate: newPeriod.endDate,
+      description: newPeriod.description.trim(),
+    };
+    setBlockedPeriods(prev => [...prev, period]);
+    setNewPeriod({ startDate: '', endDate: '', description: '' });
+  };
+
+  const handleRemoveBlockedPeriod = (id: string) => {
+    setBlockedPeriods(prev => prev.filter(p => p.id !== id));
+  };
+
+  const formatDateBR = (iso: string) => {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
+  const handleSyncUsers = async () => {
+    if (!confirm('Deseja atualizar/criar usuários para todos os examinadores? O login será o nome em minúsculo e a senha padrão será 123456.')) return;
+    
+    try {
+      const users = await api.getUsers();
+      const examinerUsers = users.filter(u => u.role === UserRole.EXAMINER);
+      
+      let createdCount = 0;
+      let updatedCount = 0;
+      
+      for (const ex of examiners) {
+        const login = ex.name.toLowerCase().replace(/\s+/g, '.');
+        const existingUser = examinerUsers.find(u => u.examinerId === ex.id || u.login === ex.registrationNumber);
+        
+        if (existingUser) {
+          // Update existing user
+          await api.updateUser(existingUser.id, {
+            login: login,
+            password: '123456',
+            name: ex.name
+          });
+          updatedCount++;
+        } else {
+          // Create new user
+          await api.createUser({
+            name: ex.name,
+            login: login,
+            password: '123456',
+            role: UserRole.EXAMINER,
+            examinerId: ex.id
+          });
+          createdCount++;
+        }
+      }
+      alert(`${createdCount} usuários criados e ${updatedCount} atualizados com sucesso.`);
+    } catch (error) {
+      console.error('Error syncing examiner users:', error);
+      alert('Erro ao sincronizar usuários.');
     }
   };
 
@@ -1169,9 +1311,14 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           {user?.role !== UserRole.CONSULTANT && (
-            <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 justify-center">
-              <Plus className="h-4 w-4" /> Novo Examinador
-            </button>
+            <>
+              <button onClick={handleSyncUsers} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-200 justify-center">
+                Sincronizar Usuários
+              </button>
+              <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 justify-center">
+                <Plus className="h-4 w-4" /> Novo Examinador
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -1186,13 +1333,21 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
               <th className="px-4 py-3 text-center">Vagas A</th>
               <th className="px-4 py-3 text-center">Vagas B</th>
               <th className="px-4 py-3 text-center">Vagas Mud.</th>
+              <th className="px-4 py-3 text-center">Bloqueios</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredExaminers.map(e => (
+            {filteredExaminers.map(e => {
+              const today = new Date().toISOString().slice(0, 10);
+              const activeBlocks = (e.blockedPeriods || []).filter(p => p.endDate >= today);
+              const currentlyBlocked = activeBlocks.some(p => p.startDate <= today && p.endDate >= today);
+              return (
               <tr key={e.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{e.name}</td>
+                <td className="px-4 py-3 font-medium">
+                  <span>{e.name}</span>
+                  {currentlyBlocked && <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-semibold">BLOQUEADO</span>}
+                </td>
                 <td className="px-4 py-3 text-gray-500">{e.registrationNumber}</td>
                 <td className="px-4 py-3 space-x-1">
                   {e.categories && e.categories.length > 0 ? (
@@ -1208,6 +1363,15 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                 <td className="px-4 py-3 text-center text-sm">{e.defaultMaxSlotsA != null ? e.defaultMaxSlotsA : <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-center text-sm">{e.defaultMaxSlotsB != null ? e.defaultMaxSlotsB : <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-center text-sm">{e.categories?.some(c => ['C','D','E'].includes(c)) ? (e.defaultMaxSlotsMudanca != null ? e.defaultMaxSlotsMudanca : <span className="text-gray-400">—</span>) : <span className="text-gray-300">-</span>}</td>
+                <td className="px-4 py-3 text-center text-sm">
+                  {activeBlocks.length > 0 ? (
+                    <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-semibold" title={activeBlocks.map(p => `${p.startDate === p.endDate ? p.startDate : `${p.startDate} → ${p.endDate}`}${p.description ? ': ' + p.description : ''}`).join('\n')}>
+                      🔒 {activeBlocks.length}
+                    </span>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right space-x-2">
                   {user?.role !== UserRole.CONSULTANT && (
                     <>
@@ -1217,9 +1381,10 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   )}
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {filteredExaminers.length === 0 && (
-                <tr><td colSpan={6} className="p-4 text-center text-gray-500">Nenhum examinador encontrado.</td></tr>
+                <tr><td colSpan={8} className="p-4 text-center text-gray-500">Nenhum examinador encontrado.</td></tr>
             )}
           </tbody>
         </table>
@@ -1227,163 +1392,195 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold mb-4">{editing ? 'Editar Examinador' : 'Novo Examinador'}</h3>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                  <label className="block text-sm font-medium">Nome <span className="text-red-500">*</span></label>
-                  <input 
-                    required 
-                    className="w-full border rounded p-2 bg-white text-gray-900" 
-                    value={formData.name} 
-                    onChange={handleNameChange}
-                    placeholder="APENAS LETRAS MAIÚSCULAS"
-                  />
-                  <p className="text-xs text-gray-500">Apenas letras, sem acentos, maiúsculo.</p>
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-6 pt-6 pb-0">
+              <h3 className="text-lg font-bold mb-4">{editing ? 'Editar Examinador' : 'Novo Examinador'}</h3>
+              {/* Tabs */}
+              <div className="flex border-b mb-0">
+                <button
+                  type="button"
+                  onClick={() => setModalTab('DADOS')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${modalTab === 'DADOS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                >
+                  Dados Gerais
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('BLOQUEIOS')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${modalTab === 'BLOQUEIOS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                >
+                  Datas de Bloqueio
+                  {blockedPeriods.length > 0 && (
+                    <span className="ml-1 bg-orange-100 text-orange-700 text-xs font-bold px-1.5 py-0.5 rounded-full">{blockedPeriods.length}</span>
+                  )}
+                </button>
               </div>
-              <div><label className="block text-sm font-medium">Matrícula</label><input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.registrationNumber} onChange={e => setFormData({...formData, registrationNumber: e.target.value})} /></div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium">Categoria</label>
-                <div className="flex flex-wrap gap-3">
-                  {['A', 'B', 'C', 'D', 'E'].map(cat => (
-                    <label key={cat} className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded border hover:bg-gray-100">
-                      <input 
-                        type="checkbox" 
-                        checked={formData.categories?.includes(cat)} 
-                        onChange={() => toggleCategory(cat)}
-                        className="w-4 h-4 text-blue-600"
+            </div>
+
+            {/* Modal Body — scrollable */}
+            <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+
+                {/* ── TAB: DADOS GERAIS ── */}
+                {modalTab === 'DADOS' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium">Nome <span className="text-red-500">*</span></label>
+                      <input
+                        required
+                        className="w-full border rounded p-2 bg-white text-gray-900"
+                        value={formData.name}
+                        onChange={handleNameChange}
+                        placeholder="APENAS LETRAS MAIÚSCULAS"
                       />
-                      <span className="text-sm font-bold">{cat}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Vagas Cat. A (Moto)</label>
-                  <input
-                    type="number" min="0" max="99"
-                    className="w-full border rounded p-2 bg-white text-gray-900"
-                    placeholder="Padrão do sistema"
-                    value={formData.defaultMaxSlotsA}
-                    onChange={e => setFormData({...formData, defaultMaxSlotsA: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Vagas Cat. B (Carro)</label>
-                  <input
-                    type="number" min="0" max="99"
-                    className="w-full border rounded p-2 bg-white text-gray-900"
-                    placeholder="Padrão do sistema"
-                    value={formData.defaultMaxSlotsB}
-                    onChange={e => setFormData({...formData, defaultMaxSlotsB: e.target.value})}
-                  />
-                </div>
-              </div>
-              {formData.categories.some(c => ['C', 'D', 'E'].includes(c)) && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Vagas Cat. C, D, E (Mud. Cat.)</label>
-                  <input
-                    type="number" min="0" max="99"
-                    className="w-full border rounded p-2 bg-white text-gray-900"
-                    placeholder="Padrão do sistema"
-                    value={formData.defaultMaxSlotsMudanca}
-                    onChange={e => setFormData({...formData, defaultMaxSlotsMudanca: e.target.value})}
-                  />
-                </div>
-              )}
-              <div className="rounded border bg-gray-50 p-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.examRotation}
-                    onChange={e => {
-                      if (e.target.checked) openRotationModal();
-                      else setFormData(prev => ({ ...prev, examRotation: false }));
-                    }}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <span className="text-sm font-medium">Rodízio de Provas</span>
-                </label>
-                {formData.examRotation && (
-                  <button type="button" onClick={openRotationModal} className="mt-2 text-sm font-medium text-blue-600 hover:underline">
-                    Configurar disponibilidade
-                  </button>
+                      <p className="text-xs text-gray-500">Apenas letras, sem acentos, maiúsculo.</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Matrícula <span className="text-red-500">*</span></label>
+                      <input required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.registrationNumber} onChange={e => setFormData({...formData, registrationNumber: e.target.value})} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium">Categoria</label>
+                      <div className="flex flex-wrap gap-3">
+                        {['A', 'B', 'C', 'D', 'E'].map(cat => (
+                          <label key={cat} className="flex items-center gap-2 cursor-pointer bg-gray-50 px-3 py-2 rounded border hover:bg-gray-100">
+                            <input
+                              type="checkbox"
+                              checked={formData.categories?.includes(cat)}
+                              onChange={() => toggleCategory(cat)}
+                              className="w-4 h-4 text-blue-600"
+                            />
+                            <span className="text-sm font-bold">{cat}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Vagas Cat. A (Moto)</label>
+                        <input
+                          type="number" min="0" max="99"
+                          className="w-full border rounded p-2 bg-white text-gray-900"
+                          placeholder="Padrão do sistema"
+                          value={formData.defaultMaxSlotsA}
+                          onChange={e => setFormData({...formData, defaultMaxSlotsA: e.target.value})}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Vagas Cat. B (Carro)</label>
+                        <input
+                          type="number" min="0" max="99"
+                          className="w-full border rounded p-2 bg-white text-gray-900"
+                          placeholder="Padrão do sistema"
+                          value={formData.defaultMaxSlotsB}
+                          onChange={e => setFormData({...formData, defaultMaxSlotsB: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    {formData.categories.some(c => ['C', 'D', 'E'].includes(c)) && (
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Vagas Cat. C, D, E (Mud. Cat.)</label>
+                        <input
+                          type="number" min="0" max="99"
+                          className="w-full border rounded p-2 bg-white text-gray-900"
+                          placeholder="Padrão do sistema"
+                          value={formData.defaultMaxSlotsMudanca}
+                          onChange={e => setFormData({...formData, defaultMaxSlotsMudanca: e.target.value})}
+                        />
+                      </div>
+                    )}
+                  </div>
                 )}
-              </div>
-              <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {isRotationModalOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
-          <div role="dialog" aria-modal="true" aria-labelledby="rotation-title" className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6">
-            <h3 id="rotation-title" className="text-lg font-bold mb-1">Disponibilidade no Rodízio de Provas</h3>
-            <p className="text-sm text-gray-500 mb-4">Configure os dias, o horário e as cidades atendidas pelo examinador.</p>
-            <form onSubmit={saveRotation} className="space-y-5">
-              <fieldset>
-                <legend className="text-sm font-medium mb-2">Dias da semana</legend>
-                <div className="flex flex-wrap gap-2">
-                  {([['SEG', 'Seg'], ['TER', 'Ter'], ['QUA', 'Qua'], ['QUI', 'Qui'], ['SEX', 'Sex'], ['SAB', 'Sáb'], ['DOM', 'Dom']] as const).map(([value, label]) => (
-                    <label key={value} className="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer text-sm">
-                      <input type="checkbox" checked={rotationDraft.days.includes(value)} onChange={e => setRotationDraft(prev => ({
-                        ...prev,
-                        days: e.target.checked ? [...prev.days, value] : prev.days.filter(d => d !== value),
-                      }))} />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              <fieldset>
-                <legend className="text-sm font-medium mb-2">Provas por dia</legend>
-                <div className="flex gap-5 text-sm">
-                  {([1, 2] as const).map(count => (
-                    <label key={count} className="flex items-center gap-2 cursor-pointer">
-                      <input type="radio" name="rotation-exams-per-day" checked={rotationDraft.examsPerDay === count} onChange={() => setRotationDraft(prev => ({ ...prev, examsPerDay: count }))} />
-                      {count === 1 ? 'Uma prova' : 'Duas provas'}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              <div className={rotationDraft.examsPerDay === 2 ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : ''}>
-                <div>
-                  <label htmlFor="rotation-time" className="block text-sm font-medium mb-1">
-                    {rotationDraft.examsPerDay === 2 ? 'Horário padrão da 1ª prova' : 'Horário padrão'}
-                  </label>
-                  <input id="rotation-time" type="time" required value={rotationDraft.defaultTime} onChange={e => setRotationDraft(prev => ({ ...prev, defaultTime: e.target.value }))} className="w-full border rounded p-2 bg-white text-gray-900" />
-                </div>
-                {rotationDraft.examsPerDay === 2 && (
-                  <div>
-                    <label htmlFor="rotation-second-time" className="block text-sm font-medium mb-1">Horário padrão da 2ª prova</label>
-                    <input id="rotation-second-time" type="time" required value={rotationDraft.secondDefaultTime ?? ''} onChange={e => setRotationDraft(prev => ({ ...prev, secondDefaultTime: e.target.value }))} className="w-full border rounded p-2 bg-white text-gray-900" />
+
+                {/* ── TAB: DATAS DE BLOQUEIO ── */}
+                {modalTab === 'BLOQUEIOS' && (
+                  <div className="space-y-4">
+                    {/* Add new period form */}
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
+                      <p className="text-sm font-semibold text-orange-800">Nova Data de Bloqueio</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Data Início <span className="text-red-500">*</span></label>
+                          <input
+                            type="date"
+                            className="w-full border rounded p-2 text-sm bg-white text-gray-900"
+                            value={newPeriod.startDate}
+                            onChange={e => setNewPeriod(p => ({ ...p, startDate: e.target.value }))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Data Fim <span className="text-red-500">*</span></label>
+                          <input
+                            type="date"
+                            className="w-full border rounded p-2 text-sm bg-white text-gray-900"
+                            value={newPeriod.endDate}
+                            min={newPeriod.startDate || undefined}
+                            onChange={e => setNewPeriod(p => ({ ...p, endDate: e.target.value }))}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Descrição / Motivo</label>
+                        <input
+                          type="text"
+                          className="w-full border rounded p-2 text-sm bg-white text-gray-900"
+                          placeholder="Ex: Férias, Atestado médico..."
+                          value={newPeriod.description}
+                          onChange={e => setNewPeriod(p => ({ ...p, description: e.target.value }))}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddBlockedPeriod}
+                        className="flex items-center gap-2 bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700"
+                      >
+                        <Plus className="h-4 w-4" /> Adicionar Bloqueio
+                      </button>
+                    </div>
+
+                    {/* List of blocked periods */}
+                    {blockedPeriods.length === 0 ? (
+                      <p className="text-sm text-gray-500 text-center py-4">Nenhuma data de bloqueio cadastrada.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Bloqueios cadastrados ({blockedPeriods.length})</p>
+                        {[...blockedPeriods].sort((a, b) => a.startDate.localeCompare(b.startDate)).map(period => (
+                          <div key={period.id} className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-semibold text-red-700">{formatDateBR(period.startDate)}</span>
+                                {period.startDate !== period.endDate && (
+                                  <>
+                                    <span className="text-xs text-red-400">→</span>
+                                    <span className="text-sm font-semibold text-red-700">{formatDateBR(period.endDate)}</span>
+                                  </>
+                                )}
+                              </div>
+                              {period.description && (
+                                <p className="text-xs text-gray-600 mt-0.5 truncate">{period.description}</p>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveBlockedPeriod(period.id)}
+                              className="text-red-500 hover:text-red-700 flex-shrink-0 mt-0.5"
+                              title="Remover bloqueio"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              <fieldset>
-                <legend className="text-sm font-medium mb-2">Cidades atendidas</legend>
-                {citiesError && <p className="text-sm text-red-600">{citiesError}</p>}
-                {!citiesError && cities.length === 0 && <p className="text-sm text-gray-500">Nenhuma cidade cadastrada.</p>}
-                <div className="max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {cities.map(city => (
-                    <label key={city.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input type="checkbox" checked={rotationDraft.cityIds.includes(city.id)} onChange={e => setRotationDraft(prev => ({
-                        ...prev,
-                        cityIds: e.target.checked ? [...prev.cityIds, city.id] : prev.cityIds.filter(id => id !== city.id),
-                      }))} />
-                      {city.name}
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-              {rotationError && <p role="alert" className="text-sm text-red-600">{rotationError}</p>}
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setIsRotationModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirmar disponibilidade</button>
+
+              {/* Modal Footer */}
+              <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-lg">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar</button>
               </div>
             </form>
           </div>

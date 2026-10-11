@@ -11,9 +11,8 @@ async function ensureSchema(db: any) {
     await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS max_vagas_mudanca_padrao integer`);
     await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS disponibilidade_rodizio jsonb`);
-  } catch (e) {
-    throw new Error('Não foi possível preparar o cadastro de examinadores.', { cause: e });
-  }
+    await db.execute(sql`ALTER TABLE public.examinadores ADD COLUMN IF NOT EXISTS periodos_bloqueio jsonb DEFAULT '[]'::jsonb`);
+  } catch {}
 }
 
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
