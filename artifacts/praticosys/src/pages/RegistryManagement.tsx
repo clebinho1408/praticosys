@@ -1117,7 +1117,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
             return (
               <div
                 key={entry.id}
-                className={`grid grid-cols-1 gap-2 p-3 rounded-lg border ${
+                className={`flex items-start gap-2 p-2.5 rounded-lg border ${
                   isSystemBlocked
                     ? 'border-red-200 bg-red-50/30'
                     : isDatePast
@@ -1125,65 +1125,51 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                     : 'border-slate-200 bg-white'
                 }`}
               >
-                <div className="flex gap-2 items-start">
-                  {/* DATA */}
-                  <div className="flex-1 min-w-0">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Data</label>
-                    <input
-                      type="date"
-                      className={`w-full border rounded-lg px-2.5 py-2 text-sm focus:ring-2 outline-none ${
-                        isSystemBlocked
-                          ? 'border-red-300 bg-red-50 text-red-700 focus:ring-red-400'
-                          : 'border-slate-200 bg-white focus:ring-blue-500'
-                      }`}
-                      value={entry.date}
-                      min={today}
-                      onChange={e => updateDateEntry(entry.id, 'date', e.target.value)}
-                    />
-                    {isSystemBlocked && (
-                      <p className="text-[10px] text-red-600 font-semibold mt-0.5 flex items-center gap-1">
-                        <span>🚫</span>
-                        <span>Data bloqueada{sysBlock.reason ? `: ${sysBlock.reason}` : ''}</span>
-                      </p>
-                    )}
-                    {!isSystemBlocked && isDatePast && (
-                      <p className="text-[10px] text-amber-500 mt-0.5">Data já passada</p>
-                    )}
-                  </div>
+                {/* DATA */}
+                <div className="flex-shrink-0" style={{ width: '130px' }}>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Data</label>
+                  <input
+                    type="date"
+                    className={`w-full border rounded-lg px-2 py-1.5 text-xs focus:ring-2 outline-none ${
+                      isSystemBlocked
+                        ? 'border-red-300 bg-red-50 text-red-700 focus:ring-red-400'
+                        : 'border-slate-200 bg-white focus:ring-blue-500'
+                    }`}
+                    value={entry.date}
+                    min={today}
+                    onChange={e => updateDateEntry(entry.id, 'date', e.target.value)}
+                  />
+                  {isSystemBlocked && (
+                    <p className="text-[9px] text-red-600 font-semibold mt-0.5 flex items-center gap-0.5 leading-tight">
+                      <span>🚫</span>
+                      <span>Bloqueada{sysBlock.reason ? `: ${sysBlock.reason}` : ''}</span>
+                    </p>
+                  )}
+                  {!isSystemBlocked && isDatePast && (
+                    <p className="text-[9px] text-amber-500 mt-0.5 leading-tight">Data passada</p>
+                  )}
+                </div>
 
-                  {/* HORA */}
-                  <div className="w-28 flex-shrink-0">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Hora</label>
-                    <input
-                      type="time"
-                      className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={entry.time}
-                      onChange={e => updateDateEntry(entry.id, 'time', e.target.value)}
-                    />
-                  </div>
-
-                  {/* DELETE */}
-                  <div className="flex-shrink-0 pt-6">
-                    <button
-                      type="button"
-                      onClick={() => removeDate(entry.id)}
-                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                      title="Remover data"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </div>
+                {/* HORA */}
+                <div className="flex-shrink-0" style={{ width: '84px' }}>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Hora</label>
+                  <input
+                    type="time"
+                    className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={entry.time}
+                    onChange={e => updateDateEntry(entry.id, 'time', e.target.value)}
+                  />
                 </div>
 
                 {/* EXAMINADOR */}
-                <div>
+                <div className="flex-1 min-w-0">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Examinador</label>
                   <select
-                    className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:ring-2 focus:ring-blue-500 outline-none"
                     value={entry.examiner}
                     onChange={e => updateDateEntry(entry.id, 'examiner', e.target.value)}
                   >
-                    <option value="">Selecione o examinador</option>
+                    <option value="">Selecione...</option>
                     {examiners.map(ex => {
                       const isBlocked = examDate
                         ? (Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : []).some(
@@ -1197,36 +1183,35 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                         : '';
                       return (
                         <option key={ex.id} value={ex.id} disabled={isBlocked}>
-                          {isBlocked
-                            ? `🔒 ${ex.name}${reason ? ` — ${reason}` : ' — BLOQUEADO'}`
-                            : ex.name}
+                          {isBlocked ? `🔒 ${ex.name}${reason ? ` — ${reason}` : ''}` : ex.name}
                         </option>
                       );
                     })}
                   </select>
-                  {/* Warning when selected examiner is blocked */}
                   {entry.examiner && examDate && (() => {
                     const ex = examiners.find(e => e.id === entry.examiner);
                     const periods = Array.isArray(ex?.blockedPeriods) ? ex!.blockedPeriods : [];
                     const blocked = periods.find(p => examDate >= p.startDate && examDate <= p.endDate);
                     return blocked ? (
-                      <p className="text-[10px] text-red-600 font-semibold mt-1 flex items-center gap-1">
+                      <p className="text-[9px] text-red-600 font-semibold mt-0.5 flex items-center gap-0.5 leading-tight">
                         <span>⚠️</span>
-                        <span>Examinador bloqueado nesta data{blocked.description ? `: ${blocked.description}` : ''}.</span>
+                        <span>Bloqueado{blocked.description ? `: ${blocked.description}` : ''}.</span>
                       </p>
                     ) : null;
                   })()}
                 </div>
 
-                {/* Summary badge */}
-                {entry.date && entry.time && entry.examiner && (
-                  <div className="text-[10px] text-green-700 bg-green-50 border border-green-100 rounded px-2 py-1 flex items-center gap-1">
-                    <span>✓</span>
-                    <span>
-                      {formatDateBR(entry.date)} às {entry.time} — {examiners.find(e => e.id === entry.examiner)?.name || entry.examiner}
-                    </span>
-                  </div>
-                )}
+                {/* DELETE */}
+                <div className="flex-shrink-0 pt-5">
+                  <button
+                    type="button"
+                    onClick={() => removeDate(entry.id)}
+                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="Remover data"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -1336,26 +1321,53 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700 uppercase">
                                   {scheduleType}
                                 </span>
-                                <span className="text-xs font-medium text-gray-600">
-                                  {activeSchedule.frequency === '1_WEEK' && '1x na Semana'}
-                                  {activeSchedule.frequency === '2_WEEK' && '2x na Semana'}
-                                  {activeSchedule.frequency === '3_WEEK' && '3x na Semana'}
-                                  {activeSchedule.frequency === '2_DAY' && '2x no Dia'}
-                                  {activeSchedule.frequency === '15_DAYS' && 'A cada 15 dias'}
-                                </span>
+                                {scheduleType === 'Principal' && (
+                                  <span className="text-xs font-medium text-gray-600">
+                                    {activeSchedule.frequency === '1_WEEK' && '1x na Semana'}
+                                    {activeSchedule.frequency === '2_WEEK' && '2x na Semana'}
+                                    {activeSchedule.frequency === '3_WEEK' && '3x na Semana'}
+                                    {activeSchedule.frequency === '2_DAY' && '2x no Dia'}
+                                    {activeSchedule.frequency === '15_DAYS' && 'A cada 15 dias'}
+                                  </span>
+                                )}
                               </div>
-                              <div className="space-y-1">
-                                {activeSchedule.slots.map((slot, i) => {
-                                  const examiner = examiners.find(ex => ex.id === slot.examiner || ex.name === slot.examiner);
-                                  return (
-                                    <div key={i} className="text-[11px] text-gray-500 flex flex-wrap gap-x-2">
-                                      <span className="font-bold text-gray-700">{slot.day || activeSchedule.days.join(', ')}</span>
-                                      <span>às {slot.time}h</span>
-                                      <span className="text-blue-600 italic">({examiner?.name || 'Sem examinador'})</span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
+
+                              {/* Escala Provisória: mostrar specificDates */}
+                              {scheduleType === 'Provisória' ? (
+                                <div className="space-y-0.5">
+                                  {(activeSchedule.specificDates ?? []).length === 0 ? (
+                                    <span className="text-[11px] text-gray-400 italic">Nenhuma data configurada</span>
+                                  ) : (
+                                    [...(activeSchedule.specificDates ?? [])]
+                                      .sort((a, b) => a.date.localeCompare(b.date))
+                                      .map(d => {
+                                        const [y, m, day] = d.date.split('-');
+                                        const examName = examiners.find(ex => ex.id === d.examiner)?.name || 'Sem examinador';
+                                        return (
+                                          <div key={d.id} className="text-[11px] text-gray-600">
+                                            <span className="font-bold text-gray-800">{day}/{m}/{y}</span>
+                                            {d.time && <span> às {d.time}</span>}
+                                            <span className="text-blue-600 italic"> ({examName})</span>
+                                          </div>
+                                        );
+                                      })
+                                  )}
+                                </div>
+                              ) : (
+                                /* Escala Principal: mostrar slots */
+                                <div className="space-y-0.5">
+                                  {activeSchedule.slots.map((slot, i) => {
+                                    const examiner = examiners.find(ex => ex.id === slot.examiner || ex.name === slot.examiner);
+                                    return (
+                                      <div key={i} className="text-[11px] text-gray-500 flex flex-wrap gap-x-2">
+                                        <span className="font-bold text-gray-700">{slot.day || activeSchedule.days.join(', ')}</span>
+                                        <span>às {slot.time}h</span>
+                                        <span className="text-blue-600 italic">({examiner?.name || 'Sem examinador'})</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <span className="text-xs text-red-400 italic">Nenhuma escala ativa</span>

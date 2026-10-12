@@ -80,6 +80,33 @@ export function planFixedScales(input: {
         : -1; // Escalas fixas sem rodízio reservam seus horários antes da distribuição.
       return options(a) - options(b) || a.name.localeCompare(b.name) || a.id.localeCompare(b.id);
     })) {
+    // ── Escala Provisória com specificDates ──────────────────────────────────
+    // Quando a escala ativa é provisória, usa as datas específicas para a data
+    // exata da geração em vez de days[]/slots[].
+    if (school.provisionalSchedule?.active) {
+      const provDates = (school.provisionalSchedule.specificDates ?? [])
+        .filter(d => d.date === date && d.examiner && d.time);
+      if (provDates.length === 0) {
+        // Escala provisória ativa mas sem entrada para esta data → pula
+        issues.push({ school, reason: 'Escala provisória ativa, mas sem data específica configurada para este dia.' });
+        continue;
+      }
+      if (commitments.some(item => item.schoolId === school.id &&
+        item.scheduledDate === date && item.requestType === 'FIXA')) {
+        issues.push({ school, reason: 'Já existe escala fixa para esta data; nenhuma prova foi duplicada.' });
+        continue;
+      }
+      const slots: FixedScaleSlot[] = provDates.map(d => ({ examinerId: d.examiner, scheduledTime: d.time }));
+      if (new Set(slots.map(s => s.scheduledTime)).size !== slots.length) {
+        issues.push({ school, reason: 'A escala provisória contém horários repetidos para esta data.' });
+        continue;
+      }
+      plans.push({ school, slots });
+      reserved.push(...slots.map(slot => ({ ...slot, schoolId: school.id, scheduledDate: date })));
+      continue;
+    }
+
+    // ── Escala Principal (days[] + slots[]) ─────────────────────────────────
     const schedule = activeSchoolSchedule(school);
     if (!schedule?.days?.includes(day)) {
       issues.push({ school, reason: 'Sem escala ativa para o dia selecionado.' });
