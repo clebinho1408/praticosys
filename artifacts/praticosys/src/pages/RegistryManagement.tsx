@@ -602,7 +602,29 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   });
 
   const fetch = async () => {
-    setSchools(await api.getSchoolsAsync());
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const schools = await api.getSchoolsAsync();
+    setSchools(schools);
+
+    // ── Auto-switch provisional → main when all specificDates have passed ──
+    const schoolsNeedingSwitch = schools.filter(s => {
+      const prov = s.provisionalSchedule;
+      if (!prov?.active) return false;
+      const dates: ScheduleSpecificDate[] = Array.isArray(prov.specificDates) ? prov.specificDates : [];
+      if (dates.length === 0) return false;
+      return dates.every(d => d.date < todayStr);
+    });
+    if (schoolsNeedingSwitch.length > 0) {
+      await Promise.all(schoolsNeedingSwitch.map(s => {
+        const updatedProv = { ...s.provisionalSchedule!, active: false };
+        const updatedMain = s.mainSchedule ? { ...s.mainSchedule, active: true } : s.mainSchedule;
+        return api.updateSchool(s.id, { provisionalSchedule: updatedProv, mainSchedule: updatedMain });
+      }));
+      // Re-fetch updated list
+      setSchools(await api.getSchoolsAsync());
+    }
+
     setExaminers(await api.getExaminersAsync());
     try {
       const citiesData = await api.getCities();
@@ -1115,6 +1137,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                           : 'border-slate-200 bg-white focus:ring-blue-500'
                       }`}
                       value={entry.date}
+                      min={today}
                       onChange={e => updateDateEntry(entry.id, 'date', e.target.value)}
                     />
                     {isSystemBlocked && (
@@ -1528,7 +1551,25 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       onConfirm: () => {}
   });
 
-  const fetch = async () => setExaminers(await api.getExaminersAsync());
+  const fetch = async () => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const examiners = await api.getExaminersAsync();
+
+    // ── Auto-remove expired blockedPeriods from DB ──
+    const examinersWithExpired = examiners.filter(ex => {
+      const periods = Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : [];
+      return periods.some(p => p.endDate < todayStr);
+    });
+    if (examinersWithExpired.length > 0) {
+      await Promise.all(examinersWithExpired.map(ex => {
+        const activePeriods = (ex.blockedPeriods || []).filter(p => p.endDate >= todayStr);
+        return api.updateExaminer(ex.id, { blockedPeriods: activePeriods });
+      }));
+      setExaminers(await api.getExaminersAsync());
+    } else {
+      setExaminers(examiners);
+    }
+  };
   useEffect(() => {
     fetch();
     api.getCities().then(setCities).catch(() => setCitiesError('Não foi possível carregar as cidades.'));
@@ -2087,6 +2128,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                             type="date"
                             className="w-full border rounded p-2 text-sm bg-white text-gray-900"
                             value={newPeriod.startDate}
+                            min={new Date().toISOString().split('T')[0]}
                             onChange={e => setNewPeriod(p => ({ ...p, startDate: e.target.value }))}
                           />
                         </div>
@@ -2096,7 +2138,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                             type="date"
                             className="w-full border rounded p-2 text-sm bg-white text-gray-900"
                             value={newPeriod.endDate}
-                            min={newPeriod.startDate || undefined}
+                            min={newPeriod.startDate || new Date().toISOString().split('T')[0]}
                             onChange={e => setNewPeriod(p => ({ ...p, endDate: e.target.value }))}
                           />
                         </div>

@@ -418,10 +418,26 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       // Mescla candidatos reais + slots de escala — slots sempre no final
       setRequests([...cfcReqs, ...cfcSlots]);
       setSchools(schs);
-      setExaminers(exms);
       setSystemSettings(settings);
       setBlockedDates(blocked);
       setAllBancaResults(results);
+
+      // ── Auto-remove expired blockedPeriods from examiners (Afastamento/Férias cleanup) ──
+      const todayStr = new Date().toISOString().split('T')[0];
+      const examinersWithExpired = exms.filter(ex => {
+        const periods = Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : [];
+        return periods.some(p => p.endDate < todayStr);
+      });
+      if (examinersWithExpired.length > 0) {
+        await Promise.all(examinersWithExpired.map(ex => {
+          const activePeriods = (ex.blockedPeriods || []).filter(p => p.endDate >= todayStr);
+          return api.updateExaminer(ex.id, { blockedPeriods: activePeriods });
+        }));
+        const updatedExaminers = await api.getExaminersAsync();
+        setExaminers(updatedExaminers);
+      } else {
+        setExaminers(exms);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -1825,16 +1841,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         </div>
 
         {/* SECTION: WAITING CONFIRMATION */}
-        <div className="border border-amber-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="border border-violet-200 rounded-lg overflow-hidden shadow-sm">
           <button 
             onClick={() => toggleSection('waiting')}
-            className="w-full flex items-center justify-between p-4 bg-amber-50/50 hover:bg-amber-50 transition-colors"
+            className="w-full flex items-center justify-between p-4 bg-violet-50/60 hover:bg-violet-50 transition-colors"
           >
-            <div className="flex items-center gap-3 text-amber-700">
+            <div className="flex items-center gap-3 text-violet-700">
               <Clock className="h-5 w-5" />
               <span className="font-bold">Aguardando Confirmação ({waitingConfirmation.length})</span>
             </div>
-            {expandedSections.waiting ? <ChevronUp className="h-5 w-5 text-amber-400" /> : <ChevronDown className="h-5 w-5 text-amber-400" />}
+            {expandedSections.waiting ? <ChevronUp className="h-5 w-5 text-violet-400" /> : <ChevronDown className="h-5 w-5 text-violet-400" />}
           </button>
           
           {expandedSections.waiting && (
@@ -2063,16 +2079,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         </div>
 
         {/* SECTION: DONE */}
-        <div className="border border-blue-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="border border-sky-200 rounded-lg overflow-hidden shadow-sm">
           <button 
             onClick={() => toggleSection('done')}
-            className="w-full flex items-center justify-between p-4 bg-blue-50/50 hover:bg-blue-50 transition-colors"
+            className="w-full flex items-center justify-between p-4 bg-sky-50/60 hover:bg-sky-50 transition-colors"
           >
-            <div className="flex items-center gap-3 text-blue-700">
+            <div className="flex items-center gap-3 text-sky-700">
               <CheckCircle2 className="h-5 w-5" />
               <span className="font-bold">Provas Realizadas ({done.length})</span>
             </div>
-            {expandedSections.done ? <ChevronUp className="h-5 w-5 text-blue-400" /> : <ChevronDown className="h-5 w-5 text-blue-400" />}
+            {expandedSections.done ? <ChevronUp className="h-5 w-5 text-sky-400" /> : <ChevronDown className="h-5 w-5 text-sky-400" />}
           </button>
           {expandedSections.done && (
             <div className="p-4 bg-white">
@@ -2113,16 +2129,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         </div>
 
         {/* SECTION: CANCELLED */}
-        <div className="border border-red-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="border border-slate-300 rounded-lg overflow-hidden shadow-sm">
           <button 
             onClick={() => toggleSection('cancelled')}
-            className="w-full flex items-center justify-between p-4 bg-red-50/50 hover:bg-red-50 transition-colors"
+            className="w-full flex items-center justify-between p-4 bg-slate-100/80 hover:bg-slate-100 transition-colors"
           >
-            <div className="flex items-center gap-3 text-red-700">
+            <div className="flex items-center gap-3 text-slate-600">
               <XCircle className="h-5 w-5" />
               <span className="font-bold">Provas Canceladas ({cancelled.length})</span>
             </div>
-            {expandedSections.cancelled ? <ChevronUp className="h-5 w-5 text-red-400" /> : <ChevronDown className="h-5 w-5 text-red-400" />}
+            {expandedSections.cancelled ? <ChevronUp className="h-5 w-5 text-slate-400" /> : <ChevronDown className="h-5 w-5 text-slate-400" />}
           </button>
           {expandedSections.cancelled && (
             <div className="p-4 bg-white">
