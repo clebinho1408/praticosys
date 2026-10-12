@@ -1316,7 +1316,10 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                       : (s.mainSchedule?.active ? s.mainSchedule : null);
                     
                     const scheduleType = s.provisionalSchedule?.active ? 'Provisória' : 'Principal';
-                    const servicesText = s.services && s.services.length > 0 ? s.services.join(', ') : 'Nenhum';
+                    const ORDER = ['A', 'B', 'C', 'D', 'E'];
+                    const servicesText = s.services && s.services.length > 0
+                      ? [...s.services].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)).join(', ')
+                      : 'Nenhum';
 
                     return (
                       <tr key={s.id} className="hover:bg-gray-50">
@@ -1623,7 +1626,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       defaultMaxSlotsA: formData.defaultMaxSlotsA !== '' ? Number(formData.defaultMaxSlotsA) : null,
       defaultMaxSlotsB: formData.defaultMaxSlotsB !== '' ? Number(formData.defaultMaxSlotsB) : null,
       defaultMaxSlotsMudanca: hasMudanca && formData.defaultMaxSlotsMudanca !== '' ? Number(formData.defaultMaxSlotsMudanca) : null,
-      blockedPeriods,
+      blockedPeriods: getCleanedPeriods(blockedPeriods),
     };
     try {
       if (editing) {
@@ -1668,6 +1671,14 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
 
   const handleRemoveBlockedPeriod = (id: string) => {
     setBlockedPeriods(prev => prev.filter(p => p.id !== id));
+  };
+
+  // Auto-remove last expired block when modal saves (if all periods expired)
+  const getCleanedPeriods = (periods: typeof blockedPeriods) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const active = periods.filter(p => p.endDate >= todayStr);
+    // If all expired, clear completely; otherwise keep only active ones
+    return active;
   };
 
   const formatDateBR = (iso: string) => {
@@ -1774,14 +1785,9 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           {user?.role !== UserRole.CONSULTANT && (
-            <>
-              <button onClick={handleSyncUsers} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2 rounded-md hover:bg-slate-200 justify-center">
-                Sincronizar Usuários
-              </button>
-              <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 justify-center">
-                <Plus className="h-4 w-4" /> Novo Examinador
-              </button>
-            </>
+            <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 justify-center">
+              <Plus className="h-4 w-4" /> Novo Examinador
+            </button>
           )}
         </div>
       </div>

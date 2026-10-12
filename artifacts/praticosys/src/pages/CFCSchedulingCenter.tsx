@@ -68,7 +68,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   
   // Expanded sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    afastamento: true,
+    afastamento: false,
     extras: false,
     waiting: false,
     confirmed: false,
@@ -1485,20 +1485,45 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         {/* AFASTAMENTO/FÉRIAS CARD — visible to all roles */}
         {(() => {
           const today = new Date().toISOString().split('T')[0];
+
+          // Janela de exibição: hoje até hoje + 30 dias
+          const oneMonthAhead = new Date();
+          oneMonthAhead.setDate(oneMonthAhead.getDate() + 30);
+          const oneMonthStr = oneMonthAhead.toISOString().split('T')[0];
+
           const activePeriods: { examiner: Examiner; period: NonNullable<Examiner['blockedPeriods']>[number] }[] = [];
           examiners.forEach(ex => {
             const periods = Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : [];
             periods.forEach(p => {
-              if (p.endDate >= today) {
+              // Incluir: período ainda não acabou E começa até 1 mês à frente (ou já iniciou)
+              if (p.endDate >= today && p.startDate <= oneMonthStr) {
                 activePeriods.push({ examiner: ex, period: p });
               }
             });
           });
           activePeriods.sort((a, b) => a.period.startDate.localeCompare(b.period.startDate));
 
-          const getAffectedSchools = (_ex: Examiner): string => {
-            const affected = schools.filter(s => s.examRotation === true);
-            return affected.length > 0 ? affected.map(s => s.name).join(', ') : 'Nenhuma';
+          /**
+           * Retorna as autoescolas cujas escalas (principal ou provisória)
+           * estão vinculadas ao examinador informado nas datas afetadas pelo afastamento.
+           */
+          const getAffectedSchools = (ex: Examiner, period: NonNullable<Examiner['blockedPeriods']>[number]): string => {
+            const affected: string[] = [];
+            schools.forEach(s => {
+              // ── Escala Principal: slots[] com examiner === ex.id ──
+              const mainSlots = s.mainSchedule?.slots ?? [];
+              const inMain = mainSlots.some(slot => slot.examiner === ex.id);
+
+              // ── Escala Provisória: specificDates[] com examiner === ex.id
+              //    E data dentro do período de afastamento ──
+              const provDates = s.provisionalSchedule?.specificDates ?? [];
+              const inProv = provDates.some(
+                d => d.examiner === ex.id && d.date >= period.startDate && d.date <= period.endDate
+              );
+
+              if (inMain || inProv) affected.push(s.name);
+            });
+            return affected.length > 0 ? affected.join(', ') : 'Nenhuma';
           };
 
           const formatDateBR = (d: string) => {
@@ -1506,7 +1531,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             return `${day}/${m}/${y}`;
           };
 
-          // Só exibe o card quando há períodos ativos ou futuros
+          // Só exibe o card quando há períodos no horizonte de 1 mês
           if (activePeriods.length === 0) return null;
 
           return (
@@ -1528,7 +1553,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 <div className="p-4 bg-white space-y-3">
                   {activePeriods.map(({ examiner, period }) => {
                     const isActive = period.startDate <= today && period.endDate >= today;
-                    const affectedSchools = getAffectedSchools(examiner);
+                    const affectedSchools = getAffectedSchools(examiner, period);
                     return (
                       <div
                         key={`${examiner.id}-${period.id}`}
@@ -1789,14 +1814,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           <td className="px-4 py-3 text-slate-500 max-w-[200px] truncate" title={cleanObs || undefined}>{cleanObs || '-'}</td>
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-end gap-2">
-                              {canEditExtraRequest && (
-                                <button type="button"
-                                  onClick={() => setExtraToEdit({ ...req, categoryQuantities: qtys, observation: cleanObs })}
-                                  className="border border-orange-200 text-orange-600 hover:bg-orange-50 p-2 rounded-md flex items-center justify-center transition-colors"
-                                  title="Editar pedido de prova extra" aria-label="Editar pedido de prova extra">
-                                  <Pencil className="h-4 w-4" />
-                                </button>
-                              )}
                               {user.role !== UserRole.SCHOOL && !isConsultant && (
                                 <button 
                                   onClick={() => {
@@ -1809,6 +1826,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   title="Inserir Dados"
                                 >
                                   <FileText className="h-3 w-3" /> Inserir Dados
+                                </button>
+                              )}
+                              {canEditExtraRequest && (
+                                <button type="button"
+                                  onClick={() => setExtraToEdit({ ...req, categoryQuantities: qtys, observation: cleanObs })}
+                                  className="border border-orange-200 text-orange-600 hover:bg-orange-50 p-2 rounded-md flex items-center justify-center transition-colors"
+                                  title="Editar pedido de prova extra" aria-label="Editar pedido de prova extra">
+                                  <Pencil className="h-4 w-4" />
                                 </button>
                               )}
                               {user.role === UserRole.SCHOOL && (

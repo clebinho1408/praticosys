@@ -1798,7 +1798,7 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                                                     </button>
 
                                                     {/* Botão Remover da Banca */}
-                                                    {user.role !== UserRole.OPERATOR && user.role !== UserRole.SUPERVISOR && (
+                                                    {user.role !== UserRole.OPERATOR && (
                                                     <button
                                                         onClick={() => {
                                                             setRemoveConfirmReq(req);
