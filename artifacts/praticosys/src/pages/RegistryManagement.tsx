@@ -1,7 +1,8 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation } from '../types';
+import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation, BlockedDate, SystemSettings } from '../types';
+import { isDateBlocked } from '../lib/dateBlocking';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
@@ -557,6 +558,8 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [schools, setSchools] = useState<DrivingSchool[]>([]);
   const [examiners, setExaminers] = useState<Examiner[]>([]);
   const [cities, setCities] = useState<City[]>([]);
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([]);
+  const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DrivingSchool | null>(null);
   const [modalTab, setModalTab] = useState<'MAIN' | 'YARDS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
@@ -606,6 +609,16 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
       setCities(citiesData);
     } catch (err) {
       console.error("Erro ao carregar cidades:", err);
+    }
+    try {
+      const [bd, settings] = await Promise.all([
+        api.getBlockedDates(),
+        api.getSettings(),
+      ]);
+      setBlockedDates(bd);
+      setSystemSettings(settings);
+    } catch (err) {
+      console.error("Erro ao carregar datas bloqueadas:", err);
     }
   };
   useEffect(() => { fetch(); }, []);
@@ -999,17 +1012,20 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
         specificDates.map(d => {
           if (d.id !== id) return d;
           const updated = { ...d, [field]: value };
-          // Se mudou a data e o examinador atual ficará bloqueado, limpa o examinador
+          // Se mudou a data: limpa examinador se ficar bloqueado (por período do examinador)
           if (field === 'date') {
             const ex = examiners.find(e => e.id === d.examiner);
             const periods = Array.isArray(ex?.blockedPeriods) ? ex!.blockedPeriods : [];
-            const willBeBlocked = value ? periods.some(p => value >= p.startDate && value <= p.endDate) : false;
-            if (willBeBlocked) updated.examiner = '';
+            const examinerBlocked = value ? periods.some(p => value >= p.startDate && value <= p.endDate) : false;
+            if (examinerBlocked) updated.examiner = '';
           }
           return updated;
         })
       );
     };
+
+    // Helper: verifica se uma data é bloqueada pelo sistema (feriados/configurações)
+    const checkSystemBlock = (dateStr: string) => isDateBlocked(dateStr, blockedDates, systemSettings);
 
     // Sort by date asc
     const sorted = [...specificDates].sort((a, b) => a.date.localeCompare(b.date));
@@ -1073,12 +1089,18 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
           {sorted.map((entry) => {
             const examDate = entry.date;
             const isDatePast = examDate ? examDate < today : false;
+            const sysBlock = examDate ? checkSystemBlock(examDate) : { blocked: false };
+            const isSystemBlocked = sysBlock.blocked;
 
             return (
               <div
                 key={entry.id}
                 className={`grid grid-cols-1 gap-2 p-3 rounded-lg border ${
-                  isDatePast ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-slate-200 bg-white'
+                  isSystemBlocked
+                    ? 'border-red-200 bg-red-50/30'
+                    : isDatePast
+                    ? 'border-gray-200 bg-gray-50 opacity-60'
+                    : 'border-slate-200 bg-white'
                 }`}
               >
                 <div className="flex gap-2 items-start">
@@ -1087,11 +1109,21 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Data</label>
                     <input
                       type="date"
-                      className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      className={`w-full border rounded-lg px-2.5 py-2 text-sm focus:ring-2 outline-none ${
+                        isSystemBlocked
+                          ? 'border-red-300 bg-red-50 text-red-700 focus:ring-red-400'
+                          : 'border-slate-200 bg-white focus:ring-blue-500'
+                      }`}
                       value={entry.date}
                       onChange={e => updateDateEntry(entry.id, 'date', e.target.value)}
                     />
-                    {isDatePast && (
+                    {isSystemBlocked && (
+                      <p className="text-[10px] text-red-600 font-semibold mt-0.5 flex items-center gap-1">
+                        <span>🚫</span>
+                        <span>Data bloqueada{sysBlock.reason ? `: ${sysBlock.reason}` : ''}</span>
+                      </p>
+                    )}
+                    {!isSystemBlocked && isDatePast && (
                       <p className="text-[10px] text-amber-500 mt-0.5">Data já passada</p>
                     )}
                   </div>
