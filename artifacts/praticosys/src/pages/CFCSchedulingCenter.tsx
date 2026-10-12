@@ -1547,10 +1547,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           };
 
           /**
-           * Verifica se uma escola tem escala principal ativa vinculada ao examinador
-           * em pelo menos UMA das datas do período de afastamento.
-           * Considera a frequência da escala (incluindo 15_DAYS quinzenal).
-           * Ignora escolas com rodízio (examRotation=true) pois o examinador é dinâmico.
+           * Verifica se uma escola tem escala (principal OU provisória) vinculada
+           * ao examinador em pelo menos UMA das datas do período de afastamento.
+           * Ambas as escalas são avaliadas independentemente.
+           * Ignora escolas com rodízio na escala principal (examinador é dinâmico).
            */
           const getAffectedSchools = (ex: Examiner, period: NonNullable<Examiner['blockedPeriods']>[number]): string => {
             const affected: string[] = [];
@@ -1562,46 +1562,39 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             schools.forEach(s => {
               if (s.id === 'PCD' || s.id === 'CNH_BRASIL') return;
 
+              let isAffected = false;
+
               // ── Escala Provisória: specificDates[] com examiner === ex.id na janela ──
-              if (s.provisionalSchedule?.active) {
-                const provDates = s.provisionalSchedule.specificDates ?? [];
-                const inProv = provDates.some(
-                  d => d.examiner === ex.id && d.date >= period.startDate && d.date <= period.endDate
-                );
-                if (inProv) { affected.push(s.name); return; }
+              // Verificada sempre, independente de estar ativa ou não,
+              // pois pode estar configurada para datas dentro do afastamento.
+              const provDates = s.provisionalSchedule?.specificDates ?? [];
+              if (provDates.some(
+                d => d.examiner === ex.id && d.date >= period.startDate && d.date <= period.endDate
+              )) {
+                isAffected = true;
               }
 
-              // ── Escala Principal: só escalas fixas (não rodízio) ──
-              const main = s.mainSchedule;
-              if (!main?.active || s.examRotation) return;
-
-              // O examinador precisa estar em pelo menos um slot desta escala
-              const examinerSlots = (main.slots ?? []).filter(slot => slot.examiner === ex.id);
-              if (examinerSlots.length === 0) return;
-
-              // Verificar se em alguma data do afastamento a escala estaria ativa
-              const wouldBeAffected = periodDates.some(date => {
-                const dayCode = WEEKDAY_CODE[new Date(`${date}T00:00:00`).getDay()];
-
-                // O dia da semana precisa estar nos dias da escala
-                if (!main.days?.includes(dayCode)) return false;
-
-                // Para escala de slot com day específico, verifica se o slot do
-                // examinador é para este dia (2_WEEK / 3_WEEK têm slot.day)
-                const slotMatchesDay = examinerSlots.some(
-                  slot => !slot.day || slot.day === dayCode
-                );
-                if (!slotMatchesDay) return false;
-
-                // Para frequência quinzenal, verificar se esta semana é a ativa
-                if (main.frequency === '15_DAYS') {
-                  return is15DaysActive(s.id, date);
+              // ── Escala Principal: só escalas fixas ativas (não rodízio) ──
+              if (!isAffected) {
+                const main = s.mainSchedule;
+                if (main?.active && !s.examRotation) {
+                  const examinerSlots = (main.slots ?? []).filter(slot => slot.examiner === ex.id);
+                  if (examinerSlots.length > 0) {
+                    isAffected = periodDates.some(date => {
+                      const dayCode = WEEKDAY_CODE[new Date(`${date}T00:00:00`).getDay()];
+                      if (!main.days?.includes(dayCode)) return false;
+                      const slotMatchesDay = examinerSlots.some(
+                        slot => !slot.day || slot.day === dayCode
+                      );
+                      if (!slotMatchesDay) return false;
+                      if (main.frequency === '15_DAYS') return is15DaysActive(s.id, date);
+                      return true;
+                    });
+                  }
                 }
+              }
 
-                return true; // 1_WEEK, 2_WEEK, 3_WEEK, 2_DAY: sempre ativo no dia
-              });
-
-              if (wouldBeAffected) affected.push(s.name);
+              if (isAffected) affected.push(s.name);
             });
 
             return affected.length > 0 ? affected.join(', ') : 'Nenhuma';
