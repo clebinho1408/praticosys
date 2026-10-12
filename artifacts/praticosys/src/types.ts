@@ -56,11 +56,19 @@ export interface User {
   twoFactorEnabled?: boolean;
 }
 
+export interface ScheduleSpecificDate {
+  id: string;
+  date: string;    // 'YYYY-MM-DD'
+  time: string;    // 'HH:mm'
+  examiner: string; // examiner id
+}
+
 export interface SchoolSchedule {
   frequency: '1_WEEK' | '2_WEEK' | '3_WEEK' | '2_DAY' | '15_DAYS';
   days: string[]; // ['SEG', 'TER', ...]
-  slots: { time: string; examiner: string; day?: string }[]; 
+  slots: { time: string; examiner: string; day?: string }[];
   active: boolean;
+  specificDates?: ScheduleSpecificDate[]; // used by provisional schedule
 }
 
 export interface DrivingSchool {

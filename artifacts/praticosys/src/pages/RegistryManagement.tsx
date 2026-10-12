@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
+import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
@@ -578,7 +578,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     categoryChangeYardAddress: '',
     examRotation: false,
     mainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
-    provisionalSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false }
+    provisionalSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false, specificDates: [] }
   };
 
   const [formData, setFormData] = useState<Partial<DrivingSchool>>(initialFormData);
@@ -612,7 +612,24 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
 
   const openModal = async (school?: DrivingSchool) => {
     setEditing(school || null);
-    setFormData(school ? { ...initialFormData, ...school } : initialFormData);
+    if (school) {
+      const loaded = { ...initialFormData, ...school };
+      // Normalize provisionalSchedule.specificDates — may be null in older records
+      if (loaded.provisionalSchedule) {
+        loaded.provisionalSchedule = {
+          ...loaded.provisionalSchedule,
+          specificDates: Array.isArray(loaded.provisionalSchedule.specificDates)
+            ? loaded.provisionalSchedule.specificDates.map(d => ({
+                ...d,
+                id: d.id || crypto.randomUUID(),
+              }))
+            : [],
+        };
+      }
+      setFormData(loaded);
+    } else {
+      setFormData(initialFormData);
+    }
     setModalTab('MAIN');
     setIsModalOpen(true);
     // Re-fetch examiners to ensure we have the latest list
@@ -948,6 +965,222 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     );
   };
 
+  // ─── Escala Provisória: datas específicas (Data + Hora + Examinador) ───────
+  const renderProvisionalScheduleConfig = () => {
+    const schedule = formData.provisionalSchedule;
+    if (!schedule) return null;
+
+    const today = new Date().toISOString().split('T')[0];
+
+    const specificDates: ScheduleSpecificDate[] = Array.isArray(schedule.specificDates)
+      ? schedule.specificDates
+      : [];
+
+    const updateSpecificDates = (dates: ScheduleSpecificDate[]) => {
+      const newProv = { ...schedule, specificDates: dates };
+      const newMain = formData.mainSchedule ? { ...formData.mainSchedule } : undefined;
+      if (newProv.active && newMain) newMain.active = false;
+      setFormData({ ...formData, provisionalSchedule: newProv, mainSchedule: newMain });
+    };
+
+    const addDate = () => {
+      updateSpecificDates([
+        ...specificDates,
+        { id: crypto.randomUUID(), date: '', time: '', examiner: '' },
+      ]);
+    };
+
+    const removeDate = (id: string) => {
+      updateSpecificDates(specificDates.filter(d => d.id !== id));
+    };
+
+    const updateDateEntry = (id: string, field: keyof ScheduleSpecificDate, value: string) => {
+      updateSpecificDates(
+        specificDates.map(d => {
+          if (d.id !== id) return d;
+          const updated = { ...d, [field]: value };
+          // Se mudou a data e o examinador atual ficará bloqueado, limpa o examinador
+          if (field === 'date') {
+            const ex = examiners.find(e => e.id === d.examiner);
+            const periods = Array.isArray(ex?.blockedPeriods) ? ex!.blockedPeriods : [];
+            const willBeBlocked = value ? periods.some(p => value >= p.startDate && value <= p.endDate) : false;
+            if (willBeBlocked) updated.examiner = '';
+          }
+          return updated;
+        })
+      );
+    };
+
+    // Sort by date asc
+    const sorted = [...specificDates].sort((a, b) => a.date.localeCompare(b.date));
+
+    const formatDateBR = (d: string) => {
+      if (!d) return '—';
+      const [y, m, day] = d.split('-');
+      return `${day}/${m}/${y}`;
+    };
+
+    return (
+      <div className="space-y-4">
+        {/* Activate/deactivate header */}
+        <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
+          <div>
+            <h4 className="font-bold text-sm">Escala Provisória</h4>
+            <p className="text-xs text-gray-500">
+              {schedule.active ? 'Esta escala está ATIVA' : 'Esta escala está DESATIVADA'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              const newProv = { ...schedule, active: !schedule.active };
+              const newMain = formData.mainSchedule ? { ...formData.mainSchedule } : undefined;
+              if (newProv.active && newMain) newMain.active = false;
+              setFormData({ ...formData, provisionalSchedule: newProv, mainSchedule: newMain });
+            }}
+            className={`px-4 py-2 rounded text-xs font-bold transition-colors ${
+              schedule.active
+                ? 'bg-red-100 text-red-600 border border-red-200 hover:bg-red-200'
+                : 'bg-green-100 text-green-600 border border-green-200 hover:bg-green-200'
+            }`}
+          >
+            {schedule.active ? 'DESATIVAR ESCALA' : 'ATIVAR ESCALA'}
+          </button>
+        </div>
+
+        {/* Info banner */}
+        <div className="text-xs text-blue-700 bg-blue-50 border border-blue-100 p-3 rounded-lg">
+          Configure datas específicas para a escala provisória. Cada entrada define uma data, horário e examinador responsável pela prova.
+        </div>
+
+        {/* Dates list */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="block text-sm font-medium">Datas Agendadas</label>
+            <button
+              type="button"
+              onClick={addDate}
+              className="text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded border border-blue-200 hover:bg-blue-100 font-medium"
+            >
+              + Adicionar Data
+            </button>
+          </div>
+
+          {sorted.length === 0 && (
+            <p className="text-xs text-gray-500 italic py-2">Nenhuma data configurada. Clique em "+ Adicionar Data".</p>
+          )}
+
+          {sorted.map((entry) => {
+            const examDate = entry.date;
+            const isDatePast = examDate ? examDate < today : false;
+
+            return (
+              <div
+                key={entry.id}
+                className={`grid grid-cols-1 gap-2 p-3 rounded-lg border ${
+                  isDatePast ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-slate-200 bg-white'
+                }`}
+              >
+                <div className="flex gap-2 items-start">
+                  {/* DATA */}
+                  <div className="flex-1 min-w-0">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Data</label>
+                    <input
+                      type="date"
+                      className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={entry.date}
+                      onChange={e => updateDateEntry(entry.id, 'date', e.target.value)}
+                    />
+                    {isDatePast && (
+                      <p className="text-[10px] text-amber-500 mt-0.5">Data já passada</p>
+                    )}
+                  </div>
+
+                  {/* HORA */}
+                  <div className="w-28 flex-shrink-0">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Hora</label>
+                    <input
+                      type="time"
+                      className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={entry.time}
+                      onChange={e => updateDateEntry(entry.id, 'time', e.target.value)}
+                    />
+                  </div>
+
+                  {/* DELETE */}
+                  <div className="flex-shrink-0 pt-6">
+                    <button
+                      type="button"
+                      onClick={() => removeDate(entry.id)}
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="Remover data"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* EXAMINADOR */}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Examinador</label>
+                  <select
+                    className="w-full border border-slate-200 rounded-lg px-2.5 py-2 text-sm bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    value={entry.examiner}
+                    onChange={e => updateDateEntry(entry.id, 'examiner', e.target.value)}
+                  >
+                    <option value="">Selecione o examinador</option>
+                    {examiners.map(ex => {
+                      const isBlocked = examDate
+                        ? (Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : []).some(
+                            p => examDate >= p.startDate && examDate <= p.endDate
+                          )
+                        : false;
+                      const reason = isBlocked
+                        ? (Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : []).find(
+                            p => examDate >= p.startDate && examDate <= p.endDate
+                          )?.description || ''
+                        : '';
+                      return (
+                        <option key={ex.id} value={ex.id} disabled={isBlocked}>
+                          {isBlocked
+                            ? `🔒 ${ex.name}${reason ? ` — ${reason}` : ' — BLOQUEADO'}`
+                            : ex.name}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  {/* Warning when selected examiner is blocked */}
+                  {entry.examiner && examDate && (() => {
+                    const ex = examiners.find(e => e.id === entry.examiner);
+                    const periods = Array.isArray(ex?.blockedPeriods) ? ex!.blockedPeriods : [];
+                    const blocked = periods.find(p => examDate >= p.startDate && examDate <= p.endDate);
+                    return blocked ? (
+                      <p className="text-[10px] text-red-600 font-semibold mt-1 flex items-center gap-1">
+                        <span>⚠️</span>
+                        <span>Examinador bloqueado nesta data{blocked.description ? `: ${blocked.description}` : ''}.</span>
+                      </p>
+                    ) : null;
+                  })()}
+                </div>
+
+                {/* Summary badge */}
+                {entry.date && entry.time && entry.examiner && (
+                  <div className="text-[10px] text-green-700 bg-green-50 border border-green-100 rounded px-2 py-1 flex items-center gap-1">
+                    <span>✓</span>
+                    <span>
+                      {formatDateBR(entry.date)} às {entry.time} — {examiners.find(e => e.id === entry.examiner)?.name || entry.examiner}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+  // ─────────────────────────────────────────────────────────────────────────────
+
   return (
     <div>
       <ConfirmModal 
@@ -1213,7 +1446,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                 )}
 
                 {modalTab === 'SCHEDULE_MAIN' && renderScheduleConfig('main')}
-                {modalTab === 'SCHEDULE_PROV' && renderScheduleConfig('provisional')}
+                {modalTab === 'SCHEDULE_PROV' && renderProvisionalScheduleConfig()}
               </form>
             </div>
 
