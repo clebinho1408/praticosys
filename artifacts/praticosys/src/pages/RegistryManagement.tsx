@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
+import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, City, ExamLocation } from '../types';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
@@ -465,6 +465,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     motoYardAddress: '',
     carYardAddress: '',
     categoryChangeYardAddress: '',
+    examRotation: false,
     mainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
     provisionalSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false }
   };
@@ -1068,6 +1069,18 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                         ))}
                       </div>
                     </div>
+                    <div className="rounded border bg-gray-50 p-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.examRotation ?? false}
+                          onChange={e => setFormData({ ...formData, examRotation: e.target.checked })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm font-medium">Rodízio de Provas</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1 ml-6">Quando ativado, esta autoescola participa do rodízio automático de examinadores.</p>
+                    </div>
                   </div>
                 )}
 
@@ -1106,10 +1119,16 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
 
 const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   const [examiners, setExaminers] = useState<Examiner[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [citiesError, setCitiesError] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Examiner | null>(null);
-  const [modalTab, setModalTab] = useState<'DADOS' | 'BLOQUEIOS'>('DADOS');
-  const [formData, setFormData] = useState<{ name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string; defaultMaxSlotsMudanca: string }>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '' });
+  const [modalTab, setModalTab] = useState<'DADOS' | 'RODIZIO' | 'BLOQUEIOS'>('DADOS');
+  const emptyRotation: ExaminerRotationAvailability = { days: [], defaultTime: '', secondDefaultTime: '', examsPerDay: 1, cityIds: [] };
+  type ExaminerForm = { name: string; registrationNumber: string; categories: string[]; defaultMaxSlotsA: string; defaultMaxSlotsB: string; defaultMaxSlotsMudanca: string; examRotation: boolean; rotationAvailability: ExaminerRotationAvailability | null };
+  const [formData, setFormData] = useState<ExaminerForm>({ name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '', examRotation: false, rotationAvailability: null });
+  const [rotationDraft, setRotationDraft] = useState<ExaminerRotationAvailability>(emptyRotation);
+  const [rotationError, setRotationError] = useState('');
 
   // Blocked periods state
   const [blockedPeriods, setBlockedPeriods] = useState<ExaminerBlockedPeriod[]>([]);
@@ -1134,7 +1153,10 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   });
 
   const fetch = async () => setExaminers(await api.getExaminersAsync());
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => {
+    fetch();
+    api.getCities().then(setCities).catch(() => setCitiesError('Não foi possível carregar as cidades.'));
+  }, []);
 
   const openModal = (ex?: Examiner) => {
     setEditing(ex || null);
@@ -1146,10 +1168,34 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       defaultMaxSlotsA: ex.defaultMaxSlotsA != null ? String(ex.defaultMaxSlotsA) : '',
       defaultMaxSlotsB: ex.defaultMaxSlotsB != null ? String(ex.defaultMaxSlotsB) : '',
       defaultMaxSlotsMudanca: ex.defaultMaxSlotsMudanca != null ? String(ex.defaultMaxSlotsMudanca) : '',
-    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '' });
+      examRotation: ex.examRotation ?? false,
+      rotationAvailability: ex.rotationAvailability ?? null,
+    } : { name: '', registrationNumber: '', categories: [], defaultMaxSlotsA: '', defaultMaxSlotsB: '', defaultMaxSlotsMudanca: '', examRotation: false, rotationAvailability: null });
+    setRotationDraft(ex?.rotationAvailability ? { ...emptyRotation, ...ex.rotationAvailability, days: [...(ex.rotationAvailability.days ?? [])], cityIds: [...(ex.rotationAvailability.cityIds ?? [])] } : { ...emptyRotation });
+    setRotationError('');
     setBlockedPeriods(ex?.blockedPeriods ? [...ex.blockedPeriods] : []);
     setNewPeriod({ startDate: '', endDate: '', description: '' });
     setIsModalOpen(true);
+  };
+
+  const saveRotation = () => {
+    const validTime = (t: string | undefined) => /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(t ?? '');
+    if (!rotationDraft.days.length || !validTime(rotationDraft.defaultTime) || (rotationDraft.examsPerDay === 2 && !validTime(rotationDraft.secondDefaultTime)) || !rotationDraft.cityIds.length) {
+      setRotationError('Selecione ao menos um dia e uma cidade e informe todos os horários padrão.');
+      return;
+    }
+    setFormData(prev => ({
+      ...prev,
+      examRotation: true,
+      rotationAvailability: { ...rotationDraft, secondDefaultTime: rotationDraft.examsPerDay === 2 ? rotationDraft.secondDefaultTime : '' },
+    }));
+    setRotationError('');
+  };
+
+  const clearRotation = () => {
+    setFormData(prev => ({ ...prev, examRotation: false, rotationAvailability: null }));
+    setRotationDraft({ ...emptyRotation });
+    setRotationError('');
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -1333,6 +1379,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
               <th className="px-4 py-3 text-center">Vagas A</th>
               <th className="px-4 py-3 text-center">Vagas B</th>
               <th className="px-4 py-3 text-center">Vagas Mud.</th>
+              <th className="px-4 py-3 text-center">Rodízio</th>
               <th className="px-4 py-3 text-center">Bloqueios</th>
               <th className="px-4 py-3 text-right">Ações</th>
             </tr>
@@ -1364,6 +1411,19 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                 <td className="px-4 py-3 text-center text-sm">{e.defaultMaxSlotsB != null ? e.defaultMaxSlotsB : <span className="text-gray-400">—</span>}</td>
                 <td className="px-4 py-3 text-center text-sm">{e.categories?.some(c => ['C','D','E'].includes(c)) ? (e.defaultMaxSlotsMudanca != null ? e.defaultMaxSlotsMudanca : <span className="text-gray-400">—</span>) : <span className="text-gray-300">-</span>}</td>
                 <td className="px-4 py-3 text-center text-sm">
+                  {e.examRotation && e.rotationAvailability ? (
+                    <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold" title={`Dias: ${e.rotationAvailability.days.join(', ')} | ${e.rotationAvailability.examsPerDay}x/dia`}>
+                      🔄 Ativo
+                    </span>
+                  ) : e.examRotation ? (
+                    <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-xs font-semibold">
+                      ⚠️ Config.
+                    </span>
+                  ) : (
+                    <span className="text-gray-300">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-center text-sm">
                   {activeBlocks.length > 0 ? (
                     <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-semibold" title={activeBlocks.map(p => `${p.startDate === p.endDate ? p.startDate : `${p.startDate} → ${p.endDate}`}${p.description ? ': ' + p.description : ''}`).join('\n')}>
                       🔒 {activeBlocks.length}
@@ -1384,7 +1444,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
               );
             })}
             {filteredExaminers.length === 0 && (
-                <tr><td colSpan={8} className="p-4 text-center text-gray-500">Nenhum examinador encontrado.</td></tr>
+                <tr><td colSpan={9} className="p-4 text-center text-gray-500">Nenhum examinador encontrado.</td></tr>
             )}
           </tbody>
         </table>
@@ -1404,6 +1464,16 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${modalTab === 'DADOS' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
                   Dados Gerais
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('RODIZIO')}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-1 ${modalTab === 'RODIZIO' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                >
+                  Rodízio
+                  {formData.examRotation && (
+                    <span className="ml-1 bg-green-100 text-green-700 text-xs font-bold px-1.5 py-0.5 rounded-full">✓</span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -1489,6 +1559,141 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                           onChange={e => setFormData({...formData, defaultMaxSlotsMudanca: e.target.value})}
                         />
                       </div>
+                    )}
+                  </div>
+                )}
+
+                {/* ── TAB: RODÍZIO ── */}
+                {modalTab === 'RODIZIO' && (
+                  <div className="space-y-5">
+                    {/* Toggle ativo/inativo */}
+                    <div className="rounded border bg-gray-50 p-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.examRotation}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setFormData(prev => ({ ...prev, examRotation: true }));
+                            } else {
+                              clearRotation();
+                            }
+                          }}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm font-medium">Participar do Rodízio de Provas</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1 ml-6">Quando ativado, este examinador entra na rotação automática de bancas.</p>
+                    </div>
+
+                    {formData.examRotation && (
+                      <>
+                        {/* Dias da semana */}
+                        <fieldset>
+                          <legend className="text-sm font-medium mb-2">Dias da semana</legend>
+                          <div className="flex flex-wrap gap-2">
+                            {([['SEG', 'Seg'], ['TER', 'Ter'], ['QUA', 'Qua'], ['QUI', 'Qui'], ['SEX', 'Sex'], ['SAB', 'Sáb'], ['DOM', 'Dom']] as const).map(([value, label]) => (
+                              <label key={value} className="flex items-center gap-2 px-3 py-2 rounded border cursor-pointer text-sm bg-white hover:bg-blue-50">
+                                <input
+                                  type="checkbox"
+                                  checked={rotationDraft.days.includes(value)}
+                                  onChange={e => setRotationDraft(prev => ({
+                                    ...prev,
+                                    days: e.target.checked ? [...prev.days, value] : prev.days.filter(d => d !== value),
+                                  }))}
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+
+                        {/* Provas por dia */}
+                        <fieldset>
+                          <legend className="text-sm font-medium mb-2">Provas por dia</legend>
+                          <div className="flex gap-5 text-sm">
+                            {([1, 2] as const).map(count => (
+                              <label key={count} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name="rotation-exams-per-day"
+                                  checked={rotationDraft.examsPerDay === count}
+                                  onChange={() => setRotationDraft(prev => ({ ...prev, examsPerDay: count }))}
+                                />
+                                {count === 1 ? 'Uma prova' : 'Duas provas'}
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+
+                        {/* Horários */}
+                        <div className={rotationDraft.examsPerDay === 2 ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : ''}>
+                          <div>
+                            <label className="block text-sm font-medium mb-1">
+                              {rotationDraft.examsPerDay === 2 ? 'Horário padrão da 1ª prova' : 'Horário padrão'}
+                            </label>
+                            <input
+                              type="time"
+                              value={rotationDraft.defaultTime}
+                              onChange={e => setRotationDraft(prev => ({ ...prev, defaultTime: e.target.value }))}
+                              className="w-full border rounded p-2 bg-white text-gray-900"
+                            />
+                          </div>
+                          {rotationDraft.examsPerDay === 2 && (
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Horário padrão da 2ª prova</label>
+                              <input
+                                type="time"
+                                value={rotationDraft.secondDefaultTime ?? ''}
+                                onChange={e => setRotationDraft(prev => ({ ...prev, secondDefaultTime: e.target.value }))}
+                                className="w-full border rounded p-2 bg-white text-gray-900"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Cidades */}
+                        <fieldset>
+                          <legend className="text-sm font-medium mb-2">Cidades atendidas</legend>
+                          {citiesError && <p className="text-sm text-red-600">{citiesError}</p>}
+                          {!citiesError && cities.length === 0 && <p className="text-sm text-gray-500">Nenhuma cidade cadastrada.</p>}
+                          <div className="max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2 border rounded p-2 bg-gray-50">
+                            {cities.map(city => (
+                              <label key={city.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={rotationDraft.cityIds.includes(city.id)}
+                                  onChange={e => setRotationDraft(prev => ({
+                                    ...prev,
+                                    cityIds: e.target.checked ? [...prev.cityIds, city.id] : prev.cityIds.filter(id => id !== city.id),
+                                  }))}
+                                />
+                                {city.name}
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+
+                        {rotationError && <p className="text-sm text-red-600 font-medium">{rotationError}</p>}
+
+                        {/* Resumo salvo */}
+                        {formData.rotationAvailability && (
+                          <div className="bg-green-50 border border-green-200 rounded p-3 text-xs text-green-800">
+                            <p className="font-semibold mb-1">✓ Disponibilidade confirmada</p>
+                            <p>Dias: {formData.rotationAvailability.days.join(', ')}</p>
+                            <p>Horário: {formData.rotationAvailability.defaultTime}{formData.rotationAvailability.examsPerDay === 2 ? ` e ${formData.rotationAvailability.secondDefaultTime}` : ''}</p>
+                            <p>Cidades: {formData.rotationAvailability.cityIds.map(id => cities.find(c => c.id === id)?.name ?? id).join(', ')}</p>
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={saveRotation}
+                          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700"
+                        >
+                          <Save className="h-4 w-4" /> Confirmar disponibilidade
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
