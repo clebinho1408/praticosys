@@ -85,6 +85,9 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const [cities, setCities] = useState<City[]>([]);
   const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[]; email: string; phone: string; twoFactorEnabled: boolean }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
 
+  // User modal tab state
+  const [userModalTab, setUserModalTab] = useState<'dados' | 'permissoes' | 'contato'>('dados');
+
   // Confirmation Modal State
   const [confirmState, setConfirmState] = useState<{
       isOpen: boolean;
@@ -123,6 +126,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
       setEditingUser(null);
       setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
     }
+    setUserModalTab('dados');
     setIsModalOpen(true);
   };
 
@@ -292,147 +296,254 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold mb-4">{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</h3>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium">Nome Completo</label>
-                <input required type="text" className="w-full border rounded p-2 bg-white text-gray-900" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium">Login (Usuário)</label>
-                <input 
-                    required 
-                    type="text" 
-                    className="w-full border rounded p-2 bg-white text-gray-900" 
-                    value={formData.login} 
-                    onChange={handleLoginChange}
-                    placeholder="apenas letras minúsculas"
-                    readOnly={!!editingUser}
-                    title={editingUser ? "Não é possível alterar o login" : "Apenas letras minúsculas, sem espaço"}
-                />
-                <p className="text-xs text-gray-500 mt-1">Apenas letras minúsculas, sem espaço, sem acento.</p>
-              </div>
-              {!editingUser && (
-                  <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
-                      Senha padrão será definida como: <strong>123456</strong>
-                  </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium">Função</label>
-                <select className="w-full border rounded p-2 bg-white text-gray-900" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value as UserRole})}>
-                  <option value={UserRole.ADMIN}>Admin</option>
-                  <option value={UserRole.SUPERVISOR}>Supervisor</option>
-                  <option value={UserRole.OPERATOR}>Operador</option>
-                  <option value={UserRole.CONSULTANT}>Consultor</option>
-                  <option value={UserRole.SCHOOL}>Autoescola</option>
-                </select>
-              </div>
-              {formData.role === UserRole.SCHOOL && (
-                <div>
-                  <label className="block text-sm font-medium">Autoescola Vinculada</label>
-                  <select required className="w-full border rounded p-2 bg-white text-gray-900" value={formData.schoolId} onChange={e => setFormData({...formData, schoolId: e.target.value})}>
-                    <option value="">Selecione...</option>
-                    {schools.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && (
-                <div>
-                  <label className="block text-sm font-medium mb-2">Módulos Permitidos</label>
-                  <div className="space-y-2 border rounded p-3 bg-gray-50">
-                    {(['cnh', 'cfc', 'pcd'] as OperatorModule[]).map(mod => {
-                      const labels: Record<OperatorModule, string> = { cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD' };
-                      const isChecked = formData.allowedModules.includes(mod);
-                      return (
-                        <label key={mod} className="flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={e => {
-                              const next = e.target.checked
-                                ? [...formData.allowedModules, mod]
-                                : formData.allowedModules.filter(m => m !== mod);
-                              setFormData({ ...formData, allowedModules: next });
-                            }}
-                            className="h-4 w-4 accent-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">{labels[mod]}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  {formData.allowedModules.length === 0 && (
-                    <p className="text-xs text-red-500 mt-1">Selecione ao menos um módulo.</p>
-                  )}
-                </div>
-              )}
-              {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && formData.allowedModules.includes('cnh') && examLocations.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Locais de Acesso — CNH do Brasil</label>
-                  <p className="text-xs text-gray-500 mb-2">Deixe em branco para liberar todos os locais.</p>
-                  <div className="space-y-2 border rounded p-3 bg-gray-50 max-h-40 overflow-y-auto">
-                    {examLocations.map(loc => {
-                      const locCity = cities.find(c => c.id === loc.cityId);
-                      const label = locCity?.name || loc.cityId;
-                      const isChecked = formData.allowedLocationIds.includes(loc.id);
-                      return (
-                        <label key={loc.id} className="flex items-center gap-2 cursor-pointer select-none">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={e => {
-                              const next = e.target.checked
-                                ? [...formData.allowedLocationIds, loc.id]
-                                : formData.allowedLocationIds.filter(id => id !== loc.id);
-                              setFormData({ ...formData, allowedLocationIds: next });
-                            }}
-                            className="h-4 w-4 accent-blue-600"
-                          />
-                          <span className="text-sm text-gray-700">{label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {/* Contato e segurança */}
-              <div className="border-t pt-4 space-y-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contato & Segurança</p>
-                <div>
-                  <label className="block text-sm font-medium">E-mail</label>
-                  <input
-                    type="email"
-                    className="w-full border rounded p-2 bg-white text-gray-900 text-sm"
-                    value={formData.email}
-                    onChange={e => setFormData({...formData, email: e.target.value})}
-                    placeholder="exemplo@email.com"
-                  />
-                </div>
-                <label className="flex items-start gap-3 cursor-pointer select-none p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-blue-600 mt-0.5"
-                    checked={formData.twoFactorEnabled}
-                    onChange={e => setFormData({...formData, twoFactorEnabled: e.target.checked})}
-                  />
-                  <div>
-                    <span className="text-sm font-medium text-gray-800">Ativar verificação em 2 etapas</span>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Ao fazer login, um código será enviado para o e-mail cadastrado acima.
-                      {!formData.email && formData.twoFactorEnabled && (
-                        <span className="text-red-600 block mt-1">⚠️ Cadastre um e-mail para ativar este recurso.</span>
-                      )}
-                    </p>
-                  </div>
-                </label>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg flex flex-col max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="text-base font-bold text-gray-900">{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</h3>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100 bg-gray-50/60 px-6">
+              {([
+                { key: 'dados', label: 'Dados' },
+                { key: 'permissoes', label: 'Permissões' },
+                { key: 'contato', label: 'Contato & Segurança' },
+              ] as { key: 'dados' | 'permissoes' | 'contato'; label: string }[]).map(tab => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setUserModalTab(tab.key)}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    userModalTab === tab.key
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Content */}
+            <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0">
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+
+                {/* TAB: DADOS */}
+                {userModalTab === 'dados' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                      <input
+                        required
+                        type="text"
+                        className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        value={formData.name}
+                        onChange={e => setFormData({...formData, name: e.target.value})}
+                        placeholder="Nome completo do usuário"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Login (Usuário)</label>
+                      <input
+                        required
+                        type="text"
+                        className={`w-full border border-gray-200 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${editingUser ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : 'bg-white text-gray-900'}`}
+                        value={formData.login}
+                        onChange={handleLoginChange}
+                        placeholder="apenas letras minúsculas"
+                        readOnly={!!editingUser}
+                        title={editingUser ? "Não é possível alterar o login" : "Apenas letras minúsculas, sem espaço"}
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Apenas letras minúsculas, sem espaço, sem acento.</p>
+                    </div>
+                    {!editingUser && (
+                      <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-100 p-3 rounded-lg">
+                        <span>🔑</span>
+                        <span>Senha padrão será definida como: <strong>123456</strong></span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* TAB: PERMISSÕES */}
+                {userModalTab === 'permissoes' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Função</label>
+                      <select
+                        className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.role}
+                        onChange={e => setFormData({...formData, role: e.target.value as UserRole})}
+                      >
+                        <option value={UserRole.ADMIN}>Admin</option>
+                        <option value={UserRole.SUPERVISOR}>Supervisor</option>
+                        <option value={UserRole.OPERATOR}>Operador</option>
+                        <option value={UserRole.CONSULTANT}>Consultor</option>
+                        <option value={UserRole.SCHOOL}>Autoescola</option>
+                      </select>
+                    </div>
+
+                    {formData.role === UserRole.SCHOOL && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Autoescola Vinculada</label>
+                        <select
+                          required
+                          className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={formData.schoolId}
+                          onChange={e => setFormData({...formData, schoolId: e.target.value})}
+                        >
+                          <option value="">Selecione...</option>
+                          {schools.map(s => (
+                            <option key={s.id} value={s.id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Módulos Permitidos</label>
+                        <div className="space-y-2 border border-gray-200 rounded-lg p-3 bg-gray-50">
+                          {(['cnh', 'cfc', 'pcd'] as OperatorModule[]).map(mod => {
+                            const labels: Record<OperatorModule, string> = { cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD' };
+                            const isChecked = formData.allowedModules.includes(mod);
+                            return (
+                              <label key={mod} className="flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={e => {
+                                    const next = e.target.checked
+                                      ? [...formData.allowedModules, mod]
+                                      : formData.allowedModules.filter(m => m !== mod);
+                                    setFormData({ ...formData, allowedModules: next });
+                                  }}
+                                  className="h-4 w-4 accent-blue-600"
+                                />
+                                <span className="text-sm text-gray-700">{labels[mod]}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                        {formData.allowedModules.length === 0 && (
+                          <p className="text-xs text-red-500 mt-1">Selecione ao menos um módulo.</p>
+                        )}
+                      </div>
+                    )}
+
+                    {(formData.role === UserRole.OPERATOR || formData.role === UserRole.SUPERVISOR) && formData.allowedModules.includes('cnh') && examLocations.length > 0 && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Locais de Acesso — CNH do Brasil</label>
+                        <p className="text-xs text-gray-400 mb-2">Deixe em branco para liberar todos os locais.</p>
+                        <div className="space-y-2 border border-gray-200 rounded-lg p-3 bg-gray-50 max-h-36 overflow-y-auto">
+                          {examLocations.map(loc => {
+                            const locCity = cities.find(c => c.id === loc.cityId);
+                            const label = locCity?.name || loc.cityId;
+                            const isChecked = formData.allowedLocationIds.includes(loc.id);
+                            return (
+                              <label key={loc.id} className="flex items-center gap-2 cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={e => {
+                                    const next = e.target.checked
+                                      ? [...formData.allowedLocationIds, loc.id]
+                                      : formData.allowedLocationIds.filter(id => id !== loc.id);
+                                    setFormData({ ...formData, allowedLocationIds: next });
+                                  }}
+                                  className="h-4 w-4 accent-blue-600"
+                                />
+                                <span className="text-sm text-gray-700">{label}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.role === UserRole.ADMIN && (
+                      <div className="text-xs text-amber-700 bg-amber-50 border border-amber-100 p-3 rounded-lg">
+                        Administradores têm acesso completo a todos os módulos e recursos do sistema.
+                      </div>
+                    )}
+                    {formData.role === UserRole.CONSULTANT && (
+                      <div className="text-xs text-sky-700 bg-sky-50 border border-sky-100 p-3 rounded-lg">
+                        Consultores têm acesso somente de leitura aos dados do sistema.
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* TAB: CONTATO & SEGURANÇA */}
+                {userModalTab === 'contato' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+                      <input
+                        type="email"
+                        className="w-full border border-gray-200 rounded-lg p-2.5 bg-white text-gray-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={formData.email}
+                        onChange={e => setFormData({...formData, email: e.target.value})}
+                        placeholder="exemplo@email.com"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Necessário para recuperação de senha e verificação em 2 etapas.</p>
+                    </div>
+                    <label className="flex items-start gap-3 cursor-pointer select-none p-4 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-blue-600 mt-0.5 flex-shrink-0"
+                        checked={formData.twoFactorEnabled}
+                        onChange={e => setFormData({...formData, twoFactorEnabled: e.target.checked})}
+                      />
+                      <div>
+                        <span className="text-sm font-semibold text-gray-800">Verificação em 2 etapas</span>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Ao fazer login, um código será enviado para o e-mail cadastrado acima.
+                        </p>
+                        {!formData.email && formData.twoFactorEnabled && (
+                          <span className="text-xs text-red-600 block mt-1 font-medium">⚠️ Cadastre um e-mail para ativar este recurso.</span>
+                        )}
+                      </div>
+                    </label>
+                  </>
+                )}
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center gap-2"><Save className="h-4 w-4" /> Salvar</button>
+              {/* Footer */}
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50/60 rounded-b-xl">
+                <div className="flex gap-1">
+                  {(['dados', 'permissoes', 'contato'] as const).map((t, i) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setUserModalTab(t)}
+                      className={`w-2 h-2 rounded-full transition-colors ${userModalTab === t ? 'bg-blue-600' : 'bg-gray-300'}`}
+                      aria-label={`Ir para aba ${i + 1}`}
+                    />
+                  ))}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 transition-colors font-medium"
+                  >
+                    <Save className="h-4 w-4" /> Salvar
+                  </button>
+                </div>
               </div>
             </form>
           </div>

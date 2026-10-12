@@ -39,7 +39,8 @@ import {
   Bell,
   MapPin,
   ExternalLink,
-  Pencil
+  Pencil,
+  UserX
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 import ConfirmedAppointmentModal from '../components/cfc/ConfirmedAppointmentModal';
@@ -67,6 +68,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   
   // Expanded sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    afastamento: true,
     extras: false,
     waiting: false,
     confirmed: false,
@@ -1464,6 +1466,92 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
       {/* ACCORDIONS */}
       <div className="space-y-4">
+        {/* AFASTAMENTO/FÉRIAS CARD — visible to all roles */}
+        {(() => {
+          const today = new Date().toISOString().split('T')[0];
+          const activePeriods: { examiner: Examiner; period: { id: string; startDate: string; endDate: string; description: string } }[] = [];
+          examiners.forEach(ex => {
+            (ex.blockedPeriods || []).forEach(p => {
+              if (p.endDate >= today) {
+                activePeriods.push({ examiner: ex, period: p });
+              }
+            });
+          });
+          // Sort by startDate
+          activePeriods.sort((a, b) => a.period.startDate.localeCompare(b.period.startDate));
+
+          const getAffectedSchools = (ex: Examiner): string => {
+            const affected = schools.filter(s => s.examRotation === true);
+            return affected.length > 0 ? affected.map(s => s.name).join(', ') : 'Nenhuma';
+          };
+
+          const formatDateBR = (d: string) => {
+            const [y, m, day] = d.split('-');
+            return `${day}/${m}/${y}`;
+          };
+
+          if (activePeriods.length === 0) return null;
+
+          return (
+            <div className="border border-red-200 rounded-lg overflow-hidden shadow-sm">
+              <button
+                onClick={() => toggleSection('afastamento')}
+                className="w-full flex items-center justify-between p-4 bg-red-50/60 hover:bg-red-50 transition-colors"
+              >
+                <div className="flex items-center gap-3 text-red-700">
+                  <UserX className="h-5 w-5" />
+                  <span className="font-bold">Afastamento / Férias ({activePeriods.length})</span>
+                </div>
+                {expandedSections.afastamento
+                  ? <ChevronUp className="h-5 w-5 text-red-400" />
+                  : <ChevronDown className="h-5 w-5 text-red-400" />}
+              </button>
+
+              {expandedSections.afastamento && (
+                <div className="p-4 bg-white space-y-3">
+                  {activePeriods.map(({ examiner, period }) => {
+                    const isActive = period.startDate <= today && period.endDate >= today;
+                    const isFuture = period.startDate > today;
+                    const affectedSchools = getAffectedSchools(examiner);
+                    return (
+                      <div
+                        key={`${examiner.id}-${period.id}`}
+                        className="flex flex-col sm:flex-row sm:items-start gap-3 p-4 rounded-xl border border-red-100 bg-red-50/40 shadow-sm"
+                      >
+                        <div className="flex-shrink-0 mt-0.5">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                            isActive ? 'bg-red-600 text-white' : 'bg-amber-400 text-white'
+                          }`}>
+                            {isActive ? '● Ativo' : '○ Agendado'}
+                          </span>
+                        </div>
+                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-1 text-sm">
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Examinador</span>
+                            <span className="font-bold text-slate-800">{examiner.name}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Período</span>
+                            <span className="text-slate-700">{formatDateBR(period.startDate)} → {formatDateBR(period.endDate)}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Motivo</span>
+                            <span className="text-slate-700">{period.description || '—'}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Autoescolas Afetadas</span>
+                            <span className="text-slate-700">{affectedSchools}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {user.role === UserRole.EXAMINER ? (
           <>
             <div className="border border-orange-200 rounded-lg overflow-hidden shadow-sm">
@@ -1623,7 +1711,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         ) : (
           <>
             {/* SECTION: EXTRAS */}
-        <div className="border border-orange-200 rounded-lg overflow-hidden shadow-sm">
+            <div className="border border-orange-200 rounded-lg overflow-hidden shadow-sm">
           <button 
             onClick={() => toggleSection('extras')}
             className="w-full flex items-center justify-between p-4 bg-orange-50/50 hover:bg-orange-50 transition-colors"
