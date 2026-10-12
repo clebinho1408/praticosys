@@ -1469,18 +1469,18 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         {/* AFASTAMENTO/FÉRIAS CARD — visible to all roles */}
         {(() => {
           const today = new Date().toISOString().split('T')[0];
-          const activePeriods: { examiner: Examiner; period: { id: string; startDate: string; endDate: string; description: string } }[] = [];
+          const activePeriods: { examiner: Examiner; period: NonNullable<Examiner['blockedPeriods']>[number] }[] = [];
           examiners.forEach(ex => {
-            (ex.blockedPeriods || []).forEach(p => {
+            const periods = Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : [];
+            periods.forEach(p => {
               if (p.endDate >= today) {
                 activePeriods.push({ examiner: ex, period: p });
               }
             });
           });
-          // Sort by startDate
           activePeriods.sort((a, b) => a.period.startDate.localeCompare(b.period.startDate));
 
-          const getAffectedSchools = (ex: Examiner): string => {
+          const getAffectedSchools = (_ex: Examiner): string => {
             const affected = schools.filter(s => s.examRotation === true);
             return affected.length > 0 ? affected.map(s => s.name).join(', ') : 'Nenhuma';
           };
@@ -1490,6 +1490,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             return `${day}/${m}/${y}`;
           };
 
+          // Só exibe o card quando há períodos ativos ou futuros
           if (activePeriods.length === 0) return null;
 
           return (
@@ -1511,7 +1512,6 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 <div className="p-4 bg-white space-y-3">
                   {activePeriods.map(({ examiner, period }) => {
                     const isActive = period.startDate <= today && period.endDate >= today;
-                    const isFuture = period.startDate > today;
                     const affectedSchools = getAffectedSchools(examiner);
                     return (
                       <div

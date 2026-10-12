@@ -23,7 +23,14 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     if (method === 'GET') {
       await ensureSchema(db);
-      return json(await db.select().from(examiners));
+      const rows = await db.select().from(examiners);
+      // Normalise nullable JSONB fields that may be null in older rows
+      const normalised = rows.map((r: any) => ({
+        ...r,
+        blockedPeriods: Array.isArray(r.blockedPeriods) ? r.blockedPeriods : [],
+        categories: Array.isArray(r.categories) ? r.categories : [],
+      }));
+      return json(normalised);
     }
 
     if (method === 'POST') {
