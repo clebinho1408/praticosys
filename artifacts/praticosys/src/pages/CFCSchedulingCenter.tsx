@@ -1503,26 +1503,107 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
           });
           activePeriods.sort((a, b) => a.period.startDate.localeCompare(b.period.startDate));
 
+          // Dias da semana (índice JS → código da escala)
+          const WEEKDAY_CODE = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+
           /**
-           * Retorna as autoescolas cujas escalas (principal ou provisória)
-           * estão vinculadas ao examinador informado nas datas afetadas pelo afastamento.
+           * Gera todas as datas (YYYY-MM-DD) entre startDate e endDate (inclusivo).
+           */
+          const datesInRange = (startDate: string, endDate: string): string[] => {
+            const dates: string[] = [];
+            const cur = new Date(`${startDate}T00:00:00`);
+            const end = new Date(`${endDate}T00:00:00`);
+            while (cur <= end) {
+              dates.push(cur.toISOString().split('T')[0]);
+              cur.setDate(cur.getDate() + 1);
+            }
+            return dates;
+          };
+
+          /**
+           * Para uma escola com frequência 15_DAYS, verifica se uma data específica
+           * seria a semana "ativa" baseada no último agendamento FIXA real.
+           * Usa o mesmo critério da auto-geração: última FIXA >= 14 dias antes.
+           */
+          const is15DaysActive = (schoolId: string, targetDate: string): boolean => {
+            const lastDate = requests
+              .filter(r =>
+                r.schoolId === schoolId &&
+                r.requestType === RequestType.FIXA &&
+                r.status !== ExamStatus.CANCELLED &&
+                r.scheduledDate &&
+                r.scheduledDate < targetDate
+              )
+              .map(r => r.scheduledDate!)
+              .sort()
+              .at(-1);
+
+            if (!lastDate) return true; // sem histórico → considera ativa
+            const diffDays =
+              (new Date(`${targetDate}T00:00:00`).getTime() -
+                new Date(`${lastDate}T00:00:00`).getTime()) /
+              86400000;
+            return diffDays >= 14;
+          };
+
+          /**
+           * Verifica se uma escola tem escala principal ativa vinculada ao examinador
+           * em pelo menos UMA das datas do período de afastamento.
+           * Considera a frequência da escala (incluindo 15_DAYS quinzenal).
+           * Ignora escolas com rodízio (examRotation=true) pois o examinador é dinâmico.
            */
           const getAffectedSchools = (ex: Examiner, period: NonNullable<Examiner['blockedPeriods']>[number]): string => {
             const affected: string[] = [];
+            const periodDates = datesInRange(
+              period.startDate > today ? period.startDate : today,
+              period.endDate
+            );
+
             schools.forEach(s => {
-              // ── Escala Principal: slots[] com examiner === ex.id ──
-              const mainSlots = s.mainSchedule?.slots ?? [];
-              const inMain = mainSlots.some(slot => slot.examiner === ex.id);
+              if (s.id === 'PCD' || s.id === 'CNH_BRASIL') return;
 
-              // ── Escala Provisória: specificDates[] com examiner === ex.id
-              //    E data dentro do período de afastamento ──
-              const provDates = s.provisionalSchedule?.specificDates ?? [];
-              const inProv = provDates.some(
-                d => d.examiner === ex.id && d.date >= period.startDate && d.date <= period.endDate
-              );
+              // ── Escala Provisória: specificDates[] com examiner === ex.id na janela ──
+              if (s.provisionalSchedule?.active) {
+                const provDates = s.provisionalSchedule.specificDates ?? [];
+                const inProv = provDates.some(
+                  d => d.examiner === ex.id && d.date >= period.startDate && d.date <= period.endDate
+                );
+                if (inProv) { affected.push(s.name); return; }
+              }
 
-              if (inMain || inProv) affected.push(s.name);
+              // ── Escala Principal: só escalas fixas (não rodízio) ──
+              const main = s.mainSchedule;
+              if (!main?.active || s.examRotation) return;
+
+              // O examinador precisa estar em pelo menos um slot desta escala
+              const examinerSlots = (main.slots ?? []).filter(slot => slot.examiner === ex.id);
+              if (examinerSlots.length === 0) return;
+
+              // Verificar se em alguma data do afastamento a escala estaria ativa
+              const wouldBeAffected = periodDates.some(date => {
+                const dayCode = WEEKDAY_CODE[new Date(`${date}T00:00:00`).getDay()];
+
+                // O dia da semana precisa estar nos dias da escala
+                if (!main.days?.includes(dayCode)) return false;
+
+                // Para escala de slot com day específico, verifica se o slot do
+                // examinador é para este dia (2_WEEK / 3_WEEK têm slot.day)
+                const slotMatchesDay = examinerSlots.some(
+                  slot => !slot.day || slot.day === dayCode
+                );
+                if (!slotMatchesDay) return false;
+
+                // Para frequência quinzenal, verificar se esta semana é a ativa
+                if (main.frequency === '15_DAYS') {
+                  return is15DaysActive(s.id, date);
+                }
+
+                return true; // 1_WEEK, 2_WEEK, 3_WEEK, 2_DAY: sempre ativo no dia
+              });
+
+              if (wouldBeAffected) affected.push(s.name);
             });
+
             return affected.length > 0 ? affected.join(', ') : 'Nenhuma';
           };
 
