@@ -562,7 +562,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DrivingSchool | null>(null);
-  const [modalTab, setModalTab] = useState<'MAIN' | 'YARDS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
+  const [modalTab, setModalTab] = useState<'MAIN' | 'YARDS' | 'RODIZIOS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
   
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1414,6 +1414,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
               {[
                 { id: 'MAIN', label: 'Dados Principais' },
                 { id: 'YARDS', label: 'Pátios' },
+                { id: 'RODIZIOS', label: 'Rodízios' },
                 { id: 'SCHEDULE_MAIN', label: 'Escala Principal' },
                 { id: 'SCHEDULE_PROV', label: 'Escala Provisória' }
               ].map(tab => (
@@ -1484,30 +1485,6 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                         ))}
                       </div>
                     </div>
-                    <div className="rounded border bg-gray-50 p-3">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.examRotation ?? false}
-                          onChange={e => setFormData({ ...formData, examRotation: e.target.checked })}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <span className="text-sm font-medium">Rodízio de Provas</span>
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1 ml-6">Quando ativado, esta autoescola participa do rodízio automático de examinadores.</p>
-                    </div>
-                    <div className="rounded border bg-gray-50 p-3">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={formData.cnhBrasilProfile ?? false}
-                          onChange={e => setFormData({ ...formData, cnhBrasilProfile: e.target.checked })}
-                          className="w-4 h-4 text-blue-600"
-                        />
-                        <span className="text-sm font-medium">Perfil CNH do Brasil</span>
-                      </label>
-                      <p className="text-xs text-gray-500 mt-1 ml-6">Quando ativado, esta autoescola utiliza o perfil CNH do Brasil para agendamentos.</p>
-                    </div>
                   </div>
                 )}
 
@@ -1528,6 +1505,34 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                   </div>
                 )}
 
+                {modalTab === 'RODIZIOS' && (
+                  <div className="space-y-4">
+                    <div className="rounded border bg-gray-50 p-4">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.examRotation ?? false}
+                          onChange={e => setFormData({ ...formData, examRotation: e.target.checked })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm font-medium">Rodízio de Provas</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1 ml-7">Quando ativado, esta autoescola participa do rodízio automático de examinadores.</p>
+                    </div>
+                    <div className="rounded border bg-gray-50 p-4">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.cnhBrasilProfile ?? false}
+                          onChange={e => setFormData({ ...formData, cnhBrasilProfile: e.target.checked })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm font-medium">Perfil CNH do Brasil</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1 ml-7">Quando ativado, esta autoescola utiliza o perfil CNH do Brasil para agendamentos.</p>
+                    </div>
+                  </div>
+                )}
                 {modalTab === 'SCHEDULE_MAIN' && renderScheduleConfig('main')}
                 {modalTab === 'SCHEDULE_PROV' && renderProvisionalScheduleConfig()}
               </form>
