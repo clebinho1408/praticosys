@@ -562,7 +562,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [systemSettings, setSystemSettings] = useState<SystemSettings | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DrivingSchool | null>(null);
-  const [modalTab, setModalTab] = useState<'MAIN' | 'YARDS' | 'RODIZIOS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
+  const [modalTab, setModalTab] = useState<'MAIN' | 'SERVICES' | 'YARDS' | 'RODIZIOS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
   
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1413,6 +1413,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
             <div className="flex border-b bg-gray-50 overflow-x-auto">
               {[
                 { id: 'MAIN', label: 'Dados Principais' },
+                { id: 'SERVICES', label: 'Serviços' },
                 { id: 'YARDS', label: 'Pátios' },
                 { id: 'RODIZIOS', label: 'Rodízios' },
                 { id: 'SCHEDULE_MAIN', label: 'Escala Principal' },
@@ -1469,6 +1470,11 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                         </select>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {modalTab === 'SERVICES' && (
+                  <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">Serviços (Categorias)</label>
                       <div className="flex flex-wrap gap-3">
