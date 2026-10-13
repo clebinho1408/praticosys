@@ -62,15 +62,61 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
           .where(eq(drivingSchools.id, schoolId)).limit(1))[0];
         if (!school) return error('Autoescola não encontrada.', 404);
         const day = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'][new Date(`${date}T00:00:00`).getDay()];
-        const schedule = school.provisionalSchedule?.active ? school.provisionalSchedule :
-          school.mainSchedule?.active ? school.mainSchedule : null;
+
+        // ── Escala Provisória com specificDates ──────────────────────────────────
+        // Quando a escala ativa é provisória, os slots vêm de specificDates (não days[]/slots[]).
+        // A validação é feita verificando se as entradas enviadas coincidem com as specificDates
+        // configuradas para esta data exata; o rodízio de examinadores não se aplica.
+        if (school.provisionalSchedule?.active) {
+          const provDates: any[] = (school.provisionalSchedule.specificDates ?? [])
+            .filter((d: any) => d.date === date && d.examiner && d.time);
+          if (!provDates.length || provDates.length !== slots.length) {
+            return error('A escala provisória mudou. Consulte a data novamente.', 409);
+          }
+          const ordered = (items: string[]) => [...items].sort().join('|');
+          if (ordered(provDates.map((d: any) => `${d.examiner}:${d.time}`)) !==
+              ordered(slots.map((s: any) => `${s.examinerId}:${s.scheduledTime}`))) {
+            return error('A escala provisória mudou. Consulte a data novamente.', 409);
+          }
+          // Sem validação de rodízio para escala provisória — examinadores são fixos por specificDate.
+          const existing = await db.select().from(cfcScheduleSlots).where(and(
+            eq(cfcScheduleSlots.schoolId, schoolId), eq(cfcScheduleSlots.scheduledDate, date),
+            eq(cfcScheduleSlots.requestType, 'FIXA')));
+          if (existing.some((s: any) => s.status !== 'CANCELLED')) {
+            return error('Esta autoescola já possui uma escala fixa nesta data.', 409);
+          }
+          // Verificar conflito de horário do examinador (sem validar disponibilidade de rodízio).
+          for (const examinerId of new Set<string>(slots.map((s: any) => s.examinerId))) {
+            const booked = await db.select().from(cfcScheduleSlots).where(and(
+              eq(cfcScheduleSlots.examinerId, examinerId), eq(cfcScheduleSlots.scheduledDate, date)));
+            const active = booked.filter((s: any) => s.status !== 'CANCELLED');
+            const assigned = slots.filter((s: any) => s.examinerId === examinerId);
+            if (assigned.some((s: any) => active.some((b: any) => b.scheduledTime === s.scheduledTime))) {
+              return error('O examinador já possui prova nesse horário.', 409);
+            }
+          }
+          const records = slots.map((s: any, index: number) => ({
+            id: `auto-fixed:${schoolId}:${date}:${existing.length}:${index}`,
+            schoolId, scheduledDate: date, scheduledTime: s.scheduledTime, examinerId: s.examinerId,
+            examType: 'COMMON', requestType: 'FIXA', intendedCategory: 'A,B',
+            status: 'SCHEDULED', attendanceConfirmed: true, observation: '',
+            createdAt: new Date(), updatedAt: new Date(),
+          }));
+          const created = isD1(db)
+            ? (await db.batch(records.map((record: any) => db.insert(cfcScheduleSlots).values(record).returning()) as any)).flat()
+            : await db.insert(cfcScheduleSlots).values(records).returning();
+          return json(created);
+        }
+
+        // ── Escala Principal (days[] + slots[]) ──────────────────────────────────
+        const schedule = school.mainSchedule?.active ? school.mainSchedule : null;
         const configured = schedule?.days?.includes(day)
           ? (schedule.slots ?? []).filter((s: any) => !s.day || s.day === day) : [];
         if (!configured.length || configured.length !== slots.length) {
           return error('A escala da autoescola mudou. Consulte a data novamente.', 409);
         }
         if (!school.examRotation) {
-          const ordered = (items: string[]) => items.sort().join('|');
+          const ordered = (items: string[]) => [...items].sort().join('|');
           if (ordered(configured.map((s: any) => `${s.examiner}:${s.time}`)) !==
             ordered(slots.map((s: any) => `${s.examinerId}:${s.scheduledTime}`))) {
             return error('Rodízio de Provas desativado para a autoescola; use os horários e examinadores da escala fixa.', 409);

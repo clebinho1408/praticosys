@@ -580,6 +580,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     carYardAddress: '',
     categoryChangeYardAddress: '',
     examRotation: false,
+    cnhBrasilProfile: false,
     mainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
     provisionalSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false, specificDates: [] }
   };
@@ -1494,6 +1495,18 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                         <span className="text-sm font-medium">Rodízio de Provas</span>
                       </label>
                       <p className="text-xs text-gray-500 mt-1 ml-6">Quando ativado, esta autoescola participa do rodízio automático de examinadores.</p>
+                    </div>
+                    <div className="rounded border bg-gray-50 p-3">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.cnhBrasilProfile ?? false}
+                          onChange={e => setFormData({ ...formData, cnhBrasilProfile: e.target.checked })}
+                          className="w-4 h-4 text-blue-600"
+                        />
+                        <span className="text-sm font-medium">Perfil CNH do Brasil</span>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1 ml-6">Quando ativado, esta autoescola utiliza o perfil CNH do Brasil para agendamentos.</p>
                     </div>
                   </div>
                 )}
