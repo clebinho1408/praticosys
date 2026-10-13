@@ -1410,7 +1410,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
               <h3 className="text-lg font-bold">{editing ? 'Editar Autoescola' : 'Nova Autoescola'}</h3>
             </div>
             
-            <div className="flex border-b bg-gray-50 overflow-x-auto">
+            <div className="flex flex-wrap border-b bg-gray-50">
               {[
                 { id: 'MAIN', label: 'Dados Principais' },
                 { id: 'SERVICES', label: 'Serviços' },
@@ -1422,7 +1422,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                 <button
                   key={tab.id}
                   onClick={() => setModalTab(tab.id as any)}
-                  className={`px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+                  className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                     modalTab === tab.id 
                       ? 'border-blue-600 text-blue-600 bg-white' 
                       : 'border-transparent text-gray-500 hover:text-gray-700'
