@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation, BlockedDate, SystemSettings } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
-import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X, Pencil } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
@@ -1622,6 +1622,8 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   // Blocked periods state
   const [blockedPeriods, setBlockedPeriods] = useState<ExaminerBlockedPeriod[]>([]);
   const [newPeriod, setNewPeriod] = useState<{ startDate: string; endDate: string; description: string; period: 'ALL_DAY' | 'MORNING' | 'AFTERNOON' }>({ startDate: '', endDate: '', description: '', period: 'ALL_DAY' });
+  const [editingPeriodId, setEditingPeriodId] = useState<string | null>(null);
+  const [editPeriodDraft, setEditPeriodDraft] = useState<{ startDate: string; endDate: string; description: string; period: 'ALL_DAY' | 'MORNING' | 'AFTERNOON' }>({ startDate: '', endDate: '', description: '', period: 'ALL_DAY' });
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1682,6 +1684,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
     setRotationError('');
     setBlockedPeriods(ex?.blockedPeriods ? [...ex.blockedPeriods] : []);
     setNewPeriod({ startDate: '', endDate: '', description: '', period: 'ALL_DAY' });
+    setEditingPeriodId(null);
     setIsModalOpen(true);
   };
 
@@ -1759,6 +1762,39 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
 
   const handleRemoveBlockedPeriod = (id: string) => {
     setBlockedPeriods(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleEditBlockedPeriod = (period: ExaminerBlockedPeriod) => {
+    setEditingPeriodId(period.id);
+    setEditPeriodDraft({
+      startDate: period.startDate,
+      endDate: period.endDate,
+      description: period.description,
+      period: (period.period as 'ALL_DAY' | 'MORNING' | 'AFTERNOON') ?? 'ALL_DAY',
+    });
+  };
+
+  const handleSaveEditPeriod = (id: string) => {
+    if (!editPeriodDraft.startDate || !editPeriodDraft.endDate) {
+      alert('Preencha a Data Início e a Data Fim.');
+      return;
+    }
+    if (editPeriodDraft.endDate < editPeriodDraft.startDate) {
+      alert('A Data Fim não pode ser anterior à Data Início.');
+      return;
+    }
+    setBlockedPeriods(prev => prev.map(p => p.id !== id ? p : {
+      ...p,
+      startDate: editPeriodDraft.startDate,
+      endDate: editPeriodDraft.endDate,
+      description: editPeriodDraft.description.trim(),
+      period: editPeriodDraft.period,
+    }));
+    setEditingPeriodId(null);
+  };
+
+  const handleCancelEditPeriod = () => {
+    setEditingPeriodId(null);
   };
 
   // Auto-remove last expired block when modal saves (if all periods expired)
@@ -2209,12 +2245,12 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                   </div>
                 )}
 
-                {/* ── TAB: DATAS DE BLOQUEIO ── */}
+                {/* ── TAB: AFASTAMENTO / FÉRIAS ── */}
                 {modalTab === 'BLOQUEIOS' && (
                   <div className="space-y-4">
                     {/* Add new period form */}
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
-                      <p className="text-sm font-semibold text-orange-800">Nova Data de Bloqueio</p>
+                      <p className="text-sm font-semibold text-orange-800">Novo Afastamento</p>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">Data Início <span className="text-red-500">*</span></label>
@@ -2264,43 +2300,120 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                         onClick={handleAddBlockedPeriod}
                         className="flex items-center gap-2 bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700"
                       >
-                        <Plus className="h-4 w-4" /> Adicionar Bloqueio
+                        <Plus className="h-4 w-4" /> Adicionar Afastamento
                       </button>
                     </div>
 
                     {/* List of blocked periods */}
                     {blockedPeriods.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-4">Nenhuma data de bloqueio cadastrada.</p>
+                      <p className="text-sm text-gray-500 text-center py-4">Nenhum afastamento cadastrado.</p>
                     ) : (
                       <div className="space-y-2">
-                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Bloqueios cadastrados ({blockedPeriods.length})</p>
+                        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Afastamentos cadastrados ({blockedPeriods.length})</p>
                         {[...blockedPeriods].sort((a, b) => a.startDate.localeCompare(b.startDate)).map(period => (
-                          <div key={period.id} className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg p-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-sm font-semibold text-red-700">{formatDateBR(period.startDate)}</span>
-                                {period.startDate !== period.endDate && (
-                                  <>
-                                    <span className="text-xs text-red-400">→</span>
-                                    <span className="text-sm font-semibold text-red-700">{formatDateBR(period.endDate)}</span>
-                                  </>
-                                )}
-                                <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
-                                  {period.period === 'MORNING' ? '🌅 Manhã' : period.period === 'AFTERNOON' ? '🌇 Tarde' : '🔒 Dia inteiro'}
-                                </span>
+                          <div key={period.id} className="border rounded-lg overflow-hidden">
+                            {editingPeriodId === period.id ? (
+                              /* ── Modo edição ── */
+                              <div className="bg-orange-50 border-orange-200 p-3 space-y-3">
+                                <p className="text-xs font-semibold text-orange-800 uppercase tracking-wide">Editando afastamento</p>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Data Início <span className="text-red-500">*</span></label>
+                                    <input
+                                      type="date"
+                                      className="w-full border rounded p-2 text-sm bg-white text-gray-900"
+                                      value={editPeriodDraft.startDate}
+                                      onChange={e => setEditPeriodDraft(d => ({ ...d, startDate: e.target.value }))}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Data Fim <span className="text-red-500">*</span></label>
+                                    <input
+                                      type="date"
+                                      className="w-full border rounded p-2 text-sm bg-white text-gray-900"
+                                      value={editPeriodDraft.endDate}
+                                      min={editPeriodDraft.startDate}
+                                      onChange={e => setEditPeriodDraft(d => ({ ...d, endDate: e.target.value }))}
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Turno do Bloqueio</label>
+                                  <select
+                                    className="w-full border rounded p-2 text-sm bg-white text-gray-900"
+                                    value={editPeriodDraft.period}
+                                    onChange={e => setEditPeriodDraft(d => ({ ...d, period: e.target.value as 'ALL_DAY' | 'MORNING' | 'AFTERNOON' }))}
+                                  >
+                                    <option value="ALL_DAY">Dia inteiro</option>
+                                    <option value="MORNING">Somente manhã (antes das 12h)</option>
+                                    <option value="AFTERNOON">Somente tarde (12h ou depois)</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Descrição / Motivo</label>
+                                  <input
+                                    type="text"
+                                    className="w-full border rounded p-2 text-sm bg-white text-gray-900"
+                                    placeholder="Ex: Férias, Atestado médico..."
+                                    value={editPeriodDraft.description}
+                                    onChange={e => setEditPeriodDraft(d => ({ ...d, description: e.target.value }))}
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveEditPeriod(period.id)}
+                                    className="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700"
+                                  >
+                                    <Save className="h-3.5 w-3.5" /> Salvar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleCancelEditPeriod}
+                                    className="flex items-center gap-1.5 border border-gray-300 text-gray-600 px-3 py-1.5 rounded text-sm hover:bg-gray-100"
+                                  >
+                                    <X className="h-3.5 w-3.5" /> Cancelar
+                                  </button>
+                                </div>
                               </div>
-                              {period.description && (
-                                <p className="text-xs text-gray-600 mt-0.5 truncate">{period.description}</p>
-                              )}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveBlockedPeriod(period.id)}
-                              className="text-red-500 hover:text-red-700 flex-shrink-0 mt-0.5"
-                              title="Remover bloqueio"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            ) : (
+                              /* ── Modo visualização ── */
+                              <div className="flex items-start gap-3 bg-red-50 border-red-200 p-3">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-semibold text-red-700">{formatDateBR(period.startDate)}</span>
+                                    {period.startDate !== period.endDate && (
+                                      <>
+                                        <span className="text-xs text-red-400">→</span>
+                                        <span className="text-sm font-semibold text-red-700">{formatDateBR(period.endDate)}</span>
+                                      </>
+                                    )}
+                                    <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
+                                      {period.period === 'MORNING' ? '🌅 Manhã' : period.period === 'AFTERNOON' ? '🌇 Tarde' : '🔒 Dia inteiro'}
+                                    </span>
+                                  </div>
+                                  {period.description && (
+                                    <p className="text-xs text-gray-600 mt-0.5 truncate">{period.description}</p>
+                                  )}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditBlockedPeriod(period)}
+                                  className="text-blue-500 hover:text-blue-700 flex-shrink-0 mt-0.5"
+                                  title="Editar afastamento"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveBlockedPeriod(period.id)}
+                                  className="text-red-500 hover:text-red-700 flex-shrink-0 mt-0.5"
+                                  title="Remover afastamento"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
