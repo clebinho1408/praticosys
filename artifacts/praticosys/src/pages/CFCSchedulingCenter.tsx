@@ -49,6 +49,53 @@ import ExtraRequestModal from '../components/cfc/ExtraRequestModal';
 // Global reference to keep track of the WhatsApp window
 let whatsappWindowRef: Window | null = null;
 
+/**
+ * Verifica se um examinador está bloqueado em uma data+hora específica,
+ * respeitando o turno do bloqueio (dia inteiro, só manhã ou só tarde).
+ * - MORNING  → bloqueia agendamentos com horário antes das 12:00
+ * - AFTERNOON → bloqueia agendamentos com horário a partir das 12:00
+ * - ALL_DAY / undefined → bloqueia qualquer horário do dia
+ * @param periods  Lista de períodos de bloqueio do examinador
+ * @param date     'YYYY-MM-DD'
+ * @param time     'HH:MM' (opcional; se omitido trata como dia inteiro)
+ */
+function isExaminerBlocked(
+  periods: { startDate: string; endDate: string; period?: string }[],
+  date: string,
+  time?: string,
+): boolean {
+  return periods.some(p => {
+    if (date < p.startDate || date > p.endDate) return false;
+    if (!p.period || p.period === 'ALL_DAY') return true;
+    if (!time) return true; // sem horário → considera bloqueado por precaução
+    const [h, m] = time.split(':').map(Number);
+    const totalMin = h * 60 + m;
+    if (p.period === 'MORNING') return totalMin < 12 * 60;
+    if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+    return true;
+  });
+}
+
+function getBlockReason(
+  periods: { startDate: string; endDate: string; period?: string; description?: string }[],
+  date: string,
+  time?: string,
+): string {
+  const p = periods.find(p => {
+    if (date < p.startDate || date > p.endDate) return false;
+    if (!p.period || p.period === 'ALL_DAY') return true;
+    if (!time) return true;
+    const [h, m] = time.split(':').map(Number);
+    const totalMin = h * 60 + m;
+    if (p.period === 'MORNING') return totalMin < 12 * 60;
+    if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+    return true;
+  });
+  if (!p) return '';
+  const turno = p.period === 'MORNING' ? ' (manhã)' : p.period === 'AFTERNOON' ? ' (tarde)' : '';
+  return (p.description ? `${p.description}${turno}` : `BLOQUEADO${turno}`);
+}
+
 interface CFCSchedulingCenterProps {
   user: User;
 }
@@ -1133,9 +1180,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
     if (isFixa && newRequest.examinerId && newRequest.date) {
       const ex = examiners.find(e => e.id === newRequest.examinerId);
-      const isBlocked = ex ? (ex.blockedPeriods || []).some(p => newRequest.date >= p.startDate && newRequest.date <= p.endDate) : false;
+      const isBlocked = ex ? isExaminerBlocked(ex.blockedPeriods || [], newRequest.date, newRequest.time || undefined) : false;
       if (isBlocked) {
-        const reason = ex ? (ex.blockedPeriods || []).find(p => newRequest.date >= p.startDate && newRequest.date <= p.endDate)?.description || '' : '';
+        const reason = ex ? getBlockReason(ex.blockedPeriods || [], newRequest.date, newRequest.time || undefined) : '';
         alert(`O examinador selecionado está bloqueado na data ${newRequest.date}${reason ? `: ${reason}` : ''}. Por favor, escolha outro examinador ou outra data.`);
         return;
       }
@@ -2751,11 +2798,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                         <option value="">Selecione o examinador</option>
                         {examiners.map(e => {
                           const examDate = newRequest.date;
+                          const examTime = newRequest.time || undefined;
                           const isBlocked = examDate
-                            ? (e.blockedPeriods || []).some(p => examDate >= p.startDate && examDate <= p.endDate)
+                            ? isExaminerBlocked(e.blockedPeriods || [], examDate, examTime)
                             : false;
                           const reason = isBlocked
-                            ? (e.blockedPeriods || []).find(p => examDate >= p.startDate && examDate <= p.endDate)?.description || ''
+                            ? getBlockReason(e.blockedPeriods || [], examDate!, examTime)
                             : '';
                           return (
                             <option key={e.id} value={e.id} disabled={isBlocked}>
@@ -2766,8 +2814,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       </select>
                       {newRequest.examinerId && newRequest.date && (() => {
                         const ex = examiners.find(e => e.id === newRequest.examinerId);
-                        const isBlocked = ex ? (ex.blockedPeriods || []).some(p => newRequest.date >= p.startDate && newRequest.date <= p.endDate) : false;
-                        const reason = isBlocked && ex ? (ex.blockedPeriods || []).find(p => newRequest.date >= p.startDate && newRequest.date <= p.endDate)?.description || '' : '';
+                        const examTime = newRequest.time || undefined;
+                        const isBlocked = ex ? isExaminerBlocked(ex.blockedPeriods || [], newRequest.date, examTime) : false;
+                        const reason = isBlocked && ex ? getBlockReason(ex.blockedPeriods || [], newRequest.date, examTime) : '';
                         return isBlocked ? (
                           <p className="text-xs text-red-600 font-semibold mt-1">⚠️ Este examinador está bloqueado na data selecionada{reason ? `: ${reason}` : ''}.</p>
                         ) : null;
@@ -3046,7 +3095,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           // Se o examinador actualmente seleccionado ficar bloqueado na nova data, limpa-o
                           const currentEx = examiners.find(e => e.id === selectedRequest.examinerId);
                           const periods = Array.isArray(currentEx?.blockedPeriods) ? currentEx!.blockedPeriods : [];
-                          const willBeBlocked = date ? periods.some(p => date >= p.startDate && date <= p.endDate) : false;
+                          const willBeBlocked = date ? isExaminerBlocked(periods, date, selectedRequest.scheduledTime || undefined) : false;
                           setSelectedRequest({
                             ...selectedRequest,
                             scheduledDate: date,
@@ -3087,11 +3136,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           })
                           .map(e => {
                             const examDate = selectedRequest.scheduledDate || '';
+                            const examTime = selectedRequest.scheduledTime || undefined;
                             const isBlocked = examDate
-                              ? (Array.isArray(e.blockedPeriods) ? e.blockedPeriods : []).some(p => examDate >= p.startDate && examDate <= p.endDate)
+                              ? isExaminerBlocked(Array.isArray(e.blockedPeriods) ? e.blockedPeriods : [], examDate, examTime)
                               : false;
                             const reason = isBlocked
-                              ? (Array.isArray(e.blockedPeriods) ? e.blockedPeriods : []).find(p => examDate >= p.startDate && examDate <= p.endDate)?.description || ''
+                              ? getBlockReason(Array.isArray(e.blockedPeriods) ? e.blockedPeriods : [], examDate, examTime)
                               : '';
                             return (
                               <option key={e.id} value={e.id} disabled={isBlocked}>
@@ -3104,11 +3154,14 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       {selectedRequest.examinerId && selectedRequest.scheduledDate && (() => {
                         const ex = examiners.find(e => e.id === selectedRequest.examinerId);
                         const periods = Array.isArray(ex?.blockedPeriods) ? ex!.blockedPeriods : [];
-                        const blocked = periods.find(p => (selectedRequest.scheduledDate || '') >= p.startDate && (selectedRequest.scheduledDate || '') <= p.endDate);
+                        const examDate = selectedRequest.scheduledDate || '';
+                        const examTime = selectedRequest.scheduledTime || undefined;
+                        const blocked = examDate ? isExaminerBlocked(periods, examDate, examTime) : false;
+                        const blockReason = blocked ? getBlockReason(periods, examDate, examTime) : '';
                         return blocked ? (
                           <p className="text-xs text-red-600 font-semibold mt-1 flex items-center gap-1">
                             <span>⚠️</span>
-                            <span>Este examinador está bloqueado na data selecionada{blocked.description ? `: ${blocked.description}` : ''}.</span>
+                            <span>Este examinador está bloqueado na data/horário selecionado{blockReason ? `: ${blockReason}` : ''}.</span>
                           </p>
                         ) : null;
                       })()}

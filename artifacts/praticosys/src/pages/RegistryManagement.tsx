@@ -1039,7 +1039,17 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
           if (field === 'date') {
             const ex = examiners.find(e => e.id === d.examiner);
             const periods = Array.isArray(ex?.blockedPeriods) ? ex!.blockedPeriods : [];
-            const examinerBlocked = value ? periods.some(p => value >= p.startDate && value <= p.endDate) : false;
+            const examinerBlocked = value ? periods.some(p => {
+              if (value < p.startDate || value > p.endDate) return false;
+              if (!p.period || p.period === 'ALL_DAY') return true;
+              const t = d.time || '';
+              if (!t) return true;
+              const [h, m2] = t.split(':').map(Number);
+              const totalMin = h * 60 + m2;
+              if (p.period === 'MORNING') return totalMin < 12 * 60;
+              if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+              return true;
+            }) : false;
             if (examinerBlocked) updated.examiner = '';
           }
           return updated;
@@ -1172,15 +1182,35 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                   >
                     <option value="">Selecione...</option>
                     {examiners.map(ex => {
+                      const examTime = entry.time || undefined;
                       const isBlocked = examDate
-                        ? (Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : []).some(
-                            p => examDate >= p.startDate && examDate <= p.endDate
-                          )
+                        ? (Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : []).some(p => {
+                            if (examDate < p.startDate || examDate > p.endDate) return false;
+                            if (!p.period || p.period === 'ALL_DAY') return true;
+                            if (!examTime) return true;
+                            const [h, m2] = examTime.split(':').map(Number);
+                            const totalMin = h * 60 + m2;
+                            if (p.period === 'MORNING') return totalMin < 12 * 60;
+                            if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+                            return true;
+                          })
                         : false;
                       const reason = isBlocked
-                        ? (Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : []).find(
-                            p => examDate >= p.startDate && examDate <= p.endDate
-                          )?.description || ''
+                        ? (() => {
+                            const examTime2 = entry.time || undefined;
+                            const p2 = (Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : []).find(p => {
+                              if (examDate! < p.startDate || examDate! > p.endDate) return false;
+                              if (!p.period || p.period === 'ALL_DAY') return true;
+                              if (!examTime2) return true;
+                              const [h, m2] = examTime2.split(':').map(Number);
+                              const totalMin = h * 60 + m2;
+                              if (p.period === 'MORNING') return totalMin < 12 * 60;
+                              if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+                              return true;
+                            });
+                            const turno = p2?.period === 'MORNING' ? ' (manhã)' : p2?.period === 'AFTERNOON' ? ' (tarde)' : '';
+                            return p2?.description ? `${p2.description}${turno}` : `BLOQUEADO${turno}`;
+                          })()
                         : '';
                       return (
                         <option key={ex.id} value={ex.id} disabled={isBlocked}>
@@ -1192,11 +1222,32 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                   {entry.examiner && examDate && (() => {
                     const ex = examiners.find(e => e.id === entry.examiner);
                     const periods = Array.isArray(ex?.blockedPeriods) ? ex!.blockedPeriods : [];
-                    const blocked = periods.find(p => examDate >= p.startDate && examDate <= p.endDate);
-                    return blocked ? (
+                    const examTime = entry.time || undefined;
+                    const isBlocked = periods.some(p => {
+                      if (examDate < p.startDate || examDate > p.endDate) return false;
+                      if (!p.period || p.period === 'ALL_DAY') return true;
+                      if (!examTime) return true;
+                      const [h, m2] = examTime.split(':').map(Number);
+                      const totalMin = h * 60 + m2;
+                      if (p.period === 'MORNING') return totalMin < 12 * 60;
+                      if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+                      return true;
+                    });
+                    const p2 = isBlocked ? periods.find(p => {
+                      if (examDate < p.startDate || examDate > p.endDate) return false;
+                      if (!p.period || p.period === 'ALL_DAY') return true;
+                      if (!examTime) return true;
+                      const [h, m2] = examTime.split(':').map(Number);
+                      const totalMin = h * 60 + m2;
+                      if (p.period === 'MORNING') return totalMin < 12 * 60;
+                      if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+                      return true;
+                    }) : null;
+                    const turno = p2?.period === 'MORNING' ? ' (manhã)' : p2?.period === 'AFTERNOON' ? ' (tarde)' : '';
+                    return isBlocked ? (
                       <p className="text-[9px] text-red-600 font-semibold mt-0.5 flex items-center gap-0.5 leading-tight">
                         <span>⚠️</span>
-                        <span>Bloqueado{blocked.description ? `: ${blocked.description}` : ''}.</span>
+                        <span>Bloqueado{p2?.description ? `: ${p2.description}${turno}` : turno ? turno : ''}.</span>
                       </p>
                     ) : null;
                   })()}
@@ -1570,7 +1621,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
 
   // Blocked periods state
   const [blockedPeriods, setBlockedPeriods] = useState<ExaminerBlockedPeriod[]>([]);
-  const [newPeriod, setNewPeriod] = useState<{ startDate: string; endDate: string; description: string }>({ startDate: '', endDate: '', description: '' });
+  const [newPeriod, setNewPeriod] = useState<{ startDate: string; endDate: string; description: string; period: 'ALL_DAY' | 'MORNING' | 'AFTERNOON' }>({ startDate: '', endDate: '', description: '', period: 'ALL_DAY' });
 
   // Search State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1630,7 +1681,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
     setRotationDraft(ex?.rotationAvailability ? { ...emptyRotation, ...ex.rotationAvailability, days: [...(ex.rotationAvailability.days ?? [])], cityIds: [...(ex.rotationAvailability.cityIds ?? [])] } : { ...emptyRotation });
     setRotationError('');
     setBlockedPeriods(ex?.blockedPeriods ? [...ex.blockedPeriods] : []);
-    setNewPeriod({ startDate: '', endDate: '', description: '' });
+    setNewPeriod({ startDate: '', endDate: '', description: '', period: 'ALL_DAY' });
     setIsModalOpen(true);
   };
 
@@ -1700,9 +1751,10 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       startDate: newPeriod.startDate,
       endDate: newPeriod.endDate,
       description: newPeriod.description.trim(),
+      period: newPeriod.period,
     };
     setBlockedPeriods(prev => [...prev, period]);
-    setNewPeriod({ startDate: '', endDate: '', description: '' });
+    setNewPeriod({ startDate: '', endDate: '', description: '', period: 'ALL_DAY' });
   };
 
   const handleRemoveBlockedPeriod = (id: string) => {
@@ -2186,6 +2238,18 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                         </div>
                       </div>
                       <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Turno do Bloqueio</label>
+                        <select
+                          className="w-full border rounded p-2 text-sm bg-white text-gray-900"
+                          value={newPeriod.period}
+                          onChange={e => setNewPeriod(p => ({ ...p, period: e.target.value as 'ALL_DAY' | 'MORNING' | 'AFTERNOON' }))}
+                        >
+                          <option value="ALL_DAY">Dia inteiro</option>
+                          <option value="MORNING">Somente manhã (antes das 12h)</option>
+                          <option value="AFTERNOON">Somente tarde (12h ou depois)</option>
+                        </select>
+                      </div>
+                      <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Descrição / Motivo</label>
                         <input
                           type="text"
@@ -2221,6 +2285,9 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
                                     <span className="text-sm font-semibold text-red-700">{formatDateBR(period.endDate)}</span>
                                   </>
                                 )}
+                                <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-orange-100 text-orange-700">
+                                  {period.period === 'MORNING' ? '🌅 Manhã' : period.period === 'AFTERNOON' ? '🌇 Tarde' : '🔒 Dia inteiro'}
+                                </span>
                               </div>
                               {period.description && (
                                 <p className="text-xs text-gray-600 mt-0.5 truncate">{period.description}</p>

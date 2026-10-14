@@ -41,6 +41,44 @@ import {
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 
+/** Verifica se examinador está bloqueado numa data+hora, respeitando o turno */
+function isExaminerBlocked(
+  periods: { startDate: string; endDate: string; period?: string }[],
+  date: string,
+  time?: string,
+): boolean {
+  return periods.some(p => {
+    if (date < p.startDate || date > p.endDate) return false;
+    if (!p.period || p.period === 'ALL_DAY') return true;
+    if (!time) return true;
+    const [h, m] = time.split(':').map(Number);
+    const totalMin = h * 60 + m;
+    if (p.period === 'MORNING') return totalMin < 12 * 60;
+    if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+    return true;
+  });
+}
+
+function getBlockReason(
+  periods: { startDate: string; endDate: string; period?: string; description?: string }[],
+  date: string,
+  time?: string,
+): string {
+  const p = periods.find(p => {
+    if (date < p.startDate || date > p.endDate) return false;
+    if (!p.period || p.period === 'ALL_DAY') return true;
+    if (!time) return true;
+    const [h, m] = time.split(':').map(Number);
+    const totalMin = h * 60 + m;
+    if (p.period === 'MORNING') return totalMin < 12 * 60;
+    if (p.period === 'AFTERNOON') return totalMin >= 12 * 60;
+    return true;
+  });
+  if (!p) return '';
+  const turno = p.period === 'MORNING' ? ' (manhã)' : p.period === 'AFTERNOON' ? ' (tarde)' : '';
+  return p.description ? `${p.description}${turno}` : `Bloqueado${turno}`;
+}
+
 const getDateDisplayParts = (dateString: string | null | undefined) => {
   if (!dateString) return '-';
   const cleanDate = dateString.split('T')[0];
@@ -1067,7 +1105,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     if (scheduleForm.date) {
       const blockedExaminers = scheduleForm.examinerIds
         .map(id => examiners.find(e => e.id === id))
-        .filter(ex => ex && (ex.blockedPeriods || []).some(p => scheduleForm.date >= p.startDate && scheduleForm.date <= p.endDate));
+        .filter(ex => ex && isExaminerBlocked(ex.blockedPeriods || [], scheduleForm.date, scheduleForm.time || undefined));
       if (blockedExaminers.length > 0) {
         const names = blockedExaminers.map(ex => ex!.name).join(', ');
         setErrorMessage(`Os seguintes examinadores estão bloqueados na data selecionada: ${names}. Remova-os da banca ou escolha outra data.`);
@@ -1992,11 +2030,12 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                           <div id="examinersList" className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-3 bg-gray-50" tabIndex={0}>
                               {examiners.map(ex => {
                                   const examDate = scheduleForm.date; // 'YYYY-MM-DD'
+                                  const examTime = scheduleForm.time || undefined;
                                   const isBlockedOnDate = examDate
-                                    ? (ex.blockedPeriods || []).some(p => examDate >= p.startDate && examDate <= p.endDate)
+                                    ? isExaminerBlocked(ex.blockedPeriods || [], examDate, examTime)
                                     : false;
                                   const blockReason = isBlockedOnDate
-                                    ? (ex.blockedPeriods || []).find(p => examDate >= p.startDate && examDate <= p.endDate)?.description || 'Bloqueado'
+                                    ? getBlockReason(ex.blockedPeriods || [], examDate, examTime)
                                     : '';
                                   const isChecked = scheduleForm.examinerIds.includes(ex.id);
                                   return (

@@ -101,11 +101,14 @@ export interface ExaminerRotationAvailability {
   cityIds: string[];
 }
 
+export type BlockedPeriodSlot = 'ALL_DAY' | 'MORNING' | 'AFTERNOON';
+
 export interface ExaminerBlockedPeriod {
-  id: string;         // UUID gerado no cliente
-  startDate: string;  // 'YYYY-MM-DD'
-  endDate: string;    // 'YYYY-MM-DD'
+  id: string;              // UUID gerado no cliente
+  startDate: string;       // 'YYYY-MM-DD'
+  endDate: string;         // 'YYYY-MM-DD'
   description: string;
+  period?: BlockedPeriodSlot; // undefined / 'ALL_DAY' = dia inteiro; 'MORNING' = só manhã; 'AFTERNOON' = só tarde
 }
 
 export interface Examiner {
