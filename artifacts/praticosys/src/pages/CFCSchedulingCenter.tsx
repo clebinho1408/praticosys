@@ -485,6 +485,43 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       } else {
         setExaminers(exms);
       }
+
+      // ── Auto-ativar escala provisória quando activateFrom <= hoje ──
+      let currentSchools = schs;
+      const schoolsToActivateProv = currentSchools.filter(s => {
+        const prov = s.provisionalSchedule;
+        if (!prov || prov.active) return false;
+        if (!prov.activateFrom) return false;
+        return prov.activateFrom <= todayStr;
+      });
+      if (schoolsToActivateProv.length > 0) {
+        await Promise.all(schoolsToActivateProv.map(s => {
+          const updatedProv = { ...s.provisionalSchedule!, active: true };
+          const updatedMain = s.mainSchedule ? { ...s.mainSchedule, active: false } : s.mainSchedule;
+          return api.updateSchool(s.id, { provisionalSchedule: updatedProv, mainSchedule: updatedMain });
+        }));
+        currentSchools = await api.getSchoolsAsync();
+      }
+
+      // ── Auto-desativar provisória quando todas as specificDates passaram ──
+      const schoolsNeedingSwitch = currentSchools.filter(s => {
+        const prov = s.provisionalSchedule;
+        if (!prov?.active) return false;
+        const dates = Array.isArray(prov.specificDates) ? prov.specificDates : [];
+        if (dates.length === 0) return false;
+        return dates.every((d: any) => d.date < todayStr);
+      });
+      if (schoolsNeedingSwitch.length > 0) {
+        await Promise.all(schoolsNeedingSwitch.map(s => {
+          const updatedProv = { ...s.provisionalSchedule!, active: false };
+          const updatedMain = s.mainSchedule ? { ...s.mainSchedule, active: true } : s.mainSchedule;
+          return api.updateSchool(s.id, { provisionalSchedule: updatedProv, mainSchedule: updatedMain });
+        }));
+        currentSchools = await api.getSchoolsAsync();
+      }
+      if (schoolsToActivateProv.length > 0 || schoolsNeedingSwitch.length > 0) {
+        setSchools(currentSchools);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {

@@ -69,6 +69,7 @@ export interface SchoolSchedule {
   slots: { time: string; examiner: string; day?: string }[];
   active: boolean;
   specificDates?: ScheduleSpecificDate[]; // used by provisional schedule
+  activateFrom?: string; // 'YYYY-MM-DD' — provisional: auto-activate on this date (undefined = manual only)
 }
 
 export interface DrivingSchool {
