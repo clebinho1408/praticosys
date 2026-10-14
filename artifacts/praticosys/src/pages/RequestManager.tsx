@@ -958,7 +958,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           </div>
         ) : (
           <>
-            {(req.status === ExamStatus.DONE || req.status === ExamStatus.WAITING_SCHEDULING || req.status === ExamStatus.SCHEDULED) && isAdminOpSup && (
+            {req.status === ExamStatus.DONE && isAdminOpSup && (
               <button
                 onClick={() => openCreateModal(req)}
                 className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
@@ -966,6 +966,25 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               >
                 <Search className="h-4 w-4" />
               </button>
+            )}
+            {(req.status === ExamStatus.WAITING_SCHEDULING || req.status === ExamStatus.SCHEDULED) && isAdminOpSup && (
+              user.role === UserRole.SUPERVISOR ? (
+                <button
+                  onClick={() => openCreateModal(req)}
+                  className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500"
+                  title="Editar dados do candidato"
+                >
+                  <Edit className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => openCreateModal(req)}
+                  className="p-1.5 border border-blue-200 rounded hover:bg-blue-50 text-blue-600"
+                  title="Visualizar"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              )
             )}
 
             {user.role !== UserRole.SCHOOL && (
