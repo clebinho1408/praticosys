@@ -910,7 +910,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
       }).join(', ');
 
       const lines = [
-        '*ALTERAÇÃO DA ESCALA PROVA PRÁTICA FIXA*',
+        '*ALTERAÇÃO DA ESCALA FIXA DA PROVA PRÁTICA*',
         '',
         `Autoescola: *${schoolName}*`,
         '',
@@ -1184,7 +1184,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
         return `*${dd}/${mm} - ${entry.time} - EXAMINADOR: ${exName} - ${slotsA}A${slotsB}B*`;
       });
       const lines = [
-        '*ESCALA DA PROVA PRÁTICA PROVISÓRIA*',
+        '*ESCALA PROVISÓRIA DA PROVA PRÁTICA*',
         '',
         `Autoescola: *${schoolName}*`,
         '',
