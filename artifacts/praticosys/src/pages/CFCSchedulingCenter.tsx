@@ -1452,6 +1452,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       {extraToEdit && canEditExtraRequest && (
         <ExtraRequestModal key={extraToEdit.id} item={extraToEdit} role={user.role}
           schoolName={getSchoolName(extraToEdit.schoolId)}
+          schoolServices={schools.find(s => s.id === extraToEdit.schoolId)?.services}
           onClose={() => setExtraToEdit(null)}
           onSuccess={updated => {
             setRequests(prev => prev.map(item => item.id === updated.id ? { ...item, ...updated } : item));

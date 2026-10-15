@@ -968,7 +968,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
               </button>
             )}
             {(req.status === ExamStatus.WAITING_SCHEDULING || req.status === ExamStatus.SCHEDULED) && isAdminOpSup && (
-              user.role === UserRole.SUPERVISOR ? (
+              (user.role === UserRole.SUPERVISOR || user.role === UserRole.ADMIN) ? (
                 <button
                   onClick={() => openCreateModal(req)}
                   className="p-1.5 border border-gray-200 rounded hover:bg-gray-100 text-gray-500"
@@ -1980,8 +1980,16 @@ const RequestManager: React.FC<RequestManagerProps> = ({
     ),
   };
 
-  // Sort filtered requests for WAITING_SCHEDULING by position (updatedAt ASC — mais antigo = 1º)
+  // Sort filtered requests for WAITING_SCHEDULING
+  // CNH Brasil: mais novos primeiro (createdAt DESC)
+  // Outros módulos: posição na fila global (updatedAt ASC — mais antigo = 1º)
   const sortedWaitingScheduling = useMemo(() => {
+    if (excludeRegularSchools) {
+      // CNH Brasil: mais novos acima, mais antigos abaixo
+      return [...groupedRequests[ExamStatus.WAITING_SCHEDULING]].sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    }
     return [...groupedRequests[ExamStatus.WAITING_SCHEDULING]].sort((a, b) => {
       const posA = globalQueue.findIndex(r => r.id === a.id);
       const posB = globalQueue.findIndex(r => r.id === b.id);
@@ -1993,7 +2001,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       if (posB === -1) return -1;
       return posA - posB;
     });
-  }, [groupedRequests, globalQueue]);
+  }, [groupedRequests, globalQueue, excludeRegularSchools]);
 
   // Para Admin/Sup/Op: próximo candidato a ser conferido (mais antigo IN_ANALYSIS ainda não conferido).
   // Somente esse ID terá o botão "Conferir" habilitado — os demais ficam desabilitados até que
@@ -2286,7 +2294,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                                     <Search className="h-5 w-5" />
                                   </button>
                                 )}
-                                {status === ExamStatus.WAITING_SCHEDULING && (
+                                {status === ExamStatus.WAITING_SCHEDULING && !excludeRegularSchools && (
                                   <div className="text-red-600 font-bold mb-1">
                                     Posição: {getGlobalPosition(req.id)}º
                                   </div>
@@ -2467,7 +2475,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                     <table className="w-full text-sm text-left">
                       <thead className="bg-white text-gray-500 border-b">
                         <tr>
-                          {status === ExamStatus.WAITING_SCHEDULING && (
+                          {status === ExamStatus.WAITING_SCHEDULING && !excludeRegularSchools && (
                             <th className="px-6 py-3 font-bold text-xs uppercase w-16 text-center">
                               Posição
                             </th>
@@ -2541,7 +2549,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                             key={req.id}
                             className="hover:bg-gray-50 transition-colors"
                           >
-                            {status === ExamStatus.WAITING_SCHEDULING && (
+                            {status === ExamStatus.WAITING_SCHEDULING && !excludeRegularSchools && (
                               <td className="px-6 py-4 align-middle text-sm font-bold text-red-600 text-center">
                                 {getGlobalPosition(req.id)}º
                               </td>

@@ -8,11 +8,12 @@ type Props = {
   item: Item;
   role: UserRole;
   schoolName: string;
+  schoolServices?: string[]; // serviços (categorias) cadastrados na aba Serviços da autoescola
   onClose: () => void;
   onSuccess: (updated: Item) => void;
 };
 
-export default function ExtraRequestModal({ item, role, schoolName, onClose, onSuccess }: Props) {
+export default function ExtraRequestModal({ item, role, schoolName, schoolServices, onClose, onSuccess }: Props) {
   const allowed = [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.OPERATOR].includes(role);
   const [requestType, setRequestType] = useState(item.requestType);
   const [categories, setCategories] = useState(() =>
@@ -30,7 +31,11 @@ export default function ExtraRequestModal({ item, role, schoolName, onClose, onS
   const [error, setError] = useState('');
   const running = useRef(false);
   const dialog = useRef<HTMLDivElement>(null);
-  const available = examGroup === '1HAB' ? ['A', 'B'] : examGroup === 'MUD_CAT' ? ['C', 'D', 'E'] : ['A', 'B', 'C', 'D', 'E'];
+  // Filtra as categorias disponíveis pelo grupo de exame E pelos serviços da autoescola
+  const allForGroup = examGroup === '1HAB' ? ['A', 'B'] : examGroup === 'MUD_CAT' ? ['C', 'D', 'E'] : ['A', 'B', 'C', 'D', 'E'];
+  const available = schoolServices && schoolServices.length > 0
+    ? allForGroup.filter(c => schoolServices.includes(c))
+    : allForGroup;
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
