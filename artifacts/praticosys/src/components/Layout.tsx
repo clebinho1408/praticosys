@@ -334,15 +334,18 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 md:hidden">
-                <div className="h-9 w-9 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center font-black text-sm border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-2">
+                {/* Avatar — apenas mobile (desktop tem no sidebar) */}
+                <div className="md:hidden h-9 w-9 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center font-black text-sm border border-slate-200 shadow-sm">
                     {user.name.charAt(0)}
                 </div>
+                {/* Botão Sair — visível em todos os tamanhos */}
                 <button
                     onClick={handleLogout}
-                    className="flex items-center gap-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-xl transition-all text-xs font-black uppercase tracking-wider"
+                    className="flex items-center gap-2 text-slate-400 hover:text-red-600 hover:bg-red-50 p-2 md:px-3 md:py-2 rounded-xl transition-all text-xs font-black uppercase tracking-wider"
                 >
                     <LogOut className="h-4 w-4" />
+                    <span className="hidden md:inline">Sair</span>
                 </button>
             </div>
         </header>
