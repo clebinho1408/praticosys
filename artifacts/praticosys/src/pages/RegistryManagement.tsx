@@ -563,6 +563,8 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<DrivingSchool | null>(null);
   const [modalTab, setModalTab] = useState<'MAIN' | 'SERVICES' | 'YARDS' | 'RODIZIOS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
+  const [copiedMain, setCopiedMain] = useState(false);
+  const [copiedProv, setCopiedProv] = useState(false);
   
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -871,7 +873,6 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     };
 
     // ── Copiar Escala Principal ──────────────────────────────────────────
-    const [copiedMain, setCopiedMain] = React.useState(false);
     const handleCopyMainSchedule = () => {
       const schoolName = (formData as any).name || '';
       const freqMap: Record<string, string> = {
@@ -1171,7 +1172,6 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
       : 'Ativação manual';
 
     // ── Copiar Escala Provisória ─────────────────────────────────────────
-    const [copiedProv, setCopiedProv] = React.useState(false);
     const handleCopyProvSchedule = () => {
       const schoolName = (formData as any).name || '';
       const validDates = sorted.filter(d => d.date && d.time && d.examiner);
