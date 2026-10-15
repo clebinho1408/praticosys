@@ -148,8 +148,11 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         rawUpdates.result !== undefined &&
         Array.isArray(rawUpdates.examHistory);
       const isCurrentlyScheduled = found?.row?.status === 'SCHEDULED';
+      // Supervisor pode remover candidatos da banca no módulo CNH Brasil
+      const isCnhBrasil = (found?.modulo ?? deriveModulo(rawUpdates)) === 'CNH_BRASIL';
       if (
         (data as any)?.sessionUserRole === 'SUPERVISOR' &&
+        !isCnhBrasil &&
         (
           rawUpdates.scheduleId === null ||
           (
