@@ -264,7 +264,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       </nav>
       
       <div className="p-4 border-t border-slate-800 bg-slate-900/50 shrink-0">
-        <div className="flex items-center gap-3 mb-3">
+        <div className="flex items-center gap-3">
           <div className="h-9 w-9 bg-slate-700 text-slate-200 rounded-xl flex items-center justify-center font-black text-sm border border-slate-600 shrink-0">
             {user.name.charAt(0)}
           </div>
@@ -273,13 +273,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest opacity-80">{getRoleLabel(user.role)}</p>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 px-3 py-2 rounded-xl transition-all text-xs font-black uppercase tracking-wider"
-        >
-          <LogOut className="h-4 w-4 shrink-0" />
-          <span>Sair</span>
-        </button>
       </div>
     </div>
   );
