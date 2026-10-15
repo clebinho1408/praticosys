@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation, BlockedDate, SystemSettings } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
-import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X, Pencil } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X, Pencil, Copy, Check } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
@@ -870,6 +870,63 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
       }
     };
 
+    // ── Copiar Escala Principal ──────────────────────────────────────────
+    const [copiedMain, setCopiedMain] = React.useState(false);
+    const handleCopyMainSchedule = () => {
+      const schoolName = (formData as any).name || '';
+      const freqMap: Record<string, string> = {
+        '1_WEEK': '1 vez na semana',
+        '2_WEEK': '2 vezes na semana',
+        '3_WEEK': '3 vezes na semana',
+        '2_DAY': '2 vezes no dia',
+        '15_DAYS': 'A cada 15 dias',
+      };
+      const dayLabelMap: Record<string, string> = {
+        SEG: 'Segunda-feira', TER: 'Terça-feira', QUA: 'Quarta-feira',
+        QUI: 'Quinta-feira', SEX: 'Sexta-feira',
+      };
+      const freqLabel = freqMap[schedule.frequency] ?? schedule.frequency;
+
+      // Monta "Dias da Semana" — associa cada slot ao dia (para 2_WEEK/3_WEEK) ou usa days[0]
+      const slotLines = schedule.slots.map(slot => {
+        const ex = examiners.find(e => e.id === slot.examiner || e.name === slot.examiner);
+        const exName = ex?.name ?? slot.examiner ?? '—';
+        const slotsA = ex?.defaultMaxSlotsA != null ? ex.defaultMaxSlotsA : '—';
+        const slotsB = ex?.defaultMaxSlotsB != null ? ex.defaultMaxSlotsB : '—';
+        const dayKey = slot.day || schedule.days[0] || '';
+        return { dayKey, time: slot.time || '—', exName, slotsA, slotsB };
+      });
+
+      // Linha de examinadores únicos
+      const uniqueExaminers = slotLines
+        .filter((v, i, arr) => arr.findIndex(x => x.exName === v.exName) === i)
+        .map(s => `${s.exName} - ${s.slotsA}A${s.slotsB}B`).join(', ');
+
+      // Dias da Semana com horário(s)
+      const daysText = slotLines.map(s => {
+        const dayFull = dayLabelMap[s.dayKey] ?? s.dayKey ?? '—';
+        return `${dayFull} - ${s.time}`;
+      }).join(', ');
+
+      const lines = [
+        '*ALTERAÇÃO DA ESCALA PROVA PRÁTICA FIXA*',
+        '',
+        `Autoescola: *${schoolName}*`,
+        '',
+        `Examinador: *${uniqueExaminers}*`,
+        '',
+        `Frequência: *${freqLabel}*`,
+        '',
+        `Dias da Semana: *${daysText}*`,
+        '',
+        'Atenciosamente: *Supervisão da CNH*',
+      ];
+      navigator.clipboard.writeText(lines.join('\n')).then(() => {
+        setCopiedMain(true);
+        setTimeout(() => setCopiedMain(false), 2000);
+      });
+    };
+
     return (
       <div className="space-y-4">
         <div className="flex justify-between items-center bg-gray-50 p-3 rounded border border-gray-200">
@@ -877,17 +934,34 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
             <h4 className="font-bold text-sm">{type === 'main' ? 'Escala Principal' : 'Escala Provisória'}</h4>
             <p className="text-xs text-gray-500">{schedule.active ? 'Esta escala está ATIVA' : 'Esta escala está DESATIVADA'}</p>
           </div>
-          <button
-            type="button"
-            onClick={() => updateSchedule({ active: !schedule.active })}
-            className={`px-4 py-2 rounded text-xs font-bold transition-colors ${
-              schedule.active 
-                ? 'bg-red-100 text-red-600 border border-red-200 hover:bg-red-200' 
-                : 'bg-green-100 text-green-600 border border-green-200 hover:bg-green-200'
-            }`}
-          >
-            {schedule.active ? 'DESATIVAR ESCALA' : 'ATIVAR ESCALA'}
-          </button>
+          <div className="flex items-center gap-2">
+            {type === 'main' && (
+              <button
+                type="button"
+                onClick={handleCopyMainSchedule}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded text-xs font-bold border transition-colors ${
+                  copiedMain
+                    ? 'bg-green-100 text-green-700 border-green-300'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'
+                }`}
+                title="Copiar escala para WhatsApp"
+              >
+                {copiedMain ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedMain ? 'Copiado!' : 'Copiar Escala'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => updateSchedule({ active: !schedule.active })}
+              className={`px-4 py-2 rounded text-xs font-bold transition-colors ${
+                schedule.active 
+                  ? 'bg-red-100 text-red-600 border border-red-200 hover:bg-red-200' 
+                  : 'bg-green-100 text-green-600 border border-green-200 hover:bg-green-200'
+              }`}
+            >
+              {schedule.active ? 'DESATIVAR ESCALA' : 'ATIVAR ESCALA'}
+            </button>
+          </div>
         </div>
 
         <div>
@@ -1096,6 +1170,34 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
       ? `Ativação automática em ${formatDateBR(schedule.activateFrom!)}`
       : 'Ativação manual';
 
+    // ── Copiar Escala Provisória ─────────────────────────────────────────
+    const [copiedProv, setCopiedProv] = React.useState(false);
+    const handleCopyProvSchedule = () => {
+      const schoolName = (formData as any).name || '';
+      const validDates = sorted.filter(d => d.date && d.time && d.examiner);
+      const dateLines = validDates.map(entry => {
+        const ex = examiners.find(e => e.id === entry.examiner || e.name === entry.examiner);
+        const exName = ex?.name ?? entry.examiner ?? '—';
+        const slotsA = ex?.defaultMaxSlotsA != null ? ex.defaultMaxSlotsA : '—';
+        const slotsB = ex?.defaultMaxSlotsB != null ? ex.defaultMaxSlotsB : '—';
+        const [yyyy, mm, dd] = entry.date.split('-');
+        return `*${dd}/${mm} - ${entry.time} - EXAMINADOR: ${exName} - ${slotsA}A${slotsB}B*`;
+      });
+      const lines = [
+        '*ESCALA DA PROVA PRÁTICA PROVISÓRIA*',
+        '',
+        `Autoescola: *${schoolName}*`,
+        '',
+        ...dateLines,
+        '',
+        'Atenciosamente: *Supervisão da CNH*',
+      ];
+      navigator.clipboard.writeText(lines.join('\n')).then(() => {
+        setCopiedProv(true);
+        setTimeout(() => setCopiedProv(false), 2000);
+      });
+    };
+
     return (
       <div className="space-y-4">
         {/* Activate/deactivate header */}
@@ -1110,22 +1212,37 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                 )}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                const newProv = { ...schedule, active: !schedule.active };
-                const newMain = formData.mainSchedule ? { ...formData.mainSchedule } : undefined;
-                if (newProv.active && newMain) newMain.active = false;
-                setFormData({ ...formData, provisionalSchedule: newProv, mainSchedule: newMain });
-              }}
-              className={`px-4 py-2 rounded text-xs font-bold transition-colors ${
-                schedule.active
-                  ? 'bg-red-100 text-red-600 border border-red-200 hover:bg-red-200'
-                  : 'bg-green-100 text-green-600 border border-green-200 hover:bg-green-200'
-              }`}
-            >
-              {schedule.active ? 'DESATIVAR' : 'ATIVAR AGORA'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCopyProvSchedule}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded text-xs font-bold border transition-colors ${
+                  copiedProv
+                    ? 'bg-green-100 text-green-700 border-green-300'
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-100'
+                }`}
+                title="Copiar escala para WhatsApp"
+              >
+                {copiedProv ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copiedProv ? 'Copiado!' : 'Copiar Escala'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const newProv = { ...schedule, active: !schedule.active };
+                  const newMain = formData.mainSchedule ? { ...formData.mainSchedule } : undefined;
+                  if (newProv.active && newMain) newMain.active = false;
+                  setFormData({ ...formData, provisionalSchedule: newProv, mainSchedule: newMain });
+                }}
+                className={`px-4 py-2 rounded text-xs font-bold transition-colors ${
+                  schedule.active
+                    ? 'bg-red-100 text-red-600 border border-red-200 hover:bg-red-200'
+                    : 'bg-green-100 text-green-600 border border-green-200 hover:bg-green-200'
+                }`}
+              >
+                {schedule.active ? 'DESATIVAR' : 'ATIVAR AGORA'}
+              </button>
+            </div>
           </div>
 
           {/* Auto-activation config */}
