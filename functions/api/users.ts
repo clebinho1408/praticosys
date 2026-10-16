@@ -14,6 +14,8 @@ async function ensureSchema(db: any) {
     await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS instrutor_id text`);
     await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS forcar_troca_senha boolean DEFAULT true`);
     await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS modulos_permitidos jsonb DEFAULT '[]'::jsonb`);
+    await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS locais_permitidos_ids jsonb DEFAULT '[]'::jsonb`);
+    await db.execute(sql`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS abas_cadastro_permitidas jsonb DEFAULT '[]'::jsonb`);
   } catch {}
 }
 

@@ -16,6 +16,7 @@ export const users = pgTable('usuarios', {
   forcePasswordChange: boolean('forcar_troca_senha').default(true),
   allowedModules: jsonb('modulos_permitidos').$type<string[]>().default([]),
   allowedLocationIds: jsonb('locais_permitidos_ids').$type<string[]>().default([]),
+  allowedCadastroTabs: jsonb('abas_cadastro_permitidas').$type<string[]>().default([]),
   email: text('email'),
   phone: text('telefone'),
   twoFactorEnabled: boolean('dois_fatores_ativo').default(false),
