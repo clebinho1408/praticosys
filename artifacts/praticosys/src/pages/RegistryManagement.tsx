@@ -85,7 +85,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   // Form State
   const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[]; allowedCadastroTabs: string[]; email: string; phone: string; twoFactorEnabled: boolean }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], allowedCadastroTabs: ['autoescolas', 'examinadores'], email: '', phone: '', twoFactorEnabled: false });
+  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[]; allowedCadastroTabs: string[]; email: string; phone: string; twoFactorEnabled: boolean }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], allowedCadastroTabs: ['autoescolas', 'examinadores', 'instrutores'], email: '', phone: '', twoFactorEnabled: false });
 
   // User modal tab state
   const [userModalTab, setUserModalTab] = useState<'dados' | 'permissoes' | 'contato'>('dados');
@@ -123,10 +123,10 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const openModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'], allowedLocationIds: user.allowedLocationIds || [], allowedCadastroTabs: user.allowedCadastroTabs ?? ['autoescolas', 'examinadores'], email: (user as any).email || '', phone: (user as any).phone || '', twoFactorEnabled: (user as any).twoFactorEnabled || false });
+      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'], allowedLocationIds: user.allowedLocationIds || [], allowedCadastroTabs: user.allowedCadastroTabs ?? ['autoescolas', 'examinadores', 'instrutores'], email: (user as any).email || '', phone: (user as any).phone || '', twoFactorEnabled: (user as any).twoFactorEnabled || false });
     } else {
       setEditingUser(null);
-      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], allowedCadastroTabs: ['autoescolas', 'examinadores'], email: '', phone: '', twoFactorEnabled: false });
+      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], allowedCadastroTabs: ['autoescolas', 'examinadores', 'instrutores'], email: '', phone: '', twoFactorEnabled: false });
     }
     setUserModalTab('dados');
     setIsModalOpen(true);
@@ -486,8 +486,8 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                             </label>
                             {formData.allowedModules.includes('cadastro') && (
                               <div className="ml-6 mt-2 space-y-1.5 border-l-2 border-blue-100 pl-3">
-                                {(['autoescolas', 'examinadores'] as const).map(tab => {
-                                  const tabLabels: Record<string, string> = { autoescolas: 'Autoescolas', examinadores: 'Examinadores' };
+                                {(['autoescolas', 'examinadores', 'instrutores'] as const).map(tab => {
+                                  const tabLabels: Record<string, string> = { autoescolas: 'Autoescolas', examinadores: 'Examinadores', instrutores: 'Instrutores' };
                                   const isTabChecked = formData.allowedCadastroTabs.includes(tab);
                                   return (
                                     <label key={tab} className="flex items-center gap-2 cursor-pointer select-none">
