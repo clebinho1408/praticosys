@@ -37,7 +37,7 @@ export enum ExamStatus {
 
 export type ExamResult = 'APTO' | 'INAPTO' | 'FALTOU' | 'CANCELADO';
 
-export type OperatorModule = 'cnh' | 'cfc' | 'pcd';
+export type OperatorModule = 'cnh' | 'cfc' | 'pcd' | 'cadastro';
 
 export interface User {
   id: string;
@@ -51,6 +51,7 @@ export interface User {
   forcePasswordChange?: boolean;
   allowedModules?: OperatorModule[]; // Only for OPERATOR role
   allowedLocationIds?: string[]; // Restricts CNH do Brasil bancas visible to this user (empty = all)
+  allowedCadastroTabs?: string[]; // Sub-tabs within Cadastros module: 'autoescolas' | 'examinadores' | 'instrutores'
   email?: string;
   phone?: string;
   twoFactorEnabled?: boolean;

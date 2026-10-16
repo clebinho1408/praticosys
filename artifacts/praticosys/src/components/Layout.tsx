@@ -77,10 +77,11 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   };
 
   const toggleMenu = (label: string) => {
-    setOpenMenus(prev => ({
-      ...prev,
-      [label]: !prev[label]
-    }));
+    setOpenMenus(prev => {
+      const isCurrentlyOpen = !!prev[label];
+      // Close all menus, then toggle the clicked one (auto-close others)
+      return { [label]: !isCurrentlyOpen };
+    });
   };
 
   // Auto-expand menu if a sub-item is active on load

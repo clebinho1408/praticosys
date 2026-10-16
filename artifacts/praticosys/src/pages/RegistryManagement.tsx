@@ -78,13 +78,14 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
-  // Search State
+  // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<UserRole | ''>('');
   
   // Form State
   const [examLocations, setExamLocations] = useState<ExamLocation[]>([]);
   const [cities, setCities] = useState<City[]>([]);
-  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[]; email: string; phone: string; twoFactorEnabled: boolean }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
+  const [formData, setFormData] = useState<{ name: string; login: string; role: UserRole; schoolId: string; allowedModules: OperatorModule[]; allowedLocationIds: string[]; allowedCadastroTabs: string[]; email: string; phone: string; twoFactorEnabled: boolean }>({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], allowedCadastroTabs: ['autoescolas', 'examinadores', 'instrutores'], email: '', phone: '', twoFactorEnabled: false });
 
   // User modal tab state
   const [userModalTab, setUserModalTab] = useState<'dados' | 'permissoes' | 'contato'>('dados');
@@ -122,10 +123,10 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
   const openModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
-      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'], allowedLocationIds: user.allowedLocationIds || [], email: (user as any).email || '', phone: (user as any).phone || '', twoFactorEnabled: (user as any).twoFactorEnabled || false });
+      setFormData({ name: user.name, login: user.login, role: user.role, schoolId: user.schoolId || '', allowedModules: (user.allowedModules && user.allowedModules.length > 0) ? user.allowedModules : ['cnh', 'cfc', 'pcd'], allowedLocationIds: user.allowedLocationIds || [], allowedCadastroTabs: (user.allowedCadastroTabs && user.allowedCadastroTabs.length > 0) ? user.allowedCadastroTabs : ['autoescolas', 'examinadores', 'instrutores'], email: (user as any).email || '', phone: (user as any).phone || '', twoFactorEnabled: (user as any).twoFactorEnabled || false });
     } else {
       setEditingUser(null);
-      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], email: '', phone: '', twoFactorEnabled: false });
+      setFormData({ name: '', login: '', role: UserRole.OPERATOR, schoolId: '', allowedModules: ['cnh', 'cfc', 'pcd'], allowedLocationIds: [], allowedCadastroTabs: ['autoescolas', 'examinadores', 'instrutores'], email: '', phone: '', twoFactorEnabled: false });
     }
     setUserModalTab('dados');
     setIsModalOpen(true);
@@ -139,14 +140,19 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
     }
     try {
       const payload: any = { ...formData };
-      // Only persist allowedModules/allowedLocationIds for OPERATOR and SUPERVISOR roles
+      // Only persist allowedModules/allowedLocationIds/allowedCadastroTabs for OPERATOR and SUPERVISOR roles
       if (formData.role !== UserRole.OPERATOR && formData.role !== UserRole.SUPERVISOR) {
         delete payload.allowedModules;
         delete payload.allowedLocationIds;
+        delete payload.allowedCadastroTabs;
       }
       // If CNH module is not selected, clear location restrictions
       if (!payload.allowedModules?.includes('cnh')) {
         payload.allowedLocationIds = [];
+      }
+      // If cadastro module is not selected, clear cadastro tabs
+      if (!payload.allowedModules?.includes('cadastro')) {
+        payload.allowedCadastroTabs = [];
       }
       if (editingUser) {
         await api.updateUser(editingUser.id, payload);
@@ -207,12 +213,21 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
       setFormData({...formData, login: val});
   }
 
+  // Role order for grouping
+  const roleOrder: UserRole[] = [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.OPERATOR, UserRole.CONSULTANT, UserRole.EXAMINER, UserRole.INSTRUCTOR, UserRole.SCHOOL];
+
   // Filter Logic
   const filteredUsers = users.filter(u =>
       u.login !== 'admin' &&
       (u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       u.login.toLowerCase().includes(searchTerm.toLowerCase()))
+       u.login.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (roleFilter === '' || u.role === roleFilter)
   );
+
+  // Grouped users by role
+  const groupedUsers = roleOrder
+    .map(role => ({ role, users: filteredUsers.filter(u => u.role === role) }))
+    .filter(g => g.users.length > 0);
 
   return (
     <div>
@@ -226,15 +241,31 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
       />
       
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input 
-                type="text" 
-                placeholder="Buscar usuário por nome ou login..." 
-                className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-            />
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input 
+                  type="text" 
+                  placeholder="Buscar por nome ou login..." 
+                  className="w-full pl-10 pr-4 py-2 border rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+              />
+          </div>
+          <select
+            className="border rounded-md text-sm py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-700"
+            value={roleFilter}
+            onChange={e => setRoleFilter(e.target.value as UserRole | '')}
+          >
+            <option value="">Todas as Funções</option>
+            <option value={UserRole.ADMIN}>Admin</option>
+            <option value={UserRole.SUPERVISOR}>Supervisor</option>
+            <option value={UserRole.OPERATOR}>Operador</option>
+            <option value={UserRole.CONSULTANT}>Consultor</option>
+            <option value={UserRole.EXAMINER}>Examinador</option>
+            <option value={UserRole.INSTRUCTOR}>Instrutor</option>
+            <option value={UserRole.SCHOOL}>Autoescola</option>
+          </select>
         </div>
         {user?.role !== UserRole.CONSULTANT && (
           <button onClick={() => openModal()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 w-full md:w-auto justify-center">
@@ -243,56 +274,61 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
         )}
       </div>
 
-      <div className="overflow-x-auto border rounded-lg">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr>
-              <th className="px-4 py-3">Nome</th>
-              <th className="px-4 py-3">Login</th>
-              <th className="px-4 py-3">Função</th>
-              <th className="px-4 py-3">Vínculo</th>
-              <th className="px-4 py-3 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredUsers.map(u => (
-              <tr key={u.id} className="hover:bg-gray-50">
-                <td className="px-4 py-3 font-medium">{u.name}</td>
-                <td className="px-4 py-3 text-gray-500">{u.login}</td>
-                <td className="px-4 py-3">
-                  <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-bold">{getRoleName(u.role)}</span>
-                </td>
-                <td className="px-4 py-3 text-gray-500">
-                  {u.role === UserRole.SCHOOL && schools.find(s => s.id === u.schoolId)?.name}
-                  {u.role !== UserRole.SCHOOL && '-'}
-                </td>
-                <td className="px-4 py-3 text-right space-x-2 flex justify-end">
-                  {user?.role === UserRole.ADMIN && (
-                      <button onClick={() => handleResetPassword(u.id)} className="text-yellow-600 hover:text-yellow-800" title="Resetar Senha para 123456">
-                          <Lock className="h-4 w-4" />
-                      </button>
-                  )}
-                  {user?.role !== UserRole.CONSULTANT && (
-                    <>
-                      <button onClick={() => openModal(u)} className="text-blue-600 hover:text-blue-800" title="Editar"><Edit2 className="h-4 w-4" /></button>
-                      <button 
-                        onClick={() => handleDelete(u.id)} 
-                        className={`${u.role === UserRole.SCHOOL ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-800'}`} 
-                        title={u.role === UserRole.SCHOOL ? "Exclua a autoescola para remover este usuário" : "Excluir"}
-                        disabled={u.role === UserRole.SCHOOL}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {filteredUsers.length === 0 && (
-                <tr><td colSpan={5} className="p-4 text-center text-gray-500">Nenhum usuário encontrado.</td></tr>
-            )}
-          </tbody>
-        </table>
+      <div className="space-y-4">
+        {groupedUsers.length === 0 && (
+          <div className="border rounded-lg p-6 text-center text-gray-500 text-sm">Nenhum usuário encontrado.</div>
+        )}
+        {groupedUsers.map(group => (
+          <div key={group.role} className="border rounded-lg overflow-hidden">
+            {/* Group Header */}
+            <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500">{getRoleName(group.role)}</span>
+              <span className="text-xs text-gray-400 bg-gray-200 rounded-full px-2 py-0.5 font-medium">{group.users.length}</span>
+            </div>
+            <table className="w-full text-sm text-left">
+              <thead className="bg-white text-gray-500 border-b border-gray-100">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium text-xs">Nome</th>
+                  <th className="px-4 py-2.5 font-medium text-xs">Login</th>
+                  <th className="px-4 py-2.5 font-medium text-xs">Vínculo</th>
+                  <th className="px-4 py-2.5 font-medium text-xs text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {group.users.map(u => (
+                  <tr key={u.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">{u.name}</td>
+                    <td className="px-4 py-3 text-gray-500">{u.login}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {u.role === UserRole.SCHOOL && (schools.find(s => s.id === u.schoolId)?.name || '-')}
+                      {u.role !== UserRole.SCHOOL && '-'}
+                    </td>
+                    <td className="px-4 py-3 text-right space-x-2 flex justify-end">
+                      {user?.role === UserRole.ADMIN && (
+                          <button onClick={() => handleResetPassword(u.id)} className="text-yellow-600 hover:text-yellow-800" title="Resetar Senha para 123456">
+                              <Lock className="h-4 w-4" />
+                          </button>
+                      )}
+                      {user?.role !== UserRole.CONSULTANT && (
+                        <>
+                          <button onClick={() => openModal(u)} className="text-blue-600 hover:text-blue-800" title="Editar"><Edit2 className="h-4 w-4" /></button>
+                          <button 
+                            onClick={() => handleDelete(u.id)} 
+                            className={`${u.role === UserRole.SCHOOL ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-800'}`} 
+                            title={u.role === UserRole.SCHOOL ? "Exclua a autoescola para remover este usuário" : "Excluir"}
+                            disabled={u.role === UserRole.SCHOOL}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
       </div>
 
       {isModalOpen && (
@@ -387,6 +423,8 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                         <option value={UserRole.SUPERVISOR}>Supervisor</option>
                         <option value={UserRole.OPERATOR}>Operador</option>
                         <option value={UserRole.CONSULTANT}>Consultor</option>
+                        <option value={UserRole.EXAMINER}>Examinador</option>
+                        <option value={UserRole.INSTRUCTOR}>Instrutor</option>
                         <option value={UserRole.SCHOOL}>Autoescola</option>
                       </select>
                     </div>
@@ -413,7 +451,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Módulos Permitidos</label>
                         <div className="space-y-2 border border-gray-200 rounded-lg p-3 bg-gray-50">
                           {(['cnh', 'cfc', 'pcd'] as OperatorModule[]).map(mod => {
-                            const labels: Record<OperatorModule, string> = { cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD' };
+                            const labels: Record<string, string> = { cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD' };
                             const isChecked = formData.allowedModules.includes(mod);
                             return (
                               <label key={mod} className="flex items-center gap-2 cursor-pointer select-none">
@@ -432,6 +470,47 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                               </label>
                             );
                           })}
+                          {/* Cadastros module */}
+                          <div>
+                            <label className="flex items-center gap-2 cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={formData.allowedModules.includes('cadastro')}
+                                onChange={e => {
+                                  const next = e.target.checked
+                                    ? [...formData.allowedModules, 'cadastro' as OperatorModule]
+                                    : formData.allowedModules.filter(m => m !== 'cadastro');
+                                  setFormData({ ...formData, allowedModules: next });
+                                }}
+                                className="h-4 w-4 accent-blue-600"
+                              />
+                              <span className="text-sm text-gray-700">Cadastros</span>
+                            </label>
+                            {formData.allowedModules.includes('cadastro') && (
+                              <div className="ml-6 mt-2 space-y-1.5 border-l-2 border-blue-100 pl-3">
+                                {(['autoescolas', 'examinadores', 'instrutores'] as const).map(tab => {
+                                  const tabLabels: Record<string, string> = { autoescolas: 'Autoescolas', examinadores: 'Examinadores', instrutores: 'Instrutores' };
+                                  const isTabChecked = formData.allowedCadastroTabs.includes(tab);
+                                  return (
+                                    <label key={tab} className="flex items-center gap-2 cursor-pointer select-none">
+                                      <input
+                                        type="checkbox"
+                                        checked={isTabChecked}
+                                        onChange={e => {
+                                          const next = e.target.checked
+                                            ? [...formData.allowedCadastroTabs, tab]
+                                            : formData.allowedCadastroTabs.filter(t => t !== tab);
+                                          setFormData({ ...formData, allowedCadastroTabs: next });
+                                        }}
+                                        className="h-3.5 w-3.5 accent-blue-500"
+                                      />
+                                      <span className="text-xs text-gray-600">{tabLabels[tab]}</span>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         {formData.allowedModules.length === 0 && (
                           <p className="text-xs text-red-500 mt-1">Selecione ao menos um módulo.</p>

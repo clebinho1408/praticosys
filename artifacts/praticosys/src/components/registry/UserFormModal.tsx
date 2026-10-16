@@ -29,7 +29,7 @@ type Props = {
 };
 
 const moduleLabels: Record<OperatorModule, string> = {
-  cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD',
+  cnh: 'CNH do Brasil', cfc: 'Exame Prático CFC', pcd: 'Exame Prático PCD', cadastro: 'Cadastros',
 };
 const inputStyle = 'w-full min-w-0 border border-gray-300 rounded-lg p-2.5 bg-white text-gray-900 text-sm';
 
