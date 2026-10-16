@@ -565,6 +565,8 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [modalTab, setModalTab] = useState<'MAIN' | 'SERVICES' | 'YARDS' | 'RODIZIOS' | 'SCHEDULE_MAIN' | 'SCHEDULE_PROV'>('MAIN');
   const [copiedMain, setCopiedMain] = useState(false);
   const [copiedProv, setCopiedProv] = useState(false);
+  const [provMotivoModalOpen, setProvMotivoModalOpen] = useState(false);
+  const [provMotivo, setProvMotivo] = useState('');
   
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -1172,7 +1174,14 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
       : 'Ativação manual';
 
     // ── Copiar Escala Provisória ─────────────────────────────────────────
+    // Abre modal de motivo antes de copiar
     const handleCopyProvSchedule = () => {
+      setProvMotivo('');
+      setProvMotivoModalOpen(true);
+    };
+
+    // Copia de fato após confirmar o motivo
+    const handleConfirmCopyProv = (motivo: string) => {
       const schoolName = (formData as any).name || '';
       const validDates = sorted.filter(d => d.date && d.time && d.examiner);
       const dateLines = validDates.map(entry => {
@@ -1180,7 +1189,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
         const exName = ex?.name ?? entry.examiner ?? '—';
         const slotsA = ex?.defaultMaxSlotsA != null ? ex.defaultMaxSlotsA : '—';
         const slotsB = ex?.defaultMaxSlotsB != null ? ex.defaultMaxSlotsB : '—';
-        const [yyyy, mm, dd] = entry.date.split('-');
+        const [, mm, dd] = entry.date.split('-');
         return `*${dd}/${mm} - ${entry.time} - EXAMINADOR: ${exName} - ${slotsA}A${slotsB}B*`;
       });
       const lines = [
@@ -1188,11 +1197,16 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
         '',
         `Autoescola: *${schoolName}*`,
         '',
+        `Motivo: *${motivo}*`,
+        '',
         ...dateLines,
+        '',
+        '*ATENÇÃO! A ESCALA FIXA PERMANECE NORMAL, TANTO ANTES QUANTO DEPOIS DESSAS DATAS.*',
         '',
         'Atenciosamente: *Supervisão da CNH*',
       ];
       navigator.clipboard.writeText(lines.join('\n')).then(() => {
+        setProvMotivoModalOpen(false);
         setCopiedProv(true);
         setTimeout(() => setCopiedProv(false), 2000);
       });
@@ -1200,6 +1214,42 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
 
     return (
       <div className="space-y-4">
+        {/* Modal: digitar motivo antes de copiar */}
+        {provMotivoModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4" onClick={() => setProvMotivoModalOpen(false)}>
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+              <h3 className="font-bold text-base text-gray-900">Motivo da Escala Provisória</h3>
+              <p className="text-sm text-gray-500">Informe o motivo para incluir na mensagem copiada.</p>
+              <textarea
+                autoFocus
+                rows={3}
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm resize-none focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Ex: Férias do examinador titular"
+                value={provMotivo}
+                onChange={e => setProvMotivo(e.target.value)}
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setProvMotivoModalOpen(false)}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={!provMotivo.trim()}
+                  onClick={() => handleConfirmCopyProv(provMotivo.trim())}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copiar Escala
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Activate/deactivate header */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-3">
           <div className="flex justify-between items-center">
