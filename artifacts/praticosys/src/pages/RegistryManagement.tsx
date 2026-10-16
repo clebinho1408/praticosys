@@ -17,8 +17,8 @@ const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
 
   // Para Operador/Supervisor com módulo 'cadastro': respeitar allowedCadastroTabs
   // allowedCadastroTabs controla quais sub-abas aparecem (marcado = exibe, desmarcado = oculta)
-  const hasCadastroModule = isAdmin || isSupervisor ||
-    (isOperator && (user.allowedModules ?? []).includes('cadastro'));
+  const hasCadastroModule = isAdmin ||
+    ((isSupervisor || isOperator) && (user.allowedModules ?? []).includes('cadastro'));
 
   const cadastroTabs: string[] = isAdmin
     ? ['autoescolas', 'examinadores', 'instrutores']
@@ -26,7 +26,7 @@ const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
 
   const showSchools    = isAdmin || (hasCadastroModule && cadastroTabs.includes('autoescolas'));
   const showExaminers  = isAdmin || (hasCadastroModule && cadastroTabs.includes('examinadores'));
-  const showInstructors = isSupervisor || isAdmin || (hasCadastroModule && cadastroTabs.includes('instrutores'));
+  const showInstructors = isAdmin || (hasCadastroModule && cadastroTabs.includes('instrutores'));
 
   // Determinar aba inicial válida
   const getInitialTab = (): Tab => {
