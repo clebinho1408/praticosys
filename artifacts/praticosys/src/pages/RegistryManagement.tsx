@@ -11,9 +11,42 @@ type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
 import { FIPE_CAR_BRANDS, FIPE_MOTO_BRANDS, FIPE_CAR_MODELS, FIPE_MOTO_MODELS } from '../data/fipeData';
 
 const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
+  const isAdmin = user.role === UserRole.ADMIN;
   const isSupervisor = user.role === UserRole.SUPERVISOR;
-  const [activeTab, setActiveTab] = useState<Tab>(() => isSupervisor ? 'INSTRUCTORS' : 'USERS');
-  const visibleTab: Tab = isSupervisor ? 'INSTRUCTORS' : activeTab;
+  const isOperator = user.role === UserRole.OPERATOR;
+
+  // Para Operador/Supervisor com módulo 'cadastro': respeitar allowedCadastroTabs
+  // allowedCadastroTabs controla quais sub-abas aparecem (marcado = exibe, desmarcado = oculta)
+  const hasCadastroModule = isAdmin || isSupervisor ||
+    (isOperator && (user.allowedModules ?? []).includes('cadastro'));
+
+  const cadastroTabs: string[] = isAdmin
+    ? ['autoescolas', 'examinadores', 'instrutores']
+    : (user.allowedCadastroTabs ?? ['autoescolas', 'examinadores', 'instrutores']);
+
+  const showSchools    = isAdmin || (hasCadastroModule && cadastroTabs.includes('autoescolas'));
+  const showExaminers  = isAdmin || (hasCadastroModule && cadastroTabs.includes('examinadores'));
+  const showInstructors = isSupervisor || isAdmin || (hasCadastroModule && cadastroTabs.includes('instrutores'));
+
+  // Determinar aba inicial válida
+  const getInitialTab = (): Tab => {
+    if (isAdmin) return 'USERS';
+    if (showSchools) return 'SCHOOLS';
+    if (showExaminers) return 'EXAMINERS';
+    if (showInstructors) return 'INSTRUCTORS';
+    return 'SCHOOLS';
+  };
+
+  const [activeTab, setActiveTab] = useState<Tab>(getInitialTab);
+
+  // Garantir que activeTab sempre aponta para uma aba visível
+  const visibleTab: Tab = (() => {
+    if (activeTab === 'USERS' && !isAdmin) return getInitialTab();
+    if (activeTab === 'SCHOOLS' && !showSchools) return getInitialTab();
+    if (activeTab === 'EXAMINERS' && !showExaminers) return getInitialTab();
+    if (activeTab === 'INSTRUCTORS' && !showInstructors) return getInitialTab();
+    return activeTab;
+  })();
 
   return (
     <div className="space-y-6">
@@ -24,7 +57,7 @@ const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {/* Tabs Header */}
         <div className="flex border-b border-gray-100 flex-wrap">
-          {!isSupervisor && <button
+          {isAdmin && <button
             onClick={() => setActiveTab('USERS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
               visibleTab === 'USERS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -32,7 +65,7 @@ const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
           >
             <Users className="h-4 w-4" /> Usuários
           </button>}
-          {!isSupervisor && <button
+          {showSchools && <button
             onClick={() => setActiveTab('SCHOOLS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
               visibleTab === 'SCHOOLS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -40,7 +73,7 @@ const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
           >
             <Building2 className="h-4 w-4" /> Autoescolas
           </button>}
-          {!isSupervisor && <button
+          {showExaminers && <button
             onClick={() => setActiveTab('EXAMINERS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
               visibleTab === 'EXAMINERS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
@@ -48,14 +81,14 @@ const RegistryManagement: React.FC<{ user: User }> = ({ user }) => {
           >
             <GraduationCap className="h-4 w-4" /> Examinadores
           </button>}
-          <button
+          {showInstructors && <button
             onClick={() => setActiveTab('INSTRUCTORS')}
             className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
               visibleTab === 'INSTRUCTORS' ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
             }`}
           >
             <Car className="h-4 w-4" /> Instrutores
-          </button>
+          </button>}
         </div>
 
         {/* Content */}
