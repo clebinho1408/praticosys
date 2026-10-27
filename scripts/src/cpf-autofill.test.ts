@@ -6,6 +6,8 @@ import { localD1, seedD1, pagesHarness, DEMO_PASSWORD } from './d1-runtime.js';
 import { lookupCpf, canLookupCpf, consumeCpfQuota, validCpf } from '../../functions/_cpf-lookup.js';
 // @ts-ignore Pure frontend state machine (no React or DOM).
 import { CpfAutofill, cleanCpf } from '../../artifacts/praticosys/src/services/cpfAutofill.js';
+// @ts-ignore Frontend payload policy, exercised against the same backend contract.
+import { settingsForSave } from '../../artifacts/praticosys/src/services/settingsPayload.js';
 // @ts-ignore Shared schema.
 import { systemSettings, users } from '../../db/schema.js';
 // @ts-ignore Released D1 baseline.
@@ -102,6 +104,21 @@ try {
   await api('settings', 'PUT', { cnhCpfAutofillEnabled: 'yes' }, admin, 400);
   await api('settings', 'PUT', { cnhCpfAutofillEnabled: true }, admin);
   equal((await api('settings', 'GET', undefined, admin)).cnhCpfAutofillEnabled, true);
+  // Existing form saves must remain valid for non-admins. Their read-only CPF
+  // preference is present on GET but must never be included in a PUT.
+  const supervisor = (await api('auth', 'POST', { login: 'd1.supervisor', password: DEMO_PASSWORD })).sessionToken;
+  for (const token of [operator, supervisor]) {
+    const loaded = await api('settings', 'GET', undefined, token);
+    const payload = settingsForSave({ ...loaded, agencyAddress: 'Endereço fictício editado' }, false);
+    equal(Object.hasOwn(payload, 'cnhCpfAutofillEnabled'), false);
+    await api('settings', 'PUT', payload, token);
+    const saved = await api('settings', 'GET', undefined, token);
+    equal(saved.agencyAddress, 'Endereço fictício editado');
+    equal(saved.cnhCpfAutofillEnabled, true);
+    await api('settings', 'PUT', { cnhCpfAutofillEnabled: false }, token, 403);
+    equal((await api('settings', 'GET', undefined, token)).cnhCpfAutofillEnabled, true);
+  }
+  equal(settingsForSave({ cnhCpfAutofillEnabled: true } as any, true).cnhCpfAutofillEnabled, true);
   const previousFetch = globalThis.fetch;
   let upstreamCalls = 0;
   globalThis.fetch = async (url, init) => {

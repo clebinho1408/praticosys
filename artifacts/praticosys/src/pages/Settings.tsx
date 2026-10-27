@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { api } from '../services/api';
+import { settingsForSave } from '../services/settingsPayload';
 import { SystemSettings, City, ExamLocation, Examiner, BlockedDate, UserRole, User } from '../types';
 import { Save, Settings as SettingsIcon, CheckCircle, ImageIcon, Upload, Trash2, Layout, MessageSquare, MapPin, Link as LinkIcon, AlertOctagon, Calendar, Plus, ShieldAlert, Edit2, ScrollText, RefreshCw } from 'lucide-react';
 import { AlertModal, ConfirmModal } from '../components/CustomModals';
@@ -448,7 +449,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
     if (!settings) return;
     setSaving(true);
     try {
-      await api.updateSettings(settings);
+      await api.updateSettings(settingsForSave(settings, isAdmin));
       setSuccessMsg('Configurações salvas com sucesso!');
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (error) {
