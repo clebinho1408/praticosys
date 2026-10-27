@@ -3,6 +3,7 @@ import { getTableConfig, PgDialect } from 'drizzle-orm/pg-core';
 import * as schema from './schema.js';
 import type { D1Database } from '@cloudflare/workers-types';
 import { migrateCpfD1 } from './cpf-migration.js';
+import { migrateCadastroTabsD1 } from './cadastro-tabs-migration.js';
 
 export const D1_NOW = "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))";
 export const D1_VERSION = 'd1_schema_v1';
@@ -74,6 +75,7 @@ export function initialD1Statements(): string[] {
   const tables = Object.entries(d1Tables).filter(([name]) => name !== 'cotas_consulta_cpf').map(([name, allColumns]) => {
     const columns = allColumns.filter(c =>
       !(name === 'configuracoes' && c.name === 'preencher_nome_cpf_cnh')
+      && !(name === 'usuarios' && c.name === 'abas_cadastro_permitidas')
       && !(name === 'examinadores' && c.name === 'periodos_bloqueio'));
     return (
     `CREATE TABLE IF NOT EXISTS ${quote(name)} (${columns.map(c =>
@@ -138,6 +140,7 @@ export async function migrateD1(binding: D1Database): Promise<void> {
   if (applied) {
     if (applied.checksum !== checksum) throw new Error('A migração D1 aplicada foi modificada. Crie uma nova versão; não sobrescreva a anterior.');
     await migrateCpfD1(binding);
+    await migrateCadastroTabsD1(binding);
     return;
   }
   const existing = await binding.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all<{ name: string }>();
@@ -149,4 +152,5 @@ export async function migrateD1(binding: D1Database): Promise<void> {
   await binding.batch([...statements, binding.prepare('INSERT INTO migracoes_d1 VALUES (?, ?, ?)')
     .bind(D1_VERSION, checksum, new Date().toISOString())]);
   await migrateCpfD1(binding);
+  await migrateCadastroTabsD1(binding);
 }

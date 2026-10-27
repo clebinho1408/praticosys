@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { setTimeout as pause } from 'node:timers/promises';
 import { eq, sql } from 'drizzle-orm';
 import { localD1, seedD1, pagesHarness, DEMO_PASSWORD } from './d1-runtime.js';
+import { testD1Migrations } from './d1-migrations.test.js';
 // @ts-ignore Shared server integration.
 import { lookupCpf, canLookupCpf, consumeCpfQuota, validCpf } from '../../functions/_cpf-lookup.js';
 // @ts-ignore Pure frontend state machine (no React or DOM).
@@ -79,6 +80,7 @@ controller.reset('', '', true); controller.changeCpf(cpf); await pause(10);
 pending[5].reject(new Error('Indisponível. Preencha manualmente.')); await pause(0);
 assert.match(status, /manualmente/); checks++; controller.manualName(''); equal(status, ''); controller.cancel();
 
+await testD1Migrations();
 const runtime = await localD1();
 try {
   equal(await d1Checksum(), D1_INITIAL_CHECKSUM);
@@ -96,6 +98,12 @@ try {
   const admin = (await api('auth', 'POST', { login: 'd1.admin', password: DEMO_PASSWORD })).sessionToken;
   const school = (await api('auth', 'POST', { login: 'd1.school', password: DEMO_PASSWORD })).sessionToken;
   const operator = (await api('auth', 'POST', { login: 'd1.operator', password: DEMO_PASSWORD })).sessionToken;
+  equal((await api('users', 'GET', undefined, admin)).find((u: any) => u.id === 'd1-operator').allowedCadastroTabs, []);
+  await api('users', 'PUT', { id: 'd1-operator', allowedCadastroTabs: ['instrutores'] }, operator, 403);
+  await api('users', 'PUT', { id: 'd1-operator', allowedCadastroTabs: ['instrutores'] }, admin);
+  equal((await api('users', 'GET', undefined, admin)).find((u: any) => u.id === 'd1-operator').allowedCadastroTabs, ['instrutores']);
+  await api('users', 'GET', undefined, operator, 403);
+  equal((await api('auth', 'POST', { login: 'd1.operator', password: DEMO_PASSWORD })).allowedCadastroTabs, ['instrutores']);
   equal((await api('settings', 'GET', undefined, admin)).cnhCpfAutofillEnabled, false);
   await api('cpf-lookup', 'POST', base.body, undefined, 401);
   await api('cpf-lookup', 'POST', base.body, school, 403);

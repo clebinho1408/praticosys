@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from '../db/schema.js';
 import { D1_VERSION, d1Checksum } from '../db/d1-schema.js';
 import { CPF_D1_VERSION, cpfD1Checksum } from '../db/cpf-migration.js';
+import { CADASTRO_TABS_D1_VERSION, cadastroTabsD1Checksum } from '../db/cadastro-tabs-migration.js';
 import { translateD1Sql, decodeD1Row } from './_d1-sql.js';
 import type { D1Database, D1Result } from '@cloudflare/workers-types';
 
@@ -21,6 +22,9 @@ export async function verifyD1Schema(db: any) {
   const cpf = await binding.prepare('SELECT checksum FROM migracoes_d1 WHERE versao = ?')
     .bind(CPF_D1_VERSION).first<{ checksum: string }>();
   if (!cpf || cpf.checksum !== await cpfD1Checksum()) throw new Error('Migração D1 de autopreenchimento ausente ou incompatível. Execute a manutenção de schema.');
+  const tabs = await binding.prepare('SELECT checksum FROM migracoes_d1 WHERE versao = ?')
+    .bind(CADASTRO_TABS_D1_VERSION).first<{ checksum: string }>();
+  if (!tabs || tabs.checksum !== await cadastroTabsD1Checksum()) throw new Error('Migração D1 de abas de cadastro ausente ou incompatível. Execute a manutenção de schema.');
   db.$d1Verified = true;
 }
 

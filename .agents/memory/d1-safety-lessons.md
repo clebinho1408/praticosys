@@ -34,6 +34,17 @@ exemplos; uma raiz implícita produziu erro nativo de caminho com `..`.
 **How to apply:** consultar os tipos da versão instalada, usar o conversor
 documentado e alinhar a raiz dos módulos com o diretório do projeto.
 
+A conversão de opções v4 não garante persistência no Miniflare 5: opções
+antigas por recurso podem ser ignoradas silenciosamente. Usar a raiz de
+persistência suportada pela versão instalada e validar fechar/reabrir.
+
+**Why:** uma importação local foi validada na mesma sessão, mas ficou vazia
+ao reabrir porque a opção antiga de persistência D1 era ignorada.
+
+**How to apply:** qualquer teste de importação ou prévia persistente precisa
+confirmar os dados em uma segunda instância do emulador, não só antes de
+encerrá-lo.
+
 O ORM atual não é uma referência confiável da migração D1 inicial já
 liberada. Ao evoluir o esquema, preservar o checksum e comparar com o SQL
 da versão liberada; diferenças anteriores também precisam de evolução

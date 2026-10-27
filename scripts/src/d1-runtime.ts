@@ -12,18 +12,25 @@ import { hash } from 'bcryptjs';
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const DEMO_PASSWORD = 'D1-teste-2026!';
-export async function localD1(persist: boolean | string = false) {
+export async function localD1(persist: boolean | string = false, migrate = true) {
   const mf = new Miniflare(convertV4MiniflareOptions({
     modules: true,
     script: 'export default { fetch() { return new Response("D1 local"); } }',
     compatibilityDate: '2026-10-01',
     d1Databases: { DB: 'praticosys-d1-local-only' },
-    d1Persist: persist === true ? path.join(root, '.local/d1-state') : persist,
+    // Miniflare 5 no longer reads d1Persist, even through the v4 converter.
+    resourcePersistencePath: persist === true ? path.join(root, '.local/d1-state')
+      : typeof persist === 'string' ? path.resolve(root, persist) : undefined,
   }));
-  const binding = await mf.getD1Database('DB');
-  await migrateD1(binding as any);
-  const env = { DB_PROVIDER: 'd1', DB: binding };
-  return { mf, binding, env, db: getDb(env) };
+  try {
+    const binding = await mf.getD1Database('DB');
+    if (migrate) await migrateD1(binding as any);
+    const env = { DB_PROVIDER: 'd1', DB: binding };
+    return { mf, binding, env, db: getDb(env) };
+  } catch (error) {
+    await mf.dispose();
+    throw error;
+  }
 }
 
 export async function seedD1(db: any) {
