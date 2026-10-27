@@ -679,6 +679,9 @@ importers:
       '@types/node':
         specifier: 'catalog:'
         version: 25.9.4
+      '@workspace/db':
+        specifier: workspace:*
+        version: link:../lib/db
       tsx:
         specifier: 'catalog:'
         version: 4.22.4
