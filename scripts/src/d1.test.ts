@@ -157,7 +157,7 @@ try {
   await api('requests', 'GET', undefined, sessions.school, 401);
   await harness.drain();
   const marker = await runtime.binding.prepare('SELECT count(*) AS n FROM migracoes_d1').first<any>();
-  check(marker.n === 1);
+  check(marker.n === 2);
   const rows = await runtime.db.execute(sql`SELECT criado_em::date AS day FROM usuarios LIMIT 1`);
   check(/^\d{4}-\d{2}-\d{2}$/.test(String(rows.rows[0].day)));
   process.stdout.write(`D1: ${checks} verificações passaram; dados fictícios; nenhuma conexão Neon ou envio real de e-mail.\n`);

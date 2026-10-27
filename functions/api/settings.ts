@@ -2,6 +2,7 @@
 import { getDb, json, error, parseBody } from '../_db.js';
 import { systemSettings } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
+import { cpfSettingError } from '../_cpf-lookup.js';
 
 const DEFAULT_AGENCY = 'Detran de Balneário Camboriú';
 const DEFAULT_ADDR = 'Av. do Estado Dalmo Vieira, 4281 - Centro, Balneário Camboriú - SC';
@@ -22,9 +23,10 @@ const DEFAULTS = {
   pcdMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
   cnhBrasilMainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
   anoFabricacaoMaximo: { A: null, B: null, CDE: null },
+  cnhCpfAutofillEnabled: false,
 };
 
-export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
+export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env, data }) => {
   try {
     const db = getDb(env as any);
     const method = request.method;
@@ -50,6 +52,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     if (method === 'PUT') {
       const body = await parseBody<any>(request);
+      const invalid = cpfSettingError(body, data.sessionUserRole as string);
+      if (invalid) return error(invalid, data.sessionUserRole !== 'ADMIN' ? 403 : 400);
       const { enableEmailNotifications, enableSmsNotifications, createdAt, updatedAt, ...valid } = body;
       const existing = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
       let result;

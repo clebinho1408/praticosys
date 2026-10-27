@@ -1,6 +1,8 @@
 // Request Manager Page
 import React, { useState, useEffect, useMemo } from "react";
 import { api } from "../services/api";
+import { useCpfAutofill } from "../hooks/useCpfAutofill";
+import { cleanCpf } from "../services/cpfAutofill";
 import {
   ExamRequest,
   User,
@@ -127,6 +129,7 @@ interface RequestManagerProps {
   typeFilter?: ExamType;
   sourceFilter?: RequestSource;
   excludeRegularSchools?: boolean;
+  cnhCpfAutofillScope?: boolean;
 }
 
 const RequestManager: React.FC<RequestManagerProps> = ({
@@ -134,6 +137,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   typeFilter,
   sourceFilter,
   excludeRegularSchools,
+  cnhCpfAutofillScope = false,
 }) => {
   const [requests, setRequests] = useState<ExamRequest[]>([]);
   const [allGlobalRequests, setAllGlobalRequests] = useState<ExamRequest[]>([]);
@@ -208,6 +212,12 @@ const RequestManager: React.FC<RequestManagerProps> = ({
 
   // Form State
   const [formData, setFormData] = useState<Partial<ExamRequest>>({});
+  const cpfAutofill = useCpfAutofill({
+    open: isModalOpen, recordId: editingRequest?.id,
+    enabled: cnhCpfAutofillScope && settings?.cnhCpfAutofillEnabled === true && !isViewOnly && !isConsultant,
+    cpf: formData.cpf || '', name: formData.studentName || '',
+    setName: studentName => setFormData(current => ({ ...current, studentName })),
+  });
   const [manualVehicleYears, setManualVehicleYears] = useState<
     Record<"A" | "B", { year: string; verified: boolean }>
   >({
@@ -3082,12 +3092,15 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                           value={formData.cpf || ""}
                           disabled={isViewOnly}
                           onChange={(e) => {
-                            const onlyNums = e.target.value.replace(/\D/g, "");
-                            setFormData({ ...formData, cpf: onlyNums });
+                            const onlyNums = cleanCpf(e.target.value);
+                            setFormData(current => ({ ...current, cpf: onlyNums }));
+                            cpfAutofill.controller.changeCpf(onlyNums);
                           }}
-                          maxLength={11}
+                          maxLength={14}
+                          inputMode="numeric"
                           placeholder="Somente números"
                         />
+                        {cpfAutofill.status && <p role="status" aria-live="polite" className="text-xs text-slate-600 mt-1">{cpfAutofill.status}</p>}
                       </div>
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -3107,7 +3120,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                               .toUpperCase();
                             // Opcional: permitir apenas letras e espaços (descomente se necessário)
                             // const cleanVal = val.replace(/[^A-Z ]/g, "");
-                            setFormData({ ...formData, studentName: val });
+                            cpfAutofill.controller.manualName(val);
+                            setFormData(current => ({ ...current, studentName: val }));
                           }}
                         />
                       </div>

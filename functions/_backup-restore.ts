@@ -143,7 +143,7 @@ const TABLE_COLUMNS: Record<RestoreTable, string[]> = {
     'restricoes', 'nome_exame_pcd', 'endereco_exame_pcd_padrao',
     'link_exame_pcd_padrao', 'banca_principal_pcd', 'banca_principal_cnh_brasil',
     'bloquear_fins_semana', 'chave_area_risco',
-    'ano_fabricacao_maximo',
+    'ano_fabricacao_maximo', 'preencher_nome_cpf_cnh',
   ],
   usuarios: [
     'id', 'nome', 'login', 'senha', 'perfil', 'autoescola_id', 'examinador_id',

@@ -2,6 +2,8 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+// @ts-ignore Shared additive migration; never executed by the isolated D1 preview.
+import { CPF_NEON_MIGRATION } from "../../../db/cpf-migration.js";
 
 const rawPort = process.env["PORT"];
 
@@ -307,6 +309,7 @@ async function runMigrations() {
     }
 
     // ─── Migrations regulares (nomes já em português) ─────────────────────────
+    await db.execute(sql.raw(CPF_NEON_MIGRATION));
     await db.execute(sql`ALTER TABLE solicitacoes ADD COLUMN IF NOT EXISTS quantidades_categoria jsonb`);
     await db.execute(sql`
       UPDATE solicitacoes

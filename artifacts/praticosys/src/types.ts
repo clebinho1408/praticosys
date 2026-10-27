@@ -286,6 +286,7 @@ export interface SystemSettings {
   riskAreaKey?: string;
 
   // Ano de Fabricação Máximo por Categoria
+  cnhCpfAutofillEnabled?: boolean;
   anoFabricacaoMaximo?: {
     A?: number | null;
     B?: number | null;

@@ -72,6 +72,9 @@ export const api = {
 
   // --- SETTINGS ---
   getSettings: () => request<SystemSettings>('/settings'),
+  lookupCpf: (cpf: string, signal?: AbortSignal) => request<{ name: string }>('/cpf-lookup', {
+    method: 'POST', body: JSON.stringify({ cpf, module: 'CNH_BRASIL' }), signal,
+  }),
   updateSettings: (settings: Partial<SystemSettings>) => request<SystemSettings>('/settings', { method: 'PUT', body: JSON.stringify(settings) }),
 
   // --- EXAMINERS ---

@@ -1,11 +1,14 @@
 import http from 'node:http';
 import { localD1, seedD1, pagesHarness } from './d1-runtime.js';
 
-// No environment credentials are forwarded into the local Pages handlers.
-// Resend and external vehicle lookups remain unconfigured (fail closed).
+// Only the explicitly configured CPF integration receives its own credential.
+// Resend/vehicle credentials remain excluded; synthetic seeds keep CPF lookup off.
 const runtime = await localD1(true);
 await seedD1(runtime.db);
-const harness = await pagesHarness(runtime.env);
+const harness = await pagesHarness({
+  ...runtime.env,
+  ...(process.env.APICPF_API_KEY ? { APICPF_API_KEY: process.env.APICPF_API_KEY } : {}),
+});
 const port = Number(process.env.PORT || 8080);
 const server = http.createServer(async (req, res) => {
   try {

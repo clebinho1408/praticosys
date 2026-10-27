@@ -2,6 +2,7 @@ import { getTableColumns } from 'drizzle-orm';
 import { getTableConfig, PgDialect } from 'drizzle-orm/pg-core';
 import * as schema from './schema.js';
 import type { D1Database } from '@cloudflare/workers-types';
+import { migrateCpfD1 } from './cpf-migration.js';
 
 export const D1_NOW = "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))";
 export const D1_VERSION = 'd1_schema_v1';
@@ -69,14 +70,19 @@ for (const t of ['instrutores', 'solicitacoes', 'solicitacoes_cfc', 'solicitacoe
 d1Tables.veiculos.push(extra('ano_modelo'));
 
 export function initialD1Statements(): string[] {
-  const tables = Object.entries(d1Tables).map(([name, columns]) =>
+  // Released baseline must not include columns/tables introduced by later migrations.
+  const tables = Object.entries(d1Tables).filter(([name]) => name !== 'cotas_consulta_cpf').map(([name, allColumns]) => {
+    const columns = allColumns.filter(c =>
+      !(name === 'configuracoes' && c.name === 'preencher_nome_cpf_cnh')
+      && !(name === 'examinadores' && c.name === 'periodos_bloqueio'));
+    return (
     `CREATE TABLE IF NOT EXISTS ${quote(name)} (${columns.map(c =>
       `${quote(c.name)} ${['number', 'boolean'].includes(c.kind) ? 'INTEGER' : 'TEXT'}`
       + (c.primary ? ' PRIMARY KEY' : '') + (c.required ? ' NOT NULL' : '')
       + (c.unique ? ' UNIQUE' : '') + (c.defaultSql !== 'NULL' ? ` DEFAULT ${c.defaultSql}` : '')
       + (c.kind === 'json' ? ` CHECK (${quote(c.name)} IS NULL OR json_valid(${quote(c.name)}))` : '')
       + (c.kind === 'boolean' ? ` CHECK (${quote(c.name)} IS NULL OR ${quote(c.name)} IN (0, 1))` : '')
-    ).join(', ')})`);
+    ).join(', ')})`); });
   return [
     ...tables,
     'CREATE TABLE IF NOT EXISTS migracoes_d1 (versao TEXT PRIMARY KEY, checksum TEXT NOT NULL, aplicado_em TEXT NOT NULL)',
@@ -131,6 +137,7 @@ export async function migrateD1(binding: D1Database): Promise<void> {
   const applied = await binding.prepare('SELECT checksum FROM migracoes_d1 WHERE versao = ?').bind(D1_VERSION).first<{ checksum: string }>();
   if (applied) {
     if (applied.checksum !== checksum) throw new Error('A migração D1 aplicada foi modificada. Crie uma nova versão; não sobrescreva a anterior.');
+    await migrateCpfD1(binding);
     return;
   }
   const existing = await binding.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all<{ name: string }>();
@@ -141,4 +148,5 @@ export async function migrateD1(binding: D1Database): Promise<void> {
   // DDL + marker in one atomic batch. No BEGIN/COMMIT (D1 owns the transaction).
   await binding.batch([...statements, binding.prepare('INSERT INTO migracoes_d1 VALUES (?, ?, ?)')
     .bind(D1_VERSION, checksum, new Date().toISOString())]);
+  await migrateCpfD1(binding);
 }

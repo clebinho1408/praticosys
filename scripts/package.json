@@ -6,6 +6,7 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "test:backup-restore": "tsx ./src/backup-restore.test.ts",
+    "test:cpf-autofill": "tsx ./src/cpf-autofill.test.ts",
     "d1:dev": "tsx ./src/d1-dev.ts",
     "d1:preview": "tsx ./src/d1-preview.ts",
     "test:d1": "tsx ./src/d1.test.ts",

@@ -96,6 +96,9 @@ if (command === 'export-neon') {
       const text = await readFile(safePath(file), 'utf8');
       const source: Snapshot = JSON.parse(text);
       if (source.format !== 'praticosys-full-export-v1' || !source.tables || Array.isArray(source.tables)) throw new Error('Use exportação completa, não o backup administrativo.');
+      // Older exports predate this operational quota table; it contains no
+      // candidate data and starts empty. All historical tables remain required.
+      source.tables.cotas_consulta_cpf ??= [];
       if (Object.keys(d1Tables).some(t => !(t in source.tables))) throw new Error('Exportação incompleta: faltam tabelas inventariadas. Não descarte tabelas legadas.');
       // Validate the WHOLE input before executing the first batch.
       const tables = Object.fromEntries(Object.entries(source.tables).map(([t, rows]) => {

@@ -33,3 +33,14 @@ exemplos; uma raiz implícita produziu erro nativo de caminho com `..`.
 
 **How to apply:** consultar os tipos da versão instalada, usar o conversor
 documentado e alinhar a raiz dos módulos com o diretório do projeto.
+
+O ORM atual não é uma referência confiável da migração D1 inicial já
+liberada. Ao evoluir o esquema, preservar o checksum e comparar com o SQL
+da versão liberada; diferenças anteriores também precisam de evolução
+versionada, não de um novo checksum para a mesma versão.
+
+**Why:** uma coluna adicionada anteriormente ao ORM passou a alterar a
+geração da migração inicial e impediu até a inicialização do D1 isolado.
+
+**How to apply:** tratar o SQL liberado como baseline imutável e executar
+os testes de compatibilidade ao adicionar qualquer coluna ou tabela.

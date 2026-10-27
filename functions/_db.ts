@@ -96,6 +96,8 @@ export async function ensureColumnMigrations(db: any): Promise<void> {
     // examinadores — períodos de bloqueio
     await db.execute(sql`ALTER TABLE examinadores ADD COLUMN IF NOT EXISTS periodos_bloqueio JSONB DEFAULT '[]'::jsonb`);
   } catch {}
+  await db.execute(sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS preencher_nome_cpf_cnh boolean NOT NULL DEFAULT false`);
+  await db.execute(sql`CREATE TABLE IF NOT EXISTS cotas_consulta_cpf (id text PRIMARY KEY, janela_minuto integer NOT NULL, consultas integer NOT NULL DEFAULT 0)`);
   _columnMigrationsReady = true;
 }
 

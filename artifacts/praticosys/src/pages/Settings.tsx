@@ -29,7 +29,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const [activeSubTabGeneral, setActiveSubTabGeneral] = useState<'AGENCY_DATA' | 'CITIES' | 'RESTRICTIONS' | 'BLOCKED_DATES'>('AGENCY_DATA');
 
   const [activeSubTabCFC, setActiveSubTabCFC] = useState<'COMMUNICATION' | 'ESCALA_PADRAO_PCD' | 'ESCALA_PADRAO_CNH_BRASIL'>('COMMUNICATION');
-  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS' | 'LOGS' | 'ANO_FABRICACAO'>('LOCAIS');
+  const [activeSubTabCNH, setActiveSubTabCNH] = useState<'COMMUNICATION' | 'LOCAIS' | 'LOGS' | 'ANO_FABRICACAO' | 'AUTOFILL'>('LOCAIS');
   const [cnhLogs, setCnhLogs] = useState<any[]>([]);
   const [cnhLogsLoading, setCnhLogsLoading] = useState(false);
   const [riskKeyInput, setRiskKeyInput] = useState('');
@@ -879,11 +879,25 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
             {activeTab === 'CNH_BRASIL' && (
                 <div className="space-y-6 animate-fadeIn">
                     <div className="flex border-b border-gray-100 mb-6 overflow-x-auto">
+                        <button type="button" onClick={() => setActiveSubTabCNH('AUTOFILL')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'AUTOFILL' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>AUTOPREENCHIMENTO</button>
                         <button type="button" onClick={() => setActiveSubTabCNH('LOCAIS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'LOCAIS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>LOCAIS</button>
                         <button type="button" onClick={() => setActiveSubTabCNH('LOGS')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'LOGS' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>LOGS DE REGISTRO</button>
                         <button type="button" onClick={() => setActiveSubTabCNH('ANO_FABRICACAO')} className={`px-4 py-2 text-sm font-bold transition-colors whitespace-nowrap ${activeSubTabCNH === 'ANO_FABRICACAO' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}>ANO DE FABRICAÇÃO</button>
                     </div>
                     
+                    {activeSubTabCNH === 'AUTOFILL' && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">
+                            <h3 className="text-sm font-bold text-slate-800">Nome Completo pelo CPF</h3>
+                            <label className="flex items-start gap-3 text-sm text-slate-700">
+                                <input type="checkbox" className="mt-1" disabled={!isAdmin}
+                                    checked={settings.cnhCpfAutofillEnabled ?? false}
+                                    onChange={e => setSettings({ ...settings, cnhCpfAutofillEnabled: e.target.checked })} />
+                                Ativar consulta automática na APICPF para candidatos do módulo CNH do Brasil
+                            </label>
+                            <p className="text-sm text-gray-500">Ao digitar ou colar um CPF válido, o sistema consulta e preenche somente o nome. O nome continua editável, inclusive se a consulta falhar.</p>
+                            <p className="text-xs text-gray-500">Começa desativado. Consultas podem consumir créditos do provedor. Configure APICPF_API_KEY somente nos segredos do servidor e salve as configurações para aplicar.</p>
+                        </div>
+                    )}
                     {activeSubTabCNH === 'LOCAIS' && (
                         <div className="space-y-6 animate-fadeIn">
                             <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 space-y-4">

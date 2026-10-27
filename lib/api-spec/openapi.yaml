@@ -11,6 +11,40 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /cpf-lookup:
+    post:
+      operationId: lookupCandidateCpf
+      summary: Consultar somente o nome do candidato CNH pelo CPF
+      description: Requer sessão, módulo CNH autorizado e serviço ativo. Nunca retorna credenciais ou outros dados pessoais.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CandidateCpfInput"
+      responses:
+        "200":
+          description: Nome encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CandidateCpfName"
+        "400":
+          description: CPF inválido
+        "401":
+          description: Sessão ausente ou expirada
+        "403":
+          description: Perfil ou módulo sem permissão
+        "404":
+          description: CPF não encontrado
+        "409":
+          description: Serviço desativado
+        "429":
+          description: Limite de consultas
+        "503":
+          description: Provedor indisponível ou não configurado
   /healthz:
     get:
       operationId: healthCheck
@@ -25,7 +59,28 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
+    CandidateCpfInput:
+      type: object
+      required: [cpf, module]
+      properties:
+        cpf:
+          type: string
+          minLength: 11
+          maxLength: 14
+        module:
+          type: string
+          enum: [CNH_BRASIL]
+    CandidateCpfName:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
     HealthStatus:
       type: object
       properties:

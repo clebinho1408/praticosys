@@ -8,3 +8,4 @@
 - [Concorrência nas escalas CFC](cfc-scale-concurrency.md) — pré-checagem no cliente não evita sobreposição entre autoescolas geradas ao mesmo tempo.
 - [Bancas CNH com origem de cadastro](cnh-banca-source.md) — autoescola elegível autoriza a criação, mas sua identidade não vira vínculo permanente da banca.
 - [Exclusão de agendamentos CFC](cfc-appointment-removal.md) — excluir uma prova não autoriza apagar o cadastro do candidato; registros individuais voltam à fila.
+- [Segurança APICPF](cpf-provider-security.md) — chave do anexo foi tratada como exposta; obter substituta por fluxo seguro e validar sem consultas reais.

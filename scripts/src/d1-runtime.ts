@@ -32,7 +32,7 @@ export async function seedD1(db: any) {
   const password = await hash(DEMO_PASSWORD, 10);
   const users = ['ADMIN', 'SUPERVISOR', 'OPERATOR', 'SCHOOL', 'INSTRUCTOR', 'EXAMINER'].map(role => ({
     id: `d1-${role.toLowerCase()}`, login: `d1.${role.toLowerCase()}`, name: `Teste D1 ${role}`,
-    password, role, forcePasswordChange: false, allowedModules: ['CNH_BRASIL', 'CFC', 'PCD'],
+    password, role, forcePasswordChange: false, allowedModules: ['cnh', 'cfc', 'pcd'],
     schoolId: role === 'SCHOOL' ? 'd1-school' : null,
     examinerId: role === 'EXAMINER' ? 'd1-examiner' : null,
     instructorId: role === 'INSTRUCTOR' ? 'd1-instructor' : null,

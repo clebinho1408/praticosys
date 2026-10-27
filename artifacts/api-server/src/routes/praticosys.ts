@@ -21,6 +21,8 @@ import { restoreBackup } from "../../../../functions/_backup-restore.js";
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit, hasCandidateIdentity, clearAppointment } from "../../../../functions/_cfc-confirmed.js";
 // @ts-ignore Shared compatibility policy for Express and Cloudflare.
 import { extraEditError, extraPatch } from "../../../../functions/_cfc-extra.js";
+// @ts-ignore Shared server-only integration for Express and Cloudflare.
+import { lookupCpf, consumeCpfQuota, cpfSettingError } from "../../../../functions/_cpf-lookup.js";
 
 function hashCode(code: string): string {
   return createHash('sha256').update(code).digest('hex');
@@ -918,6 +920,21 @@ router.delete("/requests", async (req, res) => {
 });
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
+router.post("/cpf-lookup", async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  try {
+    const identity = (req as any).sessionUser;
+    const [user] = await db.select({ id: users.id, role: users.role, allowedModules: users.allowedModules })
+      .from(users).where(eq(users.id, identity?.id ?? ''));
+    const [settings] = await db.select({ enabled: systemSettings.cnhCpfAutofillEnabled })
+      .from(systemSettings).where(eq(systemSettings.id, 1));
+    const result = await lookupCpf({
+      body: req.body, user, enabled: settings?.enabled === true,
+      key: process.env.APICPF_API_KEY, consumeQuota: () => consumeCpfQuota(db, user.id),
+    });
+    return res.status(result.status).json(result.body);
+  } catch { return res.status(503).json({ error: 'Não foi possível consultar o CPF. Preencha o nome manualmente.' }); }
+});
 router.get("/settings", async (_req, res) => {
   try {
     const data = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
@@ -930,6 +947,8 @@ router.get("/settings", async (_req, res) => {
 });
 router.put("/settings", async (req, res) => {
   try {
+    const invalid = cpfSettingError(req.body, (req as any).sessionUser?.role);
+    if (invalid) return res.status((req as any).sessionUser?.role !== 'ADMIN' ? 403 : 400).json({ error: invalid });
     const { id: _id, ...updates } = req.body;
     const existing = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
     if (existing.length === 0) {

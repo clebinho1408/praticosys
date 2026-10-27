@@ -195,6 +195,13 @@ export const systemSettings = pgTable('configuracoes', {
   blockWeekends: boolean('bloquear_fins_semana').default(false),
   riskAreaKey: text('chave_area_risco'),
   anoFabricacaoMaximo: jsonb('ano_fabricacao_maximo'),
+  cnhCpfAutofillEnabled: boolean('preencher_nome_cpf_cnh').notNull().default(false),
+});
+
+export const cpfLookupQuotas = pgTable('cotas_consulta_cpf', {
+  id: text('id').primaryKey(),
+  windowMinute: integer('janela_minuto').notNull(),
+  count: integer('consultas').notNull().default(0),
 });
 
 export const auditLogs = pgTable('logs_auditoria', {
