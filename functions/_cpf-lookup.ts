@@ -57,8 +57,13 @@ export async function lookupCpf(options: {
     url.searchParams.set('cpf', normalizeCpf(options.body.cpf));
     const response = await (options.fetcher ?? fetch)(url, {
       headers: { 'X-API-KEY': options.key, Accept: 'application/json' },
-      signal: controller.signal, redirect: 'error', cache: 'no-store',
+      // Workers only implement follow/manual, not redirect:"error".
+      // Never follow redirects carrying the API key or CPF to another origin.
+      signal: controller.signal, redirect: 'manual', cache: 'no-store',
     });
+    if (response.status >= 300 && response.status < 400) {
+      return fail(503, 'O serviço de CPF retornou um redirecionamento inesperado.');
+    }
     const payload = await response.json().catch(() => null) as any;
     const code = response.ok ? Number(payload?.code ?? response.status) : response.status;
     if (code !== 200) return fail([400, 404, 429].includes(code) ? code : 503,

@@ -49,3 +49,22 @@ Não reaplique `0001_initial.sql` para atualizar uma base existente.
 Executa o controlador do formulário, os erros do provedor, permissões,
 persistência e concorrência da cota em D1 efêmero. Não envia CPFs ao provedor,
 não consome créditos e não conecta ao Neon.
+
+### Compatibilidade Cloudflare
+
+A configuração de produção usa a data de compatibilidade `2024-09-23`.
+Nessa data, a opção `fetch(..., { cache: 'no-store' })` exige a flag
+`cache_option_enabled`, mantida no `wrangler.toml`. Sem ela, o runtime lança
+uma exceção antes de chamar a APICPF, mesmo com a chave configurada.
+Não remova a proteção de cache para contornar esse erro.
+
+`pnpm --filter @workspace/scripts test:cpf-cloudflare` reproduz o erro
+anterior e verifica a correção no runtime Cloudflare local usando a data
+e flags do projeto. Todas as chamadas externas são interceptadas.
+A correção de configuração exige uma nova publicação na Cloudflare;
+alterar o segredo, isoladamente, não corrige essa incompatibilidade.
+
+O modo `redirect: 'error'` também não é implementado pelo runtime Workers.
+A integração usa `redirect: 'manual'` e rejeita respostas 3xx explicitamente,
+sem reenviar chave ou CPF para outro endereço. O mesmo teste cobre essa
+incompatibilidade e confirma que redirecionamentos não são seguidos.

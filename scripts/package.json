@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "test:backup-restore": "tsx ./src/backup-restore.test.ts",
     "test:cpf-autofill": "tsx ./src/cpf-autofill.test.ts",
+    "test:cpf-cloudflare": "tsx ./src/cpf-cloudflare.test.ts",
     "test:cpf-postgres": "tsx ./src/cpf-postgres.test.ts",
     "d1:dev": "tsx ./src/d1-dev.ts",
     "d1:preview": "tsx ./src/d1-preview.ts",

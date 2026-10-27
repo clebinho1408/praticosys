@@ -1,6 +1,8 @@
 name = "praticosys"
 compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat", "cache_option_enabled"]
+# CPF lookups use fetch(cache: "no-store"). On this compatibility date the
+# feature is opt-in; without this flag Workers throw before contacting APICPF.
 pages_build_output_dir = "artifacts/praticosys/dist/public"
 
 # Environment variables são configuradas no dashboard do Cloudflare Pages.
