@@ -10,3 +10,4 @@
 - [Exclusão de agendamentos CFC](cfc-appointment-removal.md) — excluir uma prova não autoriza apagar o cadastro do candidato; registros individuais voltam à fila.
 - [Segurança APICPF](cpf-provider-security.md) — chave do anexo foi tratada como exposta; obter substituta por fluxo seguro e validar sem consultas reais.
 - [Runtime Cloudflare](cloudflare-runtime-compatibility.md) — validar fetch com a data e flags de produção; testes Node ou workerd recente podem ocultar incompatibilidades.
+- [Comprovantes especiais CNH](cnh-special-receipts.md) — PCD e Reabilitação são exclusivos por categoria, independentes entre A/B e preservam o instrutor escolhido.
