@@ -758,7 +758,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         ...(examAddress ? [` 📍 Local do Exame: ${examAddress}`] : []),
         ``,
         ` ♿ Restrição da CNH: ${restrictionText}`,
-        ...(receiptInstructor(req) ? [`Instrutor: ${receiptInstructor(req)}`] : []),
+        ...(receiptInstructor(req) ? [``, `Instrutor: ${receiptInstructor(req)}`] : []),
         ``,
         ...(req.vehiclePlate ? [`🚗 Placa: ${req.vehiclePlate}`] : []),
         ``,
