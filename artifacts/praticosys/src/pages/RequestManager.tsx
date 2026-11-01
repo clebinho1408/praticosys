@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { api } from "../services/api";
 import { useCpfAutofill } from "../hooks/useCpfAutofill";
 import { cleanCpf } from "../services/cpfAutofill";
+import { examModality, modalityField } from "../../../../functions/_cnh-exam-modality";
 import {
   ExamRequest,
   User,
@@ -768,6 +769,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           await api.createRequest({
             ...formData,
             intendedCategory: "A",
+            examModalityA: examModality(formData, "A"),
+            examModalityB: null,
             instructor: motoInstructor,
             vehiclePlate: motoPlate,
             schoolId: user.schoolId,
@@ -784,6 +787,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           await api.createRequest({
             ...formData,
             intendedCategory: "B",
+            examModalityA: null,
+            examModalityB: examModality(formData, "B"),
             instructor: carInstructor,
             vehiclePlate: carPlate,
             schoolId: user.schoolId,
@@ -1414,7 +1419,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           {categoryLabel}
         </h4>
         {/* Checkbox "Inserir placa manualmente" para Cat A e Cat B */}
-        <label className="flex items-center gap-2 mb-3 cursor-pointer select-none">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 mb-3">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
           <input
             type="checkbox"
             className={`w-4 h-4 cursor-pointer ${categoryCode === "A" ? "accent-blue-600" : "accent-green-600"}`}
@@ -1424,6 +1430,26 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           />
           <span className={`text-sm font-bold ${categoryCode === "A" ? "text-blue-700" : "text-green-700"}`}>Inserir placa manualmente</span>
         </label>
+        {typeFilter === ExamType.COMMON && (["PCD", "REABILITACAO"] as const).map(modality => (
+          <label key={modality} className="flex items-center gap-2 cursor-pointer select-none text-sm font-bold">
+            <input
+              type="checkbox"
+              className={`w-4 h-4 ${categoryCode === "A" ? "accent-blue-600" : "accent-green-600"}`}
+              aria-label={`${modality === "PCD" ? "PCD" : "Reabilitação"} Categoria ${categoryCode}`}
+              checked={examModality(formData, categoryCode) === modality}
+              disabled={isViewOnly}
+              onChange={e => {
+                const checked = e.target.checked;
+                setFormData(current => ({
+                  ...current,
+                  [modalityField(categoryCode)]: checked ? modality : "STANDARD",
+                }));
+              }}
+            />
+            {modality === "PCD" ? "PCD" : "Reabilitação"}
+          </label>
+        ))}
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1625,7 +1651,11 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       B: { year: "", verified: false },
     });
     if (req) {
-      setFormData(req);
+      setFormData(typeFilter === ExamType.COMMON ? {
+        ...req,
+        examModalityA: examModality(req, "A"),
+        examModalityB: examModality(req, "B"),
+      } : req);
     } else {
       const initialData: any = {
         studentName: "",

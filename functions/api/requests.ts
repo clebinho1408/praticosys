@@ -4,6 +4,7 @@ import { cnhbrasilRequests, cfcRequests, pcdRequests, examiners, systemSettings,
 import { eq, like, and } from 'drizzle-orm';
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit, hasCandidateIdentity, clearAppointment } from '../_cfc-confirmed.js';
 import { extraEditError, extraPatch } from '../_cfc-extra.js';
+import { modalityValidationError } from '../_cnh-exam-modality.js';
 
 const ALLOWED_FIELDS = [
   'id','studentName','socialName','cpf','phone','email','address','city',
@@ -14,14 +15,14 @@ const ALLOWED_FIELDS = [
   'scheduledTime','scheduledCategory','examinerId','attendanceConfirmed',
   'cancellationReason','observation','categoryQuantities','examHistory',
   'queueUpdatedAt','checklistVehicle','practicalCourseInserted','taxaPaga',
-  'scheduledBy','modulo','semDuploComando','rowColor',
+  'scheduledBy','modulo','semDuploComando','rowColor','examModalityA','examModalityB',
 ];
 
 /** Campos removidos de cada tabela de módulo — não podem ser gravados nelas */
 const MODULE_DROPPED_FIELDS: Record<string, string[]> = {
   CNH_BRASIL: ['disabilityType', 'specialNeeds', 'categoryQuantities'],
-  CFC:        ['disabilityType', 'specialNeeds'],
-  PCD:        ['semDuploComando', 'categoryQuantities'],
+  CFC:        ['disabilityType', 'specialNeeds', 'examModalityA', 'examModalityB'],
+  PCD:        ['semDuploComando', 'categoryQuantities', 'examModalityA', 'examModalityB'],
 };
 
 /** Remove campos que não existem mais na tabela do módulo alvo */
@@ -91,6 +92,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     if (method === 'POST') {
       const body = await parseBody<any>(request);
+      const modalityError = modalityValidationError(body);
+      if (modalityError) return error(modalityError, 400);
       const filtered = filterFields(body);
       if (!filtered.modulo) filtered.modulo = deriveModulo(filtered);
       const safeFiltered = stripDroppedFields(filtered, filtered.modulo);
@@ -115,6 +118,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
 
     if (method === 'PUT') {
       const body = await parseBody<any>(request);
+      const modalityError = modalityValidationError(body);
+      if (modalityError) return error(modalityError, 400);
       if (!body?.id) return error('ID obrigatório', 400);
       const { id, updatedAt, createdAt, ...rawUpdates } = body;
       const filtered = filterFields(rawUpdates);

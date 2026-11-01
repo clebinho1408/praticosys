@@ -212,6 +212,8 @@ export interface ExamRequest {
   hasVehicle?: boolean; // Renamed concept in UI to "Pedal Duplo"
   cnhRestriction?: string; // New
   instructor?: string; // New: Mandatory
+  examModalityA?: 'STANDARD' | 'PCD' | 'REABILITACAO' | null;
+  examModalityB?: 'STANDARD' | 'PCD' | 'REABILITACAO' | null;
   vehiclePlate?: string; // New: Mandatory
   semDuploComando?: boolean; // SDC — Sem Duplo Comando (Cat B)
   // Checklists de pré-agendamento (CNH do Brasil — Instrutor)

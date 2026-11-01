@@ -16,3 +16,14 @@ uma falha genérica de conexão.
 e com as opções de produção. Preservar a proteção de cache e rejeitar
 redirecionamentos sem encaminhar credenciais; não contornar incompatibilidades
 desativando controles de privacidade ou consultando pessoas reais.
+
+Os tipos globais de Request/Response de Node e Workers não são intercambiáveis.
+Preservar essa fronteira nos testes que carregam handlers Pages em Node.
+
+**Why:** importar diretamente os tipos Pages em uma suíte Node fez o compilador
+exigir propriedades de Workers em respostas Node e rejeitar requisições válidas
+do harness. Isso não era uma falha da aplicação no runtime de produção.
+
+**How to apply:** usar o harness de runtime para carregar os handlers, mantendo
+os contratos puros compartilhados verificáveis normalmente; não adaptar os
+handlers de produção aos tipos globais do ambiente de teste.

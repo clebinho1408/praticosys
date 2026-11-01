@@ -10,6 +10,7 @@ import { initialD1Statements, D1_VERSION, D1_INITIAL_CHECKSUM, d1Checksum, migra
 import { CPF_D1_VERSION, CPF_D1_STATEMENTS, migrateCpfD1 } from '../../db/cpf-migration.js';
 // @ts-ignore Shared additive migration.
 import { CADASTRO_TABS_D1_VERSION, CADASTRO_TABS_D1_CHECKSUM, cadastroTabsD1Checksum, migrateCadastroTabsD1 } from '../../db/cadastro-tabs-migration.js';
+import { CNH_MODALITY_VERSION } from '../../db/cnh-exam-modality-migration.js';
 // @ts-ignore Shared request-time verification.
 import { createD1Db, verifyD1Schema } from '../../functions/_d1.js';
 // @ts-ignore Shared legacy import compiler.
@@ -53,7 +54,8 @@ export async function testD1Migrations() {
     await binding.prepare('DROP TRIGGER reject_tabs_marker').run();
     await migrateD1(binding as any);
     assert.deepEqual(await row(), { ...legacy, abas_cadastro_permitidas: '[]' });
-    assert.deepEqual((await markers()).filter((m: any) => m.versao !== CADASTRO_TABS_D1_VERSION), before);
+    assert.deepEqual((await markers()).filter((m: any) =>
+      ![CADASTRO_TABS_D1_VERSION, CNH_MODALITY_VERSION].includes(m.versao)), before);
     await verifyD1Schema(createD1Db(binding as any));
     const after = await markers();
     await migrateD1(binding as any);

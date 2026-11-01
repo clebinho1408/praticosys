@@ -286,6 +286,8 @@ export const cnhbrasilRequests = pgTable('solicitacoes_cnhbrasil', {
   hasVehicle: boolean('tem_veiculo').default(false),
   cnhRestriction: text('restricao_cnh'),
   instructor: text('instrutor'),
+  examModalityA: text('modalidade_exame_a'),
+  examModalityB: text('modalidade_exame_b'),
   vehiclePlate: text('placa_veiculo'),
   semDuploComando: boolean('sem_duplo_comando').default(false),
   checklistVehicle: boolean('checklist_veiculo').default(false),

@@ -2,6 +2,7 @@
 // Scheduling Center Page
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
+import { specialExamLabel, receiptInstructor } from '../../../../functions/_cnh-exam-modality';
 import { ExamRequest, ExamSchedule, ExamLocation, ExamType, Examiner, ExamStatus, SystemSettings, User, UserRole, BlockedDate, RequestSource, City, DrivingSchool } from '../types';
 import { isDateBlocked, isDateInPast } from '../lib/dateBlocking';
 import { cnhBancaSuggestions, type CnhBancaCommitment } from '../lib/cnhBancaRotation';
@@ -745,9 +746,8 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
     })();
 
     // ── PROVA DE DIRECAO PCD / PROVA DE REABILITACAO ─────────────────────
-    const instrUpper = (req.instructor || '').toUpperCase();
-    if (type === ExamType.COMMON && (instrUpper === 'PROVA DE DIRECAO PCD' || instrUpper === 'PROVA DE REABILITACAO')) {
-      const provaLabel = instrUpper === 'PROVA DE DIRECAO PCD' ? 'PROVA DE DIREÇÃO PCD' : 'PROVA DE REABILITAÇÃO';
+    const provaLabel = specialExamLabel(req);
+    if (type === ExamType.COMMON && provaLabel) {
       const bodyLines = [
         `COMPROVANTE DE AGENDAMENTO`,
         ``,
@@ -758,6 +758,7 @@ Estamos confirmando sua presença na Prova Prática *(Categoria {CATEGORIA})* [C
         ...(examAddress ? [` 📍 Local do Exame: ${examAddress}`] : []),
         ``,
         ` ♿ Restrição da CNH: ${restrictionText}`,
+        ...(receiptInstructor(req) ? [`Instrutor: ${receiptInstructor(req)}`] : []),
         ``,
         ...(req.vehiclePlate ? [`🚗 Placa: ${req.vehiclePlate}`] : []),
         ``,
@@ -2643,17 +2644,18 @@ th{background-color:#e0e0e0;font-weight:bold;text-align:left;font-size:11px;}
                     COMPROVANTE DE AGENDAMENTO
                   </h1>
 
-                  {(() => { const instrUp = (req.instructor || '').toUpperCase(); return instrUp === 'PROVA DE DIRECAO PCD' || instrUp === 'PROVA DE REABILITACAO'; })() ? (
+                  {type === ExamType.COMMON && specialExamLabel(req) ? (
                     <>
                       {/* Body text — PCD / REABILITAÇÃO */}
                       <p style={{fontSize:'11pt', margin:'0 0 16px', lineHeight:'1.8'}}>
-                        Segue agendamento solicitado por <strong>{candidateName} (CPF: {candidateCpf})</strong> para a <strong>{(req.instructor || '').toUpperCase() === 'PROVA DE DIRECAO PCD' ? 'PROVA DE DIREÇÃO PCD' : 'PROVA DE REABILITAÇÃO'}:</strong>
+                        Segue agendamento solicitado por <strong>{candidateName} (CPF: {candidateCpf})</strong> para a <strong>{specialExamLabel(req)}:</strong>
                       </p>
                       <div style={{margin:'0 0 10px'}}> 📅 <strong>Data:</strong> {fullDate}</div>
                       <div style={{margin:'0 0 10px'}}> ⏰ <strong>Hora:</strong> {sched.time} (Chegar 20 min antes)</div>
                       {examAddress && <div style={{margin:'0 0 10px'}}> 📍 <strong>Local do Exame:</strong> {examAddress}</div>}
                       <br />
                       <div style={{margin:'0 0 10px'}}> ♿ <strong>Restrição da CNH:</strong> {restrictionText || 'Nenhuma'}</div>
+                      {receiptInstructor(req) && <div style={{margin:'0 0 10px'}}><strong>Instrutor:</strong> {receiptInstructor(req)}</div>}
                       <br />
                       {req.vehiclePlate && <div style={{margin:'0 0 10px'}}>🚗 <strong>Placa:</strong> {req.vehiclePlate}</div>}
                       <p style={{marginTop:'36px', fontSize:'10pt', lineHeight:'1.7', color:'#222', textAlign:'justify'}}>

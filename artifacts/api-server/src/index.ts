@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
 // @ts-ignore Shared additive migration; never executed by the isolated D1 preview.
 import { CPF_NEON_MIGRATION } from "../../../db/cpf-migration.js";
+import { CNH_MODALITY_NEON_SQL } from "../../../db/cnh-exam-modality-migration.js";
 
 const rawPort = process.env["PORT"];
 
@@ -397,6 +398,7 @@ async function runMigrations() {
 
     // Cria as novas tabelas (sempre idempotente)
     await db.execute(sql`CREATE TABLE IF NOT EXISTS solicitacoes_cnhbrasil (LIKE solicitacoes INCLUDING ALL)`);
+    await db.execute(sql.raw(CNH_MODALITY_NEON_SQL));
     await db.execute(sql`CREATE TABLE IF NOT EXISTS solicitacoes_cfc (LIKE solicitacoes INCLUDING ALL)`);
     await db.execute(sql`CREATE TABLE IF NOT EXISTS solicitacoes_pcd (LIKE solicitacoes INCLUDING ALL)`);
     await db.execute(sql`ALTER TABLE solicitacoes_cnhbrasil ADD COLUMN IF NOT EXISTS sem_duplo_comando boolean DEFAULT false`);

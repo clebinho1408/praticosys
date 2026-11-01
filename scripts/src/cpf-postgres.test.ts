@@ -30,7 +30,10 @@ try {
   started = true;
   command('createdb', ['-h', directory, '-U', 'postgres', 'cpf_test']);
   const databaseUrl = `postgresql://postgres@localhost/cpf_test?host=${encodeURIComponent(directory)}`;
-  const worker = fileURLToPath(new URL('./cpf-postgres.integration.ts', import.meta.url));
+  // An optional repository-local worker reuses the same secret-free isolated PG launcher.
+  const workerName = process.argv[2] || './cpf-postgres.integration.ts';
+  if (!/^\.\/[a-z-]+\.integration\.ts$/.test(workerName)) throw new Error('Invalid isolated integration worker');
+  const worker = fileURLToPath(new URL(workerName, import.meta.url));
   await new Promise<void>((resolve, reject) => {
     const child = spawn(process.execPath, ['--import', import.meta.resolve('tsx'), worker], {
       env: { ...env, DATABASE_URL: databaseUrl, CPF_TEST_SOCKET: directory },

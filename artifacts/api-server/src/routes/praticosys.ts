@@ -624,6 +624,7 @@ router.delete("/schedules", async (req, res) => {
 });
 
 // ─── REQUESTS ─────────────────────────────────────────────────────────────────
+import { modalityValidationError } from "../../../../functions/_cnh-exam-modality.js";
 const ALLOWED_REQ_FIELDS = [
   "id", "studentName", "socialName", "cpf", "phone", "email", "address", "city",
   "requestType", "examType", "intendedCategory", "source", "schoolId",
@@ -633,14 +634,14 @@ const ALLOWED_REQ_FIELDS = [
   "status", "result", "scheduleId", "scheduledDate", "scheduledTime",
   "scheduledCategory", "examinerId", "attendanceConfirmed", "cancellationReason",
   "observation", "categoryQuantities", "examHistory", "scheduledBy", "queueUpdatedAt",
-  "modulo", "rowColor"
+  "modulo", "rowColor", "examModalityA", "examModalityB"
 ];
 
 /** Campos removidos de cada tabela de módulo — não podem ser gravados nelas */
 const MODULE_DROPPED_FIELDS: Record<string, string[]> = {
   CNH_BRASIL: ['disabilityType', 'specialNeeds', 'categoryQuantities'],
-  CFC:        ['disabilityType', 'specialNeeds'],
-  PCD:        ['semDuploComando', 'categoryQuantities'],
+  CFC:        ['disabilityType', 'specialNeeds', 'examModalityA', 'examModalityB'],
+  PCD:        ['semDuploComando', 'categoryQuantities', 'examModalityA', 'examModalityB'],
 };
 
 /** Remove campos que não existem mais na tabela do módulo alvo */
@@ -717,6 +718,8 @@ router.get("/requests", async (req, res) => {
 });
 router.post("/requests", async (req, res) => {
   try {
+    const modalityError = modalityValidationError(req.body);
+    if (modalityError) return res.status(400).json({ error: modalityError });
     const body = req.body;
     const filtered: any = {};
     for (const k of ALLOWED_REQ_FIELDS) { if (body[k] !== undefined) filtered[k] = body[k]; }
@@ -752,11 +755,13 @@ const AUDIT_TRACKED_FIELDS = [
   'paidFee','completedPracticalCourse','practicalHours','hasVehicle',
   'cnhRestriction','instructor','vehiclePlate','checklistVehicle',
   'practicalCourseInserted','taxaPaga','disabilityType','specialNeeds',
-  'observation','cancellationReason',
+  'observation','cancellationReason','examModalityA','examModalityB',
 ];
 
 router.put("/requests", async (req, res) => {
   try {
+    const modalityError = modalityValidationError(req.body);
+    if (modalityError) return res.status(400).json({ error: modalityError });
     const body = req.body;
     if (!body?.id) return res.status(400).json({ error: "ID required" });
     const { id, createdAt, ...rawUpdates } = body;
