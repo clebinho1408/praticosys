@@ -3,6 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation, BlockedDate, SystemSettings } from '../types';
 import { isDateBlocked } from '../lib/dateBlocking';
+import { businessDate, visibleProvisionalDates } from '../../../../functions/_school-schedule';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X, Pencil, Copy, Check } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
 
@@ -677,6 +678,18 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [copiedProv, setCopiedProv] = useState(false);
   const [provMotivoModalOpen, setProvMotivoModalOpen] = useState(false);
   const [provMotivo, setProvMotivo] = useState('');
+  const [today, setToday] = useState(() => businessDate());
+  const [pauseDate, setPauseDate] = useState('');
+  useEffect(() => {
+    const refreshDate = () => setToday(businessDate());
+    const timer = window.setInterval(refreshDate, 30_000);
+    window.addEventListener('focus', refreshDate);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshDate);
+    };
+  }, []);
+  useEffect(() => { setPauseDate(''); setToday(businessDate()); }, [isModalOpen]);
   
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -717,7 +730,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   });
 
   const fetch = async () => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = businessDate();
 
     let schools = await api.getSchoolsAsync();
 
@@ -1077,6 +1090,35 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
           </div>
         </div>
 
+        {type === 'main' && (
+          <div className="space-y-2 rounded border border-amber-200 bg-amber-50 p-3">
+            <label htmlFor="main-pause-date" className="block text-sm font-medium">Pausar escala em uma data</label>
+            <p className="text-xs text-gray-600">A pausa vale somente para o dia escolhido. Nos demais dias, a escala segue a frequência configurada. Provas já agendadas não serão alteradas.</p>
+            <div className="flex flex-wrap gap-2">
+              <input id="main-pause-date" type="date" min={today} value={pauseDate}
+                onChange={e => setPauseDate(e.target.value)}
+                className="border rounded p-2 bg-white text-gray-900" />
+              <button type="button" disabled={!pauseDate || pauseDate < today || schedule.pausedDates?.includes(pauseDate)}
+                onClick={() => {
+                  updateSchedule({ pausedDates: [...(schedule.pausedDates || []), pauseDate].sort() });
+                  setPauseDate('');
+                }}
+                className="px-3 py-2 text-xs font-bold rounded border border-amber-300 bg-white text-amber-800 disabled:opacity-40">
+                Adicionar pausa
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">Clique em Salvar para aplicar as alterações.</p>
+            {(schedule.pausedDates || []).filter(date => date >= today).sort().map(date => (
+              <div key={date} className="flex items-center justify-between gap-2 bg-white rounded px-3 py-2 text-sm">
+                <span>{date.split('-').reverse().join('/')} — dia inteiro</span>
+                <button type="button" aria-label={`Remover pausa ${date.split('-').reverse().join('/')}`}
+                  onClick={() => updateSchedule({ pausedDates: (schedule.pausedDates || []).filter(d => d !== date) })}
+                  className="text-red-600 p-1 hover:bg-red-50 rounded"><Trash2 className="h-4 w-4" /></button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium mb-1">Frequência</label>
           <select 
@@ -1209,8 +1251,6 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     const schedule = formData.provisionalSchedule;
     if (!schedule) return null;
 
-    const today = new Date().toISOString().split('T')[0];
-
     const specificDates: ScheduleSpecificDate[] = Array.isArray(schedule.specificDates)
       ? schedule.specificDates
       : [];
@@ -1264,7 +1304,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     const checkSystemBlock = (dateStr: string) => isDateBlocked(dateStr, blockedDates, systemSettings);
 
     // Sort by date asc
-    const sorted = [...specificDates].sort((a, b) => a.date.localeCompare(b.date));
+    const sorted = visibleProvisionalDates(specificDates, today).sort((a, b) => a.date.localeCompare(b.date));
 
     const formatDateBR = (d: string) => {
       if (!d) return '—';
@@ -1475,7 +1515,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
           </div>
 
           {sorted.length === 0 && (
-            <p className="text-xs text-gray-500 italic py-2">Nenhuma data configurada. Clique em "+ Adicionar Data".</p>
+            <p className="text-xs text-gray-500 italic py-2">Nenhuma data atual ou futura. Clique em "+ Adicionar Data".</p>
           )}
 
           {sorted.map((entry) => {

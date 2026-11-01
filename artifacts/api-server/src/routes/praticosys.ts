@@ -1,4 +1,6 @@
 import { Router } from "express";
+// @ts-ignore Shared calendar policy, also bundled into Cloudflare and the frontend.
+import { mainSchedulePaused, schoolPauseValidation } from "../../../../functions/_school-schedule.js";
 import { db } from "@workspace/db";
 import {
   users, drivingSchools, examiners, instructors, vehicles,
@@ -397,6 +399,8 @@ router.get("/schools", async (_req, res) => {
 router.post("/schools", async (req, res) => {
   if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
+    const invalid = schoolPauseValidation(req.body);
+    if (invalid) return res.status(400).json({ error: invalid });
     const item = await db.insert(drivingSchools).values({ id: crypto.randomUUID(), ...req.body }).returning();
     return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
@@ -404,6 +408,8 @@ router.post("/schools", async (req, res) => {
 router.put("/schools", async (req, res) => {
   if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
+    const invalid = schoolPauseValidation(req.body);
+    if (invalid) return res.status(400).json({ error: invalid });
     const { id, createdAt, ...updates } = req.body;
     const item = await db.update(drivingSchools).set(updates).where(eq(drivingSchools.id, id)).returning();
     return res.json(item[0]);
@@ -1146,6 +1152,9 @@ router.post("/schedule-slots", async (req, res) => {
       const school = (await db.select().from(drivingSchools)
         .where(eq(drivingSchools.id, schoolId)).limit(1))[0];
       if (!school) return res.status(404).json({ error: "Autoescola não encontrada." });
+      if (mainSchedulePaused(school, date)) {
+        return res.status(409).json({ error: "Escala Principal pausada nesta data. Consulte a data novamente." });
+      }
       const day = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"][new Date(`${date}T00:00:00`).getDay()];
       const schedule = school.provisionalSchedule?.active ? school.provisionalSchedule :
         school.mainSchedule?.active ? school.mainSchedule : null;

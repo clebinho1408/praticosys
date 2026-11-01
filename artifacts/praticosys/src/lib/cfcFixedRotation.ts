@@ -1,4 +1,5 @@
 import type { City, DrivingSchool, Examiner, SchoolSchedule } from '../types';
+import { mainSchedulePaused } from '../../../../functions/_school-schedule';
 
 export type FixedCommitment = {
   id?: string;
@@ -107,6 +108,10 @@ export function planFixedScales(input: {
     }
 
     // ── Escala Principal (days[] + slots[]) ─────────────────────────────────
+    if (mainSchedulePaused(school, date)) {
+      issues.push({ school, reason: 'Escala Principal pausada nesta data.' });
+      continue;
+    }
     const schedule = activeSchoolSchedule(school);
     if (!schedule?.days?.includes(day)) {
       issues.push({ school, reason: 'Sem escala ativa para o dia selecionado.' });

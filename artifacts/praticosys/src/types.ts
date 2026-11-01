@@ -69,6 +69,7 @@ export interface SchoolSchedule {
   days: string[]; // ['SEG', 'TER', ...]
   slots: { time: string; examiner: string; day?: string }[];
   active: boolean;
+  pausedDates?: string[]; // Main schedule only: whole-day exceptions, without toggling active.
   specificDates?: ScheduleSpecificDate[]; // used by provisional schedule
   activateFrom?: string; // 'YYYY-MM-DD' — provisional: auto-activate on this date (undefined = manual only)
 }

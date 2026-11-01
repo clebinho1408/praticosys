@@ -5,6 +5,7 @@ import { eq, and } from 'drizzle-orm';
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit } from '../_cfc-confirmed.js';
 import { extraEditError, extraPatch } from '../_cfc-extra.js';
 import { isD1 } from '../_d1.js';
+import { mainSchedulePaused } from '../_school-schedule.js';
 
 function getSlotTable(examType: string) {
   return examType === 'PCD' ? pcdScheduleSlots : cfcScheduleSlots;
@@ -61,6 +62,9 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         const school = (await db.select().from(drivingSchools)
           .where(eq(drivingSchools.id, schoolId)).limit(1))[0];
         if (!school) return error('Autoescola não encontrada.', 404);
+        if (mainSchedulePaused(school, date)) {
+          return error('Escala Principal pausada nesta data. Consulte a data novamente.', 409);
+        }
         const day = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'][new Date(`${date}T00:00:00`).getDay()];
 
         // ── Escala Provisória com specificDates ──────────────────────────────────

@@ -2,6 +2,7 @@
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
 import { drivingSchools } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
+import { schoolPauseValidation } from '../_school-schedule.js';
 
 async function ensureSchema(db: any) {
   try {
@@ -36,6 +37,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
       await ensureSchema(db);
       const body = await parseBody<any>(request);
+      const invalid = schoolPauseValidation(body);
+      if (invalid) return error(invalid, 400);
       const newItem = await db.insert(drivingSchools).values({ id: crypto.randomUUID(), ...body }).returning();
       return json(newItem[0]);
     }
@@ -44,6 +47,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
       await ensureSchema(db);
       const body = await parseBody<any>(request);
+      const invalid = schoolPauseValidation(body);
+      if (invalid) return error(invalid, 400);
       const { id, createdAt, ...updates } = body;
       const updated = await db.update(drivingSchools).set(updates).where(eq(drivingSchools.id, id)).returning();
       return json(updated[0]);
