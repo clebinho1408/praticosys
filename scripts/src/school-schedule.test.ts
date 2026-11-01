@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { localD1 } from './d1-runtime.js';
 import { businessDate, isCalendarDate, mainSchedulePaused, schoolPauseValidation, visibleProvisionalDates } from '../../functions/_school-schedule.js';
 import { planFixedScales } from '../../artifacts/praticosys/src/lib/cfcFixedRotation.js';
+import { canPauseScheduleOn } from '../../artifacts/praticosys/src/lib/dateBlocking.js';
 import { cfcScheduleSlots } from '../../db/schema.js';
 
 const { onRequest: schools } = await import(new URL('../../functions/api/schools.ts', import.meta.url).href);
@@ -11,6 +12,17 @@ assert.equal(businessDate(new Date('2026-11-02T02:59:59Z')), '2026-11-01');
 assert.equal(businessDate(new Date('2026-11-02T03:00:00Z')), '2026-11-02');
 assert.equal(isCalendarDate('2026-02-30'), false);
 assert.equal(isCalendarDate('2028-02-29'), true);
+const holidays = [{ id: 'synthetic-holiday', date: '2026-11-02', description: 'Feriado de teste', isHoliday: true }];
+assert.equal(canPauseScheduleOn('2026-10-26', '2026-11-01', ['SEG'], [], null), false, 'Past fixed weekday');
+assert.equal(canPauseScheduleOn('2026-11-02', '2026-11-01', ['SEG'], holidays, null), false, 'Holiday on fixed weekday');
+assert.equal(canPauseScheduleOn('2026-11-03', '2026-11-01', ['SEG'], [], null), false, 'Unconfigured weekday');
+assert.equal(canPauseScheduleOn('2026-11-03', '2026-11-03', ['TER'], [], null), true, 'Today is allowed on configured weekday');
+assert.equal(canPauseScheduleOn('2026-11-09', '2026-11-01', ['SEG'], holidays, null), true, 'Future fixed weekday');
+assert.equal(canPauseScheduleOn('2026-11-09', '2026-11-01', [], [], null), false, 'No days configured');
+assert.equal(canPauseScheduleOn('2026-02-30', '2026-01-01', ['SEG'], [], null), false, 'Invalid calendar date');
+assert.equal(canPauseScheduleOn('2026-11-03', '2026-11-01', ['TER'], [
+  { id: 'blocked', date: '2026-11-03T00:00:00Z', description: 'Data bloqueada', isHoliday: false },
+], null), false, 'Blocked dates are respected even before settings load');
 for (const pausedDates of [null, '2026-11-02', ['invalid'], ['2026-02-30'], ['2026-11-02', '2026-11-02']]) {
   assert.ok(schoolPauseValidation({ mainSchedule: { pausedDates } }));
 }

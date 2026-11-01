@@ -13,6 +13,9 @@ interface DatePickerProps {
   settings?: SystemSettings | null;
   placeholder?: string;
   className?: string;
+  id?: string;
+  minDate?: string;
+  allowedWeekdays?: number[];
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -22,6 +25,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
   settings = null,
   placeholder = 'Selecione uma data',
   className = '',
+  id,
+  minDate,
+  allowedWeekdays,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,7 +36,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
   const isDateUnavailable = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return isDateInPast(dateStr) || isDateBlocked(dateStr, blockedDates, settings).blocked;
+    return (minDate ? dateStr < minDate : isDateInPast(dateStr)) ||
+      (allowedWeekdays !== undefined && !allowedWeekdays.includes(date.getDay())) ||
+      isDateBlocked(dateStr, blockedDates, settings).blocked;
   };
 
   const disabledDays: Matcher = isDateUnavailable;
@@ -58,7 +66,10 @@ const DatePicker: React.FC<DatePickerProps> = ({
     <div className={`relative ${className}`} ref={containerRef}>
       {/* ── Trigger — mesmo visual do <input type="date"> da Escala Provisória ── */}
       <button
+        id={id}
         type="button"
+        aria-expanded={isOpen}
+        aria-haspopup="dialog"
         onClick={() => setIsOpen(v => !v)}
         className={`w-full flex items-center gap-2 border rounded-lg px-2.5 py-2 text-sm outline-none
           focus:ring-2 focus:ring-blue-500 bg-white transition-colors
@@ -93,6 +104,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             selected={selectedDate}
             onSelect={handleSelect}
             disabled={disabledDays}
+            hidden={allowedWeekdays === undefined ? undefined : { dayOfWeek: [0, 1, 2, 3, 4, 5, 6].filter(day => !allowedWeekdays.includes(day)) }}
             locale={ptBR}
             showOutsideDays
             classNames={{

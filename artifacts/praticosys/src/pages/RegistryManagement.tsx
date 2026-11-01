@@ -2,7 +2,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
 import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation, BlockedDate, SystemSettings } from '../types';
-import { isDateBlocked } from '../lib/dateBlocking';
+import { isDateBlocked, canPauseScheduleOn } from '../lib/dateBlocking';
+import DatePicker from '../components/DatePicker';
 import { businessDate, visibleProvisionalDates } from '../../../../functions/_school-schedule';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X, Pencil, Copy, Check } from 'lucide-react';
 import { ConfirmModal } from '../components/CustomModals';
@@ -918,6 +919,9 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const renderScheduleConfig = (type: 'main' | 'provisional') => {
     const schedule = type === 'main' ? formData.mainSchedule : formData.provisionalSchedule;
     if (!schedule) return null;
+    const allowedPauseWeekdays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB']
+      .flatMap((day, index) => (schedule.days || []).includes(day) ? [index] : []);
+    const validPauseDate = canPauseScheduleOn(pauseDate, today, schedule.days || [], blockedDates, systemSettings);
 
     const updateSchedule = (updates: Partial<SchoolSchedule>) => {
       if (type === 'main') {
@@ -1095,11 +1099,16 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
             <label htmlFor="main-pause-date" className="block text-sm font-medium">Pausar escala em uma data</label>
             <p className="text-xs text-gray-600">A pausa vale somente para o dia escolhido. Nos demais dias, a escala segue a frequência configurada. Provas já agendadas não serão alteradas.</p>
             <div className="flex flex-wrap gap-2">
-              <input id="main-pause-date" type="date" min={today} value={pauseDate}
-                onChange={e => setPauseDate(e.target.value)}
-                className="border rounded p-2 bg-white text-gray-900" />
-              <button type="button" disabled={!pauseDate || pauseDate < today || schedule.pausedDates?.includes(pauseDate)}
+              <DatePicker id="main-pause-date" value={pauseDate} minDate={today}
+                allowedWeekdays={allowedPauseWeekdays} blockedDates={blockedDates} settings={systemSettings}
+                onChange={date => {
+                  if (!date || canPauseScheduleOn(date, businessDate(), schedule.days || [], blockedDates, systemSettings)) setPauseDate(date);
+                }}
+                className="w-full sm:w-auto sm:min-w-[220px]" />
+              <button type="button" disabled={!validPauseDate || schedule.pausedDates?.includes(pauseDate)}
                 onClick={() => {
+                  if (!canPauseScheduleOn(pauseDate, businessDate(), schedule.days || [], blockedDates, systemSettings) ||
+                    schedule.pausedDates?.includes(pauseDate)) return;
                   updateSchedule({ pausedDates: [...(schedule.pausedDates || []), pauseDate].sort() });
                   setPauseDate('');
                 }}
@@ -1107,6 +1116,9 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                 Adicionar pausa
               </button>
             </div>
+            <p className="text-xs text-gray-600">
+              {allowedPauseWeekdays.length ? 'Somente os dias fixos configurados são exibidos. Datas passadas, feriados e datas bloqueadas não podem ser selecionados.' : 'Configure os dias fixos da escala abaixo para selecionar uma data de pausa.'}
+            </p>
             <p className="text-xs text-gray-500">Clique em Salvar para aplicar as alterações.</p>
             {(schedule.pausedDates || []).filter(date => date >= today).sort().map(date => (
               <div key={date} className="flex items-center justify-between gap-2 bg-white rounded px-3 py-2 text-sm">

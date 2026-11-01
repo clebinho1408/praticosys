@@ -1,4 +1,13 @@
 import { BlockedDate, SystemSettings } from '../types';
+import { isCalendarDate } from '../../../../functions/_school-schedule';
+
+export function canPauseScheduleOn(
+  date: string, today: string, fixedDays: string[], blockedDates: BlockedDate[], settings?: SystemSettings | null,
+): boolean {
+  if (!isCalendarDate(date) || date < today) return false;
+  const weekday = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'][new Date(`${date}T12:00:00Z`).getUTCDay()];
+  return fixedDays.includes(weekday) && !isDateBlocked(date, blockedDates, settings).blocked;
+}
 
 export function getTodayDateString(): string {
   const today = new Date();
