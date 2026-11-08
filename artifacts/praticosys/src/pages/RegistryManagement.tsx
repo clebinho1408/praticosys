@@ -1775,6 +1775,9 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                       : (s.mainSchedule?.active ? s.mainSchedule : null);
                     
                     const scheduleType = s.provisionalSchedule?.active ? 'Provisória' : 'Principal';
+                    const upcomingDates = visibleProvisionalDates(activeSchedule?.specificDates ?? [], today)
+                      .filter(entry => !!entry.date)
+                      .sort((a, b) => a.date.localeCompare(b.date));
                     const ORDER = ['A', 'B', 'C', 'D', 'E'];
                     const servicesText = s.services && s.services.length > 0
                       ? [...s.services].sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)).join(', ')
@@ -1809,11 +1812,10 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
                               {/* Escala Provisória: mostrar specificDates */}
                               {scheduleType === 'Provisória' ? (
                                 <div className="space-y-0.5">
-                                  {(activeSchedule.specificDates ?? []).length === 0 ? (
-                                    <span className="text-[11px] text-gray-400 italic">Nenhuma data configurada</span>
+                                  {upcomingDates.length === 0 ? (
+                                    <span className="text-[11px] text-gray-400 italic">Nenhuma data futura ou para hoje</span>
                                   ) : (
-                                    [...(activeSchedule.specificDates ?? [])]
-                                      .sort((a, b) => a.date.localeCompare(b.date))
+                                    upcomingDates
                                       .map(d => {
                                         const [y, m, day] = d.date.split('-');
                                         const examName = examiners.find(ex => ex.id === d.examiner)?.name || 'Sem examinador';
