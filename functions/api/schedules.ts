@@ -2,6 +2,7 @@
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
 import { examSchedules, cnhbrasilRequests, cfcRequests, pcdRequests, drivingSchools } from '../../db/schema.js';
 import { eq, and, desc, isNotNull, sql } from 'drizzle-orm';
+import { cnhBancaConflict } from '../_cnh-time-conflicts.js';
 
 const calculateStatus = (dateStr: string, timeStr: string, currentStatus: string) => {
   if (currentStatus === 'CANCELLED') return 'CANCELLED';
@@ -69,6 +70,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         }
       }
       const cleanDate = body.date.split('T')[0];
+      const conflict = cnhBancaConflict({ ...body, id: undefined }, await db.select().from(examSchedules));
+      if (conflict) return error(conflict, 409);
       const initialStatus = calculateStatus(cleanDate, body.time, 'OPEN');
       const last = await db.select({ code: examSchedules.code }).from(examSchedules)
         .where(isNotNull(examSchedules.code)).orderBy(desc(examSchedules.createdAt)).limit(1);
@@ -139,6 +142,11 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const filtered: any = {};
       for (const k of allowed) if (updates[k] !== undefined) filtered[k] = updates[k];
 
+      const existing = await db.select().from(examSchedules);
+      const original = existing.find(schedule => schedule.id === id);
+      if (!original) return error('Banca não encontrada.', 404);
+      const conflict = cnhBancaConflict({ ...original, ...filtered, id }, existing);
+      if (conflict) return error(conflict, 409);
       const updated = await db.update(examSchedules).set(filtered).where(eq(examSchedules.id, id)).returning();
       const current = updated[0] ?? { id, ...updates };
       const newStatus = calculateStatus((current as any).date, (current as any).time, (current as any).status);

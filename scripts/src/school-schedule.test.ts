@@ -30,6 +30,9 @@ assert.equal(schoolPauseValidation({ mainSchedule: { pausedDates: [] } }), null)
 const dates = [{ date: '2026-11-01' }, { date: '2026-11-02' }, { date: '' }, { date: '2026-11-03' }];
 assert.deepEqual(visibleProvisionalDates(dates, '2026-11-02'), dates.slice(1));
 assert.equal(dates.length, 4, 'Filtering must not mutate historical configuration');
+const draftDates = [{ id: 'draft', date: '0002-01-11' }, { id: 'expired', date: '2026-01-01' }];
+assert.deepEqual(visibleProvisionalDates(draftDates, '2026-11-02', new Set(['draft'])), [draftDates[0]],
+  'Typing a partial year must not unmount the draft date input; persisted expired rows stay hidden');
 
 const schedule = { active: true, frequency: '1_WEEK', days: ['SEG', 'TER'],
   slots: [{ time: '08:00', examiner: 'synthetic-examiner' }], pausedDates: ['2026-11-02'] };

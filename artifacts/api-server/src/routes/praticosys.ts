@@ -1,6 +1,8 @@
 import { Router } from "express";
 // @ts-ignore Shared calendar policy, also bundled into Cloudflare and the frontend.
 import { mainSchedulePaused, schoolPauseValidation } from "../../../../functions/_school-schedule.js";
+// @ts-ignore Shared CNH time-conflict policy.
+import { cnhBancaConflict, cnhSchoolScaleConflict } from "../../../../functions/_cnh-time-conflicts.js";
 import { db } from "@workspace/db";
 import {
   users, drivingSchools, examiners, instructors, vehicles,
@@ -401,6 +403,8 @@ router.post("/schools", async (req, res) => {
   try {
     const invalid = schoolPauseValidation(req.body);
     if (invalid) return res.status(400).json({ error: invalid });
+    const conflict = cnhSchoolScaleConflict({ ...req.body, id: undefined }, await db.select().from(drivingSchools));
+    if (conflict) return res.status(409).json({ error: conflict });
     const item = await db.insert(drivingSchools).values({ id: crypto.randomUUID(), ...req.body }).returning();
     return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
@@ -411,6 +415,11 @@ router.put("/schools", async (req, res) => {
     const invalid = schoolPauseValidation(req.body);
     if (invalid) return res.status(400).json({ error: invalid });
     const { id, createdAt, ...updates } = req.body;
+    const existing = await db.select().from(drivingSchools);
+    const current = existing.find(school => school.id === id);
+    if (!current) return res.status(404).json({ error: "Autoescola não encontrada." });
+    const conflict = cnhSchoolScaleConflict({ ...current, ...updates, id }, existing);
+    if (conflict) return res.status(409).json({ error: conflict });
     const item = await db.update(drivingSchools).set(updates).where(eq(drivingSchools.id, id)).returning();
     return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
@@ -580,6 +589,8 @@ router.post("/schedules", async (req, res) => {
       }
     }
     const cleanDate = body.date.split("T")[0];
+    const conflict = cnhBancaConflict({ ...body, id: undefined }, await db.select().from(examSchedules));
+    if (conflict) return res.status(409).json({ error: conflict });
     const initialStatus = calcStatus(cleanDate, body.time, "OPEN");
     const last = await db.select({ code: examSchedules.code }).from(examSchedules)
       .where(isNotNull(examSchedules.code)).orderBy(desc(examSchedules.createdAt)).limit(1);
@@ -613,7 +624,13 @@ router.put("/schedules", async (req, res) => {
       broadcast("schedules_updated", item[0]);
       return res.json(item[0]);
     }
-    const item = await db.update(examSchedules).set(updates).where(eq(examSchedules.id, id)).returning();
+    const existing = await db.select().from(examSchedules);
+    const current = existing.find(schedule => schedule.id === id);
+    if (!current) return res.status(404).json({ error: "Banca não encontrada." });
+    const normalized = { ...updates, ...(updates.date ? { date: updates.date.split("T")[0] } : {}) };
+    const conflict = cnhBancaConflict({ ...current, ...normalized, id }, existing);
+    if (conflict) return res.status(409).json({ error: conflict });
+    const item = await db.update(examSchedules).set(normalized).where(eq(examSchedules.id, id)).returning();
     broadcast("schedules_updated", item[0]);
     return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }

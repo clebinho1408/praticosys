@@ -3,6 +3,7 @@ import { getDb, json, error, parseBody, getQuery } from '../_db.js';
 import { drivingSchools } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { schoolPauseValidation } from '../_school-schedule.js';
+import { cnhSchoolScaleConflict } from '../_cnh-time-conflicts.js';
 
 async function ensureSchema(db: any) {
   try {
@@ -39,6 +40,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const body = await parseBody<any>(request);
       const invalid = schoolPauseValidation(body);
       if (invalid) return error(invalid, 400);
+      const conflict = cnhSchoolScaleConflict({ ...body, id: undefined }, await db.select().from(drivingSchools));
+      if (conflict) return error(conflict, 409);
       const newItem = await db.insert(drivingSchools).values({ id: crypto.randomUUID(), ...body }).returning();
       return json(newItem[0]);
     }
@@ -50,6 +53,11 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const invalid = schoolPauseValidation(body);
       if (invalid) return error(invalid, 400);
       const { id, createdAt, ...updates } = body;
+      const existing = await db.select().from(drivingSchools);
+      const current = existing.find(school => school.id === id);
+      if (!current) return error('Autoescola não encontrada.', 404);
+      const conflict = cnhSchoolScaleConflict({ ...current, ...updates, id }, existing);
+      if (conflict) return error(conflict, 409);
       const updated = await db.update(drivingSchools).set(updates).where(eq(drivingSchools.id, id)).returning();
       return json(updated[0]);
     }

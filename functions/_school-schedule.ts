@@ -31,6 +31,10 @@ export function schoolPauseValidation(body: any): string | null {
   return null;
 }
 
-export function visibleProvisionalDates<T extends { date: string }>(dates: T[], today: string): T[] {
-  return dates.filter(entry => !entry.date || entry.date >= today);
+export function visibleProvisionalDates<T extends { date: string; id?: string }>(
+  dates: T[], today: string, draftIds: ReadonlySet<string> = new Set(),
+): T[] {
+  // Native date inputs can emit an incomplete year while typing. Never unmount
+  // an in-progress row just because that intermediate value sorts before today.
+  return dates.filter(entry => !entry.date || entry.date >= today || (!!entry.id && draftIds.has(entry.id)));
 }

@@ -10,6 +10,8 @@
     "test:cpf-cloudflare": "tsx ./src/cpf-cloudflare.test.ts",
     "test:cpf-postgres": "tsx ./src/cpf-postgres.test.ts",
     "test:cnh-modality": "tsx ./src/cnh-exam-modality.test.ts",
+    "test:cnh-time-conflicts": "tsx ./src/cnh-time-conflicts.test.ts",
+    "test:cnh-time-conflicts-postgres": "tsx ./src/cpf-postgres.test.ts ./cnh-time-conflicts-postgres.integration.ts",
     "test:cnh-modality-postgres": "tsx ./src/cpf-postgres.test.ts ./cnh-exam-modality-postgres.integration.ts",
     "d1:dev": "tsx ./src/d1-dev.ts",
     "d1:preview": "tsx ./src/d1-preview.ts",

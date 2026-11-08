@@ -6,7 +6,7 @@ import { isDateBlocked, canPauseScheduleOn } from '../lib/dateBlocking';
 import DatePicker from '../components/DatePicker';
 import { businessDate, visibleProvisionalDates } from '../../../../functions/_school-schedule';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X, Pencil, Copy, Check } from 'lucide-react';
-import { ConfirmModal } from '../components/CustomModals';
+import { AlertModal, ConfirmModal } from '../components/CustomModals';
 
 type Tab = 'USERS' | 'SCHOOLS' | 'EXAMINERS' | 'INSTRUCTORS';
 
@@ -681,6 +681,8 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [provMotivo, setProvMotivo] = useState('');
   const [today, setToday] = useState(() => businessDate());
   const [pauseDate, setPauseDate] = useState('');
+  const [schoolSaveError, setSchoolSaveError] = useState('');
+  const [draftProvisionalIds, setDraftProvisionalIds] = useState<Set<string>>(() => new Set());
   useEffect(() => {
     const refreshDate = () => setToday(businessDate());
     const timer = window.setInterval(refreshDate, 30_000);
@@ -792,8 +794,11 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
 
   const openModal = async (school?: DrivingSchool) => {
     setEditing(school || null);
+    setDraftProvisionalIds(new Set());
     if (school) {
       const loaded = { ...initialFormData, ...school };
+      loaded.mainSchedule ||= initialFormData.mainSchedule;
+      loaded.provisionalSchedule ||= initialFormData.provisionalSchedule;
       // Normalize provisionalSchedule.specificDates — may be null in older records
       if (loaded.provisionalSchedule) {
         loaded.provisionalSchedule = {
@@ -848,7 +853,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
       setIsModalOpen(false);
       fetch();
     } catch (err: any) {
-      alert('Erro ao salvar autoescola: ' + (err.message || 'Verifique os dados'));
+      setSchoolSaveError(err.message || 'Não foi possível salvar a autoescola. Verifique os dados.');
     }
   };
 
@@ -1275,9 +1280,11 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     };
 
     const addDate = () => {
+      const id = crypto.randomUUID();
+      setDraftProvisionalIds(ids => new Set([...ids, id]));
       updateSpecificDates([
         ...specificDates,
-        { id: crypto.randomUUID(), date: '', time: '', examiner: '' },
+        { id, date: '', time: '', examiner: '' },
       ]);
     };
 
@@ -1286,6 +1293,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     };
 
     const updateDateEntry = (id: string, field: keyof ScheduleSpecificDate, value: string) => {
+      if (field === 'date') setDraftProvisionalIds(ids => new Set([...ids, id]));
       updateSpecificDates(
         specificDates.map(d => {
           if (d.id !== id) return d;
@@ -1316,7 +1324,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     const checkSystemBlock = (dateStr: string) => isDateBlocked(dateStr, blockedDates, systemSettings);
 
     // Sort by date asc
-    const sorted = visibleProvisionalDates(specificDates, today).sort((a, b) => a.date.localeCompare(b.date));
+    const sorted = visibleProvisionalDates(specificDates, today, draftProvisionalIds).sort((a, b) => a.date.localeCompare(b.date));
 
     const formatDateBR = (d: string) => {
       if (!d) return '—';
@@ -1694,6 +1702,9 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
          onConfirm={confirmState.onConfirm}
          onClose={() => setConfirmState(prev => ({...prev, isOpen: false}))}
       />
+
+      <AlertModal isOpen={!!schoolSaveError} title="Não foi possível salvar"
+        message={schoolSaveError} onClose={() => setSchoolSaveError('')} />
 
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <div className="flex flex-wrap gap-4 flex-1">
