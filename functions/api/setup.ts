@@ -94,6 +94,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
       sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS endereco_patio_mudanca text`,
       sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS banca_principal jsonb`,
       sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS banca_provisoria jsonb`,
+      sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS patios jsonb DEFAULT '[]'::jsonb`,
       sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS perfil_cnh_brasil boolean NOT NULL DEFAULT false`,
       sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS endereco_orgao text`,
       sql`ALTER TABLE configuracoes ADD COLUMN IF NOT EXISTS url_logo text`,

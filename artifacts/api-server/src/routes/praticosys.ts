@@ -25,6 +25,8 @@ import { restoreBackup } from "../../../../functions/_backup-restore.js";
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit, hasCandidateIdentity, clearAppointment } from "../../../../functions/_cfc-confirmed.js";
 // @ts-ignore Shared compatibility policy for Express and Cloudflare.
 import { extraEditError, extraPatch } from "../../../../functions/_cfc-extra.js";
+import { interestError, interestPatch } from "../../../../functions/_cfc-interest.js";
+import { schoolYardsValidation } from "../../../../functions/_school-yards.js";
 // @ts-ignore Shared server-only integration for Express and Cloudflare.
 import { lookupCpf, consumeCpfQuota, cpfSettingError } from "../../../../functions/_cpf-lookup.js";
 
@@ -403,6 +405,8 @@ router.post("/schools", async (req, res) => {
   try {
     const invalid = schoolPauseValidation(req.body);
     if (invalid) return res.status(400).json({ error: invalid });
+    const invalidYards = schoolYardsValidation(req.body);
+    if (invalidYards) return res.status(400).json({ error: invalidYards });
     const conflict = cnhSchoolScaleConflict({ ...req.body, id: undefined }, await db.select().from(drivingSchools));
     if (conflict) return res.status(409).json({ error: conflict });
     const item = await db.insert(drivingSchools).values({ id: crypto.randomUUID(), ...req.body }).returning();
@@ -414,6 +418,8 @@ router.put("/schools", async (req, res) => {
   try {
     const invalid = schoolPauseValidation(req.body);
     if (invalid) return res.status(400).json({ error: invalid });
+    const invalidYards = schoolYardsValidation(req.body);
+    if (invalidYards) return res.status(400).json({ error: invalidYards });
     const { id, createdAt, ...updates } = req.body;
     const existing = await db.select().from(drivingSchools);
     const current = existing.find(school => school.id === id);
@@ -662,9 +668,9 @@ const ALLOWED_REQ_FIELDS = [
 
 /** Campos removidos de cada tabela de módulo — não podem ser gravados nelas */
 const MODULE_DROPPED_FIELDS: Record<string, string[]> = {
-  CNH_BRASIL: ['disabilityType', 'specialNeeds', 'categoryQuantities'],
+  CNH_BRASIL: ['disabilityType', 'specialNeeds', 'categoryQuantities', 'interestedExaminers'],
   CFC:        ['disabilityType', 'specialNeeds', 'examModalityA', 'examModalityB'],
-  PCD:        ['semDuploComando', 'categoryQuantities', 'examModalityA', 'examModalityB'],
+  PCD:        ['semDuploComando', 'categoryQuantities', 'examModalityA', 'examModalityB', 'interestedExaminers'],
 };
 
 /** Remove campos que não existem mais na tabela do módulo alvo */
@@ -795,6 +801,23 @@ router.put("/requests", async (req, res) => {
     // Busca registro para saber qual tabela atualizar e para auditoria
     const found = await findRequestById(id);
     const role = (req as any).sessionUser?.role;
+    if (body.registerInterest) {
+      // "Tenho interesse": identidade vem da sessão, nunca do corpo da requisição.
+      const sessionUserId = (req as any).sessionUser?.id;
+      const [sessionUser] = sessionUserId
+        ? await db.select({ examinerId: users.examinerId }).from(users).where(eq(users.id, sessionUserId)).limit(1)
+        : [];
+      const [examiner] = sessionUser?.examinerId
+        ? await db.select({ id: examiners.id, name: examiners.name }).from(examiners).where(eq(examiners.id, sessionUser.examinerId)).limit(1)
+        : [];
+      const invalid = interestError(found?.row, found?.modulo ?? "", role, examiner);
+      if (invalid) return res.status(invalid.status).json({ error: invalid.error });
+      const rows = await db.update(cfcRequests).set({ ...interestPatch(found!.row, examiner!), updatedAt: new Date() })
+        .where(and(eq(cfcRequests.id, id), eq(cfcRequests.status, "WAITING_SCHEDULING"))).returning();
+      if (!rows.length) return res.status(409).json({ error: "O pedido mudou. Atualize a lista." });
+      broadcast("requests_updated", rows[0]);
+      return res.json(rows[0]);
+    }
     if (body.extraEdit) {
       const invalid = extraEditError(found?.row, found?.modulo ?? "", role, body);
       if (invalid) return res.status(invalid.status).json({ error: invalid.error });

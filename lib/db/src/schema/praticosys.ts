@@ -46,6 +46,8 @@ export const drivingSchools = pgTable('autoescolas', {
   motoYardAddress: text('endereco_patio_moto'),
   carYardAddress: text('endereco_patio_carro'),
   categoryChangeYardAddress: text('endereco_patio_mudanca'),
+  // Pátios: lista com tipo (MOTO | CARRO | MUDANCA), endereço e referência
+  yards: jsonb('patios').$type<{ id: string; type: string; address: string; reference?: string }[]>().default([]),
   mainSchedule: jsonb('banca_principal').$type<any>(),
   provisionalSchedule: jsonb('banca_provisoria').$type<any>(),
   createdAt: timestamp('criado_em').defaultNow(),
@@ -348,6 +350,8 @@ export const cfcRequests = pgTable('solicitacoes_cfc', {
   cancellationReason: text('motivo_cancelamento'),
   observation: text('observacao'),
   categoryQuantities: jsonb('quantidades_categoria').$type<Record<string, number>>(),
+  // Examinadores que registraram interesse no pedido de prova extra
+  interestedExaminers: jsonb('examinadores_interessados').$type<{ examinerId: string; name: string; registeredAt: string }[]>().default([]),
   examHistory: jsonb('historico_exames').default([]),
   modulo: text('modulo'),
   rowColor: text('cor_linha'),

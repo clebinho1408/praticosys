@@ -74,6 +74,15 @@ export interface SchoolSchedule {
   activateFrom?: string; // 'YYYY-MM-DD' — provisional: auto-activate on this date (undefined = manual only)
 }
 
+export type SchoolYardType = 'MOTO' | 'CARRO' | 'MUDANCA';
+
+export interface SchoolYard {
+  id: string;
+  type: SchoolYardType; // MOTO = Cat. A | CARRO = Cat. B | MUDANCA = Cat. C, D, E
+  address: string;
+  reference?: string;
+}
+
 export interface DrivingSchool {
   id: string;
   name: string;
@@ -86,10 +95,12 @@ export interface DrivingSchool {
   examRotation?: boolean;
   cnhBrasilProfile?: boolean;
   
-  // Pátios
+  // Pátios (legado — campos únicos; mantidos apenas para compatibilidade de dados)
   motoYardAddress?: string;
   carYardAddress?: string;
   categoryChangeYardAddress?: string; // C, D, E
+  // Pátios (atual — lista com tipo, endereço e referência)
+  yards?: SchoolYard[];
   
   // Escalas
   mainSchedule?: SchoolSchedule;
@@ -190,6 +201,12 @@ export interface ExamResultEntry {
   scheduleId?: string; // New: ID of the schedule
 }
 
+export interface InterestedExaminer {
+  examinerId: string;
+  name: string;
+  registeredAt: string; // ISO
+}
+
 export interface ExamRequest {
   id: string;
   studentName: string;
@@ -241,6 +258,8 @@ export interface ExamRequest {
   observation?: string;
   categoryQuantities?: Record<string, number> | null;
   modulo?: string | null; // 'CFC' | 'PCD' | 'CNH_BRASIL'
+  // Examinadores que marcaram "Tenho interesse" em um pedido de prova extra (somente CFC)
+  interestedExaminers?: InterestedExaminer[] | null;
 
   attendanceConfirmed?: boolean; // New: Confirmed via WhatsApp/Phone
   cancellationReason?: string; // Reason for cancellation

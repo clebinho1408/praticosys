@@ -1,9 +1,10 @@
 // functions/api/requests.ts  →  GET|POST|PUT|DELETE /api/requests
 import { getDb, json, error, parseBody, getQuery, writeAuditLog, extractActor } from '../_db.js';
-import { cnhbrasilRequests, cfcRequests, pcdRequests, examiners, systemSettings, blockedDates } from '../../db/schema.js';
+import { cnhbrasilRequests, cfcRequests, pcdRequests, examiners, systemSettings, blockedDates, users } from '../../db/schema.js';
 import { eq, like, and } from 'drizzle-orm';
 import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatch, validateConfirmedEdit, hasCandidateIdentity, clearAppointment } from '../_cfc-confirmed.js';
 import { extraEditError, extraPatch } from '../_cfc-extra.js';
+import { interestError, interestPatch } from '../_cfc-interest.js';
 import { modalityValidationError } from '../_cnh-exam-modality.js';
 
 const ALLOWED_FIELDS = [
@@ -20,9 +21,9 @@ const ALLOWED_FIELDS = [
 
 /** Campos removidos de cada tabela de módulo — não podem ser gravados nelas */
 const MODULE_DROPPED_FIELDS: Record<string, string[]> = {
-  CNH_BRASIL: ['disabilityType', 'specialNeeds', 'categoryQuantities'],
+  CNH_BRASIL: ['disabilityType', 'specialNeeds', 'categoryQuantities', 'interestedExaminers'],
   CFC:        ['disabilityType', 'specialNeeds', 'examModalityA', 'examModalityB'],
-  PCD:        ['semDuploComando', 'categoryQuantities', 'examModalityA', 'examModalityB'],
+  PCD:        ['semDuploComando', 'categoryQuantities', 'examModalityA', 'examModalityB', 'interestedExaminers'],
 };
 
 /** Remove campos que não existem mais na tabela do módulo alvo */
@@ -130,6 +131,22 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       // Encontra registro atual (camelCase via ORM)
       const found = await findRequestById(db, id);
       const role = (data as any)?.sessionUserRole;
+      if (body.registerInterest) {
+        // "Tenho interesse": identidade vem da sessão, nunca do corpo da requisição.
+        const sessionUserId = (data as any)?.sessionUserId;
+        const [sessionUser] = sessionUserId
+          ? await db.select({ examinerId: users.examinerId }).from(users).where(eq(users.id, sessionUserId)).limit(1)
+          : [];
+        const [examiner] = sessionUser?.examinerId
+          ? await db.select({ id: examiners.id, name: examiners.name }).from(examiners).where(eq(examiners.id, sessionUser.examinerId)).limit(1)
+          : [];
+        const invalid = interestError(found?.row, found?.modulo ?? '', role, examiner);
+        if (invalid) return error(invalid.error, invalid.status);
+        const rows = await db.update(cfcRequests).set({ ...interestPatch(found!.row, examiner!), updatedAt: new Date() })
+          .where(and(eq(cfcRequests.id, id), eq(cfcRequests.status, 'WAITING_SCHEDULING'))).returning();
+        if (!rows.length) return error('O pedido mudou. Atualize a lista.', 409);
+        return json(rows[0]);
+      }
       if (body.extraEdit) {
         const invalid = extraEditError(found?.row, found?.modulo ?? '', role, body);
         if (invalid) return error(invalid.error, invalid.status);

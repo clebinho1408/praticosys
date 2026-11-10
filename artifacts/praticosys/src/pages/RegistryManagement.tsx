@@ -1,10 +1,11 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { api } from '../services/api';
-import { User, UserRole, OperatorModule, DrivingSchool, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation, BlockedDate, SystemSettings } from '../types';
+import { User, UserRole, OperatorModule, DrivingSchool, SchoolYard, SchoolYardType, Examiner, ExaminerBlockedPeriod, ExaminerRotationAvailability, Instructor, Vehicle, SchoolSchedule, ScheduleSpecificDate, City, ExamLocation, BlockedDate, SystemSettings } from '../types';
 import { isDateBlocked, canPauseScheduleOn } from '../lib/dateBlocking';
 import DatePicker from '../components/DatePicker';
 import { businessDate, visibleProvisionalDates } from '../../../../functions/_school-schedule';
+import { YARD_TYPES, YARD_TYPE_LABEL, effectiveYards } from '../../../../functions/_school-yards';
 import { Plus, Edit2, Trash2, Search, Building2, Users, GraduationCap, Save, Lock, Car, User as UserIcon, Bike, CheckCircle2, XCircle, MapPin, X, Pencil, Copy, Check } from 'lucide-react';
 import { AlertModal, ConfirmModal } from '../components/CustomModals';
 
@@ -683,6 +684,39 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
   const [pauseDate, setPauseDate] = useState('');
   const [schoolSaveError, setSchoolSaveError] = useState('');
   const [draftProvisionalIds, setDraftProvisionalIds] = useState<Set<string>>(() => new Set());
+  // ── Pátios: editor inline (novo/edição) ────────────────────────────────
+  const emptyYardDraft = { type: '' as SchoolYardType | '', address: '', reference: '' };
+  const [yardDraft, setYardDraft] = useState<{ type: SchoolYardType | ''; address: string; reference: string }>(emptyYardDraft);
+  const [editingYardId, setEditingYardId] = useState<string | null>(null);
+  const [yardError, setYardError] = useState('');
+  const [yardToDelete, setYardToDelete] = useState<SchoolYard | null>(null);
+  const resetYardDraft = () => { setYardDraft(emptyYardDraft); setEditingYardId(null); setYardError(''); };
+  const saveYardDraft = () => {
+    if (!yardDraft.type) { setYardError('Selecione o tipo do pátio.'); return; }
+    if (!yardDraft.address.trim()) { setYardError('Informe o endereço do pátio.'); return; }
+    const current = formData.yards ?? [];
+    const payload: SchoolYard = {
+      id: editingYardId ?? crypto.randomUUID(),
+      type: yardDraft.type,
+      address: yardDraft.address.trim(),
+      reference: yardDraft.reference.trim() || undefined,
+    };
+    const next = editingYardId
+      ? current.map(y => (y.id === editingYardId ? payload : y))
+      : [...current, payload];
+    setFormData({ ...formData, yards: next });
+    resetYardDraft();
+  };
+  const startEditYard = (yard: SchoolYard) => {
+    setEditingYardId(yard.id);
+    setYardDraft({ type: yard.type, address: yard.address, reference: yard.reference ?? '' });
+    setYardError('');
+  };
+  const removeYard = (yard: SchoolYard) => {
+    setFormData({ ...formData, yards: (formData.yards ?? []).filter(y => y.id !== yard.id) });
+    if (editingYardId === yard.id) resetYardDraft();
+    setYardToDelete(null);
+  };
   useEffect(() => {
     const refreshDate = () => setToday(businessDate());
     const timer = window.setInterval(refreshDate, 30_000);
@@ -709,6 +743,7 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
     motoYardAddress: '',
     carYardAddress: '',
     categoryChangeYardAddress: '',
+    yards: [],
     examRotation: false,
     cnhBrasilProfile: false,
     mainSchedule: { frequency: '1_WEEK', days: [], slots: [], active: false },
@@ -811,10 +846,13 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
             : [],
         };
       }
+      // Pátios: registros antigos (um endereço por tipo) viram itens da lista editável
+      loaded.yards = effectiveYards(loaded).map(y => ({ ...y, id: y.id.startsWith('legacy-') ? crypto.randomUUID() : y.id }));
       setFormData(loaded);
     } else {
       setFormData(initialFormData);
     }
+    resetYardDraft();
     setModalTab('MAIN');
     setIsModalOpen(true);
     // Re-fetch examiners to ensure we have the latest list
@@ -828,11 +866,20 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Pátios: a lista `yards` é a fonte única; os campos legados (um endereço por tipo)
+    // são limpos para que endereços antigos não reapareçam no modal Endereços.
+    const payload: Partial<DrivingSchool> = {
+      ...formData,
+      yards: formData.yards ?? [],
+      motoYardAddress: '',
+      carYardAddress: '',
+      categoryChangeYardAddress: '',
+    };
     try {
       if (editing) {
-        await api.updateSchool(editing.id, formData);
+        await api.updateSchool(editing.id, payload);
       } else {
-        const createdSchool = await api.createSchool(formData);
+        const createdSchool = await api.createSchool(payload);
         
         // Automatically create a user for this school
         // Sanitize name for login: lowercase, no spaces, no accents
@@ -1971,18 +2018,120 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
 
                 {modalTab === 'YARDS' && (
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium">Endereço Pátio Moto (Cat. A)</label>
-                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.motoYardAddress} onChange={e => setFormData({...formData, motoYardAddress: formatUpperNoAccents(e.target.value)})} />
+                    <p className="text-xs text-gray-500">
+                      Cadastre um ou mais pátios de prova. Os endereços ficam disponíveis para o examinador em
+                      <span className="font-semibold"> Consultar Endereços</span>, no módulo Exame Prático CFC.
+                    </p>
+
+                    {/* Lista de pátios */}
+                    {(formData.yards ?? []).length === 0 ? (
+                      <div className="p-6 text-center text-sm text-gray-400 italic border-2 border-dashed rounded-lg bg-gray-50">
+                        Nenhum pátio cadastrado.
+                      </div>
+                    ) : (
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="w-full text-sm text-left">
+                          <thead className="bg-gray-50 text-gray-600 text-xs uppercase">
+                            <tr>
+                              <th className="px-3 py-2">Tipo</th>
+                              <th className="px-3 py-2">Endereço</th>
+                              <th className="px-3 py-2">Referência</th>
+                              <th className="px-3 py-2 text-right">Ações</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {(formData.yards ?? []).map(yard => {
+                              const badge = yard.type === 'MOTO'
+                                ? 'bg-orange-100 text-orange-700'
+                                : yard.type === 'CARRO' ? 'bg-green-100 text-green-700' : 'bg-purple-100 text-purple-700';
+                              return (
+                                <tr key={yard.id} className={editingYardId === yard.id ? 'bg-blue-50/60' : 'hover:bg-gray-50'}>
+                                  <td className="px-3 py-2 whitespace-nowrap">
+                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded uppercase ${badge}`}>
+                                      {yard.type === 'MOTO' ? <Bike className="h-3 w-3" /> : <Car className="h-3 w-3" />}
+                                      {YARD_TYPE_LABEL[yard.type]}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-800">{yard.address}</td>
+                                  <td className="px-3 py-2 text-gray-500">{yard.reference || <span className="text-gray-300">—</span>}</td>
+                                  <td className="px-3 py-2 text-right whitespace-nowrap space-x-2">
+                                    <button type="button" onClick={() => startEditYard(yard)} className="text-blue-600 hover:text-blue-800" title="Editar pátio" aria-label="Editar pátio">
+                                      <Edit2 className="h-4 w-4" />
+                                    </button>
+                                    <button type="button" onClick={() => setYardToDelete(yard)} className="text-red-600 hover:text-red-800" title="Excluir pátio" aria-label="Excluir pátio">
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Formulário novo/edição */}
+                    <div className="rounded-lg border bg-gray-50 p-4 space-y-3">
+                      <h4 className="font-bold text-sm text-gray-700 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-blue-500" />
+                        {editingYardId ? 'Editar Pátio' : 'Novo Pátio'}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+                          <select
+                            className="w-full border rounded p-2 bg-white text-gray-900"
+                            value={yardDraft.type}
+                            onChange={e => { setYardDraft({ ...yardDraft, type: e.target.value as SchoolYardType | '' }); setYardError(''); }}
+                          >
+                            <option value="">Selecione...</option>
+                            {YARD_TYPES.map(t => <option key={t} value={t}>{YARD_TYPE_LABEL[t]}</option>)}
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Endereço</label>
+                          <input
+                            className="w-full border rounded p-2 bg-white text-gray-900"
+                            placeholder="RUA, NÚMERO, BAIRRO, CIDADE"
+                            value={yardDraft.address}
+                            onChange={e => { setYardDraft({ ...yardDraft, address: formatUpperNoAccents(e.target.value) }); setYardError(''); }}
+                          />
+                        </div>
+                        <div className="md:col-span-3">
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Referência <span className="text-gray-400 font-normal">(opcional)</span></label>
+                          <input
+                            className="w-full border rounded p-2 bg-white text-gray-900"
+                            placeholder="EX.: AO LADO DO POSTO, PORTÃO AZUL"
+                            value={yardDraft.reference}
+                            onChange={e => setYardDraft({ ...yardDraft, reference: formatUpperNoAccents(e.target.value) })}
+                          />
+                        </div>
+                      </div>
+                      {yardError && <p className="text-xs text-red-600 font-medium">{yardError}</p>}
+                      <div className="flex justify-end gap-2">
+                        {editingYardId && (
+                          <button type="button" onClick={resetYardDraft} className="px-3 py-2 text-sm rounded border bg-white text-gray-600 hover:bg-gray-100">
+                            Cancelar edição
+                          </button>
+                        )}
+                        <button type="button" onClick={saveYardDraft} className="px-3 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5 font-medium">
+                          {editingYardId ? <><Check className="h-4 w-4" /> Salvar pátio</> : <><Plus className="h-4 w-4" /> Adicionar pátio</>}
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-gray-400">As alterações nos pátios são gravadas ao clicar em <span className="font-semibold">Salvar</span> no rodapé da autoescola.</p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium">Endereço Pátio Carro (Cat. B)</label>
-                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.carYardAddress} onChange={e => setFormData({...formData, carYardAddress: formatUpperNoAccents(e.target.value)})} />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium">Endereço Mudança de Categoria (Cat. C, D, E)</label>
-                      <input className="w-full border rounded p-2 bg-white text-gray-900" value={formData.categoryChangeYardAddress} onChange={e => setFormData({...formData, categoryChangeYardAddress: formatUpperNoAccents(e.target.value)})} />
-                    </div>
+
+                    {yardToDelete && (
+                      <ConfirmModal
+                        isOpen={true}
+                        title="Excluir pátio"
+                        message={`Deseja excluir o pátio ${YARD_TYPE_LABEL[yardToDelete.type]} em "${yardToDelete.address}"?`}
+                        onConfirm={() => removeYard(yardToDelete)}
+                        onClose={() => setYardToDelete(null)}
+                        confirmText="Excluir"
+                        isDestructive
+                      />
+                    )}
                   </div>
                 )}
 
