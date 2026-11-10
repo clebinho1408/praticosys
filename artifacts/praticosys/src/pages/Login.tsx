@@ -22,15 +22,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [devCode, setDevCode] = useState('');  // apenas em ambiente de dev sem Resend configurado
   const [otpCode, setOtpCode] = useState('');
 
-  // "Manter conectado": lembra a preferência do dispositivo; marcado por padrão
-  const [rememberMe, setRememberMe] = useState<boolean>(() => {
-    try { return localStorage.getItem('praticosys_remember_me') !== 'false'; } catch { return true; }
-  });
-  const toggleRememberMe = (value: boolean) => {
-    setRememberMe(value);
-    try { localStorage.setItem('praticosys_remember_me', value ? 'true' : 'false'); } catch {}
-  };
-
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -42,7 +33,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await api.login(login, password, rememberMe);
+      const response = await api.login(login, password);
 
       if (response?.requiresOtp) {
         setPendingUserId(response.userId);
@@ -70,7 +61,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      const user = await api.verifyOtp(pendingUserId, otpCode, rememberMe);
+      const user = await api.verifyOtp(pendingUserId, otpCode);
       onLogin(user);
       navigate('/admin');
     } catch (err: any) {
@@ -126,23 +117,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                   className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-gray-50 text-gray-900"
                 />
               </div>
-
-              <label htmlFor="rememberMe" className="flex items-start gap-3 cursor-pointer select-none">
-                <input
-                  id="rememberMe" name="rememberMe" type="checkbox"
-                  checked={rememberMe}
-                  onChange={e => toggleRememberMe(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">
-                  <span className="font-medium">Manter conectado neste dispositivo</span>
-                  <span className="block text-xs text-gray-400">
-                    {rememberMe
-                      ? 'Você continua logado por até 30 dias; cada acesso renova o prazo.'
-                      : 'A sessão expira em 8 horas. Use em computadores compartilhados.'}
-                  </span>
-                </span>
-              </label>
 
               {error && <ErrorBox msg={error} />}
 

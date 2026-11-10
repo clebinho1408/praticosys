@@ -106,10 +106,10 @@ function triggerAutoBackup() {
   void createBackupSnapshot("auto").catch(() => {});
 }
 
-async function createSession(userId: string, rememberMe?: unknown): Promise<string> {
+async function createSession(userId: string, role: unknown, rememberMe?: unknown): Promise<string> {
   const sessionId = crypto.randomUUID();
-  // "Manter conectado": 30 dias com renovação deslizante; padrão: 8h
-  const expiresAt = sessionExpiry(rememberMe);
+  // Somente EXAMINER com "Manter conectado": 30 dias renováveis; demais perfis: 8h (padrão original)
+  const expiresAt = sessionExpiry(rememberMe, role);
   await db.execute(sql`
     INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
     VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
@@ -199,7 +199,7 @@ router.post("/auth", async (req, res) => {
         catch { return res.status(502).json({ error: "Falha ao enviar código de verificação." }); }
       }
 
-      const sessionToken = await createSession(u.id, rememberMe);
+      const sessionToken = await createSession(u.id, u.role, rememberMe);
       triggerAutoBackup(); // backup automático no acesso do admin
       const { password: _p, ...safe } = u;
       return res.status(200).json({ ...safe, sessionToken });
@@ -227,7 +227,7 @@ router.post("/auth", async (req, res) => {
     }
 
     // Login direto (sem 2FA)
-    const sessionToken = await createSession(user.id, rememberMe);
+    const sessionToken = await createSession(user.id, user.role, rememberMe);
     if (user.role === "ADMIN") triggerAutoBackup();
     const { password: _p, ...safe } = user as any;
     return res.status(200).json({ ...safe, sessionToken });
@@ -284,7 +284,7 @@ router.post("/verify-otp", async (req, res) => {
     const result = await db.select().from(users).where(eq(users.id, userId));
     if (result.length === 0) return res.status(404).json({ error: "Usuário não encontrado" });
 
-    const sessionToken = await createSession(userId, rememberMe);
+    const sessionToken = await createSession(userId, (result[0] as any).role, rememberMe);
     if ((result[0] as any).role === "ADMIN") triggerAutoBackup();
     const { password: _p, ...safe } = result[0] as any;
     return res.json({ ...safe, sessionToken });

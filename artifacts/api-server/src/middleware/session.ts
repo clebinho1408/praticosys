@@ -31,8 +31,8 @@ export async function sessionAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.' });
     }
     (req as any).sessionUser = { id: data[0].id, role: data[0].role };
-    // Sessão "Manter conectado": renova para +30 dias a cada uso (no máx. 1x/hora)
-    const renewed = renewedExpiry(data[0].expires_at);
+    // Somente EXAMINER com sessão prolongada: renova para +30 dias a cada uso (no máx. 1x/hora)
+    const renewed = renewedExpiry(data[0].expires_at, data[0].role);
     if (renewed) {
       void db.execute(sql`UPDATE sessoes SET expira_em = ${renewed.toISOString()} WHERE id = ${token}`).catch(() => {});
     }

@@ -12,10 +12,10 @@ async function hashCode(code: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function createSession(db: any, userId: string, rememberMe?: unknown): Promise<string> {
+async function createSession(db: any, userId: string, role: unknown, rememberMe?: unknown): Promise<string> {
   const sessionId = crypto.randomUUID();
-  // "Manter conectado": 30 dias com renovação deslizante; padrão: 8h
-  const expiresAt = sessionExpiry(rememberMe);
+  // Somente EXAMINER com "Manter conectado": 30 dias renováveis; demais perfis: 8h (padrão original)
+  const expiresAt = sessionExpiry(rememberMe, role);
   await db.execute(sql`
     INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
     VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
@@ -76,7 +76,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
     const result = await db.select().from(users).where(eq(users.id, userId));
     if (result.length === 0) return error('Usuário não encontrado', 404);
 
-    const sessionToken = await createSession(db, userId, body.rememberMe);
+    const sessionToken = await createSession(db, userId, (result[0] as any).role, body.rememberMe);
     if ((result[0] as any).role === 'ADMIN') {
       // Backup automático em segundo plano no acesso do admin
       context.waitUntil(createBackup(db, 'auto').catch(() => {}));

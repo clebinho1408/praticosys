@@ -52,8 +52,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
     // Injeta identidade do usuário para as rotas filhas usarem
     data.sessionUserId = rowData[0].id;
     data.sessionUserRole = rowData[0].role;
-    // Sessão "Manter conectado": renova para +30 dias a cada uso (no máx. 1x/hora)
-    const renewed = renewedExpiry(rowData[0].expires_at);
+    // Somente EXAMINER com sessão prolongada: renova para +30 dias a cada uso (no máx. 1x/hora)
+    const renewed = renewedExpiry(rowData[0].expires_at, rowData[0].role);
     if (renewed) {
       const renew = db.execute(sql`UPDATE sessoes SET expira_em = ${renewed.toISOString()} WHERE id = ${token}`).catch(() => {});
       if (typeof context.waitUntil === 'function') context.waitUntil(renew); else await renew;

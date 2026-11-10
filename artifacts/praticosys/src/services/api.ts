@@ -59,9 +59,10 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   // --- AUTH ---
-  // rememberMe=true → sessão de 30 dias com renovação automática a cada uso (padrão: 8h)
-  login: (login: string, password?: string, rememberMe = false) => request<any>('/auth', { method: 'POST', body: JSON.stringify({ login, password, rememberMe }) }),
-  verifyOtp: (userId: string, code: string, rememberMe = false) => request<any>('/verify-otp', { method: 'POST', body: JSON.stringify({ userId, code, rememberMe }) }),
+  // rememberMe é apenas uma solicitação: o servidor concede sessão prolongada (30 dias renováveis)
+  // SOMENTE ao perfil Examinador; os demais perfis mantêm as 8h padrão.
+  login: (login: string, password?: string, rememberMe = true) => request<any>('/auth', { method: 'POST', body: JSON.stringify({ login, password, rememberMe }) }),
+  verifyOtp: (userId: string, code: string, rememberMe = true) => request<any>('/verify-otp', { method: 'POST', body: JSON.stringify({ userId, code, rememberMe }) }),
   logout: () => request<void>('/session', { method: 'DELETE' }).catch(() => {}),
 
   // --- USERS ---
