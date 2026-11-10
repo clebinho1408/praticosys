@@ -96,7 +96,7 @@ const TABLE_COLUMNS: Record<RestoreTable, string[]> = {
     'id', 'nome', 'telefone', 'email', 'endereco', 'cidade', 'servicos',
     'endereco_patio_moto', 'endereco_patio_carro', 'endereco_patio_mudanca',
     'banca_principal', 'banca_provisoria', 'criado_em',
-    'nao_criar_usuario', 'rodizio_provas', 'perfil_cnh_brasil',
+    'nao_criar_usuario', 'rodizio_provas', 'perfil_cnh_brasil', 'patios',
   ],
   examinadores: [
     'id', 'nome', 'matricula', 'pode_examinar_comum', 'pode_examinar_pcd',
@@ -119,9 +119,12 @@ const TABLE_COLUMNS: Record<RestoreTable, string[]> = {
   solicitacoes_cnhbrasil: COMMON_REQUEST_COLUMNS.filter(
     (column) => !['tipo_deficiencia', 'necessidades_especiais', 'quantidades_categoria'].includes(column),
   ),
-  solicitacoes_cfc: COMMON_REQUEST_COLUMNS.filter(
-    (column) => !['tipo_deficiencia', 'necessidades_especiais'].includes(column),
-  ),
+  solicitacoes_cfc: [
+    ...COMMON_REQUEST_COLUMNS.filter(
+      (column) => !['tipo_deficiencia', 'necessidades_especiais'].includes(column),
+    ),
+    'examinadores_interessados',
+  ],
   solicitacoes_pcd: COMMON_REQUEST_COLUMNS.filter(
     (column) => !['sem_duplo_comando', 'quantidades_categoria'].includes(column),
   ),
@@ -272,6 +275,7 @@ const JSON_COLUMNS = new Set([
   'banca_principal_pcd', 'banca_principal_cnh_brasil', 'modulos_permitidos',
   'locais_permitidos_ids', 'regioes_atendidas',
   'disponibilidade_rodizio', 'ano_fabricacao_maximo',
+  'patios', 'examinadores_interessados',
 ]);
 
 function isObject(value: unknown): value is Record<string, unknown> {

@@ -120,6 +120,8 @@ export const api = {
   },
   createRequest: (data: Partial<ExamRequest>) => request<ExamRequest>('/requests', { method: 'POST', body: JSON.stringify(data) }),
   updateRequest: (id: string, data: Partial<ExamRequest>) => request<ExamRequest>('/requests', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
+  // Examinador registra "Tenho interesse" em um pedido de prova extra (identidade vem da sessão no servidor)
+  registerInterest: (id: string) => request<ExamRequest>('/requests', { method: 'PUT', body: JSON.stringify({ id, registerInterest: true }) }),
   deleteRequest: (id: string) => request<void>(`/requests?id=${id}`, { method: 'DELETE' }),
 
   // --- BANCA RESULTS ---

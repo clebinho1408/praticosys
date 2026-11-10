@@ -4,6 +4,7 @@ import { drivingSchools } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { schoolPauseValidation } from '../_school-schedule.js';
 import { cnhSchoolScaleConflict } from '../_cnh-time-conflicts.js';
+import { schoolYardsValidation } from '../_school-yards.js';
 
 async function ensureSchema(db: any) {
   try {
@@ -18,6 +19,7 @@ async function ensureSchema(db: any) {
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS nao_criar_usuario boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS rodizio_provas boolean NOT NULL DEFAULT false`);
     await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS perfil_cnh_brasil boolean NOT NULL DEFAULT false`);
+    await db.execute(sql`ALTER TABLE autoescolas ADD COLUMN IF NOT EXISTS patios jsonb DEFAULT '[]'::jsonb`);
   } catch (e) {
     throw new Error('Não foi possível preparar o cadastro de autoescolas.', { cause: e });
   }
@@ -40,6 +42,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const body = await parseBody<any>(request);
       const invalid = schoolPauseValidation(body);
       if (invalid) return error(invalid, 400);
+      const invalidYards = schoolYardsValidation(body);
+      if (invalidYards) return error(invalidYards, 400);
       const conflict = cnhSchoolScaleConflict({ ...body, id: undefined }, await db.select().from(drivingSchools));
       if (conflict) return error(conflict, 409);
       const newItem = await db.insert(drivingSchools).values({ id: crypto.randomUUID(), ...body }).returning();
@@ -52,6 +56,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const body = await parseBody<any>(request);
       const invalid = schoolPauseValidation(body);
       if (invalid) return error(invalid, 400);
+      const invalidYards = schoolYardsValidation(body);
+      if (invalidYards) return error(invalidYards, 400);
       const { id, createdAt, ...updates } = body;
       const existing = await db.select().from(drivingSchools);
       const current = existing.find(school => school.id === id);

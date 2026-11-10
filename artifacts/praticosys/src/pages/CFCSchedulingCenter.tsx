@@ -19,6 +19,8 @@ import { activeSchoolSchedule, fixedScaleDay, planFixedScales, rotationCandidate
 import { businessDate, mainSchedulePaused } from '../../../../functions/_school-schedule';
 import type { FixedCommitment } from '../lib/cfcFixedRotation';
 import { isDateBlocked, isDateInPast } from '../lib/dateBlocking';
+import { examinerCoversRequest } from '../../../../functions/_cfc-interest';
+import { effectiveYards, YARD_TYPE_LABEL } from '../../../../functions/_school-yards';
 import { 
   Plus, 
   Filter, 
@@ -41,7 +43,9 @@ import {
   MapPin,
   ExternalLink,
   Pencil,
-  UserX
+  UserX,
+  Users,
+  ThumbsUp
 } from 'lucide-react';
 import DatePicker from '../components/DatePicker';
 import ConfirmedAppointmentModal from '../components/cfc/ConfirmedAppointmentModal';
@@ -232,6 +236,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
   const [selectedRequest, setSelectedRequest] = useState<ExamRequest | null>(null);
   const [selectedSchoolForAddress, setSelectedSchoolForAddress] = useState<DrivingSchool | null>(null);
   const [examinerFilter, setExaminerFilter] = useState<'DAY' | 'TOMORROW' | 'WEEK'>('WEEK');
+  // "Tenho interesse" (examinador) — confirmação e envio
+  const [interestTarget, setInterestTarget] = useState<ExamRequest | null>(null);
+  const [interestSaving, setInterestSaving] = useState(false);
+  const [interestError, setInterestError] = useState('');
+  // Modal de examinadores interessados (Admin/Supervisor/Operador)
+  const [interestedModalRequest, setInterestedModalRequest] = useState<ExamRequest | null>(null);
 
   const updateBancaResult = (category: string, field: string, value: number) => {
     setBancaResults(prev => {
@@ -609,8 +619,15 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     return true;
   });
 
+  // Examinador logado (para filtrar pedidos por categoria e saber se já registrou interesse)
+  const currentExaminer = user.role === UserRole.EXAMINER
+    ? examiners.find(ex => ex.id === user.examinerId) ?? null
+    : null;
+
   const extras = filteredRequests
     .filter(r => r.status === ExamStatus.WAITING_SCHEDULING)
+    // Examinador: só vê pedidos cujas categorias ele atende (ex.: AB → só pedidos A, B ou A,B)
+    .filter(r => user.role !== UserRole.EXAMINER || examinerCoversRequest(currentExaminer?.categories, r.intendedCategory))
     .sort((a, b) => {
       // Reposição first
       if (a.requestType === RequestType.REPOSICAO && b.requestType !== RequestType.REPOSICAO) return -1;
@@ -1579,8 +1596,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
 
       {/* ACCORDIONS */}
       <div className="space-y-4">
-        {/* AFASTAMENTO/FÉRIAS CARD — visible to all roles */}
-        {(() => {
+        {/* AFASTAMENTO/FÉRIAS CARD — oculto para o perfil Examinador */}
+        {user.role !== UserRole.EXAMINER && (() => {
           const today = new Date().toISOString().split('T')[0];
 
           // Janela de exibição: hoje até hoje + 30 dias
@@ -1784,6 +1801,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                     extras.map(req => {
                       const dt = new Date(req.createdAt);
                       const formattedDate = `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+                      const reqSchool = schools.find(s => s.id === req.schoolId);
+                      const alreadyInterested = !!currentExaminer &&
+                        (req.interestedExaminers ?? []).some(i => i.examinerId === currentExaminer.id);
                       return (
                         <div key={req.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-2 shadow-sm">
                           <div className="font-black text-black uppercase">{getSchoolName(req.schoolId)}</div>
@@ -1795,11 +1815,31 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           </div>
                           {req.observation && (
                             <div className="text-sm text-red-600">
-                              <span className="font-bold">Obs.:</span> {req.observation}
+                              <span className="font-bold">Obs.:</span> {cleanObsFromQty(req.observation)}
                             </div>
                           )}
-                          <div className="text-[10px] text-slate-400 pt-2 border-t border-slate-200 mt-2">
-                            Cadastrado em: {formattedDate}
+                          <div className="text-sm text-slate-700">
+                            <span className="font-bold">Cidade da Autoescola:</span>{' '}
+                            {reqSchool?.city ? <span className="uppercase">{reqSchool.city}</span> : <span className="text-slate-400 italic">Não informada</span>}
+                          </div>
+                          <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-200 mt-2">
+                            <div className="text-[10px] text-slate-400">
+                              Cadastrado em: {formattedDate}
+                            </div>
+                            {alreadyInterested ? (
+                              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1.5 rounded-md whitespace-nowrap">
+                                <CheckCircle className="h-3.5 w-3.5" /> Interesse registrado
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => { setInterestError(''); setInterestTarget(req); }}
+                                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-md flex items-center gap-1.5 font-bold text-xs shadow-sm transition-colors whitespace-nowrap"
+                                title="Registrar interesse nesta prova extra"
+                              >
+                                <ThumbsUp className="h-3.5 w-3.5" /> Tenho interesse
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -1895,14 +1935,56 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                   <div className="flex flex-col">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exame</span>
-                                    <span className="text-slate-700 font-bold text-sm">{getExamTypeLabel(req)}</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tipo</span>
+                                    <span className="text-sm">{renderRequestTypeText(req)}</span>
                                   </div>
                                   <div className="flex flex-col text-right">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Horário</span>
                                     <span className="text-slate-700 font-bold text-sm">{req.scheduledTime || '08:00'}</span>
                                   </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exame</span>
+                                    <span className="text-slate-700 font-bold text-sm">{getExamTypeLabel(req)}</span>
+                                  </div>
+                                  <div className="flex flex-col items-end">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vagas liberadas</span>
+                                    {req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0 ? (
+                                      <div className="flex flex-wrap justify-end gap-1 mt-0.5">
+                                        {Object.entries(req.categoryQuantities).map(([cat, qty]) => (
+                                          <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
+                                            {qty}{cat}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-slate-400 text-sm">—</span>
+                                    )}
+                                  </div>
                                 </div>
+                                {(() => {
+                                  const reqSchool = schools.find(s => s.id === req.schoolId);
+                                  const digits = (reqSchool?.phone ?? '').replace(/\D/g, '');
+                                  if (!reqSchool || ['PCD', 'CNH_BRASIL'].includes(reqSchool.id) || !digits) return null;
+                                  const waPhone = digits.startsWith('55') ? digits : `55${digits}`;
+                                  return (
+                                    <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-200">
+                                      <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Telefone</span>
+                                        <span className="text-slate-700 text-sm font-medium">{reqSchool.phone}</span>
+                                      </div>
+                                      <a
+                                        href={`https://wa.me/${waPhone}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-md text-xs font-bold shadow-sm transition-colors"
+                                        title={`Abrir WhatsApp da autoescola (${reqSchool.phone})`}
+                                        aria-label="Abrir WhatsApp da autoescola"
+                                      >
+                                        <MessageCircle className="h-4 w-4" /> WhatsApp
+                                      </a>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             ))}
                           </div>
@@ -1999,6 +2081,27 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   <FileText className="h-3 w-3" /> Inserir Dados
                                 </button>
                               )}
+                              {canEditExtraRequest && (() => {
+                                const interestedCount = (req.interestedExaminers ?? []).length;
+                                return (
+                                  <button type="button"
+                                    onClick={() => setInterestedModalRequest(req)}
+                                    className={`relative border p-2 rounded-md flex items-center justify-center transition-colors ${
+                                      interestedCount > 0
+                                        ? 'border-green-300 text-green-700 bg-green-50 hover:bg-green-100'
+                                        : 'border-slate-200 text-slate-400 hover:bg-slate-50'
+                                    }`}
+                                    title={interestedCount > 0 ? `${interestedCount} examinador(es) interessado(s)` : 'Nenhum examinador interessado'}
+                                    aria-label="Ver examinadores interessados">
+                                    <Users className="h-4 w-4" />
+                                    {interestedCount > 0 && (
+                                      <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-green-600 text-white text-[9px] font-black flex items-center justify-center">
+                                        {interestedCount}
+                                      </span>
+                                    )}
+                                  </button>
+                                );
+                              })()}
                               {canEditExtraRequest && (
                                 <button type="button"
                                   onClick={() => setExtraToEdit({ ...req, categoryQuantities: qtys, observation: cleanObs })}
@@ -3633,8 +3736,16 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         </div>
       )}
 
-      {/* MODAL: CONSULTAR ENDEREÇOS DA AUTOESCOLA */}
-      {selectedSchoolForAddress && (
+      {/* MODAL: CONSULTAR ENDEREÇOS DA AUTOESCOLA (sede + pátios cadastrados) */}
+      {selectedSchoolForAddress && (() => {
+        const yards = effectiveYards(selectedSchoolForAddress);
+        const yardStyle: Record<string, { text: string; bg: string }> = {
+          MOTO: { text: 'text-orange-700', bg: 'bg-orange-100' },
+          CARRO: { text: 'text-green-700', bg: 'bg-green-100' },
+          MUDANCA: { text: 'text-purple-700', bg: 'bg-purple-100' },
+        };
+        const mapsLink = (q: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+        return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-4 bg-blue-600 text-white flex justify-between items-center">
@@ -3665,7 +3776,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                       {selectedSchoolForAddress.address}
                     </p>
                     <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSchoolForAddress.address)}`}
+                      href={mapsLink(selectedSchoolForAddress.address)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
@@ -3677,88 +3788,41 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                 </div>
               )}
 
-              {/* Pátio Categoria A */}
-              {selectedSchoolForAddress.motoYardAddress && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-orange-700">
-                    <div className="p-1.5 bg-orange-100 rounded-lg">
-                      <MapPin className="h-4 w-4" />
+              {/* Pátios cadastrados (tipo + endereço + referência) */}
+              {yards.map(yard => {
+                const style = yardStyle[yard.type] ?? { text: 'text-slate-700', bg: 'bg-slate-100' };
+                return (
+                  <div key={yard.id} className="space-y-2">
+                    <div className={`flex items-center gap-2 ${style.text}`}>
+                      <div className={`p-1.5 ${style.bg} rounded-lg`}>
+                        <MapPin className="h-4 w-4" />
+                      </div>
+                      <span className="font-bold text-xs uppercase tracking-wider">Pátio {YARD_TYPE_LABEL[yard.type]}</span>
                     </div>
-                    <span className="font-bold text-xs uppercase tracking-wider">Pátio Categoria A (Moto)</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <p className="text-sm text-slate-700 font-medium leading-relaxed">
-                      {selectedSchoolForAddress.motoYardAddress}
-                    </p>
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSchoolForAddress.motoYardAddress)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Ver no Google Maps
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {/* Pátio Categoria B */}
-              {selectedSchoolForAddress.carYardAddress && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-green-700">
-                    <div className="p-1.5 bg-green-100 rounded-lg">
-                      <MapPin className="h-4 w-4" />
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                        {yard.address}
+                      </p>
+                      {yard.reference && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          <span className="font-bold">Referência:</span> {yard.reference}
+                        </p>
+                      )}
+                      <a 
+                        href={mapsLink(yard.address)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Ver no Google Maps
+                      </a>
                     </div>
-                    <span className="font-bold text-xs uppercase tracking-wider">Pátio Categoria B (Carro)</span>
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <p className="text-sm text-slate-700 font-medium leading-relaxed">
-                      {selectedSchoolForAddress.carYardAddress}
-                    </p>
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSchoolForAddress.carYardAddress)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Ver no Google Maps
-                    </a>
-                  </div>
-                </div>
-              )}
+                );
+              })}
 
-              {/* Pátio Mudança de Categoria */}
-              {selectedSchoolForAddress.categoryChangeYardAddress && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-purple-700">
-                    <div className="p-1.5 bg-purple-100 rounded-lg">
-                      <MapPin className="h-4 w-4" />
-                    </div>
-                    <span className="font-bold text-xs uppercase tracking-wider">Pátio Mudança (C, D, E)</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <p className="text-sm text-slate-700 font-medium leading-relaxed">
-                      {selectedSchoolForAddress.categoryChangeYardAddress}
-                    </p>
-                    <a 
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedSchoolForAddress.categoryChangeYardAddress)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 font-bold hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Ver no Google Maps
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {!selectedSchoolForAddress.address && 
-               !selectedSchoolForAddress.motoYardAddress && 
-               !selectedSchoolForAddress.carYardAddress && 
-               !selectedSchoolForAddress.categoryChangeYardAddress && (
+              {!selectedSchoolForAddress.address && yards.length === 0 && (
                 <div className="py-12 text-center">
                   <MapPin className="h-12 w-12 text-slate-200 mx-auto mb-3" />
                   <p className="text-slate-400 italic">Nenhum endereço cadastrado para esta autoescola.</p>
@@ -3776,7 +3840,143 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
             </div>
           </div>
         </div>
+        );
+      })()}
+
+      {/* MODAL: CONFIRMAR "TENHO INTERESSE" (Examinador) */}
+      {interestTarget && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-8 text-center space-y-4">
+              <div className="mx-auto h-16 w-16 rounded-full flex items-center justify-center bg-green-50 text-green-600">
+                <ThumbsUp className="h-10 w-10" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-800">Registrar interesse?</h3>
+                <p className="text-slate-500 text-sm">
+                  Deseja realmente marcar <span className="font-bold">Interesse registrado</span> para a prova extra da autoescola{' '}
+                  <span className="font-bold uppercase">{getSchoolName(interestTarget.schoolId)}</span>?
+                </p>
+                <div className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-3 text-left space-y-1">
+                  <div><span className="font-bold">Tipo:</span> {renderRequestTypeText(interestTarget)}</div>
+                  <div><span className="font-bold">Exame:</span> {getExamTypeLabel(interestTarget)}</div>
+                </div>
+                {interestError && (
+                  <p className="text-xs text-red-600 font-bold bg-red-50 border border-red-100 rounded-lg p-2">{interestError}</p>
+                )}
+              </div>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-center gap-3">
+              <button 
+                type="button"
+                disabled={interestSaving}
+                onClick={() => { setInterestTarget(null); setInterestError(''); }}
+                className="px-6 py-2 rounded-lg border border-slate-200 text-slate-600 font-bold text-sm hover:bg-white transition-all flex items-center gap-2 disabled:opacity-50"
+              >
+                <X className="h-4 w-4" /> Cancelar
+              </button>
+              <button 
+                type="button"
+                disabled={interestSaving}
+                onClick={async () => {
+                  if (!interestTarget) return;
+                  setInterestSaving(true);
+                  setInterestError('');
+                  try {
+                    const updated = await api.registerInterest(interestTarget.id);
+                    setRequests(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r));
+                    setInterestTarget(null);
+                  } catch (err: any) {
+                    setInterestError(err?.message || 'Não foi possível registrar o interesse.');
+                  } finally {
+                    setInterestSaving(false);
+                  }
+                }}
+                className="px-8 py-2 rounded-lg text-white font-bold text-sm shadow-md transition-all flex items-center gap-2 bg-green-600 hover:bg-green-700 shadow-green-200 disabled:opacity-60"
+              >
+                {interestSaving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                {interestSaving ? 'Registrando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* MODAL: EXAMINADORES INTERESSADOS (Admin / Supervisor / Operador) */}
+      {interestedModalRequest && (() => {
+        const interested = [...(interestedModalRequest.interestedExaminers ?? [])]
+          .sort((a, b) => a.registeredAt.localeCompare(b.registeredAt));
+        const fmt = (iso: string) => {
+          const d = new Date(iso);
+          if (Number.isNaN(d.getTime())) return '—';
+          return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        };
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+              <div className="p-4 bg-green-600 text-white flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  <h2 className="font-bold uppercase tracking-tight">Examinadores Interessados</h2>
+                </div>
+                <button 
+                  onClick={() => setInterestedModalRequest(null)}
+                  className="p-1 hover:bg-white/20 rounded-full transition-colors"
+                  aria-label="Fechar"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Resumo do pedido */}
+              <div className="p-4 bg-slate-50 border-b border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div className="sm:col-span-3">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Autoescola</span>
+                  <span className="font-black text-slate-800 uppercase">{getSchoolName(interestedModalRequest.schoolId)}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tipo</span>
+                  {renderRequestTypeText(interestedModalRequest)}
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Exame</span>
+                  <span className="font-bold text-slate-700">{getExamTypeLabel(interestedModalRequest)}</span>
+                </div>
+              </div>
+
+              <div className="p-4 max-h-[50vh] overflow-y-auto">
+                {interested.length === 0 ? (
+                  <div className="py-10 text-center">
+                    <Users className="h-12 w-12 text-slate-200 mx-auto mb-3" />
+                    <p className="text-slate-400 italic text-sm">Nenhum examinador registrou interesse ainda.</p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden">
+                    {interested.map((i, idx) => (
+                      <li key={i.examinerId} className="flex items-center justify-between gap-3 px-4 py-3 bg-white">
+                        <div className="flex items-center gap-3">
+                          <span className="h-7 w-7 rounded-full bg-green-100 text-green-700 text-xs font-black flex items-center justify-center">{idx + 1}</span>
+                          <span className="font-bold text-slate-800 uppercase text-sm">{examiners.find(ex => ex.id === i.examinerId)?.name || i.name}</span>
+                        </div>
+                        <span className="text-[11px] text-slate-400 whitespace-nowrap">{fmt(i.registeredAt)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100">
+                <button 
+                  onClick={() => setInterestedModalRequest(null)}
+                  className="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

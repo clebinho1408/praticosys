@@ -5,6 +5,7 @@ import type { D1Database } from '@cloudflare/workers-types';
 import { migrateCpfD1 } from './cpf-migration.js';
 import { migrateCadastroTabsD1 } from './cadastro-tabs-migration.js';
 import { migrateCnhModalityD1 } from './cnh-exam-modality-migration.js';
+import { migrateYardsInterestD1 } from './school-yards-interest-migration.js';
 
 export const D1_NOW = "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))";
 export const D1_VERSION = 'd1_schema_v1';
@@ -78,7 +79,9 @@ export function initialD1Statements(): string[] {
       !(name === 'configuracoes' && c.name === 'preencher_nome_cpf_cnh')
       && !(name === 'solicitacoes_cnhbrasil' && ['modalidade_exame_a', 'modalidade_exame_b'].includes(c.name))
       && !(name === 'usuarios' && c.name === 'abas_cadastro_permitidas')
-      && !(name === 'examinadores' && c.name === 'periodos_bloqueio'));
+      && !(name === 'examinadores' && c.name === 'periodos_bloqueio')
+      && !(name === 'autoescolas' && c.name === 'patios')
+      && !(name === 'solicitacoes_cfc' && c.name === 'examinadores_interessados'));
     return (
     `CREATE TABLE IF NOT EXISTS ${quote(name)} (${columns.map(c =>
       `${quote(c.name)} ${['number', 'boolean'].includes(c.kind) ? 'INTEGER' : 'TEXT'}`
@@ -144,6 +147,7 @@ export async function migrateD1(binding: D1Database): Promise<void> {
     await migrateCpfD1(binding);
     await migrateCadastroTabsD1(binding);
     await migrateCnhModalityD1(binding);
+    await migrateYardsInterestD1(binding);
     return;
   }
   const existing = await binding.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all<{ name: string }>();
@@ -157,4 +161,5 @@ export async function migrateD1(binding: D1Database): Promise<void> {
   await migrateCpfD1(binding);
   await migrateCadastroTabsD1(binding);
   await migrateCnhModalityD1(binding);
+  await migrateYardsInterestD1(binding);
 }

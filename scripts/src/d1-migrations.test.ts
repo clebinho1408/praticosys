@@ -11,6 +11,8 @@ import { CPF_D1_VERSION, CPF_D1_STATEMENTS, migrateCpfD1 } from '../../db/cpf-mi
 // @ts-ignore Shared additive migration.
 import { CADASTRO_TABS_D1_VERSION, CADASTRO_TABS_D1_CHECKSUM, cadastroTabsD1Checksum, migrateCadastroTabsD1 } from '../../db/cadastro-tabs-migration.js';
 import { CNH_MODALITY_VERSION } from '../../db/cnh-exam-modality-migration.js';
+// @ts-ignore Shared additive migration.
+import { YARDS_INTEREST_VERSION, YARDS_INTEREST_STATEMENTS } from '../../db/school-yards-interest-migration.js';
 // @ts-ignore Shared request-time verification.
 import { createD1Db, verifyD1Schema } from '../../functions/_d1.js';
 // @ts-ignore Shared legacy import compiler.
@@ -21,6 +23,14 @@ export async function testD1Migrations() {
   assert.equal(await cadastroTabsD1Checksum(), CADASTRO_TABS_D1_CHECKSUM);
   assert.ok(d1Tables.usuarios.some((c: any) => c.name === 'abas_cadastro_permitidas'));
   assert.ok(!initialD1Statements().join('\n').includes('abas_cadastro_permitidas'));
+  // Pátios / interesse: colunas pertencem à migração nova, nunca ao baseline congelado.
+  assert.ok(d1Tables.autoescolas.some((c: any) => c.name === 'patios'));
+  assert.ok(d1Tables.solicitacoes_cfc.some((c: any) => c.name === 'examinadores_interessados'));
+  assert.ok(!initialD1Statements().join('\n').includes('patios'));
+  assert.ok(!initialD1Statements().join('\n').includes('examinadores_interessados'));
+  // Released SQL is pinned independently of the ORM.
+  assert.equal(createHash('sha256').update(YARDS_INTEREST_STATEMENTS.join(';\n')).digest('hex'),
+    '0c44c41eb28e8325fffeb811a8502d3b5825ded1bc8d70a498aa6a264f862ed4');
   // Pin the already-released CPF SQL independently of its runtime checksum.
   assert.equal(createHash('sha256').update(CPF_D1_STATEMENTS.join(';\n')).digest('hex'),
     '33f6efaa4252d52db341f33ca9638bfea3a93502ef2b5fe8dfdb137e2ed1051d');
@@ -55,7 +65,7 @@ export async function testD1Migrations() {
     await migrateD1(binding as any);
     assert.deepEqual(await row(), { ...legacy, abas_cadastro_permitidas: '[]' });
     assert.deepEqual((await markers()).filter((m: any) =>
-      ![CADASTRO_TABS_D1_VERSION, CNH_MODALITY_VERSION].includes(m.versao)), before);
+      ![CADASTRO_TABS_D1_VERSION, CNH_MODALITY_VERSION, YARDS_INTEREST_VERSION].includes(m.versao)), before);
     await verifyD1Schema(createD1Db(binding as any));
     const after = await markers();
     await migrateD1(binding as any);
