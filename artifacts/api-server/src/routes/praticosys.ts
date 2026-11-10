@@ -27,6 +27,7 @@ import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatc
 import { extraEditError, extraPatch } from "../../../../functions/_cfc-extra.js";
 import { interestError, interestPatch } from "../../../../functions/_cfc-interest.js";
 import { schoolYardsValidation } from "../../../../functions/_school-yards.js";
+import { sessionExpiry } from "../../../../functions/_session-policy.js";
 // @ts-ignore Shared server-only integration for Express and Cloudflare.
 import { lookupCpf, consumeCpfQuota, cpfSettingError } from "../../../../functions/_cpf-lookup.js";
 
@@ -105,9 +106,10 @@ function triggerAutoBackup() {
   void createBackupSnapshot("auto").catch(() => {});
 }
 
-async function createSession(userId: string): Promise<string> {
+async function createSession(userId: string, rememberMe?: unknown): Promise<string> {
   const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8h
+  // "Manter conectado": 30 dias com renovação deslizante; padrão: 8h
+  const expiresAt = sessionExpiry(rememberMe);
   await db.execute(sql`
     INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
     VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
@@ -138,7 +140,7 @@ router.get("/events", (_req, res) => {
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 router.post("/auth", async (req, res) => {
   try {
-    const { login, password } = req.body ?? {};
+    const { login, password, rememberMe } = req.body ?? {};
     if (!login || !password) {
       return res.status(400).json({ error: "Login e senha são obrigatórios" });
     }
@@ -197,7 +199,7 @@ router.post("/auth", async (req, res) => {
         catch { return res.status(502).json({ error: "Falha ao enviar código de verificação." }); }
       }
 
-      const sessionToken = await createSession(u.id);
+      const sessionToken = await createSession(u.id, rememberMe);
       triggerAutoBackup(); // backup automático no acesso do admin
       const { password: _p, ...safe } = u;
       return res.status(200).json({ ...safe, sessionToken });
@@ -225,7 +227,7 @@ router.post("/auth", async (req, res) => {
     }
 
     // Login direto (sem 2FA)
-    const sessionToken = await createSession(user.id);
+    const sessionToken = await createSession(user.id, rememberMe);
     if (user.role === "ADMIN") triggerAutoBackup();
     const { password: _p, ...safe } = user as any;
     return res.status(200).json({ ...safe, sessionToken });
@@ -248,7 +250,7 @@ router.delete("/session", async (req, res) => {
 // Validação do código OTP (consumo atômico + rate limiting)
 router.post("/verify-otp", async (req, res) => {
   try {
-    const { userId, code } = req.body ?? {};
+    const { userId, code, rememberMe } = req.body ?? {};
     if (!userId || !code) return res.status(400).json({ error: "userId e code são obrigatórios" });
 
     const inputHash = hashCode(code.trim());
@@ -282,7 +284,7 @@ router.post("/verify-otp", async (req, res) => {
     const result = await db.select().from(users).where(eq(users.id, userId));
     if (result.length === 0) return res.status(404).json({ error: "Usuário não encontrado" });
 
-    const sessionToken = await createSession(userId);
+    const sessionToken = await createSession(userId, rememberMe);
     if ((result[0] as any).role === "ADMIN") triggerAutoBackup();
     const { password: _p, ...safe } = result[0] as any;
     return res.json({ ...safe, sessionToken });
