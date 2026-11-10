@@ -50,6 +50,7 @@ import {
 import DatePicker from '../components/DatePicker';
 import ConfirmedAppointmentModal from '../components/cfc/ConfirmedAppointmentModal';
 import ExtraRequestModal from '../components/cfc/ExtraRequestModal';
+import { confirmedVacancies } from '../lib/cfcConfirmedVacancies';
 
 // Global reference to keep track of the WhatsApp window
 let whatsappWindowRef: Window | null = null;
@@ -2311,7 +2312,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                          {groupedByDayOfWeek[dayName].map(req => (
+                          {groupedByDayOfWeek[dayName].map(req => {
+                            const vacancies = confirmedVacancies(req, examiners);
+                            return (
                             <tr key={req.id} className={getRowClass(req)}>
                               <td className="px-4 py-3">{renderRequestTypeText(req)}</td>
                               <td className="px-4 py-3 font-black text-slate-800 uppercase">{getSchoolName(req.schoolId)}</td>
@@ -2322,9 +2325,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 {getExamTypeLabel(req)}
                               </td>
                               <td className="px-4 py-3 text-slate-700">
-                                {req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0 ? (
+                                {vacancies.length > 0 ? (
                                   <div className="flex flex-wrap gap-1">
-                                    {Object.entries(req.categoryQuantities).map(([cat, qty]) => (
+                                    {vacancies.map(([cat, qty]) => (
                                       <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
                                         {qty}{cat}
                                       </span>
@@ -2360,7 +2363,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 </td>
                               )}
                             </tr>
-                          ))}
+                            );
+                          })}
                           {groupedByDayOfWeek[dayName].length === 0 && (
                             <tr>
                                <td colSpan={user.role === UserRole.SCHOOL ? 7 : 8} className="px-4 py-8 text-center text-slate-400 italic">Nenhum agendamento para este dia.</td>
