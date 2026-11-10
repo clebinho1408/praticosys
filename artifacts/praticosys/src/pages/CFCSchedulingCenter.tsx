@@ -794,6 +794,60 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     return hab || req.schoolId === 'CNH_BRASIL' ? '1º Habilitação' : '-';
   };
 
+  /**
+   * Vagas liberadas para exibição em "Provas Confirmadas".
+   * - Se o pedido já tem categoryQuantities (informado/editado manualmente), usa-os.
+   * - Se for do tipo FIXA e não houver quantidades, preenche automaticamente a partir do
+   *   cadastro do examinador: Vagas Cat. A (Moto), Vagas Cat. B (Carro), Vagas Cat. C, D, E (Mud. Cat.),
+   *   conforme as categorias do exame. Mud. Cat. é exibida como um único grupo (ex.: "10 C,D").
+   * - Sem valor no examinador, cai para o padrão do sistema (Configurações).
+   */
+  const getDisplayedQuantities = (req: ExamRequest): { label: string; qty: number; auto: boolean }[] => {
+    if (req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0) {
+      return Object.entries(req.categoryQuantities).map(([cat, qty]) => ({ label: cat, qty, auto: false }));
+    }
+    if (req.requestType !== RequestType.FIXA) return [];
+    const examiner = examiners.find(ex => ex.id === req.examinerId || ex.name === req.examinerId);
+    const cats = (req.intendedCategory ?? '').split(',').map(c => c.trim()).filter(Boolean);
+    const out: { label: string; qty: number; auto: boolean }[] = [];
+    const pick = (fromExaminer: number | null | undefined, fromSettings: number | undefined) =>
+      fromExaminer != null ? fromExaminer : (fromSettings ?? null);
+    if (cats.includes('A')) {
+      const qty = pick(examiner?.defaultMaxSlotsA, systemSettings?.defaultMaxSlotsA);
+      if (qty != null) out.push({ label: 'A', qty, auto: true });
+    }
+    if (cats.includes('B')) {
+      const qty = pick(examiner?.defaultMaxSlotsB, systemSettings?.defaultMaxSlotsB);
+      if (qty != null) out.push({ label: 'B', qty, auto: true });
+    }
+    const mud = cats.filter(c => ['C', 'D', 'E'].includes(c));
+    if (mud.length > 0) {
+      const qty = pick(examiner?.defaultMaxSlotsMudanca, systemSettings?.defaultMaxSlotsMudanca);
+      if (qty != null) out.push({ label: mud.join(','), qty, auto: true });
+    }
+    return out;
+  };
+
+  const renderQuantityChips = (req: ExamRequest, align: 'start' | 'end' = 'start') => {
+    const items = getDisplayedQuantities(req);
+    if (items.length === 0) return <span className="text-slate-400">—</span>;
+    return (
+      <div className={`flex flex-wrap gap-1 ${align === 'end' ? 'justify-end' : ''}`}>
+        {items.map(item => (
+          <span
+            key={item.label}
+            title={item.auto ? 'Preenchido automaticamente com as vagas padrão do cadastro do examinador' : undefined}
+            className={`inline-flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded ${
+              item.auto ? 'bg-blue-100 text-blue-800 border border-blue-200' : 'bg-orange-100 text-orange-800'
+            }`}
+          >
+            {item.qty}{item.label}
+          </span>
+        ))}
+      </div>
+    );
+  };
+
   // Sort each day by examiner name and then by time
   daysOfWeek.forEach(day => {
     groupedByDayOfWeek[day].sort((a, b) => {
@@ -889,8 +943,10 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
     const horario = req.scheduledTime || '08:00';
     const exame = getExamTypeLabel(req);
     const examinerName = getExaminerName(req.examinerId);
-    const vagas = req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0
-      ? Object.entries(req.categoryQuantities).map(([cat, qty]) => `${qty}${cat}`).join(', ')
+    // Mesma regra da coluna "Vagas liberadas": FIXA sem quantidades usa as vagas padrão do examinador
+    const displayed = getDisplayedQuantities(req);
+    const vagas = displayed.length > 0
+      ? displayed.map(item => `${item.qty}${item.label}`).join(', ')
       : '—';
 
     const lines = [
@@ -1948,17 +2004,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   </div>
                                   <div className="flex flex-col items-end">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vagas liberadas</span>
-                                    {req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0 ? (
-                                      <div className="flex flex-wrap justify-end gap-1 mt-0.5">
-                                        {Object.entries(req.categoryQuantities).map(([cat, qty]) => (
-                                          <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
-                                            {qty}{cat}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <span className="text-slate-400 text-sm">—</span>
-                                    )}
+                                    <div className="mt-0.5">{renderQuantityChips(req, 'end')}</div>
                                   </div>
                                 </div>
                                 {(() => {
@@ -2322,17 +2368,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                 {getExamTypeLabel(req)}
                               </td>
                               <td className="px-4 py-3 text-slate-700">
-                                {req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {Object.entries(req.categoryQuantities).map(([cat, qty]) => (
-                                      <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
-                                        {qty}{cat}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-slate-400">—</span>
-                                )}
+                                {renderQuantityChips(req)}
                               </td>
                               {user.role !== UserRole.SCHOOL && !isConsultant && (
                                 <td className="px-4 py-3">
