@@ -5,6 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 import { sendOtpEmail } from '../_resend.js';
 import { createBackup } from '../_backup.js';
 import { hashPassword, verifyPassword } from '../_password.js';
+import { sessionExpiry } from '../_session-policy.js';
 
 function generateCode(): string {
   const arr = new Uint32Array(1);
@@ -17,9 +18,10 @@ async function hashCode(code: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function createSession(db: any, userId: string): Promise<string> {
+async function createSession(db: any, userId: string, rememberMe?: unknown): Promise<string> {
   const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  // "Manter conectado": 30 dias com renovação deslizante; padrão: 8h
+  const expiresAt = sessionExpiry(rememberMe);
   await db.execute(sql`
     INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
     VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
@@ -88,7 +90,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
     await ensurePortugueseSchema(db);
     await ensureSchema(db);
 
-    const body = await parseBody<{ login: string; password: string }>(request);
+    const body = await parseBody<{ login: string; password: string; rememberMe?: boolean }>(request);
     const { login, password } = body;
     if (!login || !password) return error('Login e senha são obrigatórios', 400);
 
@@ -116,7 +118,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
         return error('2FA ativo sem e-mail cadastrado. Contate o administrador.', 403);
       }
 
-      const sessionToken = await createSession(db, u.id);
+      const sessionToken = await createSession(db, u.id, body.rememberMe);
       // Backup automático em segundo plano no acesso do admin
       context.waitUntil(createBackup(db, 'auto').catch(() => {}));
       const { password: _p, ...safe } = u;
@@ -145,7 +147,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
       return json(result2fa);
     }
 
-    const sessionToken = await createSession(db, user.id);
+    const sessionToken = await createSession(db, user.id, body.rememberMe);
     if (user.role === 'ADMIN') {
       // Backup automático em segundo plano no acesso do admin
       context.waitUntil(createBackup(db, 'auto').catch(() => {}));

@@ -1,6 +1,7 @@
 // functions/api/_middleware.ts — valida sessão e injeta userId/role em context.data
 import { getDb, error, ensureCnhBrasilSdcStorage, ensurePortugueseSchema, ensureColumnMigrations } from '../_db.js';
 import { sql } from 'drizzle-orm';
+import { renewedExpiry } from '../_session-policy.js';
 
 const PUBLIC_PATHS = [
   '/api/auth',
@@ -38,7 +39,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
     // Garante que sessoes existe antes de consultar (idempotente)
     await db.execute(sql`CREATE TABLE IF NOT EXISTS sessoes (id text PRIMARY KEY, usuario_id text NOT NULL, expira_em timestamp NOT NULL, criado_em timestamp DEFAULT now())`).catch(() => {});
     const rows = await db.execute(sql`
-      SELECT u.id, u.perfil AS role
+      SELECT u.id, u.perfil AS role, s.expira_em AS expires_at
       FROM sessoes s
       JOIN usuarios u ON u.id = s.usuario_id
       WHERE s.id = ${token} AND s.expira_em > NOW()
@@ -51,6 +52,12 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
     // Injeta identidade do usuário para as rotas filhas usarem
     data.sessionUserId = rowData[0].id;
     data.sessionUserRole = rowData[0].role;
+    // Sessão "Manter conectado": renova para +30 dias a cada uso (no máx. 1x/hora)
+    const renewed = renewedExpiry(rowData[0].expires_at);
+    if (renewed) {
+      const renew = db.execute(sql`UPDATE sessoes SET expira_em = ${renewed.toISOString()} WHERE id = ${token}`).catch(() => {});
+      if (typeof context.waitUntil === 'function') context.waitUntil(renew); else await renew;
+    }
     return next();
   } catch (e: any) {
     return error('Erro ao verificar sessão: ' + e.message, 500);

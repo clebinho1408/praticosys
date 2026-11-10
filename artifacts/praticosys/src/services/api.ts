@@ -59,8 +59,9 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   // --- AUTH ---
-  login: (login: string, password?: string) => request<any>('/auth', { method: 'POST', body: JSON.stringify({ login, password }) }),
-  verifyOtp: (userId: string, code: string) => request<any>('/verify-otp', { method: 'POST', body: JSON.stringify({ userId, code }) }),
+  // rememberMe=true → sessão de 30 dias com renovação automática a cada uso (padrão: 8h)
+  login: (login: string, password?: string, rememberMe = false) => request<any>('/auth', { method: 'POST', body: JSON.stringify({ login, password, rememberMe }) }),
+  verifyOtp: (userId: string, code: string, rememberMe = false) => request<any>('/verify-otp', { method: 'POST', body: JSON.stringify({ userId, code, rememberMe }) }),
   logout: () => request<void>('/session', { method: 'DELETE' }).catch(() => {}),
 
   // --- USERS ---

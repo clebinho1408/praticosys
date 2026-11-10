@@ -13,3 +13,10 @@ ReactDOM.createRoot(rootElement).render(
     <App />
   </React.StrictMode>
 );
+
+// PWA: registra o service worker apenas em produção (HTTPS). Em dev o Vite não serve /sw.js.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* instalação do app é opcional */ });
+  });
+}

@@ -3,6 +3,7 @@ import { getDb, json, error, parseBody, ensurePortugueseSchema } from '../_db.js
 import { users } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { createBackup } from '../_backup.js';
+import { sessionExpiry } from '../_session-policy.js';
 
 const MAX_ATTEMPTS = 5;
 
@@ -11,9 +12,10 @@ async function hashCode(code: string): Promise<string> {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-async function createSession(db: any, userId: string): Promise<string> {
+async function createSession(db: any, userId: string, rememberMe?: unknown): Promise<string> {
   const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  // "Manter conectado": 30 dias com renovação deslizante; padrão: 8h
+  const expiresAt = sessionExpiry(rememberMe);
   await db.execute(sql`
     INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
     VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
@@ -37,7 +39,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
     const db = getDb(env as any);
     await ensurePortugueseSchema(db);
     await ensureSchema(db);
-    const body = await parseBody<{ userId: string; code: string }>(request);
+    const body = await parseBody<{ userId: string; code: string; rememberMe?: boolean }>(request);
     const { userId, code } = body;
     if (!userId || !code) return error('userId e code são obrigatórios', 400);
 
@@ -74,7 +76,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
     const result = await db.select().from(users).where(eq(users.id, userId));
     if (result.length === 0) return error('Usuário não encontrado', 404);
 
-    const sessionToken = await createSession(db, userId);
+    const sessionToken = await createSession(db, userId, body.rememberMe);
     if ((result[0] as any).role === 'ADMIN') {
       // Backup automático em segundo plano no acesso do admin
       context.waitUntil(createBackup(db, 'auto').catch(() => {}));

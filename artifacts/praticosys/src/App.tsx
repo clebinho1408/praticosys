@@ -92,11 +92,14 @@ const App: React.FC = () => {
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        {/* Redirect Root to Login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Raiz: se já houver sessão salva (ex.: app na tela inicial do celular), entra direto */}
+        <Route path="/" element={<Navigate to={auth.isAuthenticated && auth.user ? '/admin' : '/login'} replace />} />
         
-        {/* Auth Route */}
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        {/* Login: usuário já autenticado não precisa ver o formulário de novo */}
+        <Route
+          path="/login"
+          element={auth.isAuthenticated && auth.user ? <Navigate to="/admin" replace /> : <Login onLogin={handleLogin} />}
+        />
 
         {/* Protected Routes */}
         <Route

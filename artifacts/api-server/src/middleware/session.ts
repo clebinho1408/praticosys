@@ -2,6 +2,7 @@
 import { db } from '@workspace/db';
 import { sql } from 'drizzle-orm';
 import type { Request, Response, NextFunction } from 'express';
+import { renewedExpiry } from '../../../../functions/_session-policy.js';
 
 const EXCLUDED = ['/auth', '/verify-otp', '/setup', '/test', '/health', '/events', '/session'];
 
@@ -19,7 +20,7 @@ export async function sessionAuth(req: Request, res: Response, next: NextFunctio
 
   try {
     const rows = await db.execute(sql`
-      SELECT u.id, u.perfil AS role
+      SELECT u.id, u.perfil AS role, s.expira_em AS expires_at
       FROM sessoes s
       JOIN usuarios u ON u.id = s.usuario_id
       WHERE s.id = ${token} AND s.expira_em > NOW()
@@ -30,6 +31,11 @@ export async function sessionAuth(req: Request, res: Response, next: NextFunctio
       return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.' });
     }
     (req as any).sessionUser = { id: data[0].id, role: data[0].role };
+    // Sessão "Manter conectado": renova para +30 dias a cada uso (no máx. 1x/hora)
+    const renewed = renewedExpiry(data[0].expires_at);
+    if (renewed) {
+      void db.execute(sql`UPDATE sessoes SET expira_em = ${renewed.toISOString()} WHERE id = ${token}`).catch(() => {});
+    }
     return next();
   } catch (err: any) {
     return res.status(500).json({ error: 'Erro ao verificar sessão: ' + err.message });
