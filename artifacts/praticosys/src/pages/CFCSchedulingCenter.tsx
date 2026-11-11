@@ -1909,7 +1909,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             </h3>
                           </div>
                           <div className="grid grid-cols-1 gap-3">
-                            {reqs.map(req => (
+                            {reqs.map(req => {
+                              const vacancies = confirmedVacancies(req, examiners);
+                              return (
                               <div key={req.id} className="p-4 border border-slate-200 rounded-xl bg-slate-50 space-y-3 shadow-sm">
                                 <div className="flex justify-between items-center border-b border-slate-200 pb-2">
                                   <div className="flex flex-col">
@@ -1949,9 +1951,9 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   </div>
                                   <div className="flex flex-col items-end">
                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vagas liberadas</span>
-                                    {req.categoryQuantities && Object.keys(req.categoryQuantities).length > 0 ? (
+                                    {vacancies.length > 0 ? (
                                       <div className="flex flex-wrap justify-end gap-1 mt-0.5">
-                                        {Object.entries(req.categoryQuantities).map(([cat, qty]) => (
+                                        {vacancies.map(([cat, qty]) => (
                                           <span key={cat} className="inline-flex items-center gap-0.5 bg-orange-100 text-orange-800 text-xs font-bold px-1.5 py-0.5 rounded">
                                             {qty}{cat}
                                           </span>
@@ -1987,7 +1989,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                                   );
                                 })()}
                               </div>
-                            ))}
+                              );
+                            })}
                           </div>
                         </div>
                       );
