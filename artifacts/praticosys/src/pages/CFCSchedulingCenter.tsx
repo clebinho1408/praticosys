@@ -1793,12 +1793,12 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
                             <span className="font-bold">Cidade da Autoescola:</span>{' '}
                             {reqSchool?.city ? <span className="uppercase">{reqSchool.city}</span> : <span className="text-slate-400 italic">Não informada</span>}
                           </div>
-                          <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-200 mt-2">
-                            <div className="text-[10px] text-slate-400">
-                              Cadastrado em: {formattedDate}
-                            </div>
+                          <div className="text-[10px] text-slate-400">
+                            Cadastrado em: {formattedDate}
+                          </div>
+                          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 mt-2">
                             {alreadyInterested ? (
-                              <div className="flex flex-wrap items-center justify-end gap-2">
+                              <div className="flex items-center justify-end gap-2">
                                 <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-green-700 bg-green-50 border border-green-200 px-2.5 py-1.5 rounded-md whitespace-nowrap">
                                   <CheckCircle className="h-3.5 w-3.5" /> Interesse registrado
                                 </span>
