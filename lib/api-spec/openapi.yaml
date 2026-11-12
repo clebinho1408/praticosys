@@ -11,6 +11,33 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /session:
+    get:
+      operationId: getSession
+      summary: Restaurar a sessão atual sem renovar sua validade
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dados atuais do usuário autenticado, sem senha nem token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "401":
+          description: Sessão ausente, inválida, revogada ou expirada
+        "503":
+          description: Não foi possível verificar a sessão; tente novamente
+    delete:
+      operationId: deleteSession
+      summary: Encerrar a sessão atual
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Sessão encerrada
+        "503":
+          description: Não foi possível encerrar a sessão no servidor
   /cpf-lookup:
     post:
       operationId: lookupCandidateCpf
@@ -64,6 +91,47 @@ components:
       type: http
       scheme: bearer
   schemas:
+    SessionUser:
+      type: object
+      required: [id, name, login, role]
+      properties:
+        id:
+          type: string
+          minLength: 1
+        name:
+          type: string
+        login:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, SUPERVISOR, OPERATOR, CONSULTANT, SCHOOL, EXAMINER, INSTRUCTOR]
+        schoolId:
+          type: string
+        examinerId:
+          type: string
+        instructorId:
+          type: string
+        forcePasswordChange:
+          type: boolean
+        twoFactorEnabled:
+          type: boolean
+        email:
+          type: string
+        phone:
+          type: string
+        allowedModules:
+          type: array
+          items:
+            type: string
+            enum: [cnh, cfc, pcd, cadastro]
+        allowedLocationIds:
+          type: array
+          items:
+            type: string
+        allowedCadastroTabs:
+          type: array
+          items:
+            type: string
     CandidateCpfInput:
       type: object
       required: [cpf, module]

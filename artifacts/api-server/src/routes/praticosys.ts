@@ -27,6 +27,8 @@ import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatc
 import { extraEditError, extraPatch } from "../../../../functions/_cfc-extra.js";
 import { interestError, interestPatch } from "../../../../functions/_cfc-interest.js";
 import { schoolYardsValidation } from "../../../../functions/_school-yards.js";
+// @ts-ignore Shared read-only session restoration for Express and Pages.
+import { readSessionUser } from "../../../../functions/_session-user.js";
 // @ts-ignore Shared server-only integration for Express and Cloudflare.
 import { lookupCpf, consumeCpfQuota, cpfSettingError } from "../../../../functions/_cpf-lookup.js";
 
@@ -234,6 +236,22 @@ router.post("/auth", async (req, res) => {
   }
 });
 
+router.get("/session", async (req, res): Promise<void> => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Vary", "Authorization");
+  try {
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, "").trim() || null;
+    const user = await readSessionUser(db, users, token);
+    if (!user) {
+      res.status(401).json({ error: "Sessão expirada ou inválida. Faça login novamente." });
+      return;
+    }
+    res.json(user);
+  } catch {
+    res.status(503).json({ error: "Não foi possível verificar sua sessão. Tente novamente." });
+  }
+});
+
 // Logout — invalida sessão no servidor
 router.delete("/session", async (req, res) => {
   try {
@@ -242,7 +260,7 @@ router.delete("/session", async (req, res) => {
       await db.execute(sql`DELETE FROM sessoes WHERE id = ${token}`);
     }
     return res.json({ success: true });
-  } catch { return res.json({ success: true }); }
+  } catch { return res.status(503).json({ error: "Não foi possível encerrar a sessão no servidor." }); }
 });
 
 // Validação do código OTP (consumo atômico + rate limiting)

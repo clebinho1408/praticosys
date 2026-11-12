@@ -10,3 +10,6 @@ export * from './candidateCpfInput';
 export * from './candidateCpfInputModule';
 export * from './candidateCpfName';
 export * from './healthStatus';
+export * from './sessionUser';
+export * from './sessionUserAllowedModulesItem';
+export * from './sessionUserRole';

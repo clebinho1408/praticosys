@@ -1,8 +1,9 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthState, User, UserRole, OperatorModule } from './types';
+import { UserRole, OperatorModule } from './types';
 import Layout from './components/Layout';
+import { useAuthSession } from './services/useAuthSession';
 
 // Pages
 import Login from './pages/Login';
@@ -19,57 +20,7 @@ import ProvaPraticaCFCDashboard from './pages/ProvaPraticaCFCDashboard';
 import DashboardGeral from './pages/DashboardGeral';
 
 const App: React.FC = () => {
-  const [auth, setAuth] = useState<AuthState>(() => {
-    const savedAuth = localStorage.getItem('praticosys_auth');
-    if (savedAuth) {
-      try {
-        return JSON.parse(savedAuth);
-      } catch (e) {
-        console.error('Failed to parse saved auth', e);
-      }
-    }
-    return {
-      user: null,
-      isAuthenticated: false
-    };
-  });
-
-  const handleLogin = (userWithToken: any) => {
-    const { sessionToken, ...userData } = userWithToken;
-    const newAuth: AuthState = { user: userData as User, token: sessionToken ?? null, isAuthenticated: true };
-    setAuth(newAuth);
-    localStorage.setItem('praticosys_auth', JSON.stringify(newAuth));
-  };
-
-  const handleLogout = async () => {
-    // Invalida sessão no servidor (best-effort)
-    try {
-      const raw = localStorage.getItem('praticosys_auth');
-      const saved = raw ? JSON.parse(raw) : null;
-      if (saved?.token) {
-        await fetch('/api/session', {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${saved.token}` },
-        });
-      }
-    } catch {}
-    setAuth({ user: null, token: null, isAuthenticated: false });
-    localStorage.removeItem('praticosys_auth');
-  };
-
-  useEffect(() => {
-    const handleSessionExpired = () => {
-      localStorage.removeItem('praticosys_auth');
-      setAuth({ user: null, token: null, isAuthenticated: false });
-    };
-
-    window.addEventListener('praticosys:session-expired', handleSessionExpired);
-    return () =>
-      window.removeEventListener(
-        'praticosys:session-expired',
-        handleSessionExpired,
-      );
-  }, []);
+  const { auth, status, retry, handleLogin, handleLogout } = useAuthSession();
 
   const hasModuleRestrictions =
     auth.user?.role === UserRole.OPERATOR || auth.user?.role === UserRole.SUPERVISOR;
@@ -89,14 +40,37 @@ const App: React.FC = () => {
   const protectModule = (module: OperatorModule, element: React.ReactElement) =>
     canAccessModule(module) ? element : <Navigate to={restrictedUserHome()} replace />;
 
+  if (status !== 'ready') {
+    return (
+      <main className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
+        <div className="bg-white rounded-xl p-6 max-w-sm w-full text-center space-y-4" role="status" aria-live="polite">
+          <h1 className="text-lg font-bold text-slate-800">
+            {status === 'checking' ? 'Verificando sua sessão…' : 'Não foi possível verificar sua sessão'}
+          </h1>
+          {status === 'unavailable' && <>
+            <p className="text-sm text-slate-600">Verifique sua conexão e tente novamente. Seu login salvo não foi apagado.</p>
+            <button type="button" onClick={retry} className="w-full bg-blue-600 text-white rounded-lg p-3 font-bold">Tentar novamente</button>
+            <button type="button" onClick={handleLogout} className="w-full text-slate-600 rounded-lg p-3">Sair deste aparelho</button>
+          </>}
+        </div>
+      </main>
+    );
+  }
+
+  const entryPath = auth.isAuthenticated && auth.user ? '/admin' : '/login';
+
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
-        {/* Redirect Root to Login */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Installed shortcuts can reopen at the root or a saved login URL. */}
+        <Route path="/" element={<Navigate to={entryPath} replace />} />
         
         {/* Auth Route */}
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+        <Route path="/login" element={
+          auth.isAuthenticated && auth.user
+            ? <Navigate to="/admin" replace />
+            : <Login onLogin={handleLogin} />
+        } />
 
         {/* Protected Routes */}
         <Route
@@ -217,7 +191,7 @@ const App: React.FC = () => {
         />
         
         {/* Catch all redirect */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to={entryPath} replace />} />
       </Routes>
     </Router>
   );

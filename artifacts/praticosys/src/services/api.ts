@@ -5,6 +5,13 @@ import { ExamRequest, ExamSchedule, ExamLocation, Examiner, Instructor, DrivingS
 // In development, the Vite proxy forwards /api/* to localhost:3000.
 const API_BASE = '/api';
 
+export class ApiRequestError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiRequestError';
+  }
+}
+
 /** Lê o Bearer token e dados do usuário armazenados no localStorage */
 function getAuthHeaders(): Record<string, string> {
   try {
@@ -24,11 +31,12 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const authHeaders = getAuthHeaders();
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      ...getAuthHeaders(),           // Bearer token em todas as requisições
+      ...authHeaders,                // Bearer token em todas as requisições
       ...(options?.headers as Record<string, string> | undefined ?? {}),
     },
   });
@@ -36,10 +44,14 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     // Sessão expirada — limpa estado e redireciona para login
     if (response.status === 401 && endpoint !== '/auth' && endpoint !== '/verify-otp') {
-      localStorage.removeItem('praticosys_auth');
-      window.dispatchEvent(new Event('praticosys:session-expired'));
-      window.location.hash = '#/login';
-      throw new Error('Sessão expirada. Redirecionando para login...');
+      // An old in-flight request must not log out a newer login.
+      if (authHeaders.Authorization &&
+          authHeaders.Authorization === getAuthHeaders().Authorization) {
+        localStorage.removeItem('praticosys_auth');
+        window.dispatchEvent(new Event('praticosys:session-expired'));
+        window.location.hash = '#/login';
+      }
+      throw new ApiRequestError('Sessão expirada. Faça login novamente.', 401);
     }
     const errorText = await response.text();
     const isJson = response.headers.get('content-type')?.includes('application/json');
@@ -50,7 +62,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
       // Não expõe páginas HTML de proxy/CDN ao usuário.
       msg = 'O servidor está temporariamente indisponível. Aguarde alguns instantes e tente novamente.';
     }
-    throw new Error(msg || `Erro ${response.status}: ${response.statusText}`);
+    throw new ApiRequestError(msg || `Erro ${response.status}: ${response.statusText}`, response.status);
   }
 
   if (response.status === 204) return {} as T;
@@ -61,7 +73,8 @@ export const api = {
   // --- AUTH ---
   login: (login: string, password?: string) => request<any>('/auth', { method: 'POST', body: JSON.stringify({ login, password }) }),
   verifyOtp: (userId: string, code: string) => request<any>('/verify-otp', { method: 'POST', body: JSON.stringify({ userId, code }) }),
-  logout: () => request<void>('/session', { method: 'DELETE' }).catch(() => {}),
+  getSession: (signal?: AbortSignal) => request<User>('/session', { signal, cache: 'no-store' }),
+  logout: () => request<void>('/session', { method: 'DELETE', keepalive: true }),
 
   // --- USERS ---
   getUsers: () => request<User[]>('/users'),

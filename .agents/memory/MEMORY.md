@@ -12,3 +12,4 @@
 - [Runtime Cloudflare](cloudflare-runtime-compatibility.md) — validar fetch com a data e flags de produção; testes Node ou workerd recente podem ocultar incompatibilidades.
 - [Comprovantes especiais CNH](cnh-special-receipts.md) — PCD e Reabilitação são exclusivos por categoria, independentes entre A/B e preservam o instrutor escolhido.
 - [Conflitos de horários CNH](cnh-time-conflicts.md) — bancas com data/hora únicas; escalas comparam todas as autoescolas com Perfil CNH, independentemente do examinador.
+- [Sessão mobile](mobile-session-continuity.md) — examinador já usa instalação pelo navegador; tela de login ao reabrir não comprova perda da sessão.

@@ -9,6 +9,36 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Restaurar a sessão atual sem renovar sua validade
+ */
+
+
+
+export const GetSessionResponse = zod.object({
+  "id": zod.string().min(1),
+  "name": zod.string(),
+  "login": zod.string(),
+  "role": zod.enum(['ADMIN', 'SUPERVISOR', 'OPERATOR', 'CONSULTANT', 'SCHOOL', 'EXAMINER', 'INSTRUCTOR']),
+  "schoolId": zod.string().optional(),
+  "examinerId": zod.string().optional(),
+  "instructorId": zod.string().optional(),
+  "forcePasswordChange": zod.boolean().optional(),
+  "twoFactorEnabled": zod.boolean().optional(),
+  "email": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "allowedModules": zod.array(zod.enum(['cnh', 'cfc', 'pcd', 'cadastro'])).optional(),
+  "allowedLocationIds": zod.array(zod.string()).optional(),
+  "allowedCadastroTabs": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary Encerrar a sessão atual
+ */
+export const DeleteSessionResponse = zod.unknown()
+
+
+/**
  * Requer sessão, módulo CNH autorizado e serviço ativo. Nunca retorna credenciais ou outros dados pessoais.
  * @summary Consultar somente o nome do candidato CNH pelo CPF
  */

@@ -6,6 +6,9 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "test:backup-restore": "tsx ./src/backup-restore.test.ts",
+    "test:auth-storage": "tsx --test ./src/auth-storage.test.ts",
+    "test:session-restoration": "tsx ./src/session-restoration.test.ts",
+    "test:session-restoration-postgres": "tsx ./src/cpf-postgres.test.ts ./session-restoration-postgres.integration.ts",
     "test:cpf-autofill": "tsx ./src/cpf-autofill.test.ts",
     "test:cpf-cloudflare": "tsx ./src/cpf-cloudflare.test.ts",
     "test:cpf-postgres": "tsx ./src/cpf-postgres.test.ts",

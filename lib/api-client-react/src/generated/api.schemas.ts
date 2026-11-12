@@ -5,6 +5,47 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type SessionUserRole = typeof SessionUserRole[keyof typeof SessionUserRole];
+
+
+export const SessionUserRole = {
+  ADMIN: 'ADMIN',
+  SUPERVISOR: 'SUPERVISOR',
+  OPERATOR: 'OPERATOR',
+  CONSULTANT: 'CONSULTANT',
+  SCHOOL: 'SCHOOL',
+  EXAMINER: 'EXAMINER',
+  INSTRUCTOR: 'INSTRUCTOR',
+} as const;
+
+export type SessionUserAllowedModulesItem = typeof SessionUserAllowedModulesItem[keyof typeof SessionUserAllowedModulesItem];
+
+
+export const SessionUserAllowedModulesItem = {
+  cnh: 'cnh',
+  cfc: 'cfc',
+  pcd: 'pcd',
+  cadastro: 'cadastro',
+} as const;
+
+export interface SessionUser {
+  /** @minLength 1 */
+  id: string;
+  name: string;
+  login: string;
+  role: SessionUserRole;
+  schoolId?: string;
+  examinerId?: string;
+  instructorId?: string;
+  forcePasswordChange?: boolean;
+  twoFactorEnabled?: boolean;
+  email?: string;
+  phone?: string;
+  allowedModules?: SessionUserAllowedModulesItem[];
+  allowedLocationIds?: string[];
+  allowedCadastroTabs?: string[];
+}
+
 export type CandidateCpfInputModule = typeof CandidateCpfInputModule[keyof typeof CandidateCpfInputModule];
 
 
