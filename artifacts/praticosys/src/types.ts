@@ -151,7 +151,7 @@ export interface Vehicle {
   transmission?: 'AUTOMATICA' | 'MANUAL';
   accessories?: string[];
   duploComando?: boolean; // Somente para CAR
-  procuracao?: boolean; // Veículo autorizado por procuração
+  procuracao?: boolean; // Veículo credenciado/autorizado pelo Detran (nome legado preservado)
   anoFabricacao?: string; // Ano de fabricação (ex: "2002")
 }
 

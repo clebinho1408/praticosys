@@ -3341,7 +3341,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                        </span>
                                    )}
                                    {(v as any).procuracao && (
-                                       <span className="text-blue-500 font-bold text-[11px]" title="Possui Procuração">●</span>
+                                       <span className="text-blue-500 font-bold text-[11px]" title="Veículo Credenciado">●</span>
                                    )}
                                </span>
                            ))}
@@ -3557,7 +3557,7 @@ const InstructorsManager: React.FC<{ user: User }> = ({ user }) => {
                                         </label>
                                         <label className="flex items-center gap-2 text-sm cursor-pointer">
                                             <input type="checkbox" checked={newVehicle.procuracao} onChange={e => setNewVehicle({...newVehicle, procuracao: e.target.checked})} />
-                                            Possui Procuração
+                                            Veículo Credenciado
                                         </label>
                                     </div>
                                     <button 

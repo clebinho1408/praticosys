@@ -19,6 +19,7 @@ import {
   SystemSettings,
 } from "../types";
 import { NotificationModal } from "../components/NotificationModal";
+import AccreditedVehiclesDialog from "../components/AccreditedVehiclesDialog";
 import {
   Plus,
   Search,
@@ -1634,7 +1635,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             )}
             {!isDoCandidato && selectedVehicle?.procuracao && (
               <p className="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1 flex items-center gap-1">
-                📄 Veículo autorizado por procuração
+                📄 Veículo autorizado pelo Detran
               </p>
             )}
           </div>
@@ -2119,7 +2120,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
       {user.role === UserRole.INSTRUCTOR ? (
         <div className="flex flex-col gap-4">
           {/* Action Button (Top Centered) */}
-          <div className="w-full flex justify-center">
+          <div className="w-full flex justify-center gap-2">
             {!isConsultant && (
               <button
                 onClick={handleNewCandidate}
@@ -2128,6 +2129,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 <Plus className="h-5 w-5" /> Novo Candidato
               </button>
             )}
+            {typeFilter === ExamType.COMMON && excludeRegularSchools && <AccreditedVehiclesDialog />}
           </div>
 
           {/* Search Filter */}
@@ -2212,7 +2214,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           </div>
 
           {/* Action Button (Right Side) */}
-          <div className="w-full md:w-auto flex justify-end">
+          <div className="w-full md:w-auto flex justify-end gap-2">
             {!isConsultant && (
               <button
                 onClick={handleNewCandidate}
@@ -2221,6 +2223,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 <Plus className="h-4 w-4" /> Novo Candidato
               </button>
             )}
+            {typeFilter === ExamType.COMMON && excludeRegularSchools && <AccreditedVehiclesDialog />}
           </div>
         </div>
       )}
