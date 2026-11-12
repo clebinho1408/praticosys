@@ -2129,7 +2129,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 <Plus className="h-5 w-5" /> Novo Candidato
               </button>
             )}
-            {typeFilter === ExamType.COMMON && excludeRegularSchools && <AccreditedVehiclesDialog />}
           </div>
 
           {/* Search Filter */}
@@ -2145,7 +2144,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
           </div>
 
           {/* Status Filter */}
-          <div className="relative w-full">
+          <div className="flex items-center gap-2 w-full">
+          <div className="relative flex-1 min-w-0">
             <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <Filter className="h-4 w-4 text-gray-400" />
             </div>
@@ -2164,6 +2164,8 @@ const RequestManager: React.FC<RequestManagerProps> = ({
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
               <ChevronDown className="h-4 w-4 text-gray-400" />
             </div>
+          </div>
+          {typeFilter === ExamType.COMMON && excludeRegularSchools && <AccreditedVehiclesDialog />}
           </div>
         </div>
       ) : (
@@ -2211,6 +2213,7 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 <ChevronDown className="h-4 w-4 text-gray-400" />
               </div>
             </div>
+            {typeFilter === ExamType.COMMON && excludeRegularSchools && <AccreditedVehiclesDialog />}
           </div>
 
           {/* Action Button (Right Side) */}
@@ -2223,7 +2226,6 @@ const RequestManager: React.FC<RequestManagerProps> = ({
                 <Plus className="h-4 w-4" /> Novo Candidato
               </button>
             )}
-            {typeFilter === ExamType.COMMON && excludeRegularSchools && <AccreditedVehiclesDialog />}
           </div>
         </div>
       )}
