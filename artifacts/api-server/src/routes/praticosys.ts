@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { UpdateExamRequestBody } from "@workspace/api-zod";
 // @ts-ignore Shared calendar policy, also bundled into Cloudflare and the frontend.
 import { mainSchedulePaused, schoolPauseValidation } from "../../../../functions/_school-schedule.js";
 // @ts-ignore Shared CNH time-conflict policy.
@@ -819,7 +820,10 @@ router.put("/requests", async (req, res) => {
     // Busca registro para saber qual tabela atualizar e para auditoria
     const found = await findRequestById(id);
     const role = (req as any).sessionUser?.role;
-    if (body.registerInterest) {
+    if (body.registerInterest || body.removeInterest) {
+      if (!UpdateExamRequestBody.safeParse(body).success || (body.registerInterest && body.removeInterest)) {
+        return res.status(400).json({ error: "Operação de interesse inválida." });
+      }
       // "Tenho interesse": identidade vem da sessão, nunca do corpo da requisição.
       const sessionUserId = (req as any).sessionUser?.id;
       const [sessionUser] = sessionUserId
@@ -828,9 +832,9 @@ router.put("/requests", async (req, res) => {
       const [examiner] = sessionUser?.examinerId
         ? await db.select({ id: examiners.id, name: examiners.name }).from(examiners).where(eq(examiners.id, sessionUser.examinerId)).limit(1)
         : [];
-      const invalid = interestError(found?.row, found?.modulo ?? "", role, examiner);
+      const invalid = interestError(found?.row, found?.modulo ?? "", role, examiner, body.removeInterest === true);
       if (invalid) return res.status(invalid.status).json({ error: invalid.error });
-      const rows = await db.update(cfcRequests).set({ ...interestPatch(found!.row, examiner!), updatedAt: new Date() })
+      const rows = await db.update(cfcRequests).set({ ...interestPatch(found!.row, examiner!, new Date(), body.removeInterest === true), updatedAt: new Date() })
         .where(and(eq(cfcRequests.id, id), eq(cfcRequests.status, "WAITING_SCHEDULING"))).returning();
       if (!rows.length) return res.status(409).json({ error: "O pedido mudou. Atualize a lista." });
       broadcast("requests_updated", rows[0]);

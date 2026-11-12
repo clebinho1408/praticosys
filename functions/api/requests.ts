@@ -6,6 +6,7 @@ import { canManageConfirmed, isConfirmedCfc, confirmedAccessError, confirmedPatc
 import { extraEditError, extraPatch } from '../_cfc-extra.js';
 import { interestError, interestPatch } from '../_cfc-interest.js';
 import { modalityValidationError } from '../_cnh-exam-modality.js';
+import { UpdateExamRequestBody } from '../../lib/api-zod/src/generated/api.js';
 
 const ALLOWED_FIELDS = [
   'id','studentName','socialName','cpf','phone','email','address','city',
@@ -131,7 +132,10 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       // Encontra registro atual (camelCase via ORM)
       const found = await findRequestById(db, id);
       const role = (data as any)?.sessionUserRole;
-      if (body.registerInterest) {
+      if (body.registerInterest || body.removeInterest) {
+        if (!UpdateExamRequestBody.safeParse(body).success || (body.registerInterest && body.removeInterest)) {
+          return error('Operação de interesse inválida.', 400);
+        }
         // "Tenho interesse": identidade vem da sessão, nunca do corpo da requisição.
         const sessionUserId = (data as any)?.sessionUserId;
         const [sessionUser] = sessionUserId
@@ -140,9 +144,9 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         const [examiner] = sessionUser?.examinerId
           ? await db.select({ id: examiners.id, name: examiners.name }).from(examiners).where(eq(examiners.id, sessionUser.examinerId)).limit(1)
           : [];
-        const invalid = interestError(found?.row, found?.modulo ?? '', role, examiner);
+        const invalid = interestError(found?.row, found?.modulo ?? '', role, examiner, body.removeInterest === true);
         if (invalid) return error(invalid.error, invalid.status);
-        const rows = await db.update(cfcRequests).set({ ...interestPatch(found!.row, examiner!), updatedAt: new Date() })
+        const rows = await db.update(cfcRequests).set({ ...interestPatch(found!.row, examiner!, new Date(), body.removeInterest === true), updatedAt: new Date() })
           .where(and(eq(cfcRequests.id, id), eq(cfcRequests.status, 'WAITING_SCHEDULING'))).returning();
         if (!rows.length) return error('O pedido mudou. Atualize a lista.', 409);
         return json(rows[0]);

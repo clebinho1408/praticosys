@@ -26,6 +26,7 @@ export function interestError(
   module: string,
   role: string | undefined,
   examiner: { id?: string | null; name?: string | null } | null | undefined,
+  remove = false,
 ): { status: number; error: string } | null {
   if (!canRegisterInterest(role)) return { status: 403, error: 'Somente examinadores podem registrar interesse.' };
   if (!examiner?.id) return { status: 403, error: 'Usuário sem examinador vinculado.' };
@@ -33,7 +34,7 @@ export function interestError(
     return { status: 409, error: 'Este pedido não está mais na fila de provas extras. Atualize a lista.' };
   }
   const list: InterestedExaminer[] = Array.isArray(current.interestedExaminers) ? current.interestedExaminers : [];
-  if (list.some(i => i.examinerId === examiner.id)) {
+  if (!remove && list.some(i => i.examinerId === examiner.id)) {
     return { status: 409, error: 'Interesse já registrado para este pedido.' };
   }
   return null;
@@ -44,8 +45,10 @@ export function interestPatch(
   current: any,
   examiner: { id: string; name: string },
   now: Date = new Date(),
+  remove = false,
 ): { interestedExaminers: InterestedExaminer[] } {
   const list: InterestedExaminer[] = Array.isArray(current?.interestedExaminers) ? current.interestedExaminers : [];
+  if (remove) return { interestedExaminers: list.filter(i => i.examinerId !== examiner.id) };
   if (list.some(i => i.examinerId === examiner.id)) return { interestedExaminers: list };
   return {
     interestedExaminers: [...list, { examinerId: examiner.id, name: examiner.name, registeredAt: now.toISOString() }],

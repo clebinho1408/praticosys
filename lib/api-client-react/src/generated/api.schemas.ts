@@ -5,6 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface ExamRequestUpdate {
+  /** @minLength 1 */
+  id: string;
+  registerInterest?: boolean;
+  removeInterest?: boolean;
+  [key: string]: unknown;
+ }
+
 export type SessionUserRole = typeof SessionUserRole[keyof typeof SessionUserRole];
 
 
@@ -69,4 +77,6 @@ export interface CandidateCpfName {
 export interface HealthStatus {
   status: string;
 }
+
+export type UpdateExamRequest200 = { [key: string]: unknown };
 

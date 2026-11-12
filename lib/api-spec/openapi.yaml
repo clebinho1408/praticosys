@@ -11,6 +11,35 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /requests:
+    put:
+      operationId: updateExamRequest
+      summary: Atualizar pedido ou registrar/retirar o próprio interesse do examinador
+      description: removeInterest retira somente o examinador da sessão em pedidos CFC ainda pendentes. Outros campos seguem as permissões de atualização existentes.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExamRequestUpdate"
+      responses:
+        "200":
+          description: Pedido atualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "400":
+          description: Dados inválidos
+        "401":
+          description: Sessão inválida
+        "403":
+          description: Perfil sem permissão ou sem examinador vinculado
+        "409":
+          description: Pedido não está mais pendente ou interesse já registrado
   /session:
     get:
       operationId: getSession
@@ -91,6 +120,18 @@ components:
       type: http
       scheme: bearer
   schemas:
+    ExamRequestUpdate:
+      type: object
+      required: [id]
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+          minLength: 1
+        registerInterest:
+          type: boolean
+        removeInterest:
+          type: boolean
     SessionUser:
       type: object
       required: [id, name, login, role]

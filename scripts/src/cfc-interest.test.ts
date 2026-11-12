@@ -6,6 +6,20 @@ import { canRegisterInterest, interestError, interestPatch, isPendingCfcExtra, e
 import { schoolYardsValidation, effectiveYards } from '../../functions/_school-yards.js';
 
 const pending = { id: 'fixture', schoolId: 'school-fixture', status: 'WAITING_SCHEDULING', examType: 'COMMON', attendanceConfirmed: false, interestedExaminers: [] as any[] };
+
+test('withdrawal removes only session examiner, preserves others and can register again', () => {
+  const first = interestPatch(pending, { id: 'ex-1', name: 'First' });
+  const both = interestPatch(first, { id: 'ex-2', name: 'Second' });
+  const current = { ...pending, ...both };
+  assert.equal(interestError(current, 'CFC', 'EXAMINER', { id: 'ex-1' }, true), null);
+  const result = interestPatch(current, { id: 'ex-1', name: 'First' }, new Date(), true);
+  assert.deepEqual(result.interestedExaminers, both.interestedExaminers.filter(i => i.examinerId === 'ex-2'));
+  assert.equal(current.interestedExaminers.length, 2);
+  assert.equal(interestError({ ...pending, ...result }, 'CFC', 'EXAMINER', { id: 'ex-1' }), null);
+  assert.equal(interestError(current, 'CFC', 'ADMIN', { id: 'ex-1' }, true)?.status, 403);
+  assert.equal(interestError(current, 'CFC', 'EXAMINER', null, true)?.status, 403);
+  assert.equal(interestError({ ...current, status: 'SCHEDULED' }, 'CFC', 'EXAMINER', { id: 'ex-1' }, true)?.status, 409);
+});
 const examiner = { id: 'ex-1', name: 'EXAMINADOR FICTÍCIO' };
 
 test('only EXAMINER profiles with a linked examiner can register interest', () => {

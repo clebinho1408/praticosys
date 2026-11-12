@@ -22,8 +22,10 @@ import type {
 import type {
   CandidateCpfInput,
   CandidateCpfName,
+  ExamRequestUpdate,
   HealthStatus,
-  SessionUser
+  SessionUser,
+  UpdateExamRequest200
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -52,6 +54,77 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getUpdateExamRequestUrl = () => {
+
+
+
+
+  return `/api/requests`
+}
+
+/**
+ * removeInterest retira somente o examinador da sessão em pedidos CFC ainda pendentes. Outros campos seguem as permissões de atualização existentes.
+ * @summary Atualizar pedido ou registrar/retirar o próprio interesse do examinador
+ */
+export const updateExamRequest = async (examRequestUpdate: ExamRequestUpdate, options?: RequestInit): Promise<UpdateExamRequest200> => {
+
+  return customFetch<UpdateExamRequest200>(getUpdateExamRequestUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(examRequestUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateExamRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateExamRequest>>, TError,{data: BodyType<ExamRequestUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateExamRequest>>, TError,{data: BodyType<ExamRequestUpdate>}, TContext> => {
+
+const mutationKey = ['updateExamRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateExamRequest>>, {data: BodyType<ExamRequestUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateExamRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateExamRequestMutationResult = NonNullable<Awaited<ReturnType<typeof updateExamRequest>>>
+    export type UpdateExamRequestMutationBody = BodyType<ExamRequestUpdate>
+    export type UpdateExamRequestMutationError = ErrorType<void>
+
+    /**
+ * @summary Atualizar pedido ou registrar/retirar o próprio interesse do examinador
+ */
+export const useUpdateExamRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateExamRequest>>, TError,{data: BodyType<ExamRequestUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateExamRequest>>,
+        TError,
+        {data: BodyType<ExamRequestUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateExamRequestMutationOptions(options));
+    }
 
 export const getGetSessionUrl = () => {
 

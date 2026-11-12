@@ -9,6 +9,22 @@ import * as zod from 'zod';
 
 
 /**
+ * removeInterest retira somente o examinador da sessão em pedidos CFC ainda pendentes. Outros campos seguem as permissões de atualização existentes.
+ * @summary Atualizar pedido ou registrar/retirar o próprio interesse do examinador
+ */
+
+
+
+export const UpdateExamRequestBody = zod.object({
+  "id": zod.string().min(1),
+  "registerInterest": zod.boolean().optional(),
+  "removeInterest": zod.boolean().optional()
+})
+
+export const UpdateExamRequestResponse = zod.record(zod.string(), zod.unknown())
+
+
+/**
  * @summary Restaurar a sessão atual sem renovar sua validade
  */
 
