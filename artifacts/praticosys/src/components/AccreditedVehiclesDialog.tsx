@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CarFront, Search } from 'lucide-react';
+import { CarFront, Motorbike, Search } from 'lucide-react';
 import { api } from '../services/api';
 import type { Instructor } from '../types';
 import { accreditedVehicles } from '../lib/accreditedVehicles';
@@ -83,7 +83,16 @@ export default function AccreditedVehiclesDialog() {
               <tbody className="divide-y divide-slate-100">
                 {rows.map(row => <tr key={`${row.instructorId}:${row.vehicleId}`}>
                   <td className="px-4 py-3 break-words">{row.name}</td>
-                  <td className="px-4 py-3 font-semibold uppercase whitespace-nowrap">{row.plate}</td>
+                  <td className="px-4 py-3 font-semibold uppercase whitespace-nowrap">
+                    <span className="inline-flex items-center gap-2">
+                      {row.plate}
+                      <span title={row.type === 'CAR' ? 'Carro' : 'Moto'} role="img" aria-label={row.type === 'CAR' ? 'Carro' : 'Moto'}>
+                        {row.type === 'CAR'
+                          ? <CarFront className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                          : <Motorbike className="h-4 w-4 text-slate-500" aria-hidden="true" />}
+                      </span>
+                    </span>
+                  </td>
                 </tr>)}
               </tbody>
             </table>}
