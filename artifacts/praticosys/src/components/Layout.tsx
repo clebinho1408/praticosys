@@ -13,6 +13,8 @@ import {
   CalendarCheck,
   Menu,
   X,
+  PanelLeftClose,
+  PanelLeftOpen,
   ChevronDown,
   ChevronRight,
   Map,
@@ -53,6 +55,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const navigate = useNavigate();
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem('praticosys-sidebar-collapsed') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [showForcePassword, setShowForcePassword] = useState(!!user.forcePasswordChange);
 
   useEffect(() => {
@@ -88,6 +97,18 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       const isCurrentlyOpen = !!prev[label];
       // Close all menus, then toggle the clicked one (auto-close others)
       return { [label]: !isCurrentlyOpen };
+    });
+  };
+
+  const toggleSidebarCollapsed = () => {
+    setIsSidebarCollapsed(current => {
+      const next = !current;
+      try {
+        window.localStorage.setItem('praticosys-sidebar-collapsed', String(next));
+      } catch {
+        // Keep the toggle usable even when browser storage is unavailable.
+      }
+      return next;
     });
   };
 
@@ -201,19 +222,48 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
     return items;
   };
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => {
+    const isCollapsed = !isMobile && isSidebarCollapsed;
+
+    return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-900">
-      <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-900 shrink-0">
-        <div className="bg-white/10 p-1.5 rounded-lg">
-           <Logo className="h-6 w-6" />
-        </div>
-        <span className="text-lg font-bold text-white tracking-tight">PráticoSys</span>
-        <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden ml-auto text-slate-400 p-2 hover:bg-slate-800 rounded-lg">
+      <div className={`h-16 flex items-center border-b border-slate-800 bg-slate-900 shrink-0 ${isCollapsed ? 'justify-center px-2' : 'justify-between gap-3 px-4'}`}>
+        {!isCollapsed && (
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-white/10 p-1.5 rounded-lg">
+              <Logo className="h-6 w-6" />
+            </div>
+            <span className="text-lg font-bold text-white tracking-tight">PráticoSys</span>
+          </div>
+        )}
+        {isMobile ? (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="md:hidden ml-auto text-slate-400 p-2 hover:bg-slate-800 rounded-lg"
+        >
            <X className="h-6 w-6" />
         </button>
+        ) : (
+        <button
+          type="button"
+          aria-label={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+          aria-expanded={!isCollapsed}
+          title={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+          onClick={toggleSidebarCollapsed}
+          className="text-slate-400 p-1.5 hover:bg-slate-800 hover:text-white rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+        >
+          {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+        </button>
+        )}
       </div>
 
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+      <nav
+        id={isMobile ? 'mobile-primary-navigation' : 'desktop-primary-navigation'}
+        aria-label="Menu principal"
+        className={`flex-1 space-y-2 overflow-y-auto custom-scrollbar ${isCollapsed ? 'p-2' : 'p-4'}`}
+      >
         {getNavItems().map((item) => {
           const hasSubmenu = !!item.subItems;
           const isOpen = openMenus[item.label];
@@ -223,32 +273,54 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
             <div key={item.label} className="space-y-1">
               {hasSubmenu ? (
                 <button
-                  onClick={() => toggleMenu(item.label)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group ${
+                  type="button"
+                  title={isCollapsed ? item.label : undefined}
+                  aria-label={item.label}
+                  aria-expanded={isCollapsed ? undefined : isOpen}
+                  onClick={() => {
+                    if (isCollapsed) {
+                      setIsSidebarCollapsed(false);
+                      try {
+                        window.localStorage.setItem('praticosys-sidebar-collapsed', 'false');
+                      } catch {
+                        // Keep navigation usable when browser storage is unavailable.
+                      }
+                      setOpenMenus({ [item.label]: true });
+                    } else {
+                      toggleMenu(item.label);
+                    }
+                  }}
+                  className={`w-full flex items-center rounded-xl text-sm font-bold transition-all duration-200 group ${
+                    isCollapsed ? 'justify-center px-2 py-3' : 'justify-between px-4 py-3'
+                  } ${
                     activeParent ? 'bg-slate-800/80 text-blue-400' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className={`flex items-center ${isCollapsed ? '' : 'gap-3'}`}>
                     <item.icon className={`h-5 w-5 transition-colors ${activeParent ? 'text-blue-400' : 'text-slate-500 group-hover:text-white'}`} />
-                    <span>{item.label}</span>
+                    {!isCollapsed && <span>{item.label}</span>}
                   </div>
-                  {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {!isCollapsed && (isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />)}
                 </button>
               ) : (
                 <Link
                   to={item.path!}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group ${
+                  title={isCollapsed ? item.label : undefined}
+                  aria-label={isCollapsed ? item.label : undefined}
+                  className={`flex items-center rounded-xl text-sm font-bold transition-all duration-200 group ${
+                    isCollapsed ? 'justify-center px-2 py-3' : 'gap-3 px-4 py-3'
+                  } ${
                     isActive(item.path!)
                       ? 'bg-blue-600 text-white shadow-xl shadow-blue-900/40'
                       : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
                   <item.icon className={`h-5 w-5 transition-colors ${isActive(item.path!) ? 'text-white' : 'text-slate-500 group-hover:text-white'}`} />
-                  <span>{item.label}</span>
+                  {!isCollapsed && <span>{item.label}</span>}
                 </Link>
               )}
 
-              {hasSubmenu && isOpen && (
+              {!isCollapsed && hasSubmenu && isOpen && (
                 <div className="ml-4 pl-4 border-l border-slate-800 space-y-1 animate-fadeIn">
                   {item.subItems!.map((sub) => (
                     <Link
@@ -271,19 +343,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         })}
       </nav>
       
-      <div className="p-4 border-t border-slate-800 bg-slate-900/50 shrink-0">
-        <div className="flex items-center gap-3">
+      <div className={`${isCollapsed ? 'p-2' : 'p-4'} border-t border-slate-800 bg-slate-900/50 shrink-0`}>
+        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
           <div className="h-9 w-9 bg-slate-700 text-slate-200 rounded-xl flex items-center justify-center font-semibold text-sm border border-slate-600 shrink-0">
             {formatSidebarLabel(user.name).charAt(0)}
           </div>
-          <div className="min-w-0">
+          {!isCollapsed && <div className="min-w-0">
             <p className="text-sm font-semibold text-white leading-tight normal-case tracking-normal truncate">{formatSidebarLabel(user.name)}</p>
             <p className="text-[10px] text-blue-400 font-medium normal-case tracking-normal opacity-80">{formatSidebarLabel(getRoleLabel(user.role))}</p>
-          </div>
+          </div>}
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row print:bg-white h-screen overflow-hidden print:h-auto print:overflow-visible">
@@ -295,7 +368,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       )}
       
       {/* Sidebar Desktop */}
-      <aside className="hidden md:flex w-64 bg-slate-900 border-r border-slate-800 flex-col flex-shrink-0 print:hidden z-20">
+      <aside className={`hidden md:flex ${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-slate-900 border-r border-slate-800 flex-col flex-shrink-0 print:hidden z-20 transition-[width] duration-200 ease-in-out`}>
         <SidebarContent />
       </aside>
 
@@ -303,7 +376,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       <div className={`md:hidden fixed inset-0 z-[100] transition-all duration-300 ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => setIsMobileMenuOpen(false)}></div>
           <aside className={`absolute top-0 left-0 h-full w-72 bg-slate-900 shadow-2xl transition-transform duration-300 transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-              <SidebarContent />
+              <SidebarContent isMobile />
           </aside>
       </div>
 
