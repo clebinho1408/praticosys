@@ -52,7 +52,7 @@ Sistema de Gestão de Exames Práticos para DETRAN — gerenciamento de candidat
    - `DATABASE_URL` → string de conexão do Neon (ex: `postgresql://user:pass@host/db?sslmode=require`)
    - `NODE_ENV` → `production`
 4. **Primeiro deploy**: Cloudflare vai detectar automaticamente o diretório `functions/` na raiz
-5. **Inicializar o banco**: Após o deploy, fazer POST para `https://seu-site.pages.dev/api/setup`
+5. **Inicializar o banco**: somente em uma instalação autorizada, `POST /api/setup` exige a credencial de manutenção (`SESSION_SECRET`) como Bearer e `initialPassword` válido. Nunca enviá-la pelo navegador público, registrá-la em logs ou executar setup automaticamente contra o Neon compartilhado. D1 usa migrações explícitas isoladas.
 
 ### Migrar dados do Replit para o Neon
 
@@ -99,8 +99,10 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-- Usuário admin criado automaticamente ao chamar `POST /api/setup`
-- Primeiro login do admin define a senha (sem senha padrão)
+- O setup de manutenção pode provisionar o administrador inicial; login público nunca define senha de conta sem credencial.
+- Criação e redefinição usam senha temporária aleatória, hash no servidor e primeiro acesso obrigatório; nenhuma senha padrão.
+- Troca própria exige confirmação e mantém o acesso atual, encerrando somente os outros; reset administrativo exige confirmação e encerra os acessos daquela conta. Publicar correções não revoga sessões em massa.
+- Matriz de permissões e entrega preventiva: `security-audit/matriz-acessos.md` e `security-audit/correcoes.html`. O relatório original permanece como evidência histórica, não como teste de segurança corrigida.
 - `pnpm --filter @workspace/db run push` deve ser re-executado após mudanças de schema (apenas em dev)
 - A tabela `schedule-slots` é separada de `exam_requests` — usada para vagas de escala CFC/PCD sem candidato real
 - O build do Cloudflare usa `pnpm run cf-build` (não `pnpm build`) para evitar erros de PORT/BASE_PATH

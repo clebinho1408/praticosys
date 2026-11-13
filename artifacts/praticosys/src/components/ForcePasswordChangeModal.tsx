@@ -33,6 +33,7 @@ export const ForcePasswordChangeModal: React.FC<Props> = ({ user, onSuccess }) =
       setError('A senha deve ter no mínimo 6 caracteres.');
       return;
     }
+    if (!window.confirm('Ao salvar, os outros acessos desta conta serão encerrados. Este aparelho continuará conectado. Deseja continuar?')) return;
 
     setLoading(true);
     setError('');
@@ -83,6 +84,7 @@ export const ForcePasswordChangeModal: React.FC<Props> = ({ user, onSuccess }) =
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
+                  autoComplete="new-password"
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all font-medium"
                   placeholder="Mínimo de 6 caracteres"
@@ -103,6 +105,7 @@ export const ForcePasswordChangeModal: React.FC<Props> = ({ user, onSuccess }) =
                 <input
                   type={showPassword ? "text" : "password"}
                   value={confirmPassword}
+                  autoComplete="new-password"
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all font-medium"
                   placeholder="Digite a senha novamente"

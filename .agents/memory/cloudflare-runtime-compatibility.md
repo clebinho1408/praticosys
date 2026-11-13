@@ -27,3 +27,13 @@ do harness. Isso não era uma falha da aplicação no runtime de produção.
 **How to apply:** usar o harness de runtime para carregar os handlers, mantendo
 os contratos puros compartilhados verificáveis normalmente; não adaptar os
 handlers de produção aos tipos globais do ambiente de teste.
+
+Não transportar identidade verificada ou corpos autorizados entre middleware e
+handler Pages usando a identidade do objeto `Request` (por exemplo, WeakMap).
+
+**Why:** o Worker compilado recria a requisição nessa passagem; o harness Node
+mantinha o mesmo objeto e não revelava a perda da autoria e da sanitização.
+
+**How to apply:** usar `context.data` para identidade interna e encaminhar
+explicitamente a requisição sanitizada com `next(request)`. Incluir uma regressão
+do Worker compilado além do harness para controles nessa fronteira.

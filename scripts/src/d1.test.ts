@@ -13,6 +13,7 @@ import { createD1Backup, readD1Backup, splitD1Text, d1ImportStatements } from '.
 // @ts-ignore Shared restore implementation.
 import { restoreBackup } from '../../functions/_backup-restore.js';
 import { eq, sql } from 'drizzle-orm';
+import { AUTH_SECURITY_VERSION, authSecurityChecksum } from '../../db/auth-security-migration.js';
 
 const runtime = await localD1();
 let checks = 0;
@@ -82,12 +83,12 @@ try {
   await runtime.db.batch([runtime.db.delete(schema.cfcRequests).where(eq(schema.cfcRequests.id, original.id)),
     runtime.db.delete(schema.pcdRequests).where(eq(schema.pcdRequests.id, original.id))]);
 
-  const fixed = { automaticFixed: { schoolId: 'd1-school', date: '2026-11-02', slots: [{ examinerId: 'd1-examiner', scheduledTime: '08:00' }] } };
+  const fixed = { automaticFixed: { schoolId: 'd1-school', date: '2035-01-08', slots: [{ examinerId: 'd1-examiner', scheduledTime: '08:00' }] } };
   await api('schedule-slots', 'POST', fixed, admin);
   await api('schedule-slots', 'POST', fixed, admin, 409);
   const confirmed = (await api('schedule-slots', 'GET', undefined, admin))[0];
   check(confirmed.attendanceConfirmed === true);
-  const patch = { id: confirmed.id, confirmedEdit: true, scheduledDate: '2026-11-03',
+  const patch = { id: confirmed.id, confirmedEdit: true, scheduledDate: '2035-01-09',
     scheduledTime: '08:00', examinerId: 'd1-examiner',
     intendedCategory: 'A,B', categoryQuantities: { A: 2, B: 2 }, requestType: 'FIXA', examGroup: '1HAB' };
   await api('schedule-slots', 'PUT', patch, sessions.operator, 403);
@@ -97,14 +98,14 @@ try {
 
   // Simultaneous allocations from different schools: only one can commit.
   const allocation = { schoolId: 'd1-school', examType: 'COMMON', requestType: 'FIXA',
-    scheduledDate: '2026-11-04', scheduledTime: '08:00', examinerId: 'd1-examiner', status: 'SCHEDULED' };
+    scheduledDate: '2035-01-10', scheduledTime: '08:00', examinerId: 'd1-examiner', status: 'SCHEDULED' };
   const concurrent = await Promise.allSettled(['race-a', 'race-b'].map((id, i) =>
     runtime.db.insert(schema.cfcScheduleSlots).values({ ...allocation, id, schoolId: `synthetic-school-${i}` })));
   check(concurrent.filter(r => r.status === 'fulfilled').length === 1);
   // A later conflict must roll back the earlier insert in the SAME batch.
   await assert.rejects(() => runtime.db.batch([
-    runtime.db.insert(schema.cfcScheduleSlots).values({ ...allocation, id: 'atomic-first', scheduledDate: '2026-11-05' }),
-    runtime.db.insert(schema.cfcScheduleSlots).values({ ...allocation, id: 'atomic-conflict', scheduledDate: '2026-11-05' }),
+    runtime.db.insert(schema.cfcScheduleSlots).values({ ...allocation, id: 'atomic-first', scheduledDate: '2035-01-11' }),
+    runtime.db.insert(schema.cfcScheduleSlots).values({ ...allocation, id: 'atomic-conflict', scheduledDate: '2035-01-11' }),
   ])); checks++;
   check((await runtime.db.select().from(schema.cfcScheduleSlots).where(eq(schema.cfcScheduleSlots.id, 'atomic-first'))).length === 0);
 
@@ -157,7 +158,10 @@ try {
   await api('requests', 'GET', undefined, sessions.school, 401);
   await harness.drain();
   const marker = await runtime.binding.prepare('SELECT count(*) AS n FROM migracoes_d1').first<any>();
-  check(marker.n === 3);
+  check(marker.n >= 3);
+  const securityMarker = await runtime.binding.prepare('SELECT checksum FROM migracoes_d1 WHERE versao = ?')
+    .bind(AUTH_SECURITY_VERSION).first<{ checksum: string }>();
+  check(securityMarker?.checksum === await authSecurityChecksum());
   const rows = await runtime.db.execute(sql`SELECT criado_em::date AS day FROM usuarios LIMIT 1`);
   check(/^\d{4}-\d{2}-\d{2}$/.test(String(rows.rows[0].day)));
   process.stdout.write(`D1: ${checks} verificações passaram; dados fictícios; nenhuma conexão Neon ou envio real de e-mail.\n`);

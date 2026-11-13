@@ -110,7 +110,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       }).returning();
       const record = newItem[0] as any;
       if (record?.modulo === 'CNH_BRASIL') {
-        await writeAuditLog(db, extractActor(request), 'Foi cadastrado', 'CNH_BRASIL_CANDIDATO', record.id, {
+        await writeAuditLog(db, extractActor(request, data), 'Foi cadastrado', 'CNH_BRASIL_CANDIDATO', record.id, {
           cpf: record.cpf ?? null,
           name: record.studentName ?? null,
         });
@@ -237,7 +237,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
         let action = 'Foi modificado';
         if (body.scheduleId && body.status === 'SCHEDULED') action = 'Foi adicionado na Banca';
         else if (body.scheduleId === null && body.status === 'WAITING_SCHEDULING') action = 'Foi excluído da Banca';
-        await writeAuditLog(db, extractActor(request), action, 'CNH_BRASIL_CANDIDATO', id, {
+        await writeAuditLog(db, extractActor(request, data), action, 'CNH_BRASIL_CANDIDATO', id, {
           cpf: (record ?? found?.row)?.cpf ?? null,
           name: (record ?? found?.row)?.studentName ?? null,
         });
@@ -272,7 +272,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       await db.delete(cfcRequests).where(eq(cfcRequests.id, id));
       await db.delete(pcdRequests).where(eq(pcdRequests.id, id));
       if (found?.modulo === 'CNH_BRASIL') {
-        await writeAuditLog(db, extractActor(request), 'Foi excluído', 'CNH_BRASIL_CANDIDATO', id, {
+        await writeAuditLog(db, extractActor(request, data), 'Foi excluído', 'CNH_BRASIL_CANDIDATO', id, {
           cpf: found.row?.cpf ?? null,
           name: found.row?.studentName ?? null,
         });

@@ -4,8 +4,16 @@ import { getDb, json, error, ensurePortugueseSchema } from '../_db.js';
 import { users } from '../../db/schema.js';
 import { sql } from 'drizzle-orm';
 import { isD1, verifyD1Schema } from '../_d1.js';
+import { hashPassword } from '../_password.js';
+import { validPassword } from '../_auth-security.js';
 
-export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ env }) => {
+export const onRequestPost: PagesFunction<{ DATABASE_URL: string; SESSION_SECRET?: string }> = async ({ env, request }) => {
+  // Check maintenance authority BEFORE opening a database or running migrations.
+  if (!env.SESSION_SECRET || request.headers.get('Authorization') !== `Bearer ${env.SESSION_SECRET}`) {
+    return error('Provisionamento exige autorização de manutenção.', 401);
+  }
+  const body = await request.json().catch(() => ({})) as any;
+  if (!validPassword(body.initialPassword)) return error('Informe uma senha inicial de 6 a 72 bytes.', 400);
   try {
     const db = getDb(env as any);
     // D1 is provisioned only by an explicit maintenance command. The public
@@ -176,16 +184,23 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async ({ e
     ];
     for (const q of dropColumns) { try { await db.execute(q); } catch {} }
 
-    // Criar usuário admin se não existir
-    try {
+    // A maintenance credential can provision the missing initial password;
+    // a public login can never claim it. Existing valid credentials are untouched.
+    {
+      const existing = await db.select().from(users).where(sql`${users.login} = 'admin'`).limit(1);
+      if (existing.length && !(existing[0] as any).password?.trim()) {
+        await db.update(users).set({ password: await hashPassword(body.initialPassword), forcePasswordChange: true })
+          .where(sql`${users.id} = ${existing[0].id} AND (${users.password} IS NULL OR ${users.password} = '')`);
+      }
       await db.insert(users).values({
         id: crypto.randomUUID(),
         name: 'Administrador',
         login: 'admin',
         role: 'ADMIN',
-        forcePasswordChange: false,
+        password: await hashPassword(body.initialPassword),
+        forcePasswordChange: true,
       }).onConflictDoNothing();
-    } catch {}
+    }
 
     return json({ success: true, message: 'Tabelas criadas e sincronizadas com sucesso!' });
   } catch (e: any) {

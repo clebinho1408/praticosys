@@ -460,7 +460,7 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
       const now = new Date();
       const updatePromises = [];
       
-      for (const req of cfcReqs) {
+      for (const req of [UserRole.ADMIN, UserRole.SUPERVISOR, UserRole.OPERATOR].includes(user.role) ? cfcReqs : []) {
         if (req.status === ExamStatus.SCHEDULED && req.attendanceConfirmed && req.scheduledDate && req.scheduledTime) {
           const examDateTime = new Date(`${req.scheduledDate}T${req.scheduledTime}:00`);
           const hoursDiff = (now.getTime() - examDateTime.getTime()) / (1000 * 60 * 60);
@@ -489,7 +489,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         const periods = Array.isArray(ex.blockedPeriods) ? ex.blockedPeriods : [];
         return periods.some(p => p.endDate < todayStr);
       });
-      if (examinersWithExpired.length > 0) {
+      if (examinersWithExpired.length > 0 && (user.role === UserRole.ADMIN ||
+        (user.role === UserRole.SUPERVISOR && user.allowedModules?.includes('cadastro') && user.allowedCadastroTabs?.includes('examinadores')))) {
         await Promise.all(examinersWithExpired.map(ex => {
           const activePeriods = (ex.blockedPeriods || []).filter(p => p.endDate >= todayStr);
           return api.updateExaminer(ex.id, { blockedPeriods: activePeriods });
@@ -508,7 +509,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         if (!prov.activateFrom) return false;
         return prov.activateFrom <= todayStr;
       });
-      if (schoolsToActivateProv.length > 0) {
+      if (schoolsToActivateProv.length > 0 && (user.role === UserRole.ADMIN ||
+        (user.role === UserRole.SUPERVISOR && user.allowedModules?.includes('cadastro') && user.allowedCadastroTabs?.includes('autoescolas')))) {
         await Promise.all(schoolsToActivateProv.map(s => {
           const updatedProv = { ...s.provisionalSchedule!, active: true };
           const updatedMain = s.mainSchedule ? { ...s.mainSchedule, active: false } : s.mainSchedule;
@@ -525,7 +527,8 @@ const CFCSchedulingCenter: React.FC<CFCSchedulingCenterProps> = ({ user }) => {
         if (dates.length === 0) return false;
         return dates.every((d: any) => d.date < todayStr);
       });
-      if (schoolsNeedingSwitch.length > 0) {
+      if (schoolsNeedingSwitch.length > 0 && (user.role === UserRole.ADMIN ||
+        (user.role === UserRole.SUPERVISOR && user.allowedModules?.includes('cadastro') && user.allowedCadastroTabs?.includes('autoescolas')))) {
         await Promise.all(schoolsNeedingSwitch.map(s => {
           const updatedProv = { ...s.provisionalSchedule!, active: false };
           const updatedMain = s.mainSchedule ? { ...s.mainSchedule, active: true } : s.mainSchedule;

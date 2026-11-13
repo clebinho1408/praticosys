@@ -5,6 +5,9 @@ import { eq, sql } from 'drizzle-orm';
 import { sendOtpEmail } from '../_resend.js';
 import { createBackup } from '../_backup.js';
 import { hashPassword, verifyPassword } from '../_password.js';
+import { consumeAuthAttempt, invalidCredentials } from '../_auth-security.js';
+import { BodyError } from '../_request-body.js';
+import { issuePasswordSession, persistOtpChallenge } from '../_session-issuance.js';
 
 function generateCode(): string {
   const arr = new Uint32Array(1);
@@ -15,16 +18,6 @@ function generateCode(): string {
 async function hashCode(code: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function createSession(db: any, userId: string): Promise<string> {
-  const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
-  await db.execute(sql`
-    INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
-    VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
-  `);
-  return sessionId;
 }
 
 function maskEmail(email: string): string {
@@ -55,14 +48,7 @@ async function handle2FA(
     return error(delivery.message, 424);
   }
 
-  await db.insert(otpCodes).values({
-    id: crypto.randomUUID(),
-    userId: user.id,
-    code: hashedCode,
-    expiresAt,
-    used: false,
-    failedAttempts: 0,
-  });
+  if (!await persistOtpChallenge(db, user, hashedCode, expiresAt)) return error(invalidCredentials, 401);
 
   return { requiresOtp: true, userId: user.id, sentTo: maskEmail(user.email) };
 }
@@ -90,46 +76,33 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
 
     const body = await parseBody<{ login: string; password: string }>(request);
     const { login, password } = body;
-    if (!login || !password) return error('Login e senha são obrigatórios', 400);
+    if (typeof login !== 'string' || typeof password !== 'string' || !login || !password || login.length > 200 || password.length > 200) return error('Login e senha são obrigatórios', 400);
+    // CF-Connecting-IP is overwritten by Cloudflare on Pages; never X-Forwarded-For.
+    if (!await consumeAuthAttempt(db, request.headers.get('CF-Connecting-IP') ?? 'unknown', login)) {
+      return error('Muitas tentativas. Tente novamente em até 10 minutos.', 429);
+    }
 
     const result = await db.select().from(users).where(eq(users.login, login));
-    if (result.length === 0) return error('Usuário não encontrado', 401);
+    if (result.length === 0) {
+      await hashPassword(password); // comparable cost without exposing account existence
+      return error(invalidCredentials, 401);
+    }
 
     const user = result[0] as any;
 
-    // Bootstrap admin sem senha — define senha inicial (já armazena hash)
-    if (login === 'admin' && !user.password) {
-      const hashed = await hashPassword(password);
-      const updated = await db.update(users)
-        .set({ password: hashed, forcePasswordChange: false })
-        .where(eq(users.id, user.id))
-        .returning();
-      const u = (updated[0] ?? user) as any;
-
-      // Mesmo no bootstrap, 2FA deve ser honrado se configurado
-      if (u.twoFactorEnabled && u.email) {
-        const result2fa = await handle2FA(db, u, env.RESEND_API_KEY, env.RESEND_FROM_EMAIL);
-        if (result2fa instanceof Response) return result2fa;
-        return json(result2fa);
-      }
-      if (u.twoFactorEnabled && !u.email) {
-        return error('2FA ativo sem e-mail cadastrado. Contate o administrador.', 403);
-      }
-
-      const sessionToken = await createSession(db, u.id);
-      // Backup automático em segundo plano no acesso do admin
-      context.waitUntil(createBackup(db, 'auto').catch(() => {}));
-      const { password: _p, ...safe } = u;
-      return json({ ...safe, sessionToken });
+    if (typeof user.password !== 'string' || !user.password.trim()) {
+      await hashPassword(password);
+      return error(invalidCredentials, 401);
     }
 
     // Verifica senha (suporta migração transparente de texto puro → bcrypt)
     if (user.password) {
       const check = await verifyPassword(password, user.password);
-      if (!check.ok) return error('Senha incorreta', 401);
+      if (!check.ok) return error(invalidCredentials, 401);
       if (check.needsRehash && check.hash) {
         // Re-criptografa silenciosamente (migração de senha legada)
-        await db.update(users).set({ password: check.hash }).where(eq(users.login, login));
+        await db.update(users).set({ password: check.hash }).where(sql`${users.id} = ${user.id} AND ${users.password} = ${user.password}`);
+        user.password = check.hash;
       }
     }
 
@@ -145,7 +118,8 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
       return json(result2fa);
     }
 
-    const sessionToken = await createSession(db, user.id);
+    const sessionToken = await issuePasswordSession(db, user);
+    if (!sessionToken) return error(invalidCredentials, 401);
     if (user.role === 'ADMIN') {
       // Backup automático em segundo plano no acesso do admin
       context.waitUntil(createBackup(db, 'auto').catch(() => {}));
@@ -153,6 +127,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string; RESEND_API_KEY
     const { password: _p, ...safe } = user as any;
     return json({ ...safe, sessionToken });
   } catch (e: any) {
-    return error(e.message ?? 'Erro interno', 500);
+    if (e instanceof BodyError) return error(e.message, e.status);
+    return error('Não foi possível concluir a autenticação.', 503);
   }
 };

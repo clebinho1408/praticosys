@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PráticoSys — Correções preventivas de segurança</title>
+<style>
+body{font:16px/1.65 system-ui,sans-serif;color:#19283c;background:#f2f5f9;margin:0}main{max-width:1020px;margin:40px auto;padding:32px;background:#fff;border-radius:14px}h1{line-height:1.2;color:#14366c}h2{margin-top:32px;border-bottom:1px solid #dce4ef;padding-bottom:8px}h3{margin-bottom:4px}small{color:#54657b}.notice{padding:18px;background:#edf5ff;border-left:4px solid #2460b8}.pending{background:#fff7e8;border-color:#c88515}table{width:100%;border-collapse:collapse;font-size:14px}td,th{text-align:left;vertical-align:top;border-bottom:1px solid #e0e6ed;padding:10px}th{background:#f1f5fb}code{font-size:13px;overflow-wrap:anywhere}li{margin:5px 0}@media print{body{background:#fff}main{margin:0;padding:0;max-width:none}h2{break-after:avoid}tr{break-inside:avoid}}
+</style><main>
+<small>PráticoSys · entrega preventiva · 13 de novembro de 2026</small>
+<h1>Correções de segurança sem retirar acessos legítimos</h1>
+<div class="notice"><strong>Execução isolada.</strong> O site publicado, o Neon compartilhado, contas reais e Secrets não foram alterados. Nenhuma chave foi testada, revogada ou rotacionada. O usuário informou não ter sofrido ataque até o momento.</div>
+<h2>1. Correções implementadas</h2>
+<ul>
+<li><strong>Mesma política nos dois backends:</strong> perfil e vínculos atuais resolvidos pela sessão, não por cabeçalhos do cliente. Requisições diretas não contornam módulos, locais, abas e propriedade dos registros.</li>
+<li><strong>Administração preservada:</strong> Administrador, Supervisor e Operador mantêm suas funções e configurações vigentes. Não se tornou tudo “somente administrador”; também não se promoveram perfis a novas funções administrativas.</li>
+<li><strong>Vínculos e dados:</strong> autoescola vê seus registros; examinador inclui designação indireta pela banca; instrutor inclui os vínculos legados exatos por categoria. Vínculos ausentes não liberam uma lista global. Filtragem vale também nas respostas de mutações.</li>
+<li><strong>Superfícies sensíveis:</strong> configurações, backups, restauração, limpeza e logs protegidos; chave e hashes não são divulgados a perfis sem autorização. Limpeza e restauração requerem confirmação explícita. Eventos não transmitem registros de candidatos.</li>
+<li><strong>Credenciais:</strong> senha ausente não autentica; bootstrap público foi bloqueado. Provisionamento, senha temporária, primeiro acesso e recuperação administrativa usam hash no servidor. Backups não sobrescrevem hashes com senhas importadas.</li>
+<li><strong>2FA e tentativas:</strong> OTP continua verificável, com expiração, consumo único e limite de falhas; sem código de desenvolvimento entregue ao cliente. Limites por rede/login/finalidade persistem no banco e expiram, sem bloqueio permanente por conta.</li>
+<li><strong>Auditoria e sessões:</strong> autoria verificada no servidor; leitura autorizada e limitada. Troca própria mantém o acesso atual e encerra os outros somente após confirmação. Reset administrativo encerra os acessos da conta redefinida após confirmação. Não há revogação em massa ao instalar.</li>
+<li><strong>Compatibilidade:</strong> D1 continua isolado, com migração adicional e checksum próprio. Baselines e checksums já liberados foram preservados; não houve migração do Neon para D1.</li>
+</ul>
+<h2>2. Matriz resumida</h2>
+<table><tr><th>Perfil</th><th>Acessos mantidos</th><th>Limites aplicados no servidor</th></tr>
+<tr><td>Administrador</td><td>Operação, cadastros e configuração completos previstos na interface</td><td>Campos aceitos, estados e confirmações de risco; não aceita senha importada sem hash</td></tr>
+<tr><td>Supervisor</td><td>Módulos/locais configurados; edição confirmada já permitida; abas de cadastro autorizadas</td><td>Sem gestão de usuários/configurações; abas e vínculos não são ampliados</td></tr>
+<tr><td>Operador</td><td>Operação nos módulos/locais configurados</td><td>Preservada a restrição existente de prova confirmada; sem promoção administrativa</td></tr>
+<tr><td>Consultor</td><td>Leituras e relatórios operacionais previstos na interface</td><td>Sem mutações ou dados administrativos secretos</td></tr>
+<tr><td>Autoescola</td><td>Seus pedidos, vagas, confirmações e resultados</td><td>Sem registros de outra autoescola ou troca arbitrária de vínculo</td></tr>
+<tr><td>Examinador</td><td>Exames atribuídos direta/indiretamente; interesse na fila CFC elegível</td><td>Fila reduzida, sem identidade do candidato não atribuído nem interesses alheios</td></tr>
+<tr><td>Instrutor</td><td>Seus candidatos CNH e disponibilidade necessária</td><td>Sem candidatos alheios; correspondência exata de vínculo, não substring</td></tr></table>
+<p>Semântica preservada: módulos/locais vazios de Supervisor/Operador representam todos os respectivos acessos operacionais. Para abas do Supervisor, ausente/nulo preserva o padrão legado; <code>[]</code> não libera nenhuma aba. O módulo de cadastros deve estar explicitamente autorizado. A matriz técnica completa acompanha esta entrega em <code>security-audit/matriz-acessos.md</code>.</p>
+<h2>3. Validação e rastreabilidade</h2>
+<p>As novas regressões exercitam as mesmas ações permitidas e negadas nos sete perfis, em Pages/D1 efêmero, Express/PostgreSQL temporário e Worker compilado com a data e flags do projeto. Incluem cabeçalhos falsificados, IDs alheios, módulos, locais e abas; senhas vazias; provisionamento; recuperação; OTP único/expirado; limites persistidos; autoria; restauração sem alteração de hashes; e revogação seletiva de sessões.</p>
+<p><strong>Testes observacionais originais preservados.</strong> <code>relatorio.html</code>, as evidências da auditoria e os casos originais registram o estado anterior. Um teste que reproduz uma vulnerabilidade não é tratado como prova de segurança corrigida. Os comandos novos são <code>test:security-pages</code>, <code>test:security-postgres</code> e <code>test:security-edge</code> no pacote de scripts.</p>
+<p>O ensaio do Worker proíbe tráfego externo. Os testes PostgreSQL usam ambiente limpo, socket e banco descartáveis; recusam execução com o Neon compartilhado. A prévia usada no navegador declara <code>realData:false</code> e usa somente contas fictícias.</p>
+<table><tr><th>Verificação executada</th><th>Resultado</th></tr>
+<tr><td>Regressão de segurança em Pages/D1 efêmero</td><td>161 verificações aprovadas</td></tr>
+<tr><td>Regressão em Express/PostgreSQL descartável</td><td>As mesmas 161 verificações aprovadas</td></tr>
+<tr><td>Worker Pages compilado, compatibilidade do projeto e saída externa proibida</td><td>161 verificações aprovadas</td></tr>
+<tr><td>Persistência, transações, importação/backup e OTP com envio simulado em D1</td><td>75 verificações aprovadas</td></tr>
+<tr><td>Restauração de sessão Pages e Express; armazenamento do login</td><td>Aprovados; seis casos de armazenamento também aprovados</td></tr>
+<tr><td>Compatibilidade de backup/veículos, interesse CFC e conflitos CNH nos dois backends</td><td>Aprovados; fixtures de negócio agora usam sessões reais do ambiente fictício</td></tr>
+<tr><td>Tipos de todo o workspace e builds frontend/Express</td><td>Aprovados; aviso não bloqueante de tamanho do bundle frontend</td></tr>
+</table>
+<p><strong>Navegador:</strong> uma rodada consolidada cobriu login dos sete perfis, restauração ao recarregar, operações permitidas/negadas, recuperação administrativa, primeiro acesso, rejeição da senha temporária antiga e permanência do mesmo token na troca própria. Não houve envio real de e-mail. A confirmação pontual posterior tratou somente uma fixture sem CPF: a interface corretamente a ocultava como vaga vazia. Com CPF explicitamente fictício, o instrutor visualizou seu candidato após recarregar, sem o candidato alheio; Supervisor/Operador também renderizaram o conteúdo CFC após o carregamento inicial.</p>
+<h2>4. Dependências e riscos residuais</h2>
+<p>Atualizações direcionadas de Express 5, Vite 7, React Router DOM 6 e Orval 8, com contratos regenerados. Drizzle foi alinhado sem alterar a baseline D1. Correções transitivas de Undici, fast-copy e parser CSS foram limitadas aos respectivos pais e à mesma versão principal. Tipos e builds verificam compatibilidade; não houve atualização indiscriminada de versões principais.</p>
+<p><code>pnpm audit --json</code> no lockfile final: <strong>zero críticos, um alto, três moderados e um baixo</strong>. São avisos de dependências, não uma contagem de falhas exploráveis confirmadas. O aviso alto remanescente é Zod; não foi ocultado nem tratado como resolvido.</p>
+<ul>
+<li><strong>Zod:</strong> a versão 3 tem alerta de consumo de recursos; a correção indicada exige a versão principal 4. O uso do produto valida objetos pequenos, com limites de corpo nas APIs, não elimina formalmente o alerta da biblioteca. A atualização incompatível requer trabalho separado de contratos e compatibilidade.</li>
+<li><strong>React Router 6:</strong> dois avisos indicam correção em 7. Um é de hidratação SSR, que a aplicação HashRouter não usa; o outro é de redirecionamento por barras invertidas em destinos não confiáveis. Os destinos atuais de Link/navegação são rotas internas fixas ou prefixadas, não parâmetros externos de retorno. A biblioteca ainda é sinalizada; não se fez migração principal silenciosa.</li>
+<li><strong>Ferramentas legadas:</strong> avisos de esbuild transitivo do drizzle-kit e do servidor de desenvolvimento não equivalem a execução daquele servidor no Worker publicado. O backup de migração legado não é uma instalação atual; seus manifests não foram “corrigidos” como se fossem runtime ativo.</li>
+<li><strong>Rede/proxy:</strong> Express não confia em encaminhamento arbitrário de IP. Em infraestrutura com proxy compartilhado, a limitação por conexão pode agrupar pessoas; uma política de proxies confiáveis exige avaliação específica.</li>
+<li><strong>Operação:</strong> senhas legadas ainda podem ser migradas no login legítimo. Não se forçou troca de senha ou encerramento de sessões reais. Não se certificaram cotas remotas D1 nem configurações reais de produção.</li>
+</ul>
+<h2>5. Possível credencial histórica</h2>
+<div class="notice pending"><strong>Classificação pendente do responsável.</strong> O usuário respondeu “Não sei confirmar”. Metadados sanitizados apontam material histórico com padrão de conexão/credencial. Nome de arquivo de exemplo não prova que o valor seja fictício. Não se estabeleceu titularidade ou validade; não se declarou a chave válida, revogada ou segura.</div>
+<p>Fixtures atuais explicitamente sintéticas e transportes simulados foram distinguidos por seu uso isolado, não por tentativa de conexão. Conteúdo histórico de <code>.env.local</code> e exemplos permanece como possível segredo real não classificado. Nenhum valor é reproduzido neste relatório.</p>
+<p>Se o responsável confirmar uma credencial real: identificar serviço, titular e dependências sem compartilhar o valor; autorizar a substituição pelo fluxo seguro; configurar o novo segredo; testar com transporte simulado ou recurso fictício autorizado; somente então autorizar a desativação do anterior. Reescrita de histórico, rotação e interrupção de integrações são decisões separadas. Não foram executadas.</p>
+<h2>6. Implantação e recuperação — somente após autorização</h2>
+<ol>
+<li>Revisar as correções e autorizar separadamente a publicação. Não remover o marcador de isolamento da prévia durante testes.</li>
+<li>Preparar backup autorizado. Confirmar que a instalação continua no Neon vigente e que alterações aditivas de schema não redefinem usuários, listas de acesso ou sessões.</li>
+<li>Para D1 futuro, aplicar explicitamente a nova migração e verificar checksums antes de aceitar tráfego; não promover a prévia local a banco de produção.</li>
+<li>Publicar o mesmo conjunto de política, handlers e frontend, evitando mistura de versões. Não executar reset de senha, limpeza de dados ou revogação de sessões como etapa de release.</li>
+<li>Verificar saúde e login com conta de teste autorizada, sem consultar pessoas reais ou enviar e-mails sem autorização. Em falha, recuperar a versão anterior de código/configuração; não restaurar um banco real ou remover migrações automaticamente.</li>
+<li>Provisionamento inicial excepcional requer credencial de manutenção fora do navegador público. Recuperação cotidiana usa administrador autenticado e confirmação clara do encerramento dos acessos da conta redefinida.</li>
+</ol>
+<p><small>Este relatório não afirma ausência absoluta de vulnerabilidades nem validação de um ambiente publicado que não foi modificado ou acessado nesta execução.</small></p>
+</main></html>

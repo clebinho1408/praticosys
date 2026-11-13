@@ -1,13 +1,19 @@
 import http from 'node:http';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { localD1, seedD1, pagesHarness } from './d1-runtime.js';
+import { root } from './d1-runtime.js';
+import { securityFixture } from './security-regression-cases.js';
 
 // Only the explicitly configured CPF integration receives its own credential.
 // Resend/vehicle credentials remain excluded; synthetic seeds keep CPF lookup off.
-const runtime = await localD1(true);
-await seedD1(runtime.db);
+const securityPreview = existsSync(path.join(root, '.local/security-preview-enabled'));
+const runtime = await localD1(securityPreview ? '.local/security-d1-state' : true);
+if (securityPreview) await securityFixture(runtime.db);
+else await seedD1(runtime.db);
 const harness = await pagesHarness({
   ...runtime.env,
-  ...(process.env.APICPF_API_KEY ? { APICPF_API_KEY: process.env.APICPF_API_KEY } : {}),
+  ...(!securityPreview && process.env.APICPF_API_KEY ? { APICPF_API_KEY: process.env.APICPF_API_KEY } : {}),
 });
 const port = Number(process.env.PORT || 8080);
 const server = http.createServer(async (req, res) => {

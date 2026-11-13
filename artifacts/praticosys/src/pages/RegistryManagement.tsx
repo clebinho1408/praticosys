@@ -223,10 +223,12 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
       setConfirmState({
           isOpen: true,
           title: 'Resetar Senha',
-          message: 'A senha deste usuário será redefinida para "123456". Deseja continuar?',
+          message: 'Será gerada uma senha temporária aleatória e todos os acessos deste usuário serão encerrados. Entregue a nova senha por um canal privado. Deseja continuar?',
           isDestructive: false,
           onConfirm: async () => {
-              await api.updateUser(id, { password: '123456', forcePasswordChange: true } as any);
+              const temporaryPassword = crypto.randomUUID();
+              await api.updateUser(id, { password: temporaryPassword, forcePasswordChange: true, confirmSessionRevocation: true } as any);
+              alert(`Senha temporária (entregue por canal privado):\n${temporaryPassword}`);
           }
       });
   }
@@ -340,7 +342,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                     </td>
                     <td className="px-4 py-3 text-right space-x-2 flex justify-end">
                       {user?.role === UserRole.ADMIN && (
-                          <button onClick={() => handleResetPassword(u.id)} className="text-yellow-600 hover:text-yellow-800" title="Resetar Senha para 123456">
+                          <button onClick={() => handleResetPassword(u.id)} className="text-yellow-600 hover:text-yellow-800" title="Gerar nova senha temporária e encerrar acessos">
                               <Lock className="h-4 w-4" />
                           </button>
                       )}
@@ -438,7 +440,7 @@ const UsersManager: React.FC<{ user: User }> = ({ user }) => {
                     {!editingUser && (
                       <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-100 p-3 rounded-lg">
                         <span>🔑</span>
-                        <span>Senha padrão será definida como: <strong>123456</strong></span>
+                        <span>Uma senha temporária aleatória será exibida após salvar.</span>
                       </div>
                     )}
                   </>
@@ -889,10 +891,9 @@ const SchoolsManager: React.FC<{ user: User }> = ({ user }) => {
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]/g, "");
 
-        await api.createUser({
+        if (user.role === UserRole.ADMIN) await api.createUser({
           name: formData.name!,
           login: login,
-          password: '123456',
           role: UserRole.SCHOOL,
           schoolId: createdSchool.id
         });
@@ -2297,10 +2298,9 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
       } else {
         const newEx = await api.createExaminer(payload);
         // Create user for the new examiner
-        await api.createUser({
+        if (user.role === UserRole.ADMIN) await api.createUser({
           name: newEx.name,
           login: newEx.name.toLowerCase().replace(/\s+/g, '.'),
-          password: '123456', 
           role: UserRole.EXAMINER,
           examinerId: newEx.id
         });
@@ -2385,7 +2385,7 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
   };
 
   const handleSyncUsers = async () => {
-    if (!confirm('Deseja atualizar/criar usuários para todos os examinadores? O login será o nome em minúsculo e a senha padrão será 123456.')) return;
+    if (!confirm('Deseja atualizar/criar usuários para todos os examinadores? Contas existentes manterão suas senhas e sessões. Novas contas receberão senhas temporárias aleatórias, exibidas individualmente.')) return;
     
     try {
       const users = await api.getUsers();
@@ -2402,7 +2402,6 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
           // Update existing user
           await api.updateUser(existingUser.id, {
             login: login,
-            password: '123456',
             name: ex.name
           });
           updatedCount++;
@@ -2411,7 +2410,6 @@ const ExaminersManager: React.FC<{ user: User }> = ({ user }) => {
           await api.createUser({
             name: ex.name,
             login: login,
-            password: '123456',
             role: UserRole.EXAMINER,
             examinerId: ex.id
           });

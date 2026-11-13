@@ -6,6 +6,7 @@ import { CADASTRO_TABS_D1_VERSION, cadastroTabsD1Checksum } from '../db/cadastro
 import { CNH_MODALITY_VERSION, cnhModalityChecksum } from '../db/cnh-exam-modality-migration.js';
 import { YARDS_INTEREST_VERSION, yardsInterestChecksum } from '../db/school-yards-interest-migration.js';
 import { translateD1Sql, decodeD1Row } from './_d1-sql.js';
+import { AUTH_SECURITY_VERSION, authSecurityChecksum } from '../db/auth-security-migration.js';
 import type { D1Database, D1Result } from '@cloudflare/workers-types';
 
 export const isD1 = (db: any): boolean => !!db.$d1;
@@ -34,6 +35,12 @@ export async function verifyD1Schema(db: any) {
     .bind(YARDS_INTEREST_VERSION).first<{ checksum: string }>();
   if (!yards || yards.checksum !== await yardsInterestChecksum()) throw new Error('Migração D1 de pátios/interesse ausente ou incompatível. Execute a manutenção de schema.');
   db.$d1Verified = true;
+  const auth = await binding.prepare('SELECT checksum FROM migracoes_d1 WHERE versao = ?')
+    .bind(AUTH_SECURITY_VERSION).first<{ checksum: string }>();
+  if (!auth || auth.checksum !== await authSecurityChecksum()) {
+    db.$d1Verified = false;
+    throw new Error('Migração D1 de segurança ausente. Execute a manutenção local de schema.');
+  }
 }
 
 export function createD1Db(binding: D1Database) {

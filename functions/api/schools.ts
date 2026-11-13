@@ -37,7 +37,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     }
 
     if (method === 'POST') {
-      if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
+      if ((data as any)?.authorizedRoute !== 'schools') return error('Acesso negado.', 403);
       await ensureSchema(db);
       const body = await parseBody<any>(request);
       const invalid = schoolPauseValidation(body);
@@ -51,7 +51,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     }
 
     if (method === 'PUT') {
-      if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
+      if ((data as any)?.authorizedRoute !== 'schools') return error('Acesso negado.', 403);
       await ensureSchema(db);
       const body = await parseBody<any>(request);
       const invalid = schoolPauseValidation(body);
@@ -69,7 +69,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
     }
 
     if (method === 'DELETE') {
-      if ((data as any)?.sessionUserRole !== 'ADMIN') return error('Acesso negado — apenas administradores', 403);
+      if ((data as any)?.authorizedRoute !== 'schools') return error('Acesso negado.', 403);
       const id = query.id;
       if (!id) return error('ID obrigatório', 400);
       await db.delete(drivingSchools).where(eq(drivingSchools.id, id));

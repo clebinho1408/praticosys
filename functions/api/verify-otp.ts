@@ -3,22 +3,15 @@ import { getDb, json, error, parseBody, ensurePortugueseSchema } from '../_db.js
 import { users } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { createBackup } from '../_backup.js';
+import { consumeAuthAttempt } from '../_auth-security.js';
+import { BodyError } from '../_request-body.js';
+import { consumeOtpSession } from '../_session-issuance.js';
 
 const MAX_ATTEMPTS = 5;
 
 async function hashCode(code: string): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function createSession(db: any, userId: string): Promise<string> {
-  const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
-  await db.execute(sql`
-    INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
-    VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
-  `);
-  return sessionId;
 }
 
 async function ensureSchema(db: any) {
@@ -39,24 +32,14 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
     await ensureSchema(db);
     const body = await parseBody<{ userId: string; code: string }>(request);
     const { userId, code } = body;
-    if (!userId || !code) return error('userId e code são obrigatórios', 400);
+    if (typeof userId !== 'string' || typeof code !== 'string' || !userId || !/^\d{6}$/.test(code)) return error('userId e code são obrigatórios', 400);
+    if (!await consumeAuthAttempt(db, request.headers.get('CF-Connecting-IP') ?? 'unknown', userId, 'otp')) return error('Muitas tentativas. Tente novamente em até 10 minutos.', 429);
 
     const inputHash = await hashCode(code.trim());
 
-    // Consumo atômico: UPDATE...WHERE...RETURNING (previne replay concorrente)
-    const consumed = await db.execute(sql`
-      UPDATE codigos_otp
-      SET usado = true
-      WHERE usuario_id = ${userId}
-        AND codigo = ${inputHash}
-        AND usado = false
-        AND expira_em > NOW()
-        AND tentativas_falhas < ${MAX_ATTEMPTS}
-      RETURNING id
-    `);
-
-    const rows = (consumed as any).rows ?? consumed;
-    if (!rows || rows.length === 0) {
+    const result = await db.select().from(users).where(eq(users.id, userId));
+    const sessionToken = result.length ? await consumeOtpSession(db, result[0], inputHash) : null;
+    if (!sessionToken) {
       // Incrementa tentativas e invalida ao atingir limite
       await db.execute(sql`
         UPDATE codigos_otp
@@ -71,10 +54,6 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
       return error('Código inválido, expirado ou tentativas esgotadas. Faça login novamente.', 401);
     }
 
-    const result = await db.select().from(users).where(eq(users.id, userId));
-    if (result.length === 0) return error('Usuário não encontrado', 404);
-
-    const sessionToken = await createSession(db, userId);
     if ((result[0] as any).role === 'ADMIN') {
       // Backup automático em segundo plano no acesso do admin
       context.waitUntil(createBackup(db, 'auto').catch(() => {}));
@@ -82,6 +61,7 @@ export const onRequestPost: PagesFunction<{ DATABASE_URL: string }> = async (con
     const { password: _p, ...safe } = result[0] as any;
     return json({ ...safe, sessionToken });
   } catch (e: any) {
-    return error(e.message ?? 'Erro interno', 500);
+    if (e instanceof BodyError) return error(e.message, e.status);
+    return error('Não foi possível concluir a autenticação.', 503);
   }
 };

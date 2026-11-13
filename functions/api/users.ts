@@ -3,6 +3,8 @@ import { getDb, json, error, parseBody, getQuery } from '../_db.js';
 import { users } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 import { hashPassword } from '../_password.js';
+import { validPassword } from '../_auth-security.js';
+import { credentialChange } from '../_security-transactions.js';
 
 const ADMIN_ONLY_FIELDS = ['password', 'twoFactorEnabled', 'two_factor_enabled', 'role'];
 
@@ -49,15 +51,15 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
       if (body.twoFactorEnabled && !body.email) {
         return error('Verificação em 2 etapas requer e-mail cadastrado.', 400);
       }
-      const hashedDefault = await hashPassword('123456');
-      const newItem = await db.insert(users).values({ id: crypto.randomUUID(), password: hashedDefault, ...body }).returning();
+      if (!validPassword(body.password)) return error('Informe uma senha temporária de 6 a 72 bytes.', 400);
+      const newItem = await db.insert(users).values({ ...body, id: crypto.randomUUID(), password: await hashPassword(body.password), forcePasswordChange: true }).returning();
       const { password, ...safe } = newItem[0] as any;
       return json(safe);
     }
 
     if (method === 'PUT') {
       const body = await parseBody<any>(request);
-      const { id, createdAt, updatedAt, ...updates } = body;
+      const { id, createdAt, updatedAt, confirmSessionRevocation, ...updates } = body;
       if (!id) return error('ID obrigatório', 400);
 
       // 2FA exige e-mail cadastrado
@@ -71,10 +73,14 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
       }
 
       // Se a atualização inclui senha em texto puro, criptografar antes de salvar
-      if (updates.password && !updates.password.startsWith('$2b$') && !updates.password.startsWith('$2a$')) {
+      if (Object.hasOwn(updates, 'password')) {
+        if (!validPassword(updates.password)) return error('Informe uma senha de 6 a 72 bytes, não um hash.', 400);
+        if (confirmSessionRevocation !== true) return error('Confirme o encerramento das sessões deste usuário.', 409);
         updates.password = await hashPassword(updates.password);
+        updates.forcePasswordChange = true;
       }
-      const updated = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+      const updated = Object.hasOwn(updates, 'password') ? await credentialChange(db, users, id, updates) :
+        await db.update(users).set(updates).where(eq(users.id, id)).returning();
       if (!updated.length) return error('Usuário não encontrado', 404);
       const { password, ...safe } = updated[0] as any;
       return json(safe);

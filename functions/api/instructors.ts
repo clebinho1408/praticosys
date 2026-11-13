@@ -1,7 +1,8 @@
 // functions/api/instructors.ts  →  GET|POST|PUT|DELETE /api/instructors
 import { getDb, json, error, parseBody, getQuery } from '../_db.js';
-import { instructors, vehicles } from '../../db/schema.js';
+import { instructors, vehicles, users } from '../../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
+import { hashPassword } from '../_password.js';
 
 export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ request, env }) => {
   try {
@@ -26,6 +27,19 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       const { vehicles: vehiclesList, ...instructorData } = body;
       const newId = crypto.randomUUID();
       const newItem = await db.insert(instructors).values({ id: newId, ...instructorData }).returning();
+      let temporaryCredential: { login: string; password: string } | undefined;
+      if (instructorData.cpf) {
+        const login = instructorData.cpf.replace(/\D/g, '');
+        if (login) {
+          const password = crypto.randomUUID();
+          const created = await db.insert(users).values({
+            id: crypto.randomUUID(), name: instructorData.name, login,
+            password: await hashPassword(password), forcePasswordChange: true,
+            role: 'INSTRUCTOR', instructorId: newId,
+          }).onConflictDoNothing().returning({ id: users.id });
+          if (created.length) temporaryCredential = { login, password };
+        }
+      }
 
       if (Array.isArray(vehiclesList)) {
         for (const v of vehiclesList) {
@@ -39,7 +53,7 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
           });
         }
       }
-      return json({ ...newItem[0], vehicles: vehiclesList || [] });
+      return json({ ...newItem[0], vehicles: vehiclesList || [], ...(temporaryCredential ? { temporaryCredential } : {}) });
     }
 
     if (method === 'PUT') {

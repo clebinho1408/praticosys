@@ -283,7 +283,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       {showForcePassword && (
         <ForcePasswordChangeModal 
           user={user} 
-          onSuccess={() => setShowForcePassword(false)} 
+          onSuccess={() => window.location.reload()}
         />
       )}
       

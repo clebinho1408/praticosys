@@ -14,3 +14,17 @@ mtime_ms = 1794585087883
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:f3bb9128-9a79-4159-a0fc-bfcd2c5f2f46/285f7af5-bf23-4175-b0f3-ee1f387c2afd/d744eef4-7117-4f29-b498-1d115713b8ea"
 storage_version_token = "1794585114059655"
 content_type = "text/html"
+
+[[outputs]]
+id = "9vz4rVKej8lnP9Z2-zhnk"
+uri = "file://security-audit/correcoes.html"
+type = "html"
+title = "PráticoSys — Correções preventivas de segurança"
+description = "Correções, matriz de acesso, validações isoladas, riscos residuais e ações que ainda exigem autorização. Sem alteração de produção."
+logical_id = "3da64faf-4a81-47ce-bbde-87d2e70c7fce"
+content_hash = "sha256:e603436c9163fc06911e2f2cfacb1fe3941979f8b0cf09268cf2b9ec770d018c"
+size = 13214
+mtime_ms = 1794589046605
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:f3bb9128-9a79-4159-a0fc-bfcd2c5f2f46/3da64faf-4a81-47ce-bbde-87d2e70c7fce/5a1999c7-5d3c-41ea-a317-b2a4c0d68875"
+storage_version_token = "1794589095785201"
+content_type = "text/html"

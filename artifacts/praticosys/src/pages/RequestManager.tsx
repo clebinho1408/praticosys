@@ -337,46 +337,10 @@ const RequestManager: React.FC<RequestManagerProps> = ({
   }, [isNotificationModalOpen, notificationQueue]);
 
   useEffect(() => {
-    const eventSource = new EventSource('/api/events');
-
-    eventSource.addEventListener('requests_updated', (event) => {
-      const data = JSON.parse(event.data);
-      if (user.role === UserRole.INSTRUCTOR) {
-        const notifiedIds = JSON.parse(localStorage.getItem(`notified_requests_${user.id}`) || '[]');
-        if (data.status === ExamStatus.SCHEDULED && !data.attendanceConfirmed && !notifiedIds.includes(data.id)) {
-          const newNotif = { 
-            title: 'Nova Notificação', 
-            message: `O candidato ${data.socialName || data.studentName} está aguardando confirmação para a prova!`,
-            id: data.id
-          };
-          setNotificationQueue(prev => {
-            const exists = prev.some(n => n.id === newNotif.id);
-            if (exists) return prev;
-            return [...prev, newNotif];
-          });
-        } else if (data.status === ExamStatus.CANCELLED && !notifiedIds.includes(data.id)) {
-          const newNotif = { 
-            title: 'Agendamento Recusado', 
-            message: `O agendamento do candidato ${data.socialName || data.studentName} foi recusado. Motivo: ${data.cancellationReason || 'Não informado'}`,
-            id: data.id
-          };
-          setNotificationQueue(prev => {
-            const exists = prev.some(n => n.id === newNotif.id);
-            if (exists) return prev;
-            return [...prev, newNotif];
-          });
-        }
-      }
-      fetchRequests(true);
-    });
-
-    eventSource.addEventListener('schedules_updated', () => {
-      fetchRequests(true);
-    });
-
-    return () => {
-      eventSource.close();
-    };
+    // EventSource cannot attach the Bearer session. Poll the authorized API;
+    // notification derivation below uses only these already-scoped records.
+    const interval = window.setInterval(() => fetchRequests(true), 15000);
+    return () => window.clearInterval(interval);
   }, [user, typeFilter]);
 
   useEffect(() => {

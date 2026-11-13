@@ -32,6 +32,9 @@ import { schoolYardsValidation } from "../../../../functions/_school-yards.js";
 import { readSessionUser } from "../../../../functions/_session-user.js";
 // @ts-ignore Shared server-only integration for Express and Cloudflare.
 import { lookupCpf, consumeCpfQuota, cpfSettingError } from "../../../../functions/_cpf-lookup.js";
+import { consumeAuthAttempt, invalidCredentials, validPassword } from "../../../../functions/_auth-security.js";
+import { credentialChange, operationalCleanup } from "../../../../functions/_security-transactions.js";
+import { issuePasswordSession, persistOtpChallenge, consumeOtpSession } from "../../../../functions/_session-issuance.js";
 
 function hashCode(code: string): string {
   return createHash('sha256').update(code).digest('hex');
@@ -108,16 +111,6 @@ function triggerAutoBackup() {
   void createBackupSnapshot("auto").catch(() => {});
 }
 
-async function createSession(userId: string): Promise<string> {
-  const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8h
-  await db.execute(sql`
-    INSERT INTO sessoes (id, usuario_id, expira_em, criado_em)
-    VALUES (${sessionId}, ${userId}, ${expiresAt.toISOString()}, now())
-  `);
-  return sessionId;
-}
-
 const router = Router();
 
 // ─── SSE ─────────────────────────────────────────────────────────────────────
@@ -127,7 +120,8 @@ const addSseClient = (res: Response) => {
   res.on("close", () => { sseClients = sseClients.filter(c => c !== res); });
 };
 const broadcast = (event: string, data: any) => {
-  sseClients.forEach(c => c.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+  // Invalidation only. Every recipient refetches through the scoped API.
+  sseClients.forEach(c => c.write(`event: ${event}\ndata: {}\n\n`));
 };
 
 router.get("/events", (_req, res) => {
@@ -142,12 +136,17 @@ router.get("/events", (_req, res) => {
 router.post("/auth", async (req, res) => {
   try {
     const { login, password } = req.body ?? {};
-    if (!login || !password) {
+    if (typeof login !== 'string' || typeof password !== 'string' || !login || !password || login.length > 200 || password.length > 200) {
       return res.status(400).json({ error: "Login e senha são obrigatórios" });
+    }
+    // Express does not trust client-supplied proxy headers.
+    if (!await consumeAuthAttempt(db, req.socket.remoteAddress ?? 'unknown', login)) {
+      return res.status(429).json({ error: "Muitas tentativas. Tente novamente em até 10 minutos." });
     }
     const result = await db.select().from(users).where(eq(users.login, login));
     if (result.length === 0) {
-      return res.status(401).json({ error: "Usuário não encontrado" });
+      await hashPassword(password);
+      return res.status(401).json({ error: invalidCredentials });
     }
     const user = result[0] as any;
 
@@ -158,7 +157,6 @@ router.post("/auth", async (req, res) => {
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
       await db.execute(sql`UPDATE codigos_otp SET usado = true WHERE usuario_id = ${u.id} AND usado = false`);
       let emailSent = false;
-      let devCode: string | undefined;
       try {
         const connectors = new ReplitConnectors();
         const resp = await connectors.proxy("resend", "/emails", {
@@ -174,45 +172,26 @@ router.post("/auth", async (req, res) => {
         emailSent = resp.ok;
       } catch {}
       if (!emailSent) {
-        if (process.env.NODE_ENV === "development") devCode = rawCode;
-        else throw new Error("SEND_FAILED");
+        throw new Error("SEND_FAILED");
       }
-      await db.insert(otpCodes).values({ id: crypto.randomUUID(), userId: u.id, code: hashedCode, expiresAt, used: false, failedAttempts: 0 });
+      if (!await persistOtpChallenge(db, u, hashedCode, expiresAt)) throw new Error("CREDENTIAL_CHANGED");
       const maskEmail = (e: string) => { const [l, d] = e.split("@"); return `${l.slice(0, 2)}***@${d}`; };
-      return { requiresOtp: true, userId: u.id, sentTo: maskEmail(u.email), ...(devCode ? { devCode } : {}) };
+      return { requiresOtp: true, userId: u.id, sentTo: maskEmail(u.email) };
     };
 
-    // Bootstrap admin sem senha — define senha inicial (já armazena hash)
-    if (login === "admin" && !user.password) {
-      const hashed = await hashPassword(password);
-      const updated = await db.update(users)
-        .set({ password: hashed, forcePasswordChange: false })
-        .where(eq(users.id, user.id))
-        .returning();
-      const u = (updated[0] || user) as any;
-
-      // Mesmo no bootstrap, 2FA deve ser honrado se configurado
-      if (u.twoFactorEnabled && !u.email) {
-        return res.status(403).json({ error: "2FA ativo sem e-mail cadastrado. Contate o administrador." });
-      }
-      if (u.twoFactorEnabled && u.email) {
-        try { return res.json(await do2FA(u)); }
-        catch { return res.status(502).json({ error: "Falha ao enviar código de verificação." }); }
-      }
-
-      const sessionToken = await createSession(u.id);
-      triggerAutoBackup(); // backup automático no acesso do admin
-      const { password: _p, ...safe } = u;
-      return res.status(200).json({ ...safe, sessionToken });
+    if (typeof user.password !== 'string' || !user.password.trim()) {
+      await hashPassword(password);
+      return res.status(401).json({ error: invalidCredentials });
     }
 
     // Verifica senha (suporta migração transparente de texto puro → bcrypt)
     if (user.password) {
       const check = await verifyPassword(password, user.password);
-      if (!check.ok) return res.status(401).json({ error: "Senha incorreta" });
+      if (!check.ok) return res.status(401).json({ error: invalidCredentials });
       if (check.needsRehash && check.hash) {
         // Re-criptografa silenciosamente (migração de senha legada)
-        await db.update(users).set({ password: check.hash }).where(eq(users.login, login));
+        await db.update(users).set({ password: check.hash }).where(sql`${users.id} = ${user.id} AND ${users.password} = ${user.password}`);
+        user.password = check.hash;
       }
     }
 
@@ -224,16 +203,20 @@ router.post("/auth", async (req, res) => {
     // Verificação em 2 etapas
     if (user.twoFactorEnabled && user.email) {
       try { return res.json(await do2FA(user)); }
-      catch { return res.status(502).json({ error: "Falha ao enviar código de verificação. Tente novamente." }); }
+      catch (err: any) {
+        if (err.message === 'CREDENTIAL_CHANGED') return res.status(401).json({ error: invalidCredentials });
+        return res.status(424).json({ error: "Falha ao enviar código de verificação. Tente novamente." });
+      }
     }
 
     // Login direto (sem 2FA)
-    const sessionToken = await createSession(user.id);
+    const sessionToken = await issuePasswordSession(db, user);
+    if (!sessionToken) return res.status(401).json({ error: invalidCredentials });
     if (user.role === "ADMIN") triggerAutoBackup();
     const { password: _p, ...safe } = user as any;
     return res.status(200).json({ ...safe, sessionToken });
   } catch (err: any) {
-    return res.status(500).json({ error: "Erro interno", details: err.message });
+    return res.status(503).json({ error: "Não foi possível concluir a autenticação." });
   }
 });
 
@@ -268,23 +251,14 @@ router.delete("/session", async (req, res) => {
 router.post("/verify-otp", async (req, res) => {
   try {
     const { userId, code } = req.body ?? {};
-    if (!userId || !code) return res.status(400).json({ error: "userId e code são obrigatórios" });
+    if (typeof userId !== 'string' || typeof code !== 'string' || !userId || !/^\d{6}$/.test(code)) return res.status(400).json({ error: "userId e code são obrigatórios" });
+    if (!await consumeAuthAttempt(db, req.socket.remoteAddress ?? 'unknown', userId, 'otp')) return res.status(429).json({ error: "Muitas tentativas. Tente novamente em até 10 minutos." });
 
     const inputHash = hashCode(code.trim());
 
-    const consumed = await db.execute(sql`
-      UPDATE codigos_otp
-      SET usado = true
-      WHERE usuario_id = ${userId}
-        AND codigo = ${inputHash}
-        AND usado = false
-        AND expira_em > NOW()
-        AND tentativas_falhas < ${OTP_MAX_ATTEMPTS}
-      RETURNING id
-    `);
-
-    const rows = (consumed as any).rows ?? consumed;
-    if (!rows || rows.length === 0) {
+    const result = await db.select().from(users).where(eq(users.id, userId));
+    const sessionToken = result.length ? await consumeOtpSession(db, result[0], inputHash) : null;
+    if (!sessionToken) {
       await db.execute(sql`
         UPDATE codigos_otp
         SET
@@ -298,15 +272,11 @@ router.post("/verify-otp", async (req, res) => {
       return res.status(401).json({ error: "Código inválido, expirado ou tentativas esgotadas. Faça login novamente." });
     }
 
-    const result = await db.select().from(users).where(eq(users.id, userId));
-    if (result.length === 0) return res.status(404).json({ error: "Usuário não encontrado" });
-
-    const sessionToken = await createSession(userId);
     if ((result[0] as any).role === "ADMIN") triggerAutoBackup();
     const { password: _p, ...safe } = result[0] as any;
     return res.json({ ...safe, sessionToken });
   } catch (err: any) {
-    return res.status(500).json({ error: "Erro interno", details: err.message });
+    return res.status(503).json({ error: "Não foi possível concluir a autenticação." });
   }
 });
 
@@ -361,8 +331,8 @@ router.post("/users", async (req, res) => {
   try {
     const body = req.body;
     if (body.twoFactorEnabled && !body.email) return res.status(400).json({ error: "Verificação em 2 etapas requer e-mail cadastrado." });
-    const hashedDefault = await hashPassword("123456");
-    const item = await db.insert(users).values({ id: crypto.randomUUID(), password: hashedDefault, ...body }).returning();
+    if (!validPassword(body.password)) return res.status(400).json({ error: "Informe uma senha temporária de 6 a 72 bytes." });
+    const item = await db.insert(users).values({ ...body, id: crypto.randomUUID(), password: await hashPassword(body.password), forcePasswordChange: true }).returning();
     const { password: _p, ...safe } = item[0] as any;
     return res.json(safe);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
@@ -373,13 +343,18 @@ router.post("/users/change-own-password", async (req, res) => {
   try {
     const sessionUser = (req as any).sessionUser;
     if (!sessionUser?.id) return res.status(401).json({ error: "Não autenticado." });
-    const { password } = req.body as { password?: string };
-    if (!password || password.length < 6) return res.status(400).json({ error: "A senha deve ter no mínimo 6 caracteres." });
+    const { password, currentPassword, confirmSessionRevocation } = req.body;
+    if (!validPassword(password)) return res.status(400).json({ error: "A senha deve ter de 6 a 72 bytes." });
+    if (confirmSessionRevocation !== true) return res.status(409).json({ error: "Confirme o encerramento dos outros acessos; este aparelho continuará conectado." });
+    if (!await consumeAuthAttempt(db, req.socket.remoteAddress ?? 'unknown', sessionUser.id, 'credential-change')) {
+      return res.status(429).json({ error: "Muitas tentativas. Tente novamente em até 10 minutos." });
+    }
+    const [current] = await db.select().from(users).where(eq(users.id, sessionUser.id)).limit(1);
+    if (!current) return res.status(404).json({ error: "Usuário não encontrado." });
+    if (!current.forcePasswordChange && (typeof currentPassword !== 'string' || !(await verifyPassword(currentPassword, current.password ?? '')).ok)) return res.status(403).json({ error: "Senha atual inválida." });
     const hashed = await hashPassword(password);
-    const item = await db.update(users)
-      .set({ password: hashed, forcePasswordChange: false })
-      .where(eq(users.id, sessionUser.id))
-      .returning();
+    const token = req.headers.authorization?.slice(7).trim() ?? '';
+    const item = await credentialChange(db, users, sessionUser.id, { password: hashed, forcePasswordChange: false }, token);
     if (!item.length) return res.status(404).json({ error: "Usuário não encontrado." });
     const { password: _p, ...safe } = item[0] as any;
     return res.json(safe);
@@ -389,7 +364,7 @@ router.post("/users/change-own-password", async (req, res) => {
 router.put("/users", async (req, res) => {
   if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
   try {
-    const { id, createdAt, ...updates } = req.body;
+    const { id, createdAt, confirmSessionRevocation, ...updates } = req.body;
     if (!id) return res.status(400).json({ error: "ID obrigatório" });
     // 2FA exige e-mail
     if (updates.twoFactorEnabled && !updates.email) {
@@ -397,10 +372,15 @@ router.put("/users", async (req, res) => {
       if (!((existing[0] as any)?.email)) return res.status(400).json({ error: "Verificação em 2 etapas requer e-mail cadastrado." });
     }
     // Se a atualização inclui senha em texto puro, criptografar antes de salvar
-    if (updates.password && !updates.password.startsWith("$2b$") && !updates.password.startsWith("$2a$")) {
+    if (Object.hasOwn(updates, 'password')) {
+      if (!validPassword(updates.password)) return res.status(400).json({ error: "Informe uma senha de 6 a 72 bytes, não um hash." });
+      if (confirmSessionRevocation !== true) return res.status(409).json({ error: "Confirme o encerramento das sessões deste usuário." });
       updates.password = await hashPassword(updates.password);
+      updates.forcePasswordChange = true;
     }
-    const item = await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    const item = Object.hasOwn(updates, 'password') ? await credentialChange(db, users, id, updates) :
+      await db.update(users).set(updates).where(eq(users.id, id)).returning();
+    if (!item.length) return res.status(404).json({ error: "Usuário não encontrado." });
     const { password: _p, ...safe } = item[0] as any;
     return res.json(safe);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
@@ -420,7 +400,7 @@ router.get("/schools", async (_req, res) => {
   catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/schools", async (req, res) => {
-  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
+  if ((req as any).authorizedRoute !== "schools") return res.status(403).json({ error: "Acesso negado." });
   try {
     const invalid = schoolPauseValidation(req.body);
     if (invalid) return res.status(400).json({ error: invalid });
@@ -433,7 +413,7 @@ router.post("/schools", async (req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/schools", async (req, res) => {
-  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
+  if ((req as any).authorizedRoute !== "schools") return res.status(403).json({ error: "Acesso negado." });
   try {
     const invalid = schoolPauseValidation(req.body);
     if (invalid) return res.status(400).json({ error: invalid });
@@ -450,7 +430,7 @@ router.put("/schools", async (req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/schools", async (req, res) => {
-  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
+  if ((req as any).authorizedRoute !== "schools") return res.status(403).json({ error: "Acesso negado." });
   try {
     const { id } = req.query as any;
     await db.delete(drivingSchools).where(eq(drivingSchools.id, id));
@@ -467,14 +447,14 @@ router.get("/examiners", async (_req, res) => {
   catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.post("/examiners", async (req, res) => {
-  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
+  if ((req as any).authorizedRoute !== "examiners") return res.status(403).json({ error: "Acesso negado." });
   try {
     const item = await db.insert(examiners).values({ id: crypto.randomUUID(), ...req.body }).returning();
     return res.json(item[0]);
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/examiners", async (req, res) => {
-  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
+  if ((req as any).authorizedRoute !== "examiners") return res.status(403).json({ error: "Acesso negado." });
   try {
     const { id, createdAt, ...updates } = req.body;
     const item = await db.update(examiners).set(updates).where(eq(examiners.id, id)).returning();
@@ -482,7 +462,7 @@ router.put("/examiners", async (req, res) => {
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.delete("/examiners", async (req, res) => {
-  if ((req as any).sessionUser?.role !== "ADMIN") return res.status(403).json({ error: "Acesso negado — apenas administradores" });
+  if ((req as any).authorizedRoute !== "examiners") return res.status(403).json({ error: "Acesso negado." });
   try {
     const { id } = req.query as any;
     await db.delete(examiners).where(eq(examiners.id, id));
@@ -507,13 +487,17 @@ router.post("/instructors", async (req, res) => {
     const { vehicles: vList, ...instructorData } = req.body;
     const newId = crypto.randomUUID();
     const item = await db.insert(instructors).values({ id: newId, ...instructorData }).returning();
+    let temporaryCredential: { login: string; password: string } | undefined;
     if (instructorData.cpf) {
-      const cpfNum = instructorData.cpf.replace(/\D/g, "");
-      if (cpfNum) {
-        await db.insert(users).values({
-          id: crypto.randomUUID(), name: instructorData.name,
-          login: cpfNum, password: await hashPassword("123456"), role: "INSTRUCTOR", instructorId: newId
-        }).onConflictDoNothing();
+      const login = instructorData.cpf.replace(/\D/g, "");
+      if (login) {
+        const password = crypto.randomUUID();
+        const created = await db.insert(users).values({
+          id: crypto.randomUUID(), name: instructorData.name, login,
+          password: await hashPassword(password), forcePasswordChange: true,
+          role: "INSTRUCTOR", instructorId: newId,
+        }).onConflictDoNothing().returning({ id: users.id });
+        if (created.length) temporaryCredential = { login, password };
       }
     }
     if (vList && Array.isArray(vList)) {
@@ -522,7 +506,7 @@ router.post("/instructors", async (req, res) => {
       }
     }
     const allVehicles = await db.select().from(vehicles).where(eq(vehicles.instructorId, newId));
-    return res.json({ ...item[0], vehicles: allVehicles });
+    return res.json({ ...item[0], vehicles: allVehicles, ...(temporaryCredential ? { temporaryCredential } : {}) });
   } catch (err: any) { return res.status(500).json({ error: err.message }); }
 });
 router.put("/instructors", async (req, res) => {
@@ -783,9 +767,9 @@ router.post("/requests", async (req, res) => {
       try {
         await db.insert(auditLogs).values({
           id: crypto.randomUUID(),
-          userId: req.headers['x-user-id'] as string || null,
-          userName: req.headers['x-user-name'] as string || null,
-          userRole: req.headers['x-user-role'] as string || null,
+          userId: (req as any).sessionUser.id,
+          userName: (req as any).sessionUser.name,
+          userRole: (req as any).sessionUser.role,
           action: 'Foi cadastrado', entity: 'CNH_BRASIL_CANDIDATO', entityId: record.id,
           details: { cpf: record.cpf ?? null, name: record.studentName ?? null },
         });
@@ -936,9 +920,9 @@ router.put("/requests", async (req, res) => {
         if (action) {
           await db.insert(auditLogs).values({
             id: crypto.randomUUID(),
-            userId: req.headers['x-user-id'] as string || null,
-            userName: req.headers['x-user-name'] as string || null,
-            userRole: req.headers['x-user-role'] as string || null,
+            userId: (req as any).sessionUser.id,
+            userName: (req as any).sessionUser.name,
+            userRole: (req as any).sessionUser.role,
             action, entity: 'CNH_BRASIL_CANDIDATO', entityId: record.id,
             details: { cpf: record.cpf ?? null, name: record.studentName ?? null },
           });
@@ -980,9 +964,9 @@ router.delete("/requests", async (req, res) => {
       try {
         await db.insert(auditLogs).values({
           id: crypto.randomUUID(),
-          userId: req.headers['x-user-id'] as string || null,
-          userName: req.headers['x-user-name'] as string || null,
-          userRole: req.headers['x-user-role'] as string || null,
+          userId: (req as any).sessionUser.id,
+          userName: (req as any).sessionUser.name,
+          userRole: (req as any).sessionUser.role,
           action: 'Foi excluído', entity: 'CNH_BRASIL_CANDIDATO', entityId: id,
           details: { cpf: found.row?.cpf ?? null, name: found.row?.studentName ?? null },
         });
@@ -1143,7 +1127,15 @@ router.put("/banca-results", async (req, res) => {
 
 // ─── RISK AREA ────────────────────────────────────────────────────────────────
 router.get("/risk-area", (_req, res) => res.json({ enabled: false, areas: [] }));
-router.post("/risk-area", (_req, res) => res.json({ success: true }));
+router.post("/risk-area", async (req, res) => {
+  if ((req as any).sessionUser?.role !== 'ADMIN') return res.status(403).json({ error: "Acesso negado." });
+  if (!['RESET_DATA', 'CLEANUP_PHANTOM_REQUESTS'].includes(req.body.action)) return res.status(400).json({ error: "Ação inválida." });
+  try {
+    const [settings] = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
+    if (settings?.riskAreaKey && settings.riskAreaKey !== req.body.securityKey) return res.status(403).json({ error: "Chave de segurança inválida." });
+    return res.json(await operationalCleanup(db, req.body.action));
+  } catch { return res.status(503).json({ error: "Não foi possível concluir a limpeza." }); }
+});
 
 // ─── VEHICLE LOOKUP ───────────────────────────────────────────────────────────
 import https from "https";
@@ -1426,8 +1418,8 @@ router.delete("/exam-locations", async (req, res) => {
 // ─── CNH BRASIL LOGS ──────────────────────────────────────────────────────────
 router.get("/cnh-logs", async (req, res) => {
   try {
-    const limit = parseInt((req.query.limit as string) || "300");
-    const offset = parseInt((req.query.offset as string) || "0");
+    const limit = Math.max(1, Math.min(300, parseInt((req.query.limit as string) || "100") || 100));
+    const offset = Math.max(0, Math.min(100_000, parseInt((req.query.offset as string) || "0") || 0));
     const rows = await db.execute(sql`
       SELECT id, usuario_id AS user_id, nome_usuario AS user_name, perfil_usuario AS user_role,
              acao AS action, entidade AS entity, entidade_id AS entity_id,
@@ -1450,12 +1442,17 @@ router.all("/setup", async (req, res) => {
   if (!sessionSecret || authHeader !== `Bearer ${sessionSecret}`) {
     return res.status(401).json({ error: "Acesso não autorizado. Forneça o header Authorization: Bearer <SESSION_SECRET>." });
   }
+  if (req.method !== 'POST' || !validPassword(req.body?.initialPassword)) return res.status(400).json({ error: "Informe uma senha inicial de 6 a 72 bytes via POST." });
   try {
     const existing = await db.select().from(users).where(eq(users.login, "admin"));
+    if (existing.length && !existing[0].password?.trim()) {
+      await db.update(users).set({ password: await hashPassword(req.body.initialPassword), forcePasswordChange: true })
+        .where(sql`${users.id} = ${existing[0].id} AND (${users.password} IS NULL OR ${users.password} = '')`);
+    }
     if (existing.length === 0) {
       await db.insert(users).values({
         id: crypto.randomUUID(), name: "Administrador", login: "admin",
-        password: null, role: "ADMIN", forcePasswordChange: false,
+        password: await hashPassword(req.body.initialPassword), role: "ADMIN", forcePasswordChange: true,
       });
     }
     return res.json({ success: true, message: "Setup ok" });

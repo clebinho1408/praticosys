@@ -1,6 +1,10 @@
 // functions/api/_middleware.ts — valida sessão e injeta userId/role em context.data
 import { getDb, error, ensureCnhBrasilSdcStorage, ensurePortugueseSchema, ensureColumnMigrations } from '../_db.js';
 import { sql } from 'drizzle-orm';
+import * as schema from '../../db/schema.js';
+import { readSessionUser } from '../_session-user.js';
+import { accessPolicy, sanitizeMutation, AccessDenied } from '../_access-policy.js';
+import { readJsonBody, BodyError } from '../_request-body.js';
 
 const PUBLIC_PATHS = [
   '/api/auth',
@@ -37,22 +41,32 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async (context
     await ensureCnhBrasilSdcStorage(db);
     // Garante que sessoes existe antes de consultar (idempotente)
     await db.execute(sql`CREATE TABLE IF NOT EXISTS sessoes (id text PRIMARY KEY, usuario_id text NOT NULL, expira_em timestamp NOT NULL, criado_em timestamp DEFAULT now())`).catch(() => {});
-    const rows = await db.execute(sql`
-      SELECT u.id, u.perfil AS role
-      FROM sessoes s
-      JOIN usuarios u ON u.id = s.usuario_id
-      WHERE s.id = ${token} AND s.expira_em > NOW()
-      LIMIT 1
-    `);
-    const rowData = (rows as any).rows ?? rows;
-    if (!rowData || rowData.length === 0) {
+    const user = await readSessionUser(db, schema.users, token);
+    if (!user) {
       return error('Sessão expirada ou inválida. Faça login novamente.', 401);
     }
     // Injeta identidade do usuário para as rotas filhas usarem
-    data.sessionUserId = rowData[0].id;
-    data.sessionUserRole = rowData[0].role;
-    return next();
+    data.sessionUserId = user.id;
+    data.sessionUserRole = user.role;
+    data.sessionUser = user;
+    const route = url.pathname.replace(/^\/api\//, '').replace(/\/$/, '');
+    const body = ['POST', 'PUT', 'PATCH'].includes(request.method) ?
+      await readJsonBody(request.clone(), route === 'backups' ? 8_500_000 : 131_072) : {};
+    const policy = await accessPolicy(db, schema, user);
+    await policy.authorize(route, request.method, body, Object.fromEntries(url.searchParams));
+    data.authorizedRoute = route;
+    const response = ['POST', 'PUT', 'PATCH'].includes(request.method)
+      ? await next(new Request(request, { body: JSON.stringify(sanitizeMutation(route, body, schema)) }))
+      : await next();
+    if (response.status >= 500) return error('Não foi possível concluir a operação.', response.status);
+    if (!response.ok || !response.headers.get('Content-Type')?.includes('application/json')) return response;
+    const payload = await response.json();
+    return new Response(JSON.stringify(await policy.project(payload, route)), {
+      status: response.status, headers: { ...Object.fromEntries(response.headers), 'Cache-Control': 'no-store' },
+    });
   } catch (e: any) {
-    return error('Erro ao verificar sessão: ' + e.message, 500);
+    if (e instanceof AccessDenied) return error(e.message, e.status);
+    if (e instanceof BodyError) return error(e.message, e.status);
+    return error('Não foi possível verificar as permissões. Tente novamente.', 503);
   }
 };

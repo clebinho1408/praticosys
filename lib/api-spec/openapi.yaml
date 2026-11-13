@@ -11,6 +11,34 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /users/change-own-password:
+    post:
+      operationId: changeOwnPassword
+      summary: Trocar a própria senha mantendo este aparelho conectado
+      description: Exige a senha atual, exceto no primeiro acesso. Encerra outros acessos e códigos OTP somente após confirmação.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnPasswordInput"
+      responses:
+        "200":
+          description: Senha alterada, sessão atual preservada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionUser"
+        "400":
+          description: Senha inválida
+        "401":
+          description: Sessão inválida
+        "403":
+          description: Senha atual inválida
+        "409":
+          description: Confirmação de encerramento de outros acessos ausente
   /requests:
     put:
       operationId: updateExamRequest
@@ -120,6 +148,20 @@ components:
       type: http
       scheme: bearer
   schemas:
+    OwnPasswordInput:
+      type: object
+      additionalProperties: false
+      required: [password, confirmSessionRevocation]
+      properties:
+        password:
+          type: string
+          minLength: 6
+          maxLength: 72
+        currentPassword:
+          type: string
+        confirmSessionRevocation:
+          type: boolean
+          enum: [true]
     ExamRequestUpdate:
       type: object
       required: [id]

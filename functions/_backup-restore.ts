@@ -149,9 +149,9 @@ const TABLE_COLUMNS: Record<RestoreTable, string[]> = {
     'ano_fabricacao_maximo', 'preencher_nome_cpf_cnh',
   ],
   usuarios: [
-    'id', 'nome', 'login', 'senha', 'perfil', 'autoescola_id', 'examinador_id',
+    'id', 'nome', 'login', 'perfil', 'autoescola_id', 'examinador_id',
     'instrutor_id', 'email', 'telefone', 'dois_fatores_ativo', 'forcar_troca_senha',
-    'modulos_permitidos', 'locais_permitidos_ids', 'criado_em',
+    'modulos_permitidos', 'locais_permitidos_ids', 'abas_cadastro_permitidas', 'criado_em',
   ],
 };
 
@@ -228,10 +228,11 @@ const COLUMN_ALIASES: Record<RestoreTable, Record<string, string>> = {
     ano_fabricacao_maximo: 'ano_fabricacao_maximo',
   },
   usuarios: {
-    name: 'nome', password: 'senha', role: 'perfil', school_id: 'autoescola_id',
+    name: 'nome', role: 'perfil', school_id: 'autoescola_id',
     examiner_id: 'examinador_id', instructor_id: 'instrutor_id',
     force_password_change: 'forcar_troca_senha', allowed_modules: 'modulos_permitidos',
     allowed_location_ids: 'locais_permitidos_ids', phone: 'telefone',
+    allowed_cadastro_tabs: 'abas_cadastro_permitidas',
     two_factor_enabled: 'dois_fatores_ativo', created_at: 'criado_em',
   },
 };
@@ -273,7 +274,7 @@ const JSON_COLUMNS = new Set([
   'servicos', 'banca_principal', 'banca_provisoria', 'categorias', 'acessorios',
   'examinadores_ids', 'quantidades_categoria', 'historico_exames', 'restricoes',
   'banca_principal_pcd', 'banca_principal_cnh_brasil', 'modulos_permitidos',
-  'locais_permitidos_ids', 'regioes_atendidas',
+  'locais_permitidos_ids', 'abas_cadastro_permitidas', 'regioes_atendidas',
   'disponibilidade_rodizio', 'ano_fabricacao_maximo',
   'patios', 'examinadores_interessados',
 ]);
@@ -447,6 +448,7 @@ export async function restoreBackup(
         for (const row of normalized[table] ?? []) {
           const original = originals.get(row.id)!;
           for (const column of d1Tables[table]) {
+            if (table === 'usuarios' && column.name === 'senha') continue;
             if (Object.hasOwn(original, column.name)) row[column.name] = original[column.name];
           }
         }

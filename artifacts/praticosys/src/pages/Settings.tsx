@@ -108,6 +108,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
+    if (!window.confirm('A restauração pode substituir registros, vínculos e permissões pelos dados do arquivo. As senhas atuais serão preservadas. Deseja continuar?')) return;
     setRestoringBackup(true);
     try {
       const payload = JSON.parse(await file.text());
@@ -508,15 +509,7 @@ const Settings: React.FC<{ user: User }> = ({ user }) => {
   const executeResetData = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/risk-area', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'RESET_DATA', securityKey: riskKeyInput })
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Erro desconhecido');
-      }
+      await api.resetData(riskKeyInput);
       setAlertConfig({
         isOpen: true,
         title: 'Dados Resetados',

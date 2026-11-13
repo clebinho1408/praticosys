@@ -6,6 +6,9 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "test:backup-restore": "tsx ./src/backup-restore.test.ts",
+    "test:security-pages": "tsx ./src/security-regression-pages.test.ts",
+    "test:security-postgres": "tsx ./src/cpf-postgres.test.ts ./security-regression-postgres.integration.ts",
+    "test:security-edge": "tsx ./src/security-regression-edge.test.ts",
     "test:auth-storage": "tsx --test ./src/auth-storage.test.ts",
     "audit:permissions-pages": "tsx ./src/security-audit-pages.test.ts",
     "audit:permissions-postgres": "tsx ./src/cpf-postgres.test.ts ./security-audit-postgres.integration.ts",

@@ -7,7 +7,9 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
   if (request.method !== 'GET') return error('Method Not Allowed', 405);
   try {
     const db = getDb(env as any);
-    const { limit = '300', offset = '0' } = getQuery(request.url);
+    const { limit = '100', offset = '0' } = getQuery(request.url);
+    const boundedLimit = Math.max(1, Math.min(300, Number.parseInt(limit) || 100));
+    const boundedOffset = Math.max(0, Math.min(100_000, Number.parseInt(offset) || 0));
 
     // Garante tabela (idempotente)
     await db.execute(sql`
@@ -31,8 +33,8 @@ export const onRequest: PagesFunction<{ DATABASE_URL: string }> = async ({ reque
       FROM logs_auditoria
       WHERE entidade LIKE 'CNH_BRASIL%'
       ORDER BY criado_em DESC
-      LIMIT ${parseInt(limit)}
-      OFFSET ${parseInt(offset)}
+      LIMIT ${boundedLimit}
+      OFFSET ${boundedOffset}
     `);
     return json((rows as any).rows ?? rows);
   } catch (e: any) {

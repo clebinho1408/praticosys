@@ -94,7 +94,10 @@ export async function pagesHarness(env: Record<string, unknown>) {
     const context: any = {
       request, env, data: {}, params: {}, functionPath: pathname,
       waitUntil(p: Promise<unknown>) { pending.add(p); void p.finally(() => pending.delete(p)); },
-      next: () => target(context),
+      next: (forwarded?: Request) => {
+        if (forwarded) context.request = forwarded;
+        return target(context);
+      },
     };
     return middleware.onRequest(context);
   };

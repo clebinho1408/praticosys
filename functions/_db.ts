@@ -7,6 +7,7 @@ import * as schema from '../db/schema.js';
 import { createD1Db, isD1, verifyD1Schema } from './_d1.js';
 import { CNH_MODALITY_NEON_SQL } from '../db/cnh-exam-modality-migration.js';
 import { YARDS_INTEREST_NEON_SQL } from '../db/school-yards-interest-migration.js';
+import { readJsonBody } from './_request-body.js';
 
 // ─── Migração de renomeação: inglês → português ────────────────────────────────
 // O SQL vive em ./_migration-sql.mjs (fonte única, também usada por scripts psql).
@@ -129,11 +130,8 @@ export function error(message: string, status = 500): Response {
 }
 
 export async function parseBody<T = any>(req: Request): Promise<T> {
-  try {
-    return (await req.json()) as T;
-  } catch {
-    return {} as T;
-  }
+  const maximum = new URL(req.url).pathname === '/api/backups' ? 8_500_000 : 131_072;
+  return readJsonBody<T>(req, maximum);
 }
 
 export function getQuery(url: string): Record<string, string> {
@@ -145,12 +143,11 @@ export function getQuery(url: string): Record<string, string> {
 
 // ─── Audit helpers ───────────────────────────────────────────────────────────
 
-export function extractActor(req: Request) {
-  return {
-    userId:   req.headers.get('X-User-Id')   ?? null,
-    userName: req.headers.get('X-User-Name') ?? null,
-    userRole: req.headers.get('X-User-Role') ?? null,
-  };
+export function extractActor(_req: Request, data: any) {
+  // Pages clones Request between middleware and handler. Only context.data
+  // transports trusted identity across that boundary, never request headers.
+  const user = data?.sessionUser;
+  return { userId: user?.id ?? null, userName: user?.name ?? null, userRole: user?.role ?? null };
 }
 
 let _auditTableReady = false;

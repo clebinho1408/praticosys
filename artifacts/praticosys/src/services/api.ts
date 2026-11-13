@@ -78,9 +78,14 @@ export const api = {
 
   // --- USERS ---
   getUsers: () => request<User[]>('/users'),
-  createUser: (data: any) => request<User>('/users', { method: 'POST', body: JSON.stringify(data) }),
+  createUser: async (data: any) => {
+    const temporaryPassword = crypto.randomUUID();
+    const user = await request<User>('/users', { method: 'POST', body: JSON.stringify({ ...data, password: temporaryPassword }) });
+    window.alert(`Usuário criado. Entregue esta senha temporária por um canal privado:\n${temporaryPassword}\nA troca será exigida no primeiro acesso.`);
+    return user;
+  },
   updateUser: (id: string, data: Partial<User>) => request<User>('/users', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
-  changeOwnPassword: (password: string) => request<User>('/users/change-own-password', { method: 'POST', body: JSON.stringify({ password }) }),
+  changeOwnPassword: (password: string, currentPassword?: string) => request<User>('/users/change-own-password', { method: 'POST', body: JSON.stringify({ password, currentPassword, confirmSessionRevocation: true }) }),
   deleteUser: (id: string) => request<void>(`/users?id=${id}`, { method: 'DELETE' }),
 
   // --- SETTINGS ---
@@ -100,7 +105,14 @@ export const api = {
   // --- INSTRUCTORS ---
   getInstructors: () => request<Instructor[]>('/instructors'),
   getInstructorsAsync: () => request<Instructor[]>('/instructors'),
-  createInstructor: (data: Partial<Instructor>) => request<Instructor>('/instructors', { method: 'POST', body: JSON.stringify(data) }),
+  createInstructor: async (data: Partial<Instructor>) => {
+    const result = await request<Instructor & { temporaryCredential?: { login: string; password: string } }>('/instructors', { method: 'POST', body: JSON.stringify(data) });
+    if (result.temporaryCredential) {
+      window.alert(`Acesso inicial do instrutor (entregue por canal privado):\nLogin: ${result.temporaryCredential.login}\nSenha temporária: ${result.temporaryCredential.password}\nA troca será exigida no primeiro acesso.`);
+      delete result.temporaryCredential;
+    }
+    return result;
+  },
   updateInstructor: (id: string, data: Partial<Instructor>) => request<Instructor>('/instructors', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
   deleteInstructor: (id: string) => request<void>(`/instructors?id=${id}`, { method: 'DELETE' }),
 
@@ -195,19 +207,19 @@ export const api = {
   createBackup: () => request<any>('/backups', { method: 'POST' }),
   restoreBackup: (payload: unknown) => request<any>('/backups', {
     method: 'POST',
-    body: JSON.stringify({ payload }),
+    body: JSON.stringify({ payload, confirmation: 'RESTAURAR BACKUP' }),
   }),
   restoreStoredBackup: (backupId: string) => request<any>('/backups', {
     method: 'POST',
-    body: JSON.stringify({ backupId }),
+    body: JSON.stringify({ backupId, confirmation: 'RESTAURAR BACKUP' }),
   }),
 
   // --- CNH BRASIL LOGS ---
   getCnhLogs: (limit = 300) => request<any[]>(`/cnh-logs?limit=${limit}`),
 
   // --- RISK AREA ---
-  resetData: () => request<void>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'RESET_DATA' }) }),
-  cleanupPhantomRequests: () => request<{ success: boolean; message: string; removed: number }>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'CLEANUP_PHANTOM_REQUESTS' }) }),
+  resetData: (securityKey?: string) => request<void>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'RESET_DATA', securityKey, confirmation: 'APAGAR DADOS OPERACIONAIS' }) }),
+  cleanupPhantomRequests: () => request<{ success: boolean; message: string; removed: number }>('/risk-area', { method: 'POST', body: JSON.stringify({ action: 'CLEANUP_PHANTOM_REQUESTS', confirmation: 'APAGAR DADOS OPERACIONAIS' }) }),
 
   // --- SCHEDULING HELPERS (convenience wrappers) ---
   assignStudentToSchedule: (requestId: string, scheduleId: string, category: string, currentUpdatedAt?: string, scheduledBy?: string | null) =>

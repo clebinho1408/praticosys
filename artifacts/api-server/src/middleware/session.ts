@@ -1,9 +1,11 @@
 // Express session middleware — valida Bearer token e injeta sessionUser no request.
-import { db } from '@workspace/db';
-import { sql } from 'drizzle-orm';
+import { db, users } from '@workspace/db';
+import * as schema from '@workspace/db';
 import type { Request, Response, NextFunction } from 'express';
+import { readSessionUser } from '../../../../functions/_session-user.js';
+import { accessPolicy, sanitizeMutation, AccessDenied } from '../../../../functions/_access-policy.js';
 
-const EXCLUDED = ['/auth', '/verify-otp', '/setup', '/test', '/health', '/events', '/session'];
+const EXCLUDED = ['/auth', '/verify-otp', '/setup', '/test', '/health', '/session'];
 
 export async function sessionAuth(req: Request, res: Response, next: NextFunction) {
   if (EXCLUDED.some(p => req.path === p || req.path.startsWith(p + '?'))) {
@@ -18,20 +20,29 @@ export async function sessionAuth(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const rows = await db.execute(sql`
-      SELECT u.id, u.perfil AS role
-      FROM sessoes s
-      JOIN usuarios u ON u.id = s.usuario_id
-      WHERE s.id = ${token} AND s.expira_em > NOW()
-      LIMIT 1
-    `);
-    const data = (rows as any).rows ?? rows;
-    if (!data || data.length === 0) {
+    const user = await readSessionUser(db, users, token);
+    if (!user) {
       return res.status(401).json({ error: 'Sessão expirada. Faça login novamente.' });
     }
-    (req as any).sessionUser = { id: data[0].id, role: data[0].role };
+    (req as any).sessionUser = user;
+    const policy = await accessPolicy(db, schema, user);
+    const route = req.path.replace(/^\//, '').replace(/\/$/, '').toLowerCase();
+    await policy.authorize(route, req.method, req.body ?? {}, req.query as any);
+    (req as any).authorizedRoute = route;
+    if (['POST', 'PUT', 'PATCH'].includes(req.method)) req.body = sanitizeMutation(route, req.body ?? {}, schema);
+    const originalJson = res.json.bind(res);
+    res.json = ((payload: any) => {
+      if (res.statusCode >= 500) return originalJson({ error: 'Não foi possível concluir a operação.' });
+      if (res.statusCode >= 400) return originalJson(payload);
+      void policy.project(payload, route).then(safe => {
+        res.setHeader('Cache-Control', 'no-store');
+        originalJson(safe);
+      }).catch(() => { res.status(503); originalJson({ error: 'Não foi possível autorizar a resposta.' }); });
+      return res;
+    }) as any;
     return next();
   } catch (err: any) {
-    return res.status(500).json({ error: 'Erro ao verificar sessão: ' + err.message });
+    if (err instanceof AccessDenied) return res.status(err.status).json({ error: err.message });
+    return res.status(503).json({ error: 'Não foi possível verificar as permissões. Tente novamente.' });
   }
 }

@@ -26,21 +26,24 @@ try {
     await runtime.db.update(cfcRequests).set({ interestedExaminers: [other] }).where(eq(cfcRequests.id, id));
     const added = await call('requests', 'PUT', { id, registerInterest: true }, token);
     assert.equal(added.status, 200);
-    assert.equal(added.body.interestedExaminers.length, 2);
-    const removed = await call('requests', 'PUT', { id, removeInterest: true, examinerId: 'other', status: 'CANCELLED' }, token);
+    assert.equal(added.body.interestedExaminers.length, 1, 'Other interests are private');
+    assert.equal(added.body.studentName, undefined, 'Mutation response must not bypass the GET projection');
+    assert.equal((await call('requests', 'PUT', { id, removeInterest: true, examinerId: 'other', status: 'CANCELLED' }, token)).status, 400);
+    const removed = await call('requests', 'PUT', { id, removeInterest: true }, token);
     assert.equal(removed.status, 200);
-    assert.deepEqual(removed.body.interestedExaminers, [other]);
+    assert.deepEqual(removed.body.interestedExaminers, []);
     assert.equal(removed.body.status, 'WAITING_SCHEDULING');
-    assert.equal(removed.body.examinerId, null);
+    assert.equal((await runtime.db.select().from(cfcRequests).where(eq(cfcRequests.id, id)))[0].examinerId, null);
     const reloaded = await call('requests', 'GET', undefined, token);
-    assert.deepEqual(reloaded.body.find((r: any) => r.id === id).interestedExaminers, [other]);
+    assert.deepEqual(reloaded.body.find((r: any) => r.id === id).interestedExaminers, []);
+    assert.deepEqual((await runtime.db.select().from(cfcRequests).where(eq(cfcRequests.id, id)))[0].interestedExaminers, [other], 'Withdrawal preserves other examiners in storage');
     assert.equal((await call('requests', 'PUT', { id, registerInterest: true }, token)).status, 200);
     assert.equal((await call('requests', 'PUT', { id, removeInterest: 'true' }, token)).status, 400);
     assert.equal((await call('requests', 'PUT', { id, removeInterest: true, registerInterest: true }, token)).status, 400);
     const admin = await call('auth', 'POST', { login: 'd1.admin', password: DEMO_PASSWORD });
     assert.equal((await call('requests', 'PUT', { id, removeInterest: true }, admin.body.sessionToken)).status, 403);
     await runtime.db.update(cfcRequests).set({ status: 'SCHEDULED' }).where(eq(cfcRequests.id, id));
-    assert.equal((await call('requests', 'PUT', { id, removeInterest: true }, token)).status, 409);
+    assert.equal((await call('requests', 'PUT', { id, removeInterest: true }, token)).status, 403, 'No access to an unassigned scheduled record');
     console.log('PASS: Pages/D1 interest withdrawal, session identity, other interests, reload, re-registration and stale/invalid actions.');
   } finally { await harness.drain(); }
 } finally { await runtime.mf.dispose(); }

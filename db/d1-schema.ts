@@ -6,6 +6,7 @@ import { migrateCpfD1 } from './cpf-migration.js';
 import { migrateCadastroTabsD1 } from './cadastro-tabs-migration.js';
 import { migrateCnhModalityD1 } from './cnh-exam-modality-migration.js';
 import { migrateYardsInterestD1 } from './school-yards-interest-migration.js';
+import { migrateAuthSecurityD1 } from './auth-security-migration.js';
 
 export const D1_NOW = "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))";
 export const D1_VERSION = 'd1_schema_v1';
@@ -148,6 +149,7 @@ export async function migrateD1(binding: D1Database): Promise<void> {
     await migrateCadastroTabsD1(binding);
     await migrateCnhModalityD1(binding);
     await migrateYardsInterestD1(binding);
+    await migrateAuthSecurityD1(binding);
     return;
   }
   const existing = await binding.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all<{ name: string }>();
@@ -162,4 +164,5 @@ export async function migrateD1(binding: D1Database): Promise<void> {
   await migrateCadastroTabsD1(binding);
   await migrateCnhModalityD1(binding);
   await migrateYardsInterestD1(binding);
+  await migrateAuthSecurityD1(binding);
 }
