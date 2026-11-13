@@ -41,6 +41,13 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
+const formatSidebarLabel = (value: string) => {
+  const normalized = value.trim().toLocaleLowerCase('pt-BR');
+  if (!normalized) return value;
+  const [firstCharacter, ...remainingCharacters] = normalized;
+  return firstCharacter.toLocaleUpperCase('pt-BR') + remainingCharacters.join('');
+};
+
 const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -60,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       case UserRole.CONSULTANT: return 'Consultor';
       case UserRole.SCHOOL: return 'Autoescola';
       case UserRole.EXAMINER: return 'Examinador';
-      case UserRole.INSTRUCTOR: return 'INSTRUTOR';
+      case UserRole.INSTRUCTOR: return 'Instrutor';
       default: return role;
     }
   };
@@ -266,12 +273,12 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       
       <div className="p-4 border-t border-slate-800 bg-slate-900/50 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 bg-slate-700 text-slate-200 rounded-xl flex items-center justify-center font-black text-sm border border-slate-600 shrink-0">
-            {user.name.charAt(0)}
+          <div className="h-9 w-9 bg-slate-700 text-slate-200 rounded-xl flex items-center justify-center font-semibold text-sm border border-slate-600 shrink-0">
+            {formatSidebarLabel(user.name).charAt(0)}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-black text-white leading-tight uppercase tracking-tighter truncate">{user.name}</p>
-            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest opacity-80">{getRoleLabel(user.role)}</p>
+            <p className="text-sm font-semibold text-white leading-tight normal-case tracking-normal truncate">{formatSidebarLabel(user.name)}</p>
+            <p className="text-[10px] text-blue-400 font-medium normal-case tracking-normal opacity-80">{formatSidebarLabel(getRoleLabel(user.role))}</p>
           </div>
         </div>
       </div>
