@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PráticoSys — Auditoria de segurança — 13/11/2026</title>
+<style>
+:root{font-family:Arial,Helvetica,sans-serif;color:#182536;background:#eef2f6;line-height:1.6}
+*{box-sizing:border-box}body{margin:0}main{max-width:1080px;margin:32px auto;padding:40px;background:#fff;border-radius:12px}
+h1,h2,h3{line-height:1.25;color:#132e50}h1{font-size:30px}h2{margin-top:40px;border-bottom:1px solid #dce3ec;padding-bottom:10px}h3{margin-top:26px}
+p,li{font-size:15px}.muted{color:#526275}.tag{font-size:12px;letter-spacing:.04em;text-transform:uppercase;font-weight:bold}
+.alert{border-left:5px solid #bd2637;background:#fff0f1;padding:16px 20px}.note{background:#f0f6ff;border-left:4px solid #386cb0;padding:14px 18px}
+.critical{color:#a2152b}.high{color:#9b4200}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px;margin:16px 0}
+th,td{text-align:left;vertical-align:top;border:1px solid #dce3ec;padding:10px}th{background:#edf3fa}code{font-size:12px;background:#f0f3f7;padding:2px 4px;overflow-wrap:anywhere}
+.summary{display:flex;gap:12px;flex-wrap:wrap;margin:24px 0}.summary div{flex:1;min-width:170px;padding:18px;background:#f2f5f9;border-radius:8px}.summary strong{font-size:26px;display:block}
+footer{margin-top:40px;border-top:1px solid #dce3ec;padding-top:16px;font-size:12px;color:#526275}
+@media(max-width:650px){main{margin:0;padding:22px;border-radius:0}h1{font-size:25px}}
+@media print{body{background:#fff}main{margin:0;max-width:none;padding:12px}h2,h3{break-after:avoid}tr,.alert{break-inside:avoid}}
+</style>
+</head>
+<body><main>
+<p class="tag">PráticoSys · diagnóstico técnico · 13 de novembro de 2026</p>
+<h1>Auditoria de segurança e permissões</h1>
+<p class="muted">Código do ambiente de trabalho, dois ambientes isolados e observações passivas de https://praticosys.com.br/.</p>
+
+<div class="alert">
+<strong>Conclusão: há falhas reais de autorização na versão auditada.</strong>
+Foram reproduzidos acesso e alteração de dados alheios, alteração de configurações por perfis comuns e uma operação de limpeza geral sem exigência de administrador na implementação Cloudflare.
+<strong>Não foi demonstrado que essas falhas foram exploradas por terceiros.</strong>
+Não foi possível certificar que o backend publicado é exatamente a versão local auditada.
+</div>
+<div class="summary">
+<div><strong>208</strong>observações HTTP em bancos fictícios e efêmeros</div>
+<div><strong>7</strong>perfis comparados em cada implementação</div>
+<div><strong>3</strong>varreduras automáticas concluídas</div>
+</div>
+<p><strong>Nenhuma correção foi aplicada.</strong> Não houve publicação, rotação de chave, alteração de usuário real, consulta de CPF real, revogação de sessão real, migração ou escrita no banco de produção. Os testes destrutivos atingiram exclusivamente dados fictícios descartáveis.</p>
+
+<h2>1. O que significa a URL com /admin/</h2>
+<p>O sistema usa <code>HashRouter</code> e mantém todos os usuários autenticados sob <code>#/admin/</code>. Esse texto é uma escolha de organização das telas, não uma concessão de privilégio. O fragmento iniciado por <code>#</code> não é enviado ao servidor em uma requisição HTTP.</p>
+<p>O servidor confirma uma sessão válida e busca o perfil no banco. Alterar os cabeçalhos para declarar “ADMIN” não liberou os endpoints de usuários e backups nos testes. Porém, várias outras operações não verificam adequadamente o perfil, o módulo ou o dono do registro. <strong>Renomear a URL não resolve essas falhas.</strong></p>
+<p>Evidências: <code>artifacts/praticosys/src/App.tsx:25–41,76–194</code>; <code>functions/api/_middleware.ts:23–54</code>; <code>artifacts/api-server/src/middleware/session.ts:13–33</code>.</p>
+<p><strong>Rotas diretas:</strong> abrir diretamente <code>#/admin/usuarios</code> sem sessão na prévia exibiu o login, confirmado por captura de tela. A inspeção do roteador confirma restrições em Cadastros e Configurações, mas “Base Central de Candidatos” e o painel geral não excluem explicitamente autoescolas, examinadores e instrutores. As restrições de módulos são aplicadas no cliente somente a Operador/Supervisor. Os testes HTTP demonstraram que essas restrições de módulo não são uma barreira equivalente na API. A navegação autenticada dessas telas não foi executada em navegador nesta auditoria; esse trecho é análise de código, não comprovação visual.</p>
+
+<h2>2. Achados prioritários</h2>
+<h3 class="critical">S01 · Crítico · Limpeza geral acessível a usuário comum no Cloudflare</h3>
+<p><strong>Confirmado em Pages/D1 isolado.</strong> Uma sessão de autoescola conseguiu executar a limpeza geral, e todos os candidatos fictícios desapareceram. O handler verifica uma chave opcional, mas não exige o perfil ADMIN. Essa mesma chave é retornada nas configurações para os perfis comuns.</p>
+<p><strong>Impacto:</strong> exclusão ampla de agendamentos, escalas e resultados. Sem chave configurada, a condição no código não oferece essa proteção adicional. Não se verificou qual chave ou configuração existe em produção.</p>
+<p><strong>Correção recomendada:</strong> negar por padrão, exigir administrador no servidor, proteger a chave contra leitura por outros perfis, exigir confirmação de alto risco e manter recuperação testada. Remover o acesso visual, isoladamente, não é suficiente.</p>
+<p>Evidências: <code>functions/api/risk-area.ts:6–33</code>; <code>functions/api/settings.ts</code>; <code>security-audit/permissions-pages.json</code>. O Express retorna sucesso sem executar a limpeza: esse comportamento diferente não protege a implementação Pages usada no Cloudflare.</p>
+
+<h3 class="high">S02 · Alto · Leitura e alteração de registros de outros usuários</h3>
+<p><strong>Confirmado em Pages/D1 e Express/PostgreSQL isolados.</strong> Autoescola, examinador, instrutor e consultor conseguiram consultar pedidos de outras autoescolas e de outros módulos. Todos os sete perfis conseguiram alterar um pedido CFC pendente de outra autoescola e alterar o cadastro de um instrutor alheio. Uma autoescola também conseguiu excluir um pedido pendente de outra autoescola.</p>
+<p>Operador e Supervisor configurados somente para CFC receberam também o candidato CNH fictício. As listagens e alterações genéricas não aplicam consistentemente os vínculos e as restrições exibidos na interface.</p>
+<p><strong>Impacto:</strong> exposição de dados pessoais, alteração indevida de candidatos, cadastros e fluxo de exames. A disponibilidade de um identificador não deve autorizar o acesso.</p>
+<p><strong>Correção recomendada:</strong> matriz central por ação/perfil/módulo/proprietário e filtros obrigatórios no servidor, tanto para listar quanto para buscar, criar, editar, excluir e exportar. Preservar as regras legítimas de supervisor, operador e examinador.</p>
+<p>Evidências: <code>functions/api/requests.ts:70–96</code> e ramos genéricos de PUT/DELETE; <code>functions/api/instructors.ts</code>; <code>artifacts/api-server/src/routes/praticosys.ts</code>; os dois relatórios de permissões.</p>
+
+<h3 class="high">S03 · Alto · Configurações administrativas e chave de risco expostas a perfis comuns</h3>
+<p><strong>Confirmado nos dois ambientes.</strong> Todos os sete perfis leram a chave de risco fictícia e alteraram o nome do órgão. A proteção recente do campo de consulta de CPF restringe especificamente aquele campo, mas não a atualização geral das configurações.</p>
+<p><strong>Impacto:</strong> mudanças em funcionamento, mensagens e configurações do sistema; na implementação Pages, combinação direta com S01.</p>
+<p><strong>Correção recomendada:</strong> separar configurações públicas necessárias às telas das configurações administrativas; respostas por lista permitida; escrita administrativa restrita e validação por campo.</p>
+<p>Evidências: <code>functions/api/settings.ts</code>; <code>functions/_cpf-lookup.ts:23–28</code>; rotas GET/PUT de settings no Express.</p>
+
+<h3 class="high">S04 · Alto · Conta sem senha aceita uma senha arbitrária</h3>
+<p><strong>Confirmado nos dois ambientes.</strong> Uma conta fictícia de autoescola com senha nula recebeu sessão usando uma entrada arbitrária não vazia. O login normal só compara a senha se uma senha estiver armazenada. O caso especial do primeiro administrador permite definir sua senha por login público quando ela está vazia.</p>
+<p><strong>Condição:</strong> é necessário existir uma conta sem senha armazenada; a existência dessas contas no banco real não foi consultada. O código de setup público cria um administrador sem senha em instalações vazias. Não se chamou setup em produção.</p>
+<p><strong>Correção recomendada:</strong> bloquear login normal sem credencial, adotar convite/reset de uso único e encerrar o bootstrap público após provisionamento seguro. Revisar o cadastro/restauração de contas para que não crie acesso sem verificação. Limitar tentativas de login; não foi identificada limitação de senha no código de auth, mas regras externas da Cloudflare não puderam ser consultadas.</p>
+<p>Evidências: <code>functions/api/auth.ts:91–153</code>; <code>functions/api/setup.ts:179–187</code>; <code>artifacts/api-server/src/routes/praticosys.ts:185–234</code>. Bcrypt já existe em partes do sistema; o diagnóstico não presume que todas as senhas atuais estejam em texto puro.</p>
+
+<h3 class="high">S05 · Alto · Histórico Git contém URI em formato de credencial de banco</h3>
+<p>A busca encontrou, em uma versão histórica de <code>.env.local</code>, uma string de conexão com usuário/senha embutidos, sem marcador de exemplo na mesma linha. <strong>Isso confirma a presença desse conteúdo no histórico local alcançável, não sua validade atual nem acesso público ao repositório.</strong> Nenhum valor foi mostrado ou usado para conexão.</p>
+<p>Os arquivos de ambiente da cópia de migração que motivaram a inspeção inicial são configurações/exemplos: o candidato a segredo em <code>.env.railway</code> possui marcador de exemplo. No código atual, os dois candidatos restantes da heurística são constantes de testes/desenvolvimento. Um valor em <code>.env.example</code> histórico precisa de classificação pelo responsável; não foi tratado automaticamente como chave ativa.</p>
+<p><strong>Correção recomendada:</strong> confirmar titularidade e rotação da credencial histórica pelo fluxo seguro; se real, invalidar no provedor. Só depois planejar remoção do histórico, forks, arquivos de apoio e prevenção de novos commits. Apagar o arquivo atual não invalida uma credencial já copiada.</p>
+<p>Evidências sanitizadas: <code>security-audit/secrets-inventory.json</code>. Chaves não foram testadas e valores do ambiente não foram lidos. A análise não cobre todos os formatos possíveis de token.</p>
+
+<h3 class="high">S06 · Alto · Atribuição de autoria dos logs pode ser falsificada</h3>
+<p><strong>Confirmado nos dois ambientes.</strong> Uma sessão de autoescola alterou o candidato CNH fictício e o registro de auditoria ficou atribuído a ADMIN e a um identificador falso enviados nos cabeçalhos. A consulta de logs CNH também foi permitida à autoescola.</p>
+<p><strong>Impacto:</strong> registros podem atribuir uma ação à pessoa errada; isso prejudica a investigação de uma invasão. Não significa que a sessão tenha se tornado administradora.</p>
+<p><strong>Correção recomendada:</strong> autoria obtida exclusivamente da sessão verificada e do cadastro do servidor; logs com acesso restrito, minimização de dados e retenção definida.</p>
+<p>Evidências: <code>functions/_db.ts:148–154</code>; <code>functions/api/cnh-logs.ts</code>; inserções de logs no Express; resultados <code>spoofedAdminRecorded</code> nos testes.</p>
+<h3>Outras superfícies que exigem revisão</h3>
+<p>No Express, <code>/events</code> é público e o código de broadcast envia os registros de atualização aos clientes conectados sem filtro de perfil/vínculo. Essa exposição foi identificada por inspeção, não por captura de tráfego de terceiros. No Pages, o endpoint é protegido pelo middleware e apenas envia um ping: a diferença precisa ser mantida explícita na correção.</p>
+<p>Os endpoints de cidades, feriados, locais e parte das alterações de bancas também não apresentam uma política de autorização uniforme no código. O diagnóstico não executou todas as mutações dessas rotas. O health público de Pages informa somente estado e indicadores booleanos de configuração; não foi identificada ali devolução direta dos valores de Secrets.</p>
+
+<h2>3. Matriz observada de permissões</h2>
+<p>Resultados iguais em Pages/D1 e Express/PostgreSQL para as operações abaixo. Supervisor e Operador tinham apenas o módulo CFC; Autoescola, Examinador e Instrutor tinham vínculos diferentes dos registros “alheios”. “200” indica permissão observada, não que ela seja adequada.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Perfil</th><th>Usuários / backups</th><th>Dados de outra autoescola e CNH</th><th>Editar pedido pendente alheio</th><th>Editar instrutor alheio</th><th>Configuração geral / chave de risco</th><th>Alterar autoescola</th></tr></thead>
+<tbody>
+<tr><td>Administrador</td><td>200 / 200</td><td>200</td><td>200</td><td>200</td><td>200 / retornada</td><td>200</td></tr>
+<tr><td>Supervisor</td><td>403 / 403</td><td>200, incluindo CNH</td><td>200</td><td>200</td><td>200 / retornada</td><td>403</td></tr>
+<tr><td>Operador</td><td>403 / 403</td><td>200, incluindo CNH</td><td>200</td><td>200</td><td>200 / retornada</td><td>403</td></tr>
+<tr><td>Consultor</td><td>403 / 403</td><td>200</td><td>200</td><td>200</td><td>200 / retornada</td><td>403</td></tr>
+<tr><td>Autoescola</td><td>403 / 403</td><td>200</td><td>200</td><td>200</td><td>200 / retornada</td><td>403</td></tr>
+<tr><td>Examinador</td><td>403 / 403</td><td>200</td><td>200</td><td>200</td><td>200 / retornada</td><td>403</td></tr>
+<tr><td>Instrutor</td><td>403 / 403</td><td>200</td><td>200</td><td>200</td><td>200 / retornada</td><td>403</td></tr>
+</tbody></table></div>
+<p>Sem sessão ou com token inválido, GET de usuários retornou <strong>401</strong>, mesmo declarando ADMIN nos cabeçalhos. O campo específico de ativação da consulta de CPF retornou <strong>403</strong> para todos os perfis não ADMIN. Esses controles funcionam nos casos testados e devem ser preservados.</p>
+<p>Também foram consultados agendamentos, vagas, resultados e cadastros. Nem todas as combinações de edição/exclusão de todos os endpoints foram executadas; o conjunto não é uma certificação completa de cada operação do produto.</p>
+
+<h2>4. Varreduras automáticas</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Análise</th><th>Estado</th><th>Resultado</th></tr></thead><tbody>
+<tr><td>Dependências</td><td>Concluída</td><td>120 alertas: 14 críticos, 44 altos, 50 moderados, 12 baixos.</td></tr>
+<tr><td>Código estático (SAST)</td><td>Concluída, sem indicação de análise incompleta</td><td>0 achados automáticos.</td></tr>
+<tr><td>Fluxo de dados / privacidade</td><td>Concluída</td><td>0 achados automáticos.</td></tr>
+</tbody></table></div>
+<p><strong>Zero achados automáticos não significa código seguro:</strong> as falhas de autorização foram reproduzidas manualmente apesar desse resultado.</p>
+<p>O lockfile atual teve 72 alertas: <strong>12 críticos, 30 altos, 24 moderados e 6 baixos</strong>. A cópia antiga de migração acrescentou 48: <strong>2 críticos, 14 altos, 26 moderados e 6 baixos</strong>. Há repetição de avisos por pacote/versão/lockfile; os números não representam 120 invasões nem 120 falhas remotamente exploráveis no site.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Prioridade técnica</th><th>Contexto real e recomendação</th></tr></thead><tbody>
+<tr><td>Orval 8.18.0 · 11 críticos + SSRF alto</td><td>Ferramenta de geração no desenvolvimento. Os avisos exigem especificação OpenAPI maliciosa; a configuração atual aponta para arquivo local do repositório. Não é prova de execução remota por visitante do site. O scanner indica correções dos críticos em 8.21.0 e do SSRF em 8.22.0; priorizar versão compatível que cubra ambos e revisar a geração.</td></tr>
+<tr><td>proxy-addr 2.0.7 · crítico</td><td>Dependência transitiva do Express. O aviso depende de confiança em proxies/sub-redes IPv4 mapeadas. Não foi encontrada configuração de trust proxy no app; a exploração não foi demonstrada. Correção indicada: 2.0.8. Cloudflare Pages não executa esse servidor Express.</td></tr>
+<tr><td>body-parser 2.3.0 · alto</td><td>Express usa os parsers antes da validação da sessão e aceita os padrões de descompressão. O scanner indica possibilidade de encerramento de processo com corpo comprimido malformado; não foi enviado ataque nem teste de indisponibilidade. Correção indicada: 2.4.0, preferencialmente atualizando Express compatível.</td></tr>
+<tr><td>Drizzle 0.43.1 · alto</td><td>Resolução do pacote na raiz, usada por fontes Pages, ainda é 0.43.1. Express resolve 0.45.2, versão corrigida. O aviso exige identificadores/aliases construídos com entrada não confiável; não foi encontrada chamada a sql.identifier na aplicação ativa. Não se comprovou injeção SQL. Harmonizar as versões após análise de compatibilidade.</td></tr>
+<tr><td>Vite, Zod, Undici e ferramentas transitivas</td><td>Há avisos altos e moderados. Parte exige Windows/WSL, middleware específico ou entradas controladas que não correspondem ao uso observado. Atualizar sem confundir ferramentas de build/teste com o runtime Cloudflare; inventário sanitizado completo em scanners.json.</td></tr>
+<tr><td>Cópia antiga</td><td>O package-lock legado inclui form-data 2.3.3 e proxy-addr 2.0.7 críticos. Não foi demonstrado que essa cópia é executada ou publicada. Não somar esses avisos como novas falhas confirmadas do runtime atual.</td></tr>
+</tbody></table></div>
+
+<h2>5. Chaves e arquivos públicos</h2>
+<ul>
+<li><strong>477 arquivos de texto versionados</strong> e <strong>1.195 blobs de texto históricos alcançáveis</strong> inspecionados por padrões sanitizados; 1 arquivo atual e 18 blobs históricos foram excluídos por tipo binário ou tamanho superior a 2 MB.</li>
+<li>Um anexo textual disponível foi incluído; não houve correspondência na heurística aplicada. Imagens, OCR, outros arquivos ignorados, repositórios remotos/forks e formatos desconhecidos de segredo não foram cobertos.</li>
+<li>As correspondências atuais foram duas constantes de desenvolvimento/teste, não chaves de produção confirmadas. O histórico merece a ação descrita em S05.</li>
+<li>Não se consultaram os valores de Secrets nem se testou qualquer chave candidata contra provedores.</li>
+</ul>
+<p>Na observação pública, a página inicial e o JavaScript principal retornaram 200. O JavaScript analisado tinha cerca de 1,52 MB, sem referência a source map e sem correspondências nos padrões restritos de URI com credenciais, chave privada, token GitHub ou chave Stripe verificados. Isso não exclui outros tipos de segredo.</p>
+<p>Os caminhos <code>/.env</code>, <code>/.env.local</code>, <code>/.git/HEAD</code> e <code>/.migration-backup/.env.railway</code> retornaram 200 <strong>com o mesmo HTML da página inicial</strong>. É o fallback da aplicação, não exposição demonstrada desses arquivos.</p>
+<p>Foram observados <code>X-Content-Type-Options: nosniff</code> e <code>Referrer-Policy: strict-origin-when-cross-origin</code>. Não foram observados CSP, HSTS ou X-Frame-Options nessas respostas específicas. Isso é uma recomendação de endurecimento, não uma invasão nem conclusão sobre todas as configurações da conta.</p>
+
+<h2>6. Há sinais de hackers?</h2>
+<p><strong>Não há evidência suficiente nesta auditoria para afirmar que houve invasão, nem para descartá-la.</strong> A inspeção identificou caminhos que um usuário autenticado poderia abusar; não encontrou uma prova atribuível de exploração passada.</p>
+<ul>
+<li>A integração Cloudflare retornou HTTP 400 em duas tentativas de consulta ao catálogo. Não foi possível obter metadados da publicação, histórico administrativo da conta, logs de requisições ou eventos de segurança privados por esse acesso.</li>
+<li>A consulta de publicação Replit informou que não há publicação nesta plataforma; isso não contradiz o site externo Cloudflare observado.</li>
+<li>Não foram usados login real, banco real, logs reais contendo dados pessoais ou credenciais de produção. Não foram chamadas APIs de produção, inclusive GET, porque algumas rotas de leitura possuem efeitos de atualização/migração no código.</li>
+<li>Os logs locais da aplicação não substituem os logs de produção. Além disso, S06 limita a confiança em autoria registrada pela própria aplicação.</li>
+</ul>
+<p>Para investigar uma suspeita concreta, preservar os registros disponíveis antes da rotação: eventos administrativos Cloudflare, acessos/alterações de usuários e sessões, logs de requisições/banco, datas dos eventos suspeitos e alterações de publicação. A disponibilidade e retenção precisam ser verificadas na conta; não foram presumidas.</p>
+
+<h2>7. Ordem recomendada de resposta</h2>
+<ol>
+<li><strong>Urgente:</strong> corrigir autorização de operações destrutivas, configurações e acesso a dados por perfil/vínculo; aplicar a mesma política em Pages e Express e testar as regras reais.</li>
+<li><strong>Urgente:</strong> bloquear contas sem senha e bootstrap público inseguro; rever provisionamento, primeiro acesso e limitação de tentativas, sem interromper usuários legítimos.</li>
+<li><strong>Urgente:</strong> o responsável deve classificar a credencial histórica pelo fluxo seguro e, se real, autorizar rotação/invalidação no provedor. Remoção do histórico é posterior e exige cuidado com colaboradores/forks.</li>
+<li><strong>Em seguida:</strong> autoria de auditoria pelo servidor, proteção de logs, revisão de sessões antigas após troca de senha e lista de campos permitidos nas APIs.</li>
+<li><strong>Em seguida:</strong> atualizar dependências com testes de compatibilidade e reconstrução; não executar atualização indiscriminada com mudança de versão principal.</li>
+<li><strong>Antes de publicar correções:</strong> validar todos os perfis e o fluxo de recuperação. Publicação, bloqueio/revogação de sessões e rotações exigem autorização específica; não foram feitos.</li>
+</ol>
+
+<h2>8. Evidências e limites de reprodução</h2>
+<p>As requisições de auditoria foram executadas com os handlers reais Pages e middleware real em D1 efêmero e com o roteador Express real em PostgreSQL temporário isolado por socket Unix. O lançador PostgreSQL remove as variáveis secretas do ambiente herdado. Identidades, tokens e dados usados nos testes são fictícios e os bancos são descartados ao terminar.</p>
+<p>208 observações foram registradas, com saída sem senhas/tokens. Os testes são <strong>reproduções observacionais das falhas atuais</strong>: um resultado “passou” significa que a observação esperada foi reproduzida, não que o sistema esteja protegido. Após as correções, criar testes de regressão que exijam negação das ações indevidas.</p>
+<ul>
+<li><code>security-audit/scanners.json</code> — avisos automáticos sanitizados.</li>
+<li><code>security-audit/secrets-inventory.json</code> — caminhos/categorias/linhas, sem valores.</li>
+<li><code>security-audit/permissions-pages.json</code> e <code>permissions-express.json</code> — observações por perfil.</li>
+<li><code>security-audit/public-observations.json</code> — verificações estáticas do site publicado.</li>
+<li><code>scripts/src/security-audit-*</code> — reprodução isolada; não usar contra o site real.</li>
+</ul>
+<p><strong>Limites:</strong> não houve pentest exaustivo, carga, exploração de dependências, navegação autenticada de todos os perfis no navegador, teste de chaves, comparação criptográfica com o backend publicado nem acesso aos logs privados de produção. A evidência local não certifica a segurança ou insegurança exata da versão publicada.</p>
+<footer>Documento restrito ao responsável pelo sistema. Nenhum valor de credencial ou dado pessoal real foi incluído. Auditoria concluída em 13/11/2026; correções e publicação não fazem parte desta entrega.</footer>
+</main></body></html>

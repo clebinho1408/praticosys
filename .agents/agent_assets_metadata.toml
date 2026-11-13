@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "0RHm4n86nf_kSiJ2StQEd"
+uri = "file://security-audit/relatorio.html"
+type = "html"
+title = "Auditoria de segurança do PráticoSys"
+description = "Relatório de 13/11/2026: falhas confirmadas em testes isolados, varreduras, chaves, matriz de permissões e limites da investigação."
+logical_id = "285f7af5-bf23-4175-b0f3-ee1f387c2afd"
+content_hash = "sha256:60592b7a7e12dbbe352d65b4effa54fb7b8aecaba693072ba1ebd7ad79d0f2a6"
+size = 24910
+mtime_ms = 1794585087883
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:f3bb9128-9a79-4159-a0fc-bfcd2c5f2f46/285f7af5-bf23-4175-b0f3-ee1f387c2afd/d744eef4-7117-4f29-b498-1d115713b8ea"
+storage_version_token = "1794585114059655"
+content_type = "text/html"

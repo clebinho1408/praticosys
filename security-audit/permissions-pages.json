@@ -1,0 +1,561 @@
+{
+  "backend": "Pages/D1",
+  "date": "2026-11-13",
+  "mode": "observational reproduction, isolated synthetic data only",
+  "results": [
+    {
+      "role": "ANONYMOUS",
+      "operation": "GET users with forged ADMIN header",
+      "status": 401,
+      "classification": "blocked"
+    },
+    {
+      "role": "INVALID",
+      "operation": "GET users with forged ADMIN header",
+      "status": 401,
+      "classification": "blocked"
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET users with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET backups with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET requests with forged ADMIN header",
+      "status": 200,
+      "foreignSchoolVisible": true,
+      "otherModulesVisible": true
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET settings with forged ADMIN header",
+      "status": 200,
+      "riskKeyReturned": true
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET schools with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET instructors with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET schedules with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET schedule-slots with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "GET banca-results with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "PUT foreign-school pending request",
+      "status": 200,
+      "foreignRecordChanged": true
+    },
+    {
+      "role": "ADMIN",
+      "operation": "PUT general settings",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "PUT CPF setting specifically",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "PUT foreign instructor",
+      "status": 200
+    },
+    {
+      "role": "ADMIN",
+      "operation": "PUT school",
+      "status": 200
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET users with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET backups with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET requests with forged ADMIN header",
+      "status": 200,
+      "foreignSchoolVisible": true,
+      "otherModulesVisible": true
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET settings with forged ADMIN header",
+      "status": 200,
+      "riskKeyReturned": true
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET schools with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET instructors with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET schedules with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET schedule-slots with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "GET banca-results with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "PUT foreign-school pending request",
+      "status": 200,
+      "foreignRecordChanged": true
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "PUT general settings",
+      "status": 200
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "PUT CPF setting specifically",
+      "status": 403
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "PUT foreign instructor",
+      "status": 200
+    },
+    {
+      "role": "SUPERVISOR",
+      "operation": "PUT school",
+      "status": 403
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET users with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET backups with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET requests with forged ADMIN header",
+      "status": 200,
+      "foreignSchoolVisible": true,
+      "otherModulesVisible": true
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET settings with forged ADMIN header",
+      "status": 200,
+      "riskKeyReturned": true
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET schools with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET instructors with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET schedules with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET schedule-slots with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "GET banca-results with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "PUT foreign-school pending request",
+      "status": 200,
+      "foreignRecordChanged": true
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "PUT general settings",
+      "status": 200
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "PUT CPF setting specifically",
+      "status": 403
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "PUT foreign instructor",
+      "status": 200
+    },
+    {
+      "role": "OPERATOR",
+      "operation": "PUT school",
+      "status": 403
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET users with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET backups with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET requests with forged ADMIN header",
+      "status": 200,
+      "foreignSchoolVisible": true,
+      "otherModulesVisible": true
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET settings with forged ADMIN header",
+      "status": 200,
+      "riskKeyReturned": true
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET schools with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET instructors with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET schedules with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET schedule-slots with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "GET banca-results with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "PUT foreign-school pending request",
+      "status": 200,
+      "foreignRecordChanged": true
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "PUT general settings",
+      "status": 200
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "PUT CPF setting specifically",
+      "status": 403
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "PUT foreign instructor",
+      "status": 200
+    },
+    {
+      "role": "CONSULTANT",
+      "operation": "PUT school",
+      "status": 403
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET users with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET backups with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET requests with forged ADMIN header",
+      "status": 200,
+      "foreignSchoolVisible": true,
+      "otherModulesVisible": true
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET settings with forged ADMIN header",
+      "status": 200,
+      "riskKeyReturned": true
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET schools with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET instructors with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET schedules with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET schedule-slots with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "GET banca-results with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "PUT foreign-school pending request",
+      "status": 200,
+      "foreignRecordChanged": true
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "PUT general settings",
+      "status": 200
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "PUT CPF setting specifically",
+      "status": 403
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "PUT foreign instructor",
+      "status": 200
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "PUT school",
+      "status": 403
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET users with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET backups with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET requests with forged ADMIN header",
+      "status": 200,
+      "foreignSchoolVisible": true,
+      "otherModulesVisible": true
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET settings with forged ADMIN header",
+      "status": 200,
+      "riskKeyReturned": true
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET schools with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET instructors with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET schedules with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET schedule-slots with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "GET banca-results with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "PUT foreign-school pending request",
+      "status": 200,
+      "foreignRecordChanged": true
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "PUT general settings",
+      "status": 200
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "PUT CPF setting specifically",
+      "status": 403
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "PUT foreign instructor",
+      "status": 200
+    },
+    {
+      "role": "EXAMINER",
+      "operation": "PUT school",
+      "status": 403
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET users with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET backups with forged ADMIN header",
+      "status": 403
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET requests with forged ADMIN header",
+      "status": 200,
+      "foreignSchoolVisible": true,
+      "otherModulesVisible": true
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET settings with forged ADMIN header",
+      "status": 200,
+      "riskKeyReturned": true
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET schools with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET instructors with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET schedules with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET schedule-slots with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "GET banca-results with forged ADMIN header",
+      "status": 200
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "PUT foreign-school pending request",
+      "status": 200,
+      "foreignRecordChanged": true
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "PUT general settings",
+      "status": 200
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "PUT CPF setting specifically",
+      "status": 403
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "PUT foreign instructor",
+      "status": 200
+    },
+    {
+      "role": "INSTRUCTOR",
+      "operation": "PUT school",
+      "status": 403
+    },
+    {
+      "role": "ANONYMOUS",
+      "operation": "Login to synthetic non-admin account with NULL password",
+      "status": 200,
+      "sessionIssued": true
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "Write CNH record and read audit log with forged headers",
+      "status": 200,
+      "spoofedAdminRecorded": true
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "DELETE foreign pending request",
+      "status": 200,
+      "foreignRecordRemoved": true
+    },
+    {
+      "role": "SCHOOL",
+      "operation": "RESET_DATA using risk key readable in settings",
+      "status": 200,
+      "allSyntheticCandidatesRemoved": true
+    }
+  ]
+}

@@ -7,6 +7,8 @@
     "hello": "tsx ./src/hello.ts",
     "test:backup-restore": "tsx ./src/backup-restore.test.ts",
     "test:auth-storage": "tsx --test ./src/auth-storage.test.ts",
+    "audit:permissions-pages": "tsx ./src/security-audit-pages.test.ts",
+    "audit:permissions-postgres": "tsx ./src/cpf-postgres.test.ts ./security-audit-postgres.integration.ts",
     "test:accredited-vehicles": "tsx --test ./src/accredited-vehicles.test.ts",
     "test:session-restoration": "tsx ./src/session-restoration.test.ts",
     "test:session-restoration-postgres": "tsx ./src/cpf-postgres.test.ts ./session-restoration-postgres.integration.ts",

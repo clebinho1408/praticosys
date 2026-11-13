@@ -1,0 +1,1833 @@
+{
+  "date": "2026-11-13",
+  "dependencies": {
+    "status": "fulfilled",
+    "metadata": {
+      "vulnerabilities": {
+        "critical": 14,
+        "high": 44,
+        "info": 0,
+        "low": 12,
+        "moderate": 50
+      }
+    },
+    "byLock": {
+      ".migration-backup/package-lock.json": {
+        "low": 6,
+        "moderate": 26,
+        "high": 14,
+        "critical": 2
+      },
+      "pnpm-lock.yaml": {
+        "moderate": 24,
+        "high": 30,
+        "low": 6,
+        "critical": 12
+      }
+    },
+    "findings": [
+      {
+        "id": "GHSA-4x5r-pxfx-6jf8@@babel/core-7.29.0",
+        "package": "@babel/core",
+        "version": "7.29.0",
+        "severity": "low",
+        "title": "@babel/core: Arbitrary File Read via sourceMappingURL Comment",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.29.6"
+        }
+      },
+      {
+        "id": "GHSA-2j2x-hqr9-3h42@@remix-run/router-1.23.2",
+        "package": "@remix-run/router",
+        "version": "1.23.2",
+        "severity": "moderate",
+        "title": "React Router's same-origin redirect with path starting // causes open redirect via protocol-relative URL reinterpretation",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "1.23.3"
+        }
+      },
+      {
+        "id": "GHSA-w5vr-8v7q-w6rv@baseline-browser-mapping-2.10.0",
+        "package": "baseline-browser-mapping",
+        "version": "2.10.0",
+        "severity": "moderate",
+        "title": "baseline-browser-mapping process termination on invalid input causes denial of service",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.11.0"
+        }
+      },
+      {
+        "id": "GHSA-27r3-jxmh-p828@body-parser-2.2.2",
+        "package": "body-parser",
+        "version": "2.2.2",
+        "severity": "high",
+        "title": "body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.4.0"
+        }
+      },
+      {
+        "id": "GHSA-v422-hmwv-36x6@body-parser-2.2.2",
+        "package": "body-parser",
+        "version": "2.2.2",
+        "severity": "low",
+        "title": "body-parser vulnerable to denial of service when invalid limit value silently disables size enforcement",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.3.0"
+        }
+      },
+      {
+        "id": "GHSA-73wf-gq98-2v4g@browserslist-4.28.1",
+        "package": "browserslist",
+        "version": "4.28.1",
+        "severity": "high",
+        "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.28.7"
+        }
+      },
+      {
+        "id": "GHSA-c83g-rgw3-j3cx@browserslist-4.28.1",
+        "package": "browserslist",
+        "version": "4.28.1",
+        "severity": "high",
+        "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.28.7"
+        }
+      },
+      {
+        "id": "GHSA-gpj5-g38j-94v9@drizzle-orm-0.45.1",
+        "package": "drizzle-orm",
+        "version": "0.45.1",
+        "severity": "high",
+        "title": "Drizzle ORM has SQL injection via improperly escaped SQL identifiers",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "0.45.2"
+        }
+      },
+      {
+        "id": "GHSA-67mh-4wv8-2f99@esbuild-0.18.20",
+        "package": "esbuild",
+        "version": "0.18.20",
+        "severity": "moderate",
+        "title": "esbuild enables any website to send any requests to the development server and read the response",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "0.25.0"
+        }
+      },
+      {
+        "id": "GHSA-67mh-4wv8-2f99@esbuild-0.21.5",
+        "package": "esbuild",
+        "version": "0.21.5",
+        "severity": "moderate",
+        "title": "esbuild enables any website to send any requests to the development server and read the response",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "0.25.0"
+        }
+      },
+      {
+        "id": "GHSA-g7r4-m6w7-qqqr@esbuild-0.27.3",
+        "package": "esbuild",
+        "version": "0.27.3",
+        "severity": "low",
+        "title": "esbuild allows arbitrary file read when running the development server on Windows",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "0.28.1"
+        }
+      },
+      {
+        "id": "GHSA-fjxv-7rqg-78g4@form-data-2.3.3",
+        "package": "form-data",
+        "version": "2.3.3",
+        "severity": "critical",
+        "title": "form-data uses unsafe random function in form-data for choosing boundary",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.5.4"
+        }
+      },
+      {
+        "id": "GHSA-hmw2-7cc7-3qxx@form-data-2.3.3",
+        "package": "form-data",
+        "version": "2.3.3",
+        "severity": "high",
+        "title": "form-data: CRLF injection in form-data via unescaped multipart field names and filenames",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.5.6"
+        }
+      },
+      {
+        "id": "GHSA-f23m-r3pf-42rh@lodash-4.17.23",
+        "package": "lodash",
+        "version": "4.17.23",
+        "severity": "moderate",
+        "title": "lodash vulnerable to prototype pollution via array-path bypass in `_.unset`, `_.omit`, and `_.pullAt",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.18.1"
+        }
+      },
+      {
+        "id": "GHSA-r5fr-rjxr-66jc@lodash-4.17.23",
+        "package": "lodash",
+        "version": "4.17.23",
+        "severity": "high",
+        "title": "lodash vulnerable to Code Injection via `_.template` imports key names",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.18.0"
+        }
+      },
+      {
+        "id": "GHSA-28wg-ghj8-5hjv@nanoid-3.3.11",
+        "package": "nanoid",
+        "version": "3.3.11",
+        "severity": "moderate",
+        "title": "nanoid: non-secure generators can loop indefinitely with negative size",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.3.16"
+        }
+      },
+      {
+        "id": "GHSA-2v37-7h3g-55p8@nanoid-3.3.11",
+        "package": "nanoid",
+        "version": "3.3.11",
+        "severity": "moderate",
+        "title": "nanoid: custom generators can loop indefinitely when size is zero",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.3.18"
+        }
+      },
+      {
+        "id": "GHSA-xwg4-73v4-xw9w@nanoid-3.3.11",
+        "package": "nanoid",
+        "version": "3.3.11",
+        "severity": "high",
+        "title": "nanoid: Integer Overflow or Wraparound",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.3.12"
+        }
+      },
+      {
+        "id": "GHSA-27v5-c462-wpq7@path-to-regexp-8.3.0",
+        "package": "path-to-regexp",
+        "version": "8.3.0",
+        "severity": "moderate",
+        "title": "path-to-regexp vulnerable to Regular Expression Denial of Service via multiple wildcards",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.4.0"
+        }
+      },
+      {
+        "id": "GHSA-j3q9-mxjg-w52f@path-to-regexp-8.3.0",
+        "package": "path-to-regexp",
+        "version": "8.3.0",
+        "severity": "high",
+        "title": "path-to-regexp vulnerable to Denial of Service via sequential optional groups",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.4.0"
+        }
+      },
+      {
+        "id": "GHSA-6g55-p6wh-862q@postcss-8.5.6",
+        "package": "postcss",
+        "version": "8.5.6",
+        "severity": "high",
+        "title": "PostCSS: Arbitrary file read and information disclosure via attacker-controlled sourceMappingURL in CSS comments",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.5.12"
+        }
+      },
+      {
+        "id": "GHSA-fxqj-rqcc-2cmp@postcss-8.5.6",
+        "package": "postcss",
+        "version": "8.5.6",
+        "severity": "moderate",
+        "title": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.5.23"
+        }
+      },
+      {
+        "id": "GHSA-qx2v-qp2m-jg93@postcss-8.5.6",
+        "package": "postcss",
+        "version": "8.5.6",
+        "severity": "moderate",
+        "title": "PostCSS has XSS via Unescaped </style> in its CSS Stringify Output",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.5.10"
+        }
+      },
+      {
+        "id": "GHSA-r28c-9q8g-f849@postcss-8.5.6",
+        "package": "postcss",
+        "version": "8.5.6",
+        "severity": "high",
+        "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.5.18"
+        }
+      },
+      {
+        "id": "GHSA-jqcg-44mw-7w3h@proxy-addr-2.0.7",
+        "package": "proxy-addr",
+        "version": "2.0.7",
+        "severity": "critical",
+        "title": "proxy-addr vulnerable to IP spoofing via IPv4-mapped IPv6 trust subnet",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.0.8"
+        }
+      },
+      {
+        "id": "GHSA-4mjr-xmp4-gh2g@qs-6.15.0",
+        "package": "qs",
+        "version": "6.15.0",
+        "severity": "moderate",
+        "title": "qs: Denial of Service via Attacker Controlled isBuffer",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.16.0"
+        }
+      },
+      {
+        "id": "GHSA-6pq8-jhm2-2vcw@qs-6.15.0",
+        "package": "qs",
+        "version": "6.15.0",
+        "severity": "moderate",
+        "title": "qs : qs.stringify with arrayFormat 'comma' throws an uncaught TypeError on array elements carrying a non-callable own toString (DoS)",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.16.1"
+        }
+      },
+      {
+        "id": "GHSA-q8mj-m7cp-5q26@qs-6.15.0",
+        "package": "qs",
+        "version": "6.15.0",
+        "severity": "moderate",
+        "title": "qs has a remotely triggerable DoS: qs.stringify crashes with TypeError on null/undefined entries in comma-format arrays when encodeValuesOnly is set",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.15.2"
+        }
+      },
+      {
+        "id": "GHSA-x5fp-wj9c-mxmx@qs-6.15.0",
+        "package": "qs",
+        "version": "6.15.0",
+        "severity": "low",
+        "title": "qs array-limit bypass via bracket-key comma parsing",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.16.0"
+        }
+      },
+      {
+        "id": "GHSA-4mjr-xmp4-gh2g@qs-6.5.5",
+        "package": "qs",
+        "version": "6.5.5",
+        "severity": "moderate",
+        "title": "qs: Denial of Service via Attacker Controlled isBuffer",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.16.0"
+        }
+      },
+      {
+        "id": "GHSA-6rw7-vpxm-498p@qs-6.5.5",
+        "package": "qs",
+        "version": "6.5.5",
+        "severity": "low",
+        "title": "qs's arrayLimit bypass in its bracket notation allows DoS via memory exhaustion",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.14.1"
+        }
+      },
+      {
+        "id": "GHSA-2j2x-hqr9-3h42@react-router-6.30.3",
+        "package": "react-router",
+        "version": "6.30.3",
+        "severity": "moderate",
+        "title": "React Router's same-origin redirect with path starting // causes open redirect via protocol-relative URL reinterpretation",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.30.4"
+        }
+      },
+      {
+        "id": "GHSA-337j-9hxr-rhxg@react-router-6.30.3",
+        "package": "react-router",
+        "version": "6.30.3",
+        "severity": "moderate",
+        "title": "React Router: Arbitrary Constructor Injection via deserializeErrors() in React Router SSR Hydration",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "7.18.0"
+        }
+      },
+      {
+        "id": "GHSA-wrjc-x8rr-h8h6@react-router-6.30.3",
+        "package": "react-router",
+        "version": "6.30.3",
+        "severity": "moderate",
+        "title": "React Router: Open redirect via backslash in <Link> and useNavigate (CVE-2025-68470 bypass)",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "7.18.0"
+        }
+      },
+      {
+        "id": "GHSA-jjmj-jmhj-qwj2@react-router-dom-6.30.3",
+        "package": "react-router-dom",
+        "version": "6.30.3",
+        "severity": "moderate",
+        "title": "React Router: Open redirect leading to XSS",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.30.6"
+        }
+      },
+      {
+        "id": "GHSA-p8p7-x288-28g6@request-2.88.2",
+        "package": "request",
+        "version": "2.88.2",
+        "severity": "moderate",
+        "title": "Server-Side Request Forgery in Request",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ]
+      },
+      {
+        "id": "GHSA-68fv-2mgg-jv7q@source-map-js-1.2.1",
+        "package": "source-map-js",
+        "version": "1.2.1",
+        "severity": "high",
+        "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "1.2.2"
+        }
+      },
+      {
+        "id": "GHSA-72xf-g2v4-qvf3@tough-cookie-2.5.0",
+        "package": "tough-cookie",
+        "version": "2.5.0",
+        "severity": "moderate",
+        "title": "tough-cookie Prototype Pollution vulnerability",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "4.1.3"
+        }
+      },
+      {
+        "id": "GHSA-w5hq-g745-h8pq@uuid-13.0.0",
+        "package": "uuid",
+        "version": "13.0.0",
+        "severity": "high",
+        "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "13.0.1"
+        }
+      },
+      {
+        "id": "GHSA-w5hq-g745-h8pq@uuid-3.4.0",
+        "package": "uuid",
+        "version": "3.4.0",
+        "severity": "high",
+        "title": "uuid: Missing buffer bounds check in v3/v5/v6 when buf is provided",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "11.1.1"
+        }
+      },
+      {
+        "id": "GHSA-4w7w-66w2-5vf9@vite-5.4.21",
+        "package": "vite",
+        "version": "5.4.21",
+        "severity": "moderate",
+        "title": "Vite Vulnerable to Path Traversal in Optimized Deps `.map` Handling",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "6.4.2"
+        }
+      },
+      {
+        "id": "GHSA-587h-7wmj-h5pm@vite-5.4.21",
+        "package": "vite",
+        "version": "5.4.21",
+        "severity": "high",
+        "title": "launch-editor: `fs.existsSync()` existence check can be bypassed on Windows",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "6.4.4"
+        }
+      },
+      {
+        "id": "GHSA-698v-4r3x-3vcv@vite-5.4.21",
+        "package": "vite",
+        "version": "5.4.21",
+        "severity": "moderate",
+        "title": "launch-editor: escapeCmdArgs() omits % escaping on Windows",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "6.4.4"
+        }
+      },
+      {
+        "id": "GHSA-9jrq-w75r-8gcw@vite-5.4.21",
+        "package": "vite",
+        "version": "5.4.21",
+        "severity": "low",
+        "title": "Vite: Cross origin script execution through Vite custom middleware",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "6.4.4"
+        }
+      },
+      {
+        "id": "GHSA-fx2h-pf6j-xcff@vite-5.4.21",
+        "package": "vite",
+        "version": "5.4.21",
+        "severity": "moderate",
+        "title": "vite: `server.fs.deny` bypass on Windows alternate paths",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "6.4.3"
+        }
+      },
+      {
+        "id": "GHSA-r825-w8mm-5pxw@vite-5.4.21",
+        "package": "vite",
+        "version": "5.4.21",
+        "severity": "moderate",
+        "title": "launch-editor: Editor CLI flag misinterpretation causing arbitrary command execution for some editors",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "6.4.4"
+        }
+      },
+      {
+        "id": "GHSA-rq7h-c2jc-7f22@vite-5.4.21",
+        "package": "vite",
+        "version": "5.4.21",
+        "severity": "moderate",
+        "title": "Vite: Files outside `server.fs.allow` could be served when project paths match system paths on non-Windows machine",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "6.4.4"
+        }
+      },
+      {
+        "id": "GHSA-v6wh-96g9-6wx3@vite-5.4.21",
+        "package": "vite",
+        "version": "5.4.21",
+        "severity": "moderate",
+        "title": "launch-editor: NTLMv2 hash disclosure via UNC path handling on Windows",
+        "paths": [
+          ".migration-backup/package-lock.json"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "6.4.3"
+        }
+      },
+      {
+        "id": "GHSA-w5vr-8v7q-w6rv@baseline-browser-mapping-2.10.38",
+        "package": "baseline-browser-mapping",
+        "version": "2.10.38",
+        "severity": "moderate",
+        "title": "baseline-browser-mapping process termination on invalid input causes denial of service",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.11.0"
+        }
+      },
+      {
+        "id": "GHSA-27r3-jxmh-p828@body-parser-2.3.0",
+        "package": "body-parser",
+        "version": "2.3.0",
+        "severity": "high",
+        "title": "body-parser vulnerable to Denial of Service via trailing bytes after a compressed request body",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.4.0"
+        }
+      },
+      {
+        "id": "GHSA-3jxr-9vmj-r5cp@brace-expansion-5.0.6",
+        "package": "brace-expansion",
+        "version": "5.0.6",
+        "severity": "moderate",
+        "title": "brace-expansion: DoS via exponential-time expansion of consecutive non-expanding {} groups",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "5.0.7"
+        }
+      },
+      {
+        "id": "GHSA-6j4f-fj2g-mc7p@brace-expansion-5.0.6",
+        "package": "brace-expansion",
+        "version": "5.0.6",
+        "severity": "high",
+        "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "5.0.10"
+        }
+      },
+      {
+        "id": "GHSA-mh99-v99m-4gvg@brace-expansion-5.0.6",
+        "package": "brace-expansion",
+        "version": "5.0.6",
+        "severity": "high",
+        "title": "brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "5.0.8"
+        }
+      },
+      {
+        "id": "GHSA-q2hr-2g5m-vwhr@brace-expansion-5.0.6",
+        "package": "brace-expansion",
+        "version": "5.0.6",
+        "severity": "moderate",
+        "title": "brace-expansion: Quadratic-time expansion of the `{a},b}` rewrite causes CPU denial of service",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "5.0.12"
+        }
+      },
+      {
+        "id": "GHSA-qhr7-859c-m2p7@brace-expansion-5.0.6",
+        "package": "brace-expansion",
+        "version": "5.0.6",
+        "severity": "high",
+        "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "5.0.11"
+        }
+      },
+      {
+        "id": "GHSA-rgw5-rvv9-x895@brace-expansion-5.0.6",
+        "package": "brace-expansion",
+        "version": "5.0.6",
+        "severity": "high",
+        "title": "brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "5.0.9"
+        }
+      },
+      {
+        "id": "GHSA-73wf-gq98-2v4g@browserslist-4.28.2",
+        "package": "browserslist",
+        "version": "4.28.2",
+        "severity": "high",
+        "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.28.7"
+        }
+      },
+      {
+        "id": "GHSA-c83g-rgw3-j3cx@browserslist-4.28.2",
+        "package": "browserslist",
+        "version": "4.28.2",
+        "severity": "high",
+        "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.28.7"
+        }
+      },
+      {
+        "id": "GHSA-gpj5-g38j-94v9@drizzle-orm-0.43.1",
+        "package": "drizzle-orm",
+        "version": "0.43.1",
+        "severity": "high",
+        "title": "Drizzle ORM has SQL injection via improperly escaped SQL identifiers",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "0.45.2"
+        }
+      },
+      {
+        "id": "GHSA-g7r4-m6w7-qqqr@esbuild-0.27.3",
+        "package": "esbuild",
+        "version": "0.27.3",
+        "severity": "low",
+        "title": "esbuild allows arbitrary file read when running the development server on Windows",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "0.28.1"
+        }
+      },
+      {
+        "id": "GHSA-jggr-w7fw-pc2j@fast-copy-4.0.3",
+        "package": "fast-copy",
+        "version": "4.0.3",
+        "severity": "moderate",
+        "title": "fast-copy: Stack exhaustion in fast-copy when copying deeply-nested values",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.1.0"
+        }
+      },
+      {
+        "id": "GHSA-333x-w4r6-6crp@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "low",
+        "title": "fast-uri vulnerable to scheme injection via an unescaped first-segment colon in suffix references",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.9"
+        }
+      },
+      {
+        "id": "GHSA-4c8g-83qw-93j6@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "high",
+        "title": "fast-uri vulnerable to host confusion via failed IDN canonicalization",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.3"
+        }
+      },
+      {
+        "id": "GHSA-7p8r-x3mc-p8w7@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "high",
+        "title": "fast-uri vulnerable to host confusion via backslash authority introducer",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.5"
+        }
+      },
+      {
+        "id": "GHSA-f65p-4m7j-42xc@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "high",
+        "title": "fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.6"
+        }
+      },
+      {
+        "id": "GHSA-fph4-wmhf-6fwf@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "high",
+        "title": "fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.6"
+        }
+      },
+      {
+        "id": "GHSA-hrr3-gc8f-f4qj@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "moderate",
+        "title": "fast-uri vulnerable to inconsistent host case normalization via percent-encoded octets",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.8"
+        }
+      },
+      {
+        "id": "GHSA-jqff-g426-hqxp@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "high",
+        "title": "fast-uri vulnerable to host confusion via percent-encoded scheme normalization",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.6"
+        }
+      },
+      {
+        "id": "GHSA-qw65-cvwx-89v3@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "high",
+        "title": "fast-uri vulnerable to authority injection via an unvalidated port in serialize",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.7"
+        }
+      },
+      {
+        "id": "GHSA-v2hh-gcrm-f6hx@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "high",
+        "title": "fast-uri vulnerable to host confusion via literal backslash authority delimiter",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.4"
+        }
+      },
+      {
+        "id": "GHSA-w74x-v6f9-j3xg@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "moderate",
+        "title": "fast-uri vulnerable to URI scheme spoofing via percent-encoded scheme decoding",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.9"
+        }
+      },
+      {
+        "id": "GHSA-xhq7-xmqj-769h@fast-uri-3.1.2",
+        "package": "fast-uri",
+        "version": "3.1.2",
+        "severity": "low",
+        "title": "fast-uri vulnerable to improper path equivalence in relative reference normalization",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.1.9"
+        }
+      },
+      {
+        "id": "GHSA-2883-xcg3-v3hh@js-yaml-4.2.0",
+        "package": "js-yaml",
+        "version": "4.2.0",
+        "severity": "high",
+        "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.3.2"
+        }
+      },
+      {
+        "id": "GHSA-52cp-r559-cp3m@js-yaml-4.2.0",
+        "package": "js-yaml",
+        "version": "4.2.0",
+        "severity": "high",
+        "title": "js-yaml: YAML merge-key chains can force quadratic CPU consumption",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.3.0"
+        }
+      },
+      {
+        "id": "GHSA-5p4m-2wfm-xmqj@js-yaml-4.2.0",
+        "package": "js-yaml",
+        "version": "4.2.0",
+        "severity": "high",
+        "title": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) — CVE-2026-59870 fix not backported",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "4.3.1"
+        }
+      },
+      {
+        "id": "GHSA-v245-v573-v5vm@linkify-it-5.0.1",
+        "package": "linkify-it",
+        "version": "5.0.1",
+        "severity": "high",
+        "title": "linkify-it: Quadratic-complexity DoS via the `mailto:` validator scan-loop on attacker text",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "5.0.2"
+        }
+      },
+      {
+        "id": "GHSA-253c-mchw-3w2r@markdown-it-14.2.0",
+        "package": "markdown-it",
+        "version": "14.2.0",
+        "severity": "moderate",
+        "title": "markdown-it linkify: true has two quadratic paths, so a few hundred KB of markdown blocks the event loop for tens of seconds",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "14.3.1"
+        }
+      },
+      {
+        "id": "GHSA-gfr2-rv44-r23c@markdown-it-14.2.0",
+        "package": "markdown-it",
+        "version": "14.2.0",
+        "severity": "high",
+        "title": "markdown-it: Quadratic-time rendering of a single multi-line link reference definition with default options (regression since 14.0)",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "14.3.3"
+        }
+      },
+      {
+        "id": "GHSA-r7fv-28h4-cvq7@markdown-it-14.2.0",
+        "package": "markdown-it",
+        "version": "14.2.0",
+        "severity": "high",
+        "title": "markdown-it: Quadratic complexity in smartquotes with unmatched closing quotes",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "14.3.2"
+        }
+      },
+      {
+        "id": "GHSA-vfgh-jcmw-g37q@markdown-it-14.2.0",
+        "package": "markdown-it",
+        "version": "14.2.0",
+        "severity": "low",
+        "title": "markdown-it: Quadratic-time denial of service in inline HTML parsing with html enabled",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "14.3.3"
+        }
+      },
+      {
+        "id": "GHSA-g3hv-75wg-m249@minimatch-10.2.5",
+        "package": "minimatch",
+        "version": "10.2.5",
+        "severity": "moderate",
+        "title": "minimatch has potential denial of service via globparts amplification",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "11.0.1"
+        }
+      },
+      {
+        "id": "GHSA-28wg-ghj8-5hjv@nanoid-3.3.14",
+        "package": "nanoid",
+        "version": "3.3.14",
+        "severity": "moderate",
+        "title": "nanoid: non-secure generators can loop indefinitely with negative size",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.3.16"
+        }
+      },
+      {
+        "id": "GHSA-2v37-7h3g-55p8@nanoid-3.3.14",
+        "package": "nanoid",
+        "version": "3.3.14",
+        "severity": "moderate",
+        "title": "nanoid: custom generators can loop indefinitely when size is zero",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "3.3.18"
+        }
+      },
+      {
+        "id": "GHSA-2h9g-j24r-h63g@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: Import-time RCE via array-items default -> zod module-level template literal",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-2w86-xfrc-g85r@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: RCE via schema property name -> computed-property-key injection in the MSW mock generator",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-3575-w9fc-c2j6@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: Import-time RCE via enum-typed default -> zod module-level template literal",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-6437-gxhq-pqv8@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: Import-time RCE via header parameter name -> computed-property-key injection in the zod client",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-653q-5476-x79g@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: Import-time RCE via query parameter name -> computed-property-key injection in the zod cli",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-6mr6-jvcr-2f25@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: Import-time RCE via schema property name -> computed-property-key injection in the zod client",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-88f2-fpv8-89q2@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: RCE via servers[].url -> unescaped request-URL template literal (with getBaseUrlFromSpecification)",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-8j6p-r8jg-mxqh@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: Import-time RCE via header-parameter default -> zod module-level template literal",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-cxq5-97v7-87j8@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "high",
+        "title": "Orval: Generation-time SSRF + remote/local file inclusion via unrestricted $ref",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.22.0"
+        }
+      },
+      {
+        "id": "GHSA-fg9p-mrxr-hvq7@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: RCE via OpenAPI path -> unescaped request-URL template literal (backtick breakout)",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-p4cg-3328-rvfg@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: Import-time RCE via query-parameter default -> zod module-level template literal",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-w727-8j6c-2rj4@orval-8.18.0",
+        "package": "orval",
+        "version": "8.18.0",
+        "severity": "critical",
+        "title": "Orval: Import-time RCE via schema default -> zod module-level template literal",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.21.0"
+        }
+      },
+      {
+        "id": "GHSA-fxqj-rqcc-2cmp@postcss-8.5.15",
+        "package": "postcss",
+        "version": "8.5.15",
+        "severity": "moderate",
+        "title": "PostCSS: incomplete fix of GHSA-6g55-p6wh-862q — attacker-controlled sourceMappingURL reads arbitrary .map files when `from` is unset",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.5.23"
+        }
+      },
+      {
+        "id": "GHSA-r28c-9q8g-f849@postcss-8.5.15",
+        "package": "postcss",
+        "version": "8.5.15",
+        "severity": "high",
+        "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "8.5.18"
+        }
+      },
+      {
+        "id": "GHSA-rj75-hqrm-r3gf@postcss-selector-parser-6.0.10",
+        "package": "postcss-selector-parser",
+        "version": "6.0.10",
+        "severity": "moderate",
+        "title": "PostCSS: Quadratic complexity in flat selector parsing allows CPU exhaustion",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.1.5"
+        }
+      },
+      {
+        "id": "GHSA-jqcg-44mw-7w3h@proxy-addr-2.0.7",
+        "package": "proxy-addr",
+        "version": "2.0.7",
+        "severity": "critical",
+        "title": "proxy-addr vulnerable to IP spoofing via IPv4-mapped IPv6 trust subnet",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "2.0.8"
+        }
+      },
+      {
+        "id": "GHSA-4mjr-xmp4-gh2g@qs-6.15.2",
+        "package": "qs",
+        "version": "6.15.2",
+        "severity": "moderate",
+        "title": "qs: Denial of Service via Attacker Controlled isBuffer",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.16.0"
+        }
+      },
+      {
+        "id": "GHSA-6pq8-jhm2-2vcw@qs-6.15.2",
+        "package": "qs",
+        "version": "6.15.2",
+        "severity": "moderate",
+        "title": "qs : qs.stringify with arrayFormat 'comma' throws an uncaught TypeError on array elements carrying a non-callable own toString (DoS)",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.16.1"
+        }
+      },
+      {
+        "id": "GHSA-x5fp-wj9c-mxmx@qs-6.15.2",
+        "package": "qs",
+        "version": "6.15.2",
+        "severity": "low",
+        "title": "qs array-limit bypass via bracket-key comma parsing",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.16.0"
+        }
+      },
+      {
+        "id": "GHSA-337j-9hxr-rhxg@react-router-6.30.4",
+        "package": "react-router",
+        "version": "6.30.4",
+        "severity": "moderate",
+        "title": "React Router: Arbitrary Constructor Injection via deserializeErrors() in React Router SSR Hydration",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "7.18.0"
+        }
+      },
+      {
+        "id": "GHSA-wrjc-x8rr-h8h6@react-router-6.30.4",
+        "package": "react-router",
+        "version": "6.30.4",
+        "severity": "moderate",
+        "title": "React Router: Open redirect via backslash in <Link> and useNavigate (CVE-2025-68470 bypass)",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "7.18.0"
+        }
+      },
+      {
+        "id": "GHSA-jjmj-jmhj-qwj2@react-router-dom-6.30.4",
+        "package": "react-router-dom",
+        "version": "6.30.4",
+        "severity": "moderate",
+        "title": "React Router: Open redirect leading to XSS",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "6.30.6"
+        }
+      },
+      {
+        "id": "GHSA-68fv-2mgg-jv7q@source-map-js-1.2.1",
+        "package": "source-map-js",
+        "version": "1.2.1",
+        "severity": "high",
+        "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "1.2.2"
+        }
+      },
+      {
+        "id": "GHSA-2m5v-pch6-74hx@undici-7.29.1",
+        "package": "undici",
+        "version": "7.29.1",
+        "severity": "high",
+        "title": "undici vulnerable to TLS certificate validation bypass via dropped tls options in Agent",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.30.1"
+        }
+      },
+      {
+        "id": "GHSA-4qv8-2p9j-2685@undici-7.29.1",
+        "package": "undici",
+        "version": "7.29.1",
+        "severity": "moderate",
+        "title": "undici vulnerable to Denial of Service via unbounded memory in the EventSource parser",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.30.1"
+        }
+      },
+      {
+        "id": "GHSA-4w7w-5xrc-9h26@undici-7.29.1",
+        "package": "undici",
+        "version": "7.29.1",
+        "severity": "high",
+        "title": "undici vulnerable to cache poisoning and cross-user disclosure via cross-origin redirects",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.30.1"
+        }
+      },
+      {
+        "id": "GHSA-55wc-3pg8-jfw6@undici-7.29.1",
+        "package": "undici",
+        "version": "7.29.1",
+        "severity": "moderate",
+        "title": "undici vulnerable to Denial of Service via unhandled exception in the decompress interceptor",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.30.1"
+        }
+      },
+      {
+        "id": "GHSA-9fm3-97px-rjf6@undici-7.29.1",
+        "package": "undici",
+        "version": "7.29.1",
+        "severity": "moderate",
+        "title": "undici WebSocket client vulnerable to Denial of Service via unbounded automatic PONG buffering",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.30.1"
+        }
+      },
+      {
+        "id": "GHSA-f72v-6w45-q472@undici-7.29.1",
+        "package": "undici",
+        "version": "7.29.1",
+        "severity": "moderate",
+        "title": "undici vulnerable to Subresource Integrity bypass via non-lowercase algorithm tokens",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.30.1"
+        }
+      },
+      {
+        "id": "GHSA-qrxm-fqhp-jwvm@undici-7.29.1",
+        "package": "undici",
+        "version": "7.29.1",
+        "severity": "high",
+        "title": "undici vulnerable to Denial of Service via TLS 1.2 certificate-changing renegotiation",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.30.1"
+        }
+      },
+      {
+        "id": "GHSA-xjj6-f33q-929c@undici-7.29.1",
+        "package": "undici",
+        "version": "7.29.1",
+        "severity": "high",
+        "title": "undici vulnerable to Denial of Service via unhandled error on excessive content-encodings",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.30.1"
+        }
+      },
+      {
+        "id": "GHSA-587h-7wmj-h5pm@vite-7.3.5",
+        "package": "vite",
+        "version": "7.3.5",
+        "severity": "high",
+        "title": "launch-editor: `fs.existsSync()` existence check can be bypassed on Windows",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.3.7"
+        }
+      },
+      {
+        "id": "GHSA-698v-4r3x-3vcv@vite-7.3.5",
+        "package": "vite",
+        "version": "7.3.5",
+        "severity": "moderate",
+        "title": "launch-editor: escapeCmdArgs() omits % escaping on Windows",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.3.7"
+        }
+      },
+      {
+        "id": "GHSA-9jrq-w75r-8gcw@vite-7.3.5",
+        "package": "vite",
+        "version": "7.3.5",
+        "severity": "low",
+        "title": "Vite: Cross origin script execution through Vite custom middleware",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.3.7"
+        }
+      },
+      {
+        "id": "GHSA-r825-w8mm-5pxw@vite-7.3.5",
+        "package": "vite",
+        "version": "7.3.5",
+        "severity": "moderate",
+        "title": "launch-editor: Editor CLI flag misinterpretation causing arbitrary command execution for some editors",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.3.7"
+        }
+      },
+      {
+        "id": "GHSA-rq7h-c2jc-7f22@vite-7.3.5",
+        "package": "vite",
+        "version": "7.3.5",
+        "severity": "moderate",
+        "title": "Vite: Files outside `server.fs.allow` could be served when project paths match system paths on non-Windows machine",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": false,
+          "version": "7.3.7"
+        }
+      },
+      {
+        "id": "GHSA-mrhx-c7xc-m3w5@zod-3.25.76",
+        "package": "zod",
+        "version": "3.25.76",
+        "severity": "high",
+        "title": "Zod can exhaust memory while validating oversized constrained collections",
+        "paths": [
+          "pnpm-lock.yaml"
+        ],
+        "fix": {
+          "available": true,
+          "requiresMajorUpdate": true,
+          "version": "4.6.6"
+        }
+      }
+    ]
+  },
+  "sast": {
+    "incomplete": false,
+    "results": []
+  },
+  "dataflow": {
+    "vulnerabilities": []
+  }
+}

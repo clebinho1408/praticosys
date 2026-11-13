@@ -1,0 +1,103 @@
+{
+  "date": "2026-11-13",
+  "base": "https://praticosys.com.br/",
+  "observations": [
+    {
+      "path": "/",
+      "status": 200,
+      "bytesRead": 2048,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "path": "/assets/index-CGxIewTI.js",
+      "status": 200,
+      "bytesRead": 1517052,
+      "headers": {
+        "content-type": "application/javascript",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "cloudflare"
+      },
+      "sourceMapReferenced": false,
+      "credentialFormatMatchCount": 0
+    },
+    {
+      "path": "/assets/index-C4Stp4io.css",
+      "status": 200,
+      "bytesRead": 153722,
+      "headers": {
+        "content-type": "text/css; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "cloudflare"
+      }
+    },
+    {
+      "path": "/.env",
+      "status": 200,
+      "bytesRead": 2048,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "cloudflare"
+      },
+      "sameAsRootHtml": true,
+      "looksLikeHtml": true,
+      "credentialFormatMatchCount": 0
+    },
+    {
+      "path": "/.env.local",
+      "status": 200,
+      "bytesRead": 2048,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "cloudflare"
+      },
+      "sameAsRootHtml": true,
+      "looksLikeHtml": true,
+      "credentialFormatMatchCount": 0
+    },
+    {
+      "path": "/.git/HEAD",
+      "status": 200,
+      "bytesRead": 2048,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "cloudflare"
+      },
+      "sameAsRootHtml": true,
+      "looksLikeHtml": true,
+      "credentialFormatMatchCount": 0
+    },
+    {
+      "path": "/.migration-backup/.env.railway",
+      "status": 200,
+      "bytesRead": 2048,
+      "headers": {
+        "content-type": "text/html; charset=utf-8",
+        "x-content-type-options": "nosniff",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "server": "cloudflare"
+      },
+      "sameAsRootHtml": true,
+      "looksLikeHtml": true,
+      "credentialFormatMatchCount": 0
+    }
+  ],
+  "limitations": [
+    "static GET only; no production API calls",
+    "no private logs or credential validity tested",
+    "heuristic patterns do not cover all secret types",
+    "no authenticated production session used"
+  ]
+}
