@@ -227,16 +227,12 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
     return (
     <div className="flex flex-col h-full overflow-hidden bg-slate-900">
-      <div className={`h-16 flex items-center border-b border-slate-800 bg-slate-900 shrink-0 ${isCollapsed ? 'justify-center px-2' : 'justify-between gap-3 px-4'}`}>
-        {!isCollapsed && (
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-white/10 p-1.5 rounded-lg">
-              <Logo className="h-6 w-6" />
-            </div>
-            <span className="text-lg font-bold text-white tracking-tight">PráticoSys</span>
-          </div>
-        )}
-        {isMobile ? (
+      <div className={`h-16 flex items-center gap-3 border-b border-slate-800 bg-slate-900 shrink-0 ${isCollapsed ? 'justify-center px-2' : 'px-6'}`}>
+        <div className="bg-white/10 p-1.5 rounded-lg shrink-0">
+          <Logo className="h-6 w-6" />
+        </div>
+        {!isCollapsed && <span className="text-lg font-bold text-white tracking-tight">PráticoSys</span>}
+        {isMobile && (
         <button
           type="button"
           aria-label="Fechar menu"
@@ -244,17 +240,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
           className="md:hidden ml-auto text-slate-400 p-2 hover:bg-slate-800 rounded-lg"
         >
            <X className="h-6 w-6" />
-        </button>
-        ) : (
-        <button
-          type="button"
-          aria-label={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
-          aria-expanded={!isCollapsed}
-          title={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
-          onClick={toggleSidebarCollapsed}
-          className="text-slate-400 p-1.5 hover:bg-slate-800 hover:text-white rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-        >
-          {isCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
         </button>
         )}
       </div>
@@ -381,9 +366,20 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-gray-50 print:h-auto print:overflow-visible">
+      <div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden bg-gray-50 print:h-auto print:overflow-visible">
         <header className="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-4 md:px-8 print:hidden shadow-sm z-10 shrink-0">
             <div className="flex items-center gap-4">
+                <button
+                    type="button"
+                    aria-label={isSidebarCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+                    aria-controls="desktop-primary-navigation"
+                    aria-expanded={!isSidebarCollapsed}
+                    title={isSidebarCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+                    onClick={toggleSidebarCollapsed}
+                    className="hidden md:flex text-slate-500 p-2 hover:bg-slate-50 hover:text-blue-600 rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+                >
+                    {isSidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+                </button>
                 <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden text-slate-500 p-2 hover:bg-slate-50 rounded-xl transition-colors">
                     <Menu className="h-6 w-6" />
                 </button>

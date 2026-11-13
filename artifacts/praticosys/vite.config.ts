@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import { inlineEntryStyles } from "./build/inline-entry-styles";
 
 const isBuild = process.env.NODE_ENV === "production" || process.argv.includes("build");
 
@@ -25,6 +26,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    inlineEntryStyles(),
     runtimeErrorOverlay(),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined

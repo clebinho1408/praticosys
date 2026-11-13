@@ -15,3 +15,4 @@
 - [Sessão mobile](mobile-session-continuity.md) — examinador já usa instalação pelo navegador; tela de login ao reabrir não comprova perda da sessão.
 - [Credenciamento de veículos](vehicle-accreditation.md) — checkbox indica veículo credenciado/autorizado pelo Detran; não confundir com exigência de procuração.
 - [Preservar permissões na segurança](security-permission-preservation.md) — não retirar acessos de admin, supervisor e operador; produção e revogações reais exigem autorização.
+- [CSS de produção](production-css-validation.md) — validar CSS compilado e o menu real; estilos principais são incorporados ao HTML por confiabilidade de entrega.
